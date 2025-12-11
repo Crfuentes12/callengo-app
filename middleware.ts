@@ -59,8 +59,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
-  // If user is logged in and tries to access auth pages
+  // If user is logged in and tries to access auth pages, check onboarding status first
   if (session && isPublicRoute) {
+    // Check if user has completed onboarding
+    const { data: userData } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    if (!userData?.company_id) {
+      // User hasn't completed onboarding - redirect there
+      return NextResponse.redirect(new URL('/onboarding', request.url));
+    }
+
+    // User has completed onboarding - redirect to dashboard
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 

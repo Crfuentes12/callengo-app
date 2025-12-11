@@ -6,22 +6,34 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-type OnboardingStep = 
+type OnboardingStep =
   | 'form'
   | 'creating_company'
   | 'setting_up_account'
   | 'analyzing_website'
+  | 'showing_results'
   | 'complete'
   | 'error';
+
+interface ScrapedResults {
+  summary: string;
+  favicon_url: string | null;
+  data: {
+    title: string;
+    description: string;
+    headings: string[];
+  };
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { user } = useAuth();
   const supabase = createClient();
-  
+
   const [step, setStep] = useState<OnboardingStep>('form');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
+  const [scrapedData, setScrapedData] = useState<ScrapedResults | null>(null);
   const [formData, setFormData] = useState({
     companyName: '',
     companyWebsite: '',
@@ -133,24 +145,35 @@ export default function OnboardingPage() {
       if (formData.companyWebsite) {
         setStep('analyzing_website');
         setProgress(85);
-        
-        // Fire and forget - don't wait for it
-        fetch('/api/company/scrape', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            company_id: companyData.id,
-            website: formData.companyWebsite,
-          }),
-        }).catch(console.error);
-        
-        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        try {
+          const scrapeResponse = await fetch('/api/company/scrape', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              company_id: companyData.id,
+              website: formData.companyWebsite,
+            }),
+          });
+
+          if (scrapeResponse.ok) {
+            const scrapeData = await scrapeResponse.json();
+            setScrapedData(scrapeData);
+            setProgress(95);
+            setStep('showing_results');
+            // Show the wow effect for 4 seconds so user can see the results
+            await new Promise(resolve => setTimeout(resolve, 4000));
+          }
+        } catch (scrapeError) {
+          // Non-critical, continue without showing results
+          console.error('Scrape error:', scrapeError);
+        }
       }
 
       // 5. Complete
       setProgress(100);
       setStep('complete');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       // 6. Redirect to dashboard
       router.push('/dashboard');
@@ -171,6 +194,8 @@ export default function OnboardingPage() {
         return 'Setting up your account...';
       case 'analyzing_website':
         return 'Analyzing your website to personalize your experience...';
+      case 'showing_results':
+        return 'Here\'s what we found about your business!';
       case 'complete':
         return 'All set! Redirecting to dashboard...';
       case 'error':
@@ -197,6 +222,21 @@ export default function OnboardingPage() {
           <svg className="w-10 h-10 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
+        </div>
+      );
+    }
+
+    if (step === 'showing_results' && scrapedData?.favicon_url) {
+      return (
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 flex items-center justify-center shadow-2xl shadow-emerald-500/50 animate-bounce">
+          <img
+            src={scrapedData.favicon_url}
+            alt="Company favicon"
+            className="w-10 h-10 rounded"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </div>
       );
     }
@@ -393,16 +433,76 @@ export default function OnboardingPage() {
               </div>
             )}
 
+            {/* Scraped Results - WOW Effect */}
+            {step === 'showing_results' && scrapedData && (
+              <div className="space-y-4 text-left animate-fadeIn">
+                <div className="p-5 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl">
+                  <div className="flex items-start gap-4">
+                    {scrapedData.favicon_url && (
+                      <img
+                        src={scrapedData.favicon_url}
+                        alt="Company logo"
+                        className="w-12 h-12 rounded-xl shadow-md"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg text-slate-900 mb-1">
+                        {scrapedData.data.title || formData.companyName}
+                      </h3>
+                      {scrapedData.data.description && (
+                        <p className="text-sm text-slate-600 line-clamp-2">
+                          {scrapedData.data.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {scrapedData.summary && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide mb-1">AI Summary</p>
+                        <p className="text-sm text-blue-900">{scrapedData.summary}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {scrapedData.data.headings && scrapedData.data.headings.length > 0 && (
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Key Topics</p>
+                    <div className="flex flex-wrap gap-2">
+                      {scrapedData.data.headings.slice(0, 4).map((heading, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-700"
+                        >
+                          {heading.length > 30 ? heading.substring(0, 30) + '...' : heading}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Steps list */}
-            {isProcessing && (
+            {isProcessing && step !== 'showing_results' && (
               <div className="space-y-3 text-left">
                 <div className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
-                  ['creating_company', 'setting_up_account', 'analyzing_website', 'complete'].includes(step)
+                  ['creating_company', 'setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                     ? 'bg-emerald-50 border border-emerald-200'
                     : 'bg-slate-50 border border-slate-200'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                    ['creating_company', 'setting_up_account', 'analyzing_website', 'complete'].includes(step)
+                    ['creating_company', 'setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                       ? 'bg-emerald-500'
                       : 'bg-slate-300'
                   }`}>
@@ -411,7 +511,7 @@ export default function OnboardingPage() {
                     </svg>
                   </div>
                   <span className={`text-sm font-medium ${
-                    ['creating_company', 'setting_up_account', 'analyzing_website', 'complete'].includes(step)
+                    ['creating_company', 'setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                       ? 'text-emerald-900'
                       : 'text-slate-600'
                   }`}>
@@ -420,12 +520,12 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
-                  ['setting_up_account', 'analyzing_website', 'complete'].includes(step)
+                  ['setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                     ? 'bg-emerald-50 border border-emerald-200'
                     : 'bg-slate-50 border border-slate-200'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                    ['setting_up_account', 'analyzing_website', 'complete'].includes(step)
+                    ['setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                       ? 'bg-emerald-500'
                       : 'bg-slate-300'
                   }`}>
@@ -434,7 +534,7 @@ export default function OnboardingPage() {
                     </svg>
                   </div>
                   <span className={`text-sm font-medium ${
-                    ['setting_up_account', 'analyzing_website', 'complete'].includes(step)
+                    ['setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                       ? 'text-emerald-900'
                       : 'text-slate-600'
                   }`}>
@@ -444,12 +544,12 @@ export default function OnboardingPage() {
 
                 {formData.companyWebsite && (
                   <div className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
-                    ['analyzing_website', 'complete'].includes(step)
+                    ['analyzing_website', 'showing_results', 'complete'].includes(step)
                       ? 'bg-emerald-50 border border-emerald-200'
                       : 'bg-slate-50 border border-slate-200'
                   }`}>
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                      ['analyzing_website', 'complete'].includes(step)
+                      ['analyzing_website', 'showing_results', 'complete'].includes(step)
                         ? 'bg-emerald-500'
                         : 'bg-slate-300'
                     }`}>
@@ -458,7 +558,7 @@ export default function OnboardingPage() {
                       </svg>
                     </div>
                     <span className={`text-sm font-medium ${
-                      ['analyzing_website', 'complete'].includes(step)
+                      ['analyzing_website', 'showing_results', 'complete'].includes(step)
                         ? 'text-emerald-900'
                         : 'text-slate-600'
                     }`}>
@@ -485,8 +585,15 @@ export default function OnboardingPage() {
           66% { transform: translate(-20px, 20px) scale(0.9); }
           100% { transform: translate(0px, 0px) scale(1); }
         }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         .animate-blob {
           animation: blob 7s infinite;
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.5s ease-out forwards;
         }
         .animation-delay-2000 {
           animation-delay: 2s;
