@@ -1,3 +1,7 @@
+/*globals.css
+With the newest version of tailwindcss that only requirese the import tailwindcss
+*/
+
 @import "tailwindcss";
 
 :root {
