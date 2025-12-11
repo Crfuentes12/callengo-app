@@ -59,7 +59,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    setupAccount();
+    await setupAccount();
   };
 
   const setupAccount = async () => {
