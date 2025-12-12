@@ -1,4 +1,4 @@
-// app/dashboard/settings/page.tsx
+// app/settings/page.tsx
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import Layout from '@/components/layout/Layout';
@@ -6,9 +6,9 @@ import SettingsManager from '@/components/settings/SettingsManager';
 
 export default async function SettingsPage() {
   const supabase = await createServerClient();
-  
+
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  if (!user) redirect('/auth/login');
 
   const { data: userData } = await supabase
     .from('users')
@@ -16,10 +16,10 @@ export default async function SettingsPage() {
     .eq('id', user.id)
     .single();
 
-  if (!userData?.company_id) redirect('/signup');
+  if (!userData?.company_id) redirect('/onboarding');
 
   const company = userData.companies;
-  if (!company) redirect('/signup');
+  if (!company) redirect('/onboarding');
 
   let { data: settings } = await supabase
     .from('company_settings')
@@ -38,10 +38,10 @@ export default async function SettingsPage() {
 
   return (
     <Layout
-      user={{ 
-        id: user.id, 
-        email: user.email!, 
-        full_name: userData.full_name 
+      user={{
+        id: user.id,
+        email: user.email!,
+        full_name: userData.full_name
       }}
       company={company}
       headerTitle="Settings"
@@ -50,11 +50,11 @@ export default async function SettingsPage() {
       <SettingsManager
         company={company}
         settings={settings!}
-        user={{ 
-          id: user.id, 
-          email: user.email!, 
-          full_name: userData.full_name, 
-          role: userData.role 
+        user={{
+          id: user.id,
+          email: user.email!,
+          full_name: userData.full_name,
+          role: userData.role
         }}
       />
     </Layout>

@@ -68,10 +68,10 @@ export default function Sidebar({ company, onLogout }: SidebarProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Contacts', href: '/dashboard/contacts', icon: UsersIcon },
-    { name: 'Agents', href: '/dashboard/agents', icon: BotIcon },
-    { name: 'Analytics', href: '/dashboard/analytics', icon: ChartIcon },
-    { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
+    { name: 'Contacts', href: '/contacts', icon: UsersIcon },
+    { name: 'Agents', href: '/agents', icon: BotIcon },
+    { name: 'Analytics', href: '/analytics', icon: ChartIcon },
+    { name: 'Settings', href: '/settings', icon: CogIcon },
   ];
 
   return (
