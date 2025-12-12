@@ -22,8 +22,7 @@ export default async function AnalyticsPage() {
 
   if (!userData?.company_id) redirect('/onboarding');
 
-  // @ts-expect-error - Supabase join typing
-  const company = userData.companies;
+  const company = userData.companies as any;
   if (!company) redirect('/onboarding');
 
   // Fetch all call logs for this company
