@@ -40,30 +40,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event, 'Session:', !!session);
-      
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Handle auth state changes
-      if (event === 'SIGNED_IN') {
-        // Check if user has completed onboarding
-        if (session?.user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('company_id')
-            .eq('id', session.user.id)
-            .single();
-
-          // Only redirect if not already on the target page
-          if (!userData?.company_id && pathname !== '/onboarding') {
-            router.push('/onboarding');
-          } else if (userData?.company_id && pathname !== '/dashboard' && !pathname.startsWith('/dashboard')) {
-            router.push('/dashboard');
-          }
-        }
-      } else if (event === 'SIGNED_OUT') {
+      // Only handle sign out - let middleware and callback handle sign in redirects
+      // This prevents conflicting redirects between AuthContext, middleware, and callback
+      if (event === 'SIGNED_OUT') {
         if (!pathname.startsWith('/auth')) {
           router.push('/auth/login');
         }
