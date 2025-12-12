@@ -73,43 +73,43 @@ export default function Sidebar({ company, onLogout }: SidebarProps) {
   ];
 
   return (
-    <aside className="w-[240px] bg-white border-r border-slate-200 flex flex-col h-screen">
+    <aside className="w-[260px] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 flex flex-col h-screen shadow-2xl">
       {/* Logo */}
-      <div className="h-16 flex items-center px-4 border-b border-slate-200">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm">
-            <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <div className="h-16 flex items-center px-5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/50">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
             </svg>
           </div>
-          <span className="font-semibold text-[15px] text-slate-900">Callengo</span>
+          <span className="font-bold text-[16px] text-white">Callengo</span>
         </div>
       </div>
 
       {/* Company Info */}
-      <div className="px-3 py-3 border-b border-slate-200">
-        <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+      <div className="px-3 py-4 border-b border-slate-800/50">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800/60 transition-all cursor-pointer backdrop-blur-sm">
           {company.favicon_url ? (
             <img
               src={company.favicon_url}
               alt={company.name}
-              className="w-7 h-7 rounded-md object-cover bg-slate-100"
+              className="w-8 h-8 rounded-lg object-cover bg-slate-700 ring-2 ring-slate-700/50"
             />
           ) : (
-            <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center text-slate-600 font-semibold text-[11px]">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-slate-300 font-bold text-sm ring-2 ring-slate-700/50">
               {company.name.charAt(0).toUpperCase()}
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-slate-900 truncate">{company.name}</p>
-            <p className="text-[11px] text-slate-500 truncate">{company.website || 'No website'}</p>
+            <p className="text-[13px] font-semibold text-white truncate">{company.name}</p>
+            <p className="text-[11px] text-slate-400 truncate">{company.website || 'No website'}</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 py-3 overflow-y-auto">
-        <div className="space-y-0.5">
+      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+        <div className="space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href ||
               (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -118,15 +118,15 @@ export default function Sidebar({ company, onLogout }: SidebarProps) {
                 key={item.name}
                 href={item.href}
                 className={`
-                  flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[14px] font-medium
-                  transition-colors duration-150
+                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
+                  transition-all duration-200
                   ${isActive
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }
                 `}
               >
-                <item.icon className={`w-[18px] h-[18px] ${isActive ? 'text-indigo-600' : 'text-slate-500'}`} />
+                <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 <span>{item.name}</span>
               </Link>
             );
@@ -135,13 +135,13 @@ export default function Sidebar({ company, onLogout }: SidebarProps) {
       </nav>
 
       {/* Logout Button */}
-      <div className="p-2 border-t border-slate-200">
+      <div className="p-3 border-t border-slate-800/50">
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[14px] font-medium
-                     text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors duration-150"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
+                     text-slate-300 hover:text-red-400 hover:bg-red-900/20 transition-all duration-200"
         >
-          <LogoutIcon className="w-[18px] h-[18px] text-slate-500" />
+          <LogoutIcon className="w-5 h-5" />
           <span>Sign out</span>
         </button>
       </div>

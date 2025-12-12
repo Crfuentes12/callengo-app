@@ -36,15 +36,27 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 rounded-2xl p-6 text-white shadow-lg shadow-indigo-500/20">
-        <h2 className="text-2xl font-bold mb-2">Pre-Built AI Agents</h2>
-        <p className="text-indigo-100">
-          Choose an agent designed for your specific business need. Each agent is pre-trained and ready to use.
-        </p>
+    <div className="space-y-8">
+      {/* Hero Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 rounded-3xl p-8 shadow-2xl">
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl shadow-lg">
+              🎮
+            </div>
+            <h2 className="text-3xl font-bold text-white">AI Agent Gallery</h2>
+          </div>
+          <p className="text-lg text-indigo-200">
+            Deploy specialized AI agents for your business. Each character has unique abilities and skills.
+          </p>
+        </div>
+        {/* Decorative elements */}
+        <div className="absolute right-0 top-0 w-96 h-96 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
+        <div className="absolute left-0 bottom-0 w-64 h-64 bg-gradient-to-tr from-purple-500/10 to-pink-500/10 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl"></div>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Agent Cards Grid */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {agentTemplates.map((agent) => (
           <AgentCard
             key={agent.id}
@@ -53,6 +65,17 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
           />
         ))}
       </div>
+
+      {/* Empty state if no agents */}
+      {agentTemplates.length === 0 && (
+        <div className="text-center py-16">
+          <div className="w-20 h-20 rounded-2xl bg-slate-200 flex items-center justify-center mx-auto mb-4 text-4xl">
+            🤖
+          </div>
+          <h3 className="text-xl font-semibold text-slate-900 mb-2">No agents available</h3>
+          <p className="text-slate-600">Check back later for new AI agents.</p>
+        </div>
+      )}
 
       {showConfigModal && selectedAgent && (
         <AgentConfigModal
