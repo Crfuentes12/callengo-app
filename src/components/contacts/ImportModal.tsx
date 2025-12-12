@@ -80,32 +80,36 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl">
-        <div className="p-6 border-b border-slate-200">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200/50">
+        <div className="p-6 border-b border-slate-100">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-slate-900">Import Contacts</h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-          
+
           {/* Progress */}
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex items-center gap-2 mt-5">
             {(['upload', 'mapping', 'preview', 'complete'] as const).map((s, idx) => (
               <div key={s} className="flex items-center flex-1">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                  step === s ? 'bg-blue-600 text-white' : 
-                  ['upload', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-blue-100 text-blue-600' : 
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+                  step === s ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' :
+                  ['upload', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-indigo-100 text-indigo-600' :
                   'bg-slate-100 text-slate-400'
                 }`}>
-                  {idx + 1}
+                  {['upload', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : idx + 1}
                 </div>
                 {idx < 3 && (
-                  <div className={`flex-1 h-1 mx-2 rounded ${
-                    ['upload', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-blue-600' : 'bg-slate-200'
+                  <div className={`flex-1 h-1 mx-2 rounded-full transition-all ${
+                    ['upload', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-indigo-600' : 'bg-slate-200'
                   }`}></div>
                 )}
               </div>
@@ -117,7 +121,7 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
           {step === 'upload' && (
             <div>
               <div
-                className="border-2 border-dashed border-slate-300 rounded-xl p-12 text-center hover:border-blue-500 hover:bg-blue-50/50 cursor-pointer transition-all"
+                className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center hover:border-indigo-400 hover:bg-indigo-50/50 cursor-pointer transition-all group"
                 onClick={() => document.getElementById('csv-upload')?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -138,16 +142,18 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
                 />
                 {loading ? (
                   <div className="flex items-center justify-center gap-3">
-                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-slate-600">Processing...</span>
+                    <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-slate-600 font-medium">Processing...</span>
                   </div>
                 ) : (
                   <>
-                    <svg className="w-10 h-10 text-slate-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <p className="text-slate-600 font-medium">Drag and drop a CSV file here</p>
-                    <p className="text-sm text-slate-400 mt-1">or click to browse</p>
+                    <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
+                      <svg className="w-7 h-7 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <p className="text-slate-700 font-semibold">Drag and drop a CSV file here</p>
+                    <p className="text-sm text-slate-500 mt-1">or click to browse</p>
                   </>
                 )}
               </div>
@@ -157,7 +163,7 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
           {step === 'mapping' && (
             <div>
               <p className="text-sm text-slate-600 mb-4">
-                Map your CSV columns to contact fields. Found {rows.length} rows.
+                Map your CSV columns to contact fields. Found <span className="font-semibold text-slate-900">{rows.length}</span> rows.
               </p>
               <div className="space-y-3">
                 {Object.entries({
@@ -175,7 +181,7 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
                     <select
                       value={mapping[field as keyof ColumnMapping] || ''}
                       onChange={(e) => setMapping({ ...mapping, [field]: e.target.value || null })}
-                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white transition-all cursor-pointer"
                     >
                       <option value="">-- Select Column --</option>
                       {headers.map((header) => (
@@ -188,14 +194,14 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setStep('upload')}
-                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50"
+                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
                 >
                   Back
                 </button>
                 <button
                   onClick={() => setStep('preview')}
                   disabled={!mapping.phoneNumber}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
                 >
                   Preview
                 </button>
@@ -206,20 +212,20 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
           {step === 'preview' && (
             <div>
               <p className="text-sm text-slate-600 mb-4">Preview of first 5 rows:</p>
-              <div className="overflow-x-auto mb-6 rounded-lg border border-slate-200">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50">
+              <div className="overflow-x-auto mb-6 rounded-xl border border-slate-200/80 shadow-sm">
+                <table className="min-w-full divide-y divide-slate-100 text-sm">
+                  <thead className="bg-slate-50/80">
                     <tr>
                       {headers.slice(0, 6).map((header) => (
-                        <th key={header} className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">
+                        <th key={header} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                           {header}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
+                  <tbody className="divide-y divide-slate-100 bg-white">
                     {rows.slice(0, 5).map((row, i) => (
-                      <tr key={i}>
+                      <tr key={i} className="hover:bg-slate-50/50">
                         {row.slice(0, 6).map((cell, j) => (
                           <td key={j} className="px-4 py-3 text-slate-700 truncate max-w-xs">{cell}</td>
                         ))}
@@ -231,14 +237,14 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep('mapping')}
-                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50"
+                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleImport}
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-sm"
                 >
                   {loading ? 'Importing...' : `Import ${rows.length} Contacts`}
                 </button>
@@ -247,20 +253,20 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
           )}
 
           {step === 'complete' && result && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+            <div className="text-center py-10">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-5">
                 <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Import Complete!</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Import Complete!</h3>
               <p className="text-slate-600 mb-6">
-                Successfully imported {result.imported} contacts.
-                {result.skipped > 0 && ` Skipped ${result.skipped} invalid rows.`}
+                Successfully imported <span className="font-semibold text-emerald-600">{result.imported}</span> contacts.
+                {result.skipped > 0 && <span className="text-amber-600"> Skipped {result.skipped} invalid rows.</span>}
               </p>
               <button
                 onClick={onComplete}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium shadow-sm"
               >
                 View Contacts
               </button>
