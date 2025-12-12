@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    const csvContent = contactsToCSV(contacts || []);
+    const csvContent = contactsToCSV((contacts || []) as any);
     const today = new Date().toISOString().split('T')[0];
     const filename = `contacts_export_${today}.csv`;
 
