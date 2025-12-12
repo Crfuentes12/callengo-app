@@ -274,7 +274,7 @@ export default function DashboardOverview({ contacts, recentCalls, company }: Da
       {/* Quick Actions */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <a
-          href="/dashboard/contacts"
+          href="/contacts"
           className="group bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-indigo-200 transition-all duration-200"
         >
           <div className="flex items-center gap-4">
@@ -293,7 +293,7 @@ export default function DashboardOverview({ contacts, recentCalls, company }: Da
         </a>
 
         <a
-          href="/dashboard/agents"
+          href="/agents"
           className="group bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-emerald-200 transition-all duration-200"
         >
           <div className="flex items-center gap-4">
@@ -312,7 +312,7 @@ export default function DashboardOverview({ contacts, recentCalls, company }: Da
         </a>
 
         <a
-          href="/dashboard/settings"
+          href="/settings"
           className="group bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-violet-200 transition-all duration-200"
         >
           <div className="flex items-center gap-4">
