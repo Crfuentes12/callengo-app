@@ -1,6 +1,7 @@
 // components/agents/AgentCard.tsx
 'use client';
 
+import Image from 'next/image';
 import { AgentTemplate } from '@/types/supabase';
 
 interface AgentCardProps {
@@ -8,114 +9,150 @@ interface AgentCardProps {
   onSelect: () => void;
 }
 
-// Generate avatar based on agent name
-const getAvatarForAgent = (name: string) => {
-  const avatars = {
-    'Sales': '👨‍💼',
-    'Support': '👩‍💻',
-    'Lead': '🧑‍🚀',
-    'Survey': '👩‍🔬',
-    'Verification': '👨‍⚖️',
-    'Appointment': '👩‍⚕️',
-    'Follow-up': '🧑‍💼',
-    'Feedback': '👨‍🎓',
+// Map agent names/slugs to avatar images
+const getAvatarImage = (name: string) => {
+  const nameMap: Record<string, string> = {
+    'abandoned-cart': '/agent-avatars/abandoned-cart.png',
+    'appointment': '/agent-avatars/appointment-confirmation.png',
+    'data-validation': '/agent-avatars/data-validation.png',
+    'feedback': '/agent-avatars/feedback.png',
+    'lead-qualification': '/agent-avatars/lead-qualification.png',
+    'lead-reactivation': '/agent-avatars/lead-reactivation.png',
+    'winback': '/agent-avatars/winback.png',
   };
 
-  for (const key in avatars) {
-    if (name.toLowerCase().includes(key.toLowerCase())) {
-      return avatars[key as keyof typeof avatars];
+  // Try to find by exact slug match
+  const slug = name.toLowerCase().replace(/\s+/g, '-');
+  if (nameMap[slug]) return nameMap[slug];
+
+  // Try partial matches
+  for (const key in nameMap) {
+    if (slug.includes(key) || key.includes(slug)) {
+      return nameMap[key];
     }
   }
-  return '🤖';
+
+  // Default fallback
+  return '/agent-avatars/lead-qualification.png';
 };
 
 const getCategoryColor = (category: string | null) => {
   const colors = {
-    'sales': 'from-emerald-500 to-teal-600',
-    'support': 'from-blue-500 to-cyan-600',
-    'verification': 'from-purple-500 to-pink-600',
-    'appointment': 'from-orange-500 to-red-600',
-    'survey': 'from-indigo-500 to-violet-600',
+    'sales': 'from-emerald-400 via-emerald-500 to-teal-600',
+    'support': 'from-blue-400 via-blue-500 to-cyan-600',
+    'verification': 'from-purple-400 via-purple-500 to-pink-600',
+    'appointment': 'from-orange-400 via-orange-500 to-red-600',
+    'survey': 'from-indigo-400 via-indigo-500 to-violet-600',
   };
 
   const cat = category?.toLowerCase() || 'default';
-  return colors[cat as keyof typeof colors] || 'from-slate-500 to-slate-600';
+  return colors[cat as keyof typeof colors] || 'from-slate-400 via-slate-500 to-slate-600';
 };
 
 export default function AgentCard({ agent, onSelect }: AgentCardProps) {
-  const avatar = agent.icon || getAvatarForAgent(agent.name);
+  const avatarImage = getAvatarImage(agent.name);
   const gradientColor = getCategoryColor(agent.category);
 
   return (
-    <div className="group relative">
-      {/* Glow effect on hover */}
-      <div className={`absolute -inset-0.5 bg-gradient-to-r ${gradientColor} rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-500`}></div>
+    <div className="group relative cursor-pointer" onClick={onSelect}>
+      {/* Outer glow effect */}
+      <div className={`absolute -inset-1 bg-gradient-to-r ${gradientColor} rounded-2xl blur-lg opacity-0 group-hover:opacity-60 transition-all duration-500 animate-pulse`}></div>
 
-      {/* Main card */}
-      <div className="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 hover:border-slate-600 transition-all duration-300">
-        {/* Top gradient bar */}
-        <div className={`h-2 bg-gradient-to-r ${gradientColor}`}></div>
-
-        {/* Card content */}
-        <div className="p-6">
-          {/* Avatar & Category badge */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="relative">
-              {/* Avatar circle */}
-              <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${gradientColor} flex items-center justify-center text-4xl shadow-lg ring-4 ring-slate-800 group-hover:scale-110 transition-transform duration-300`}>
-                {avatar}
-              </div>
-              {/* Level badge */}
-              <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br ${gradientColor} flex items-center justify-center text-xs font-bold text-white shadow-lg ring-2 ring-slate-900`}>
-                AI
-              </div>
-            </div>
-
-            {/* Category badge */}
-            <span className={`px-3 py-1.5 bg-gradient-to-r ${gradientColor} text-white text-xs font-bold rounded-lg capitalize shadow-md`}>
-              {agent.category || 'Agent'}
-            </span>
-          </div>
-
-          {/* Agent name */}
-          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-slate-300 transition-all">
-            {agent.name}
-          </h3>
-
-          {/* Description */}
-          <p className="text-sm text-slate-400 mb-4 line-clamp-2 leading-relaxed">
-            {agent.description || 'A powerful AI agent ready to assist with your business needs.'}
-          </p>
-
-          {/* Stats / Skills */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="bg-slate-800/50 rounded-lg p-2 text-center backdrop-blur-sm border border-slate-700/30">
-              <div className="text-xs text-slate-400">Calls</div>
-              <div className="text-sm font-bold text-white">24/7</div>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg p-2 text-center backdrop-blur-sm border border-slate-700/30">
-              <div className="text-xs text-slate-400">Lang</div>
-              <div className="text-sm font-bold text-white">Multi</div>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg p-2 text-center backdrop-blur-sm border border-slate-700/30">
-              <div className="text-xs text-slate-400">Speed</div>
-              <div className="text-sm font-bold text-white">Fast</div>
-            </div>
-          </div>
-
-          {/* Select button */}
-          <button
-            onClick={onSelect}
-            className={`w-full py-3 bg-gradient-to-r ${gradientColor} text-white font-bold rounded-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-0.5 relative overflow-hidden group/btn`}
-          >
-            <span className="relative z-10">Deploy Agent</span>
-            {/* Shine effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover/btn:translate-x-[200%] transition-transform duration-700"></div>
-          </button>
+      {/* Main card container */}
+      <div className="relative h-[420px] rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-700/50 group-hover:border-slate-500 transition-all duration-500 group-hover:scale-[1.02] group-hover:shadow-[0_0_50px_rgba(99,102,241,0.5)]">
+        {/* Character Image Background */}
+        <div className="absolute inset-0">
+          <Image
+            src={avatarImage}
+            alt={agent.name}
+            fill
+            className="object-cover group-hover:scale-110 transition-transform duration-700"
+            priority
+          />
+          {/* Vignette effect */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black"></div>
         </div>
 
-        {/* Bottom decorative pattern */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-slate-950/50 to-transparent pointer-events-none"></div>
+        {/* Top HUD */}
+        <div className="absolute top-0 left-0 right-0 p-4 flex items-start justify-between z-10">
+          {/* Level badge */}
+          <div className="relative">
+            <div className={`px-3 py-1.5 bg-gradient-to-r ${gradientColor} rounded-lg shadow-lg backdrop-blur-sm border border-white/20`}>
+              <span className="text-white text-xs font-black uppercase tracking-wider">AI AGENT</span>
+            </div>
+            {/* Animated corner accents */}
+            <div className={`absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+            <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+          </div>
+
+          {/* Category badge */}
+          <div className="px-3 py-1.5 bg-black/70 backdrop-blur-md rounded-lg border border-white/10 shadow-lg">
+            <span className="text-white text-xs font-bold uppercase tracking-wide">
+              {agent.category || 'Special'}
+            </span>
+          </div>
+        </div>
+
+        {/* Bottom info panel with gradient */}
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          {/* Dark gradient background for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/95 to-transparent"></div>
+
+          <div className="relative p-5 space-y-3">
+            {/* Agent name with futuristic styling */}
+            <div className="relative">
+              <h3 className="text-2xl font-black text-white uppercase tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:via-blue-400 group-hover:to-purple-400 transition-all duration-300">
+                {agent.name}
+              </h3>
+              {/* Accent line */}
+              <div className={`h-1 w-0 group-hover:w-full bg-gradient-to-r ${gradientColor} rounded-full transition-all duration-500 mt-1`}></div>
+            </div>
+
+            {/* Description */}
+            <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed drop-shadow-lg">
+              {agent.description || 'Elite AI agent with specialized capabilities for your mission.'}
+            </p>
+
+            {/* Quick stats mini bars */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-black/40 backdrop-blur-sm rounded border border-cyan-500/30 p-1.5 text-center group-hover:border-cyan-400/60 transition-colors">
+                <div className="text-[10px] text-cyan-300 font-bold uppercase">Power</div>
+                <div className="text-sm font-black text-white">95</div>
+              </div>
+              <div className="bg-black/40 backdrop-blur-sm rounded border border-purple-500/30 p-1.5 text-center group-hover:border-purple-400/60 transition-colors">
+                <div className="text-[10px] text-purple-300 font-bold uppercase">Speed</div>
+                <div className="text-sm font-black text-white">88</div>
+              </div>
+              <div className="bg-black/40 backdrop-blur-sm rounded border border-pink-500/30 p-1.5 text-center group-hover:border-pink-400/60 transition-colors">
+                <div className="text-[10px] text-pink-300 font-bold uppercase">Intel</div>
+                <div className="text-sm font-black text-white">92</div>
+              </div>
+            </div>
+
+            {/* Select button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect();
+              }}
+              className={`w-full py-3 bg-gradient-to-r ${gradientColor} text-white font-black uppercase text-sm tracking-wider rounded-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden border border-white/20 group-hover:border-white/40`}
+            >
+              <span className="relative z-10 drop-shadow-lg">⚡ SELECT AGENT</span>
+              {/* Animated shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+            </button>
+          </div>
+        </div>
+
+        {/* Scan line effect */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-2000 pointer-events-none"></div>
+
+        {/* Corner accents */}
+        <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-cyan-400/0 group-hover:border-cyan-400/80 transition-all duration-300"></div>
+        <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-cyan-400/0 group-hover:border-cyan-400/80 transition-all duration-300"></div>
+        <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-cyan-400/0 group-hover:border-cyan-400/80 transition-all duration-300"></div>
+        <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-cyan-400/0 group-hover:border-cyan-400/80 transition-all duration-300"></div>
       </div>
     </div>
   );
