@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { contactsToCSV } from '@/lib/call-agent-utils';
+import { Contact } from '@/types/call-agent'; // Importar desde donde está definido
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +31,8 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    const csvContent = contactsToCSV(contacts || []);
+    // Cast a Contact[]
+    const csvContent = contactsToCSV((contacts || []) as Contact[]);
     const today = new Date().toISOString().split('T')[0];
     const filename = `contacts_export_${today}.csv`;
 
