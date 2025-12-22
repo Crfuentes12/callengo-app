@@ -22,7 +22,7 @@ interface SettingsManagerProps {
 
 export default function SettingsManager({ company: initialCompany, settings: initialSettings, user }: SettingsManagerProps) {
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState<'company' | 'api' | 'calling'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'calling'>('company');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
@@ -38,11 +38,6 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     default_interval_minutes: initialSettings.default_interval_minutes,
     default_max_duration: initialSettings.default_max_duration,
     test_phone_number: initialSettings.test_phone_number || '',
-  });
-
-  const [apiKeys, setApiKeys] = useState({
-    bland_api_key: '',
-    openai_api_key: '',
   });
 
   const handleUpdateCompany = async (e: React.FormEvent) => {
@@ -111,59 +106,34 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     }
   };
 
-  const handleUpdateApiKeys = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setSuccess('');
-
-    try {
-      const updates: any = {};
-      if (apiKeys.bland_api_key) updates.bland_api_key = apiKeys.bland_api_key;
-      if (apiKeys.openai_api_key) updates.openai_api_key = apiKeys.openai_api_key;
-
-      const { error } = await supabase
-        .from('company_settings')
-        .update(updates)
-        .eq('company_id', initialCompany.id);
-
-      if (error) throw error;
-
-      setSuccess('API keys updated successfully');
-      setApiKeys({ bland_api_key: '', openai_api_key: '' });
-    } catch (error) {
-      alert('Failed to update API keys');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Success Message */}
       {success && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3">
-          <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+        <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
           <p className="text-sm text-emerald-700 font-medium">{success}</p>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="border-b border-slate-200">
+      <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-sm">
+        <div className="border-b border-slate-100">
           <nav className="flex">
             {[
               { id: 'company', label: 'Company Info', icon: '🏢' },
               { id: 'calling', label: 'Call Settings', icon: '📞' },
-              { id: 'api', label: 'API Keys', icon: '🔑' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-all ${
                   activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600 bg-blue-50'
+                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
@@ -189,7 +159,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       type="text"
                       value={company.name}
                       onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                       required
                     />
                   </div>
@@ -204,13 +174,13 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                         value={company.website}
                         onChange={(e) => setCompany({ ...company, website: e.target.value })}
                         placeholder="https://example.com"
-                        className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                       />
                       <button
                         type="button"
                         onClick={handleScrapeWebsite}
                         disabled={!company.website || loading}
-                        className="px-4 py-2.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 flex items-center gap-2"
+                        className="px-4 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium transition-all shadow-sm"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -218,7 +188,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                         Analyze
                       </button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-1.5">
                       We'll extract company info from your website to improve AI conversations
                     </p>
                   </div>
@@ -232,7 +202,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       value={company.industry}
                       onChange={(e) => setCompany({ ...company, industry: e.target.value })}
                       placeholder="e.g., Technology, Healthcare, Retail"
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                     />
                   </div>
 
@@ -245,7 +215,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       onChange={(e) => setCompany({ ...company, description: e.target.value })}
                       rows={4}
                       placeholder="Brief description of your company..."
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none"
                     />
                   </div>
                 </div>
@@ -254,7 +224,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
               >
                 {loading ? 'Saving...' : 'Save Company Info'}
               </button>
@@ -274,7 +244,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                     <select
                       value={settings.default_voice}
                       onChange={(e) => setSettings({ ...settings, default_voice: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white outline-none transition-all cursor-pointer"
                     >
                       <option value="maya">Maya (Female)</option>
                       <option value="nat">Natalie (Female)</option>
@@ -293,7 +263,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       max="15"
                       value={settings.default_max_duration}
                       onChange={(e) => setSettings({ ...settings, default_max_duration: parseInt(e.target.value) })}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                     />
                   </div>
 
@@ -307,7 +277,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       max="60"
                       value={settings.default_interval_minutes}
                       onChange={(e) => setSettings({ ...settings, default_interval_minutes: parseInt(e.target.value) })}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                     />
                   </div>
 
@@ -320,9 +290,9 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       value={settings.test_phone_number}
                       onChange={(e) => setSettings({ ...settings, test_phone_number: e.target.value })}
                       placeholder="+1 (555) 123-4567"
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                     />
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-1.5">
                       Use this number for test calls
                     </p>
                   </div>
@@ -332,77 +302,9 @@ export default function SettingsManager({ company: initialCompany, settings: ini
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
               >
                 {loading ? 'Saving...' : 'Save Call Settings'}
-              </button>
-            </form>
-          )}
-
-          {/* API Keys Tab */}
-          {activeTab === 'api' && (
-            <form onSubmit={handleUpdateApiKeys} className="space-y-6">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">API Keys</h3>
-                <p className="text-sm text-slate-600 mb-4">
-                  Configure your own API keys for Bland AI and OpenAI (optional - defaults to system keys)
-                </p>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Bland AI API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={apiKeys.bland_api_key}
-                      onChange={(e) => setApiKeys({ ...apiKeys, bland_api_key: e.target.value })}
-                      placeholder="sk-..."
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      Get your API key from <a href="https://app.bland.ai" target="_blank" className="text-blue-600 hover:underline">Bland AI Dashboard</a>
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      OpenAI API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={apiKeys.openai_api_key}
-                      onChange={(e) => setApiKeys({ ...apiKeys, openai_api_key: e.target.value })}
-                      placeholder="sk-..."
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      Get your API key from <a href="https://platform.openai.com" target="_blank" className="text-blue-600 hover:underline">OpenAI Platform</a>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-amber-50 rounded-lg p-4 border border-amber-200 mt-4">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-amber-900 mb-1">Security Note</p>
-                      <p className="text-sm text-amber-700">
-                        API keys are encrypted and stored securely. Leave blank to use system default keys.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loading ? 'Saving...' : 'Save API Keys'}
               </button>
             </form>
           )}

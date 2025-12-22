@@ -1,12 +1,12 @@
 // app/auth/verify-email/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
-export default function VerifyEmailPage() {
+function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const { resendVerification } = useAuth();
   const email = searchParams.get('email');
@@ -155,5 +155,17 @@ export default function VerifyEmailPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      </div>
+    }>
+      <VerifyEmailForm />
+    </Suspense>
   );
 }
