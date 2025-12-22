@@ -19,33 +19,16 @@ const getAvatarImage = (name: string, voice?: string) => {
   // If voice is selected, use gender-specific avatar
   if (voice) {
     const femaleVoices = ['maya', 'nat'];
-    const isFemale = femaleVoices.includes(voice);
+    const maleVoices = ['josh', 'matt'];
 
-    // Return appropriate gendered avatar
-    // For now using same avatars, but you can add female/male specific ones later
-    const nameMap: Record<string, string> = {
-      'abandoned-cart': '/agent-avatars/abandoned-cart.png',
-      'appointment': '/agent-avatars/appointment-confirmation.png',
-      'data-validation': '/agent-avatars/data-validation.png',
-      'feedback': '/agent-avatars/feedback.png',
-      'lead-qualification': '/agent-avatars/lead-qualification.png',
-      'lead-reactivation': '/agent-avatars/lead-reactivation.png',
-      'winback': '/agent-avatars/winback.png',
-    };
-
-    const slug = name.toLowerCase().replace(/\s+/g, '-');
-    if (nameMap[slug]) return nameMap[slug];
-
-    for (const key in nameMap) {
-      if (slug.includes(key) || key.includes(slug)) {
-        return nameMap[key];
-      }
+    if (femaleVoices.includes(voice)) {
+      return '/agent-avatars/female-agent.png';
+    } else if (maleVoices.includes(voice)) {
+      return '/agent-avatars/male-agent.png';
     }
-
-    return '/agent-avatars/lead-qualification.png';
   }
 
-  // Default behavior without voice
+  // Default behavior without voice - show robot avatars
   const nameMap: Record<string, string> = {
     'abandoned-cart': '/agent-avatars/abandoned-cart.png',
     'appointment': '/agent-avatars/appointment-confirmation.png',
@@ -186,7 +169,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const [agentName, setAgentName] = useState('');
   const [agentTitle, setAgentTitle] = useState('AI Sales Agent');
   const [settings, setSettings] = useState({
-    voice: 'maya',
+    voice: '',
     maxDuration: 5,
     intervalMinutes: 5,
     maxCallsPerDay: 100,
@@ -329,6 +312,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                       onChange={(e) => setSettings({ ...settings, voice: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
                     >
+                      <option value="">Select a voice...</option>
                       <option value="maya">Maya (Female)</option>
                       <option value="nat">Natalie (Female)</option>
                       <option value="josh">Josh (Male)</option>
@@ -360,33 +344,8 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                 </div>
               </div>
 
-              {/* Right side - Stats */}
+              {/* Right side - Abilities */}
               <div className="space-y-4">
-                {/* Stats panel */}
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50">
-                  <h3 className="text-sm font-black text-white uppercase mb-3">Performance Metrics</h3>
-                  <div className="space-y-3">
-                    {Object.entries(stats).map(([key, value], index) => {
-                      const colors = [
-                        'from-red-500 to-orange-600',
-                        'from-cyan-500 to-blue-600',
-                        'from-purple-500 to-pink-600',
-                        'from-yellow-500 to-orange-600',
-                        'from-emerald-500 to-teal-600',
-                      ];
-                      const label = key.replace(/_/g, ' ');
-                      return (
-                        <StatBar
-                          key={key}
-                          label={label}
-                          value={value}
-                          color={colors[index % colors.length]}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-
                 {/* Abilities */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50">
                   <h3 className="text-sm font-black text-white uppercase mb-3">Core Capabilities</h3>
@@ -525,7 +484,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                         value={settings.companyInfo.description}
                         onChange={(e) => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, description: e.target.value } })}
                         className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none resize-none"
-                        rows={2}
+                        rows={3}
                       />
                     </div>
                   </div>
@@ -602,6 +561,26 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                         />
                       </div>
                       <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Timezone</label>
+                        <select
+                          value={settings.timezone}
+                          onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                        >
+                          <option value="America/New_York">Eastern Time (ET)</option>
+                          <option value="America/Chicago">Central Time (CT)</option>
+                          <option value="America/Denver">Mountain Time (MT)</option>
+                          <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                          <option value="America/Anchorage">Alaska Time (AKT)</option>
+                          <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                          <option value="Europe/London">London (GMT)</option>
+                          <option value="Europe/Paris">Paris (CET)</option>
+                          <option value="Asia/Tokyo">Tokyo (JST)</option>
+                          <option value="Asia/Dubai">Dubai (GST)</option>
+                          <option value="Australia/Sydney">Sydney (AEDT)</option>
+                        </select>
+                      </div>
+                      <div>
                         <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Start Time</label>
                         <input
                           type="time"
@@ -649,9 +628,6 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   }
 
   if (step === 'confirm') {
-    const estimatedCost = contactCount * 0.09;
-    const estimatedDuration = contactCount * settings.intervalMinutes;
-
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
         <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col">
@@ -736,29 +712,6 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Estimates */}
-            <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 rounded-xl p-5 border border-cyan-500/30 mb-6">
-              <h4 className="text-sm font-black text-cyan-300 uppercase mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Campaign Estimates
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-cyan-300/80 mb-1">Estimated Cost</p>
-                  <p className="text-2xl font-black text-white">${estimatedCost.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-cyan-300/80 mb-1">Estimated Duration</p>
-                  <p className="text-2xl font-black text-white">{Math.ceil(estimatedDuration / 60)}h</p>
-                </div>
-              </div>
-              <p className="text-xs text-cyan-300/60 mt-4">
-                * Estimates based on successful connections and average call duration
-              </p>
             </div>
 
             {/* Action buttons */}
