@@ -60,28 +60,30 @@ export default function AgentCard({ agent, onSelect }: AgentCardProps) {
 
       {/* Main card container */}
       <div className="relative h-[420px] rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-700/50 group-hover:border-slate-500 transition-all duration-500 group-hover:scale-[1.02] group-hover:shadow-[0_0_50px_rgba(99,102,241,0.5)]">
-        {/* Character Image Background */}
+        {/* Character Image Background - positioned to show chest icon */}
         <div className="absolute inset-0">
-          <Image
-            src={avatarImage}
-            alt={agent.name}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-700"
-            priority
-          />
-          {/* Subtle vignette - lighter to show chest icon */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
+          <div className="absolute inset-x-0 top-0 bottom-[100px]">
+            <Image
+              src={avatarImage}
+              alt={agent.name}
+              fill
+              className="object-cover object-top group-hover:scale-105 transition-transform duration-700"
+              priority
+            />
+          </div>
+          {/* Subtle top vignette */}
+          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-black/20"></div>
         </div>
 
-        {/* Bottom info panel - more compact */}
-        <div className="absolute bottom-0 left-0 right-0 z-10">
-          {/* Smaller gradient background for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent"></div>
+        {/* Bottom panel with black background connecting to image */}
+        <div className="absolute bottom-0 left-0 right-0 h-[100px] z-10 bg-black">
+          {/* Gradient overlay for smooth transition */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/95 to-transparent"></div>
 
-          <div className="relative p-4 space-y-2">
+          <div className="relative p-4 space-y-1.5">
             {/* Agent name with futuristic styling */}
             <div className="relative">
-              <h3 className="text-xl font-black text-white uppercase tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:via-blue-400 group-hover:to-purple-400 transition-all duration-300">
+              <h3 className="text-lg font-black text-white uppercase tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:via-blue-400 group-hover:to-purple-400 transition-all duration-300">
                 {agent.name}
               </h3>
               {/* Accent line */}

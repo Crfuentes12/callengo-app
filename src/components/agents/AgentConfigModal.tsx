@@ -38,18 +38,76 @@ const getAvatarImage = (name: string) => {
   return '/agent-avatars/lead-qualification.png';
 };
 
-// Generate agent stats based on agent type
+// Generate realistic agent stats based on agent type
 const getAgentStats = (agent: AgentTemplate) => {
-  // Base stats with some randomization based on agent name
-  const hash = agent.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const name = agent.name.toLowerCase();
 
+  // Data Validation Agent - High accuracy, medium persuasion
+  if (name.includes('data') || name.includes('validation')) {
+    return {
+      accuracy: 98,
+      communication: 85,
+      speed: 92,
+      technical: 95,
+    };
+  }
+
+  // Lead Reactivation - High persuasion and persistence
+  if (name.includes('reactivation') || name.includes('lead')) {
+    return {
+      persuasion: 94,
+      persistence: 96,
+      empathy: 88,
+      communication: 91,
+    };
+  }
+
+  // Abandoned Cart - High urgency and conversion focus
+  if (name.includes('cart') || name.includes('abandoned')) {
+    return {
+      persuasion: 92,
+      urgency: 95,
+      empathy: 87,
+      conversion: 93,
+    };
+  }
+
+  // Feedback Collection - High empathy and communication
+  if (name.includes('feedback') || name.includes('survey')) {
+    return {
+      empathy: 96,
+      communication: 94,
+      patience: 90,
+      listening: 93,
+    };
+  }
+
+  // Appointment Confirmation - High reliability and precision
+  if (name.includes('appointment') || name.includes('confirmation')) {
+    return {
+      reliability: 98,
+      communication: 89,
+      precision: 96,
+      scheduling: 94,
+    };
+  }
+
+  // Winback campaigns - Maximum persuasion
+  if (name.includes('winback') || name.includes('win-back')) {
+    return {
+      persuasion: 97,
+      empathy: 91,
+      persistence: 89,
+      value_proposition: 94,
+    };
+  }
+
+  // Default stats for unknown agents
   return {
-    power: 85 + (hash % 15),
-    speed: 82 + ((hash * 7) % 18),
-    intelligence: 88 + ((hash * 3) % 12),
-    charisma: 80 + ((hash * 5) % 20),
-    efficiency: 90 + ((hash * 11) % 10),
-    adaptability: 86 + ((hash * 13) % 14),
+    communication: 88,
+    efficiency: 90,
+    adaptability: 86,
+    intelligence: 92,
   };
 };
 
@@ -99,6 +157,17 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     voice: 'maya',
     maxDuration: 5,
     intervalMinutes: 5,
+    maxCallsPerDay: 100,
+    workingHoursStart: '09:00',
+    workingHoursEnd: '18:00',
+    timezone: 'America/New_York',
+    customTask: '',
+    companyInfo: {
+      name: company.name,
+      description: company.description || '',
+      website: company.website || '',
+      phone: company.phone_number || '',
+    },
   });
 
   const loadContactCount = async () => {
@@ -202,13 +271,26 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
               <div className="space-y-4">
                 {/* Stats panel */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50">
-                  <h3 className="text-sm font-black text-white uppercase mb-3">Performance Stats</h3>
+                  <h3 className="text-sm font-black text-white uppercase mb-3">Performance Metrics</h3>
                   <div className="space-y-3">
-                    <StatBar label="Power" value={stats.power} color="from-red-500 to-orange-600" />
-                    <StatBar label="Speed" value={stats.speed} color="from-cyan-500 to-blue-600" />
-                    <StatBar label="Intelligence" value={stats.intelligence} color="from-purple-500 to-pink-600" />
-                    <StatBar label="Charisma" value={stats.charisma} color="from-yellow-500 to-orange-600" />
-                    <StatBar label="Efficiency" value={stats.efficiency} color="from-emerald-500 to-teal-600" />
+                    {Object.entries(stats).map(([key, value], index) => {
+                      const colors = [
+                        'from-red-500 to-orange-600',
+                        'from-cyan-500 to-blue-600',
+                        'from-purple-500 to-pink-600',
+                        'from-yellow-500 to-orange-600',
+                        'from-emerald-500 to-teal-600',
+                      ];
+                      const label = key.replace(/_/g, ' ');
+                      return (
+                        <StatBar
+                          key={key}
+                          label={label}
+                          value={value}
+                          color={colors[index % colors.length]}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -217,13 +299,13 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                   <h3 className="text-sm font-black text-white uppercase mb-3">Core Capabilities</h3>
                   <div className="space-y-2">
                     <div className="bg-slate-900/50 rounded p-2 border border-cyan-500/30">
-                      <p className="text-xs font-bold text-cyan-300">Natural Language Processing</p>
+                      <p className="text-xs font-bold text-cyan-300">Advanced NLP</p>
                     </div>
                     <div className="bg-slate-900/50 rounded p-2 border border-purple-500/30">
                       <p className="text-xs font-bold text-purple-300">Real-time Adaptation</p>
                     </div>
                     <div className="bg-slate-900/50 rounded p-2 border border-pink-500/30">
-                      <p className="text-xs font-bold text-pink-300">Context Awareness</p>
+                      <p className="text-xs font-bold text-pink-300">Context Memory</p>
                     </div>
                   </div>
                 </div>
@@ -256,111 +338,192 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
 
   if (step === 'contacts') {
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl">
-          <div className="p-6 border-b border-slate-200">
-            <h2 className="text-xl font-bold text-slate-900">Select Contacts</h2>
-            <p className="text-sm text-slate-500 mt-1">Choose which contacts this agent will call</p>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col">
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+          >
+            <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Header */}
+          <div className="p-6 border-b border-slate-700/50">
+            <h2 className="text-2xl font-black text-white uppercase tracking-tight">Campaign Configuration</h2>
+            <p className="text-sm text-slate-400 mt-1">Configure deployment settings for {agent.name}</p>
           </div>
 
-          <div className="p-6">
-            <div className="bg-gradient from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Pending Contacts</p>
-                  <p className="text-4xl font-bold text-slate-900">{contactCount}</p>
-                </div>
-                <div className="w-16 h-16 rounded-full bg-white/50 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-              </div>
-              <p className="text-sm text-slate-600">
-                This agent will call all pending contacts in your database. You can add more contacts before starting.
-              </p>
-            </div>
-
+          {/* Scrolleable content */}
+          <div className="overflow-y-auto p-6">
             {contactCount === 0 ? (
-              <div className="text-center py-8 bg-amber-50 rounded-lg border border-amber-200">
-                <svg className="w-12 h-12 text-amber-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="text-center py-12 bg-amber-900/20 rounded-xl border border-amber-500/30">
+                <svg className="w-16 h-16 text-amber-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                <p className="text-amber-900 font-medium mb-2">No pending contacts found</p>
-                <p className="text-sm text-amber-700 mb-4">Import contacts first to start calling</p>
+                <p className="text-amber-400 font-bold mb-2 text-lg">No Contacts Available</p>
+                <p className="text-sm text-amber-300/80 mb-6">Import contacts first to start calling</p>
                 <a
                   href="/dashboard/contacts"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-bold transition-all"
                 >
                   Go to Contacts
                 </a>
               </div>
             ) : (
-              <>
-                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-3">
-                  Call Settings
-                </h3>
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Voice Agent
-                    </label>
-                    <select
-                      value={settings.voice}
-                      onChange={(e) => setSettings({ ...settings, voice: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none"
-                    >
-                      <option value="maya">Maya (Female)</option>
-                      <option value="nat">Natalie (Female)</option>
-                      <option value="josh">Josh (Male)</option>
-                      <option value="matt">Matt (Male)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Max Call Duration (minutes)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="15"
-                      value={settings.maxDuration}
-                      onChange={(e) => setSettings({ ...settings, maxDuration: parseInt(e.target.value) })}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Interval Between Calls (minutes)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="60"
-                      value={settings.intervalMinutes}
-                      onChange={(e) => setSettings({ ...settings, intervalMinutes: parseInt(e.target.value) })}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
+              <div className="space-y-6">
+                {/* Contacts Info */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase mb-1">Target Contacts</p>
+                      <p className="text-3xl font-black text-white">{contactCount}</p>
+                    </div>
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                      <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setStep('preview')}
-                    className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50"
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={() => setStep('confirm')}
-                    className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Review & Start
-                  </button>
+                {/* Company Info (Editable) */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+                  <h3 className="text-sm font-black text-white uppercase mb-4">Company Information</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Company Name</label>
+                      <input
+                        type="text"
+                        value={settings.companyInfo.name}
+                        onChange={(e) => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, name: e.target.value } })}
+                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Description</label>
+                      <textarea
+                        value={settings.companyInfo.description}
+                        onChange={(e) => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, description: e.target.value } })}
+                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none resize-none"
+                        rows={2}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </>
+
+                {/* Custom Task Instructions */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+                  <h3 className="text-sm font-black text-white uppercase mb-4">Custom Instructions</h3>
+                  <textarea
+                    placeholder="Add specific instructions or context for this campaign..."
+                    value={settings.customTask}
+                    onChange={(e) => setSettings({ ...settings, customTask: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none resize-none placeholder-slate-500"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Voice & Call Settings */}
+                  <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+                    <h3 className="text-sm font-black text-white uppercase mb-4">Call Settings</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Voice</label>
+                        <select
+                          value={settings.voice}
+                          onChange={(e) => setSettings({ ...settings, voice: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                        >
+                          <option value="maya">Maya (Female)</option>
+                          <option value="nat">Natalie (Female)</option>
+                          <option value="josh">Josh (Male)</option>
+                          <option value="matt">Matt (Male)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Max Duration (min)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="15"
+                          value={settings.maxDuration}
+                          onChange={(e) => setSettings({ ...settings, maxDuration: parseInt(e.target.value) })}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Call Interval (min)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={settings.intervalMinutes}
+                          onChange={(e) => setSettings({ ...settings, intervalMinutes: parseInt(e.target.value) })}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Schedule & Limits */}
+                  <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+                    <h3 className="text-sm font-black text-white uppercase mb-4">Schedule & Limits</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Max Calls/Day</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="1000"
+                          value={settings.maxCallsPerDay}
+                          onChange={(e) => setSettings({ ...settings, maxCallsPerDay: parseInt(e.target.value) })}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Start Time</label>
+                        <input
+                          type="time"
+                          value={settings.workingHoursStart}
+                          onChange={(e) => setSettings({ ...settings, workingHoursStart: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">End Time</label>
+                        <input
+                          type="time"
+                          value={settings.workingHoursEnd}
+                          onChange={(e) => setSettings({ ...settings, workingHoursEnd: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            {contactCount > 0 && (
+              <div className="flex gap-3 mt-6 pt-6 border-t border-slate-700/50">
+                <button
+                  onClick={() => setStep('preview')}
+                  className="flex-1 px-5 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 hover:border-slate-600 font-bold text-sm transition-all duration-300"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={() => setStep('confirm')}
+                  className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg hover:shadow-xl font-black text-sm transition-all duration-300`}
+                >
+                  Review & Launch
+                </button>
+              </div>
             )}
           </div>
         </div>
