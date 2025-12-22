@@ -2,11 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { contactsToCSV } from '@/lib/call-agent-utils';
-<<<<<<< HEAD
-import { Contact } from '@/types/call-agent'; // Importar desde donde está definido
-=======
 import type { Contact } from '@/types/call-agent';
->>>>>>> 5c58d74ef63f5ce73a29d24d3131dba22c47f158
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,11 +31,6 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-<<<<<<< HEAD
-    // Cast a Contact[]
-=======
-    // Cast to Contact[] - Supabase returns string for union types but values are valid
->>>>>>> 5c58d74ef63f5ce73a29d24d3131dba22c47f158
     const csvContent = contactsToCSV((contacts || []) as Contact[]);
     const today = new Date().toISOString().split('T')[0];
     const filename = `contacts_export_${today}.csv`;
