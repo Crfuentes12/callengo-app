@@ -15,7 +15,37 @@ interface AgentConfigModalProps {
 }
 
 // Map agent names to avatar images
-const getAvatarImage = (name: string) => {
+const getAvatarImage = (name: string, voice?: string) => {
+  // If voice is selected, use gender-specific avatar
+  if (voice) {
+    const femaleVoices = ['maya', 'nat'];
+    const isFemale = femaleVoices.includes(voice);
+
+    // Return appropriate gendered avatar
+    // For now using same avatars, but you can add female/male specific ones later
+    const nameMap: Record<string, string> = {
+      'abandoned-cart': '/agent-avatars/abandoned-cart.png',
+      'appointment': '/agent-avatars/appointment-confirmation.png',
+      'data-validation': '/agent-avatars/data-validation.png',
+      'feedback': '/agent-avatars/feedback.png',
+      'lead-qualification': '/agent-avatars/lead-qualification.png',
+      'lead-reactivation': '/agent-avatars/lead-reactivation.png',
+      'winback': '/agent-avatars/winback.png',
+    };
+
+    const slug = name.toLowerCase().replace(/\s+/g, '-');
+    if (nameMap[slug]) return nameMap[slug];
+
+    for (const key in nameMap) {
+      if (slug.includes(key) || key.includes(slug)) {
+        return nameMap[key];
+      }
+    }
+
+    return '/agent-avatars/lead-qualification.png';
+  }
+
+  // Default behavior without voice
   const nameMap: Record<string, string> = {
     'abandoned-cart': '/agent-avatars/abandoned-cart.png',
     'appointment': '/agent-avatars/appointment-confirmation.png',
@@ -116,7 +146,7 @@ const getCategoryColor = (category: string | null) => {
     'sales': 'from-emerald-400 via-emerald-500 to-teal-600',
     'support': 'from-blue-400 via-blue-500 to-cyan-600',
     'verification': 'from-purple-400 via-purple-500 to-pink-600',
-    'appointment': 'from-orange-400 via-orange-500 to-red-600',
+    'appointment': 'from-blue-400 via-blue-500 to-cyan-600',
     'survey': 'from-indigo-400 via-indigo-500 to-violet-600',
   };
 
@@ -153,6 +183,8 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const [step, setStep] = useState<'preview' | 'contacts' | 'confirm'>('preview');
   const [loading, setLoading] = useState(false);
   const [contactCount, setContactCount] = useState(0);
+  const [agentName, setAgentName] = useState('');
+  const [agentTitle, setAgentTitle] = useState('AI Sales Agent');
   const [settings, setSettings] = useState({
     voice: 'maya',
     maxDuration: 5,
@@ -208,9 +240,40 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     }
   };
 
-  const avatarImage = getAvatarImage(agent.name);
+  const avatarImage = getAvatarImage(agent.name, settings.voice);
   const stats = getAgentStats(agent);
   const gradientColor = getCategoryColor(agent.category);
+
+  // Step indicator component
+  const StepIndicator = ({ currentStep }: { currentStep: number }) => (
+    <div className="flex items-center justify-center gap-3 mb-6">
+      {[1, 2, 3].map((stepNum) => (
+        <div key={stepNum} className="flex items-center">
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
+            stepNum === currentStep
+              ? `bg-gradient-to-r ${gradientColor} border-white shadow-lg scale-110`
+              : stepNum < currentStep
+              ? 'bg-emerald-600 border-emerald-400'
+              : 'bg-slate-800 border-slate-600'
+          }`}>
+            <span className="text-white font-black text-sm">{stepNum}</span>
+          </div>
+          {stepNum < 3 && (
+            <div className={`w-12 h-0.5 mx-1 transition-all duration-300 ${
+              stepNum < currentStep ? 'bg-emerald-400' : 'bg-slate-700'
+            }`}></div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  const getStepNumber = () => {
+    if (step === 'preview') return 1;
+    if (step === 'contacts') return 2;
+    if (step === 'confirm') return 3;
+    return 1;
+  };
 
   if (step === 'preview') {
     return (
@@ -228,41 +291,71 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
 
           {/* Scrolleable content */}
           <div className="overflow-y-auto p-6">
+            <StepIndicator currentStep={getStepNumber()} />
+
             <div className="grid md:grid-cols-2 gap-5">
-              {/* Left side - Agent Image */}
+              {/* Left side - Agent Image & Customization */}
               <div className="space-y-4">
+                {/* Agent avatar */}
                 <div className="relative h-[280px] rounded-xl overflow-hidden border border-slate-700 shadow-xl">
                   <Image
                     src={avatarImage}
-                    alt={agent.name}
+                    alt={agentName || agent.name}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-all duration-500"
+                    key={settings.voice} // Force re-render on voice change
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30"></div>
 
                   {/* Agent name overlay */}
                   <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent">
                     <h2 className="text-2xl font-black text-white uppercase tracking-tight leading-tight mb-1">
-                      {agent.name}
+                      {agentName || agent.name}
                     </h2>
                     <p className="text-xs text-slate-300">
-                      {agent.description}
+                      {agentTitle}
                     </p>
                   </div>
                 </div>
 
-                {/* Company context */}
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-3 border border-slate-700/50">
-                  <div className="flex items-start gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shrink-0">
-                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase">Representing</p>
-                      <p className="text-sm font-bold text-white">{company.name}</p>
-                    </div>
+                {/* Voice & Name Configuration */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 space-y-3">
+                  <h3 className="text-xs font-black text-white uppercase mb-3">Agent Identity</h3>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Voice</label>
+                    <select
+                      value={settings.voice}
+                      onChange={(e) => setSettings({ ...settings, voice: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                    >
+                      <option value="maya">Maya (Female)</option>
+                      <option value="nat">Natalie (Female)</option>
+                      <option value="josh">Josh (Male)</option>
+                      <option value="matt">Matt (Male)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Agent Name</label>
+                    <input
+                      type="text"
+                      placeholder={agent.name}
+                      value={agentName}
+                      onChange={(e) => setAgentName(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none placeholder-slate-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Agent Title</label>
+                    <input
+                      type="text"
+                      placeholder="AI Sales Agent"
+                      value={agentTitle}
+                      onChange={(e) => setAgentTitle(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none placeholder-slate-500"
+                    />
                   </div>
                 </div>
               </div>
@@ -353,11 +446,35 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
           {/* Header */}
           <div className="p-6 border-b border-slate-700/50">
             <h2 className="text-2xl font-black text-white uppercase tracking-tight">Campaign Configuration</h2>
-            <p className="text-sm text-slate-400 mt-1">Configure deployment settings for {agent.name}</p>
+            <p className="text-sm text-slate-400 mt-1">Configure deployment settings for {agentName || agent.name}</p>
           </div>
 
           {/* Scrolleable content */}
           <div className="overflow-y-auto p-6">
+            <StepIndicator currentStep={getStepNumber()} />
+
+            {/* Agent summary from step 1 */}
+            <div className="mb-6 bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
+              <div className="flex items-center gap-4">
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-600">
+                  <Image
+                    src={avatarImage}
+                    alt={agentName || agent.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-black text-white">{agentName || agent.name}</p>
+                  <p className="text-xs text-slate-400">{agentTitle}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-slate-500">Voice:</span>
+                    <span className="text-xs font-bold text-cyan-400 capitalize">{settings.voice}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {contactCount === 0 ? (
               <div className="text-center py-12 bg-amber-900/20 rounded-xl border border-amber-500/30">
                 <svg className="w-16 h-16 text-amber-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -536,67 +653,131 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     const estimatedDuration = contactCount * settings.intervalMinutes;
 
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl">
-          <div className="p-6 border-b border-slate-200">
-            <h2 className="text-xl font-bold text-slate-900">Confirm Campaign</h2>
-            <p className="text-sm text-slate-500 mt-1">Review details before starting</p>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col">
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+          >
+            <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Header */}
+          <div className="p-6 border-b border-slate-700/50">
+            <h2 className="text-2xl font-black text-white uppercase tracking-tight">Launch Campaign</h2>
+            <p className="text-sm text-slate-400 mt-1">Final review before deployment</p>
           </div>
 
-          <div className="p-6">
-            <div className="space-y-4 mb-6">
-              <div className="bg-slate-50 rounded-lg p-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase">Agent</p>
-                    <p className="text-sm font-medium text-slate-900 mt-0.5">{agent.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase">Total Contacts</p>
-                    <p className="text-sm font-medium text-slate-900 mt-0.5">{contactCount}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase">Voice</p>
-                    <p className="text-sm font-medium text-slate-900 mt-0.5 capitalize">{settings.voice}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase">Max Duration</p>
-                    <p className="text-sm font-medium text-slate-900 mt-0.5">{settings.maxDuration} min</p>
-                  </div>
-                </div>
-              </div>
+          {/* Scrolleable content */}
+          <div className="overflow-y-auto p-6">
+            <StepIndicator currentStep={getStepNumber()} />
 
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <h4 className="text-sm font-semibold text-blue-900 mb-3">Estimated Campaign Details</h4>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-blue-700">Estimated Cost:</p>
-                    <p className="font-bold text-blue-900">${estimatedCost.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-blue-700">Estimated Duration:</p>
-                    <p className="font-bold text-blue-900">{Math.ceil(estimatedDuration / 60)} hours</p>
+            {/* Agent Summary Card */}
+            <div className="mb-6 bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+              <div className="flex items-start gap-4">
+                <div className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-cyan-500/50">
+                  <Image
+                    src={avatarImage}
+                    alt={agentName || agent.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-black text-white mb-1">{agentName || agent.name}</h3>
+                  <p className="text-sm text-slate-400 mb-2">{agentTitle}</p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">Voice:</span>
+                      <span className="text-xs font-bold text-cyan-400 capitalize">{settings.voice}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">Contacts:</span>
+                      <span className="text-xs font-bold text-emerald-400">{contactCount}</span>
+                    </div>
                   </div>
                 </div>
-                <p className="text-xs text-blue-600 mt-3">
-                  * Costs are approximate and depend on actual call durations
-                </p>
               </div>
             </div>
 
+            {/* Configuration Summary */}
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
+                <h4 className="text-xs font-black text-white uppercase mb-3">Call Configuration</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-400">Max Duration</span>
+                    <span className="text-sm font-bold text-white">{settings.maxDuration} min</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-400">Call Interval</span>
+                    <span className="text-sm font-bold text-white">{settings.intervalMinutes} min</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-400">Max Calls/Day</span>
+                    <span className="text-sm font-bold text-white">{settings.maxCallsPerDay}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
+                <h4 className="text-xs font-black text-white uppercase mb-3">Schedule</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-400">Working Hours</span>
+                    <span className="text-sm font-bold text-white">{settings.workingHoursStart} - {settings.workingHoursEnd}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-400">Timezone</span>
+                    <span className="text-sm font-bold text-white text-xs">{settings.timezone}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Estimates */}
+            <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 rounded-xl p-5 border border-cyan-500/30 mb-6">
+              <h4 className="text-sm font-black text-cyan-300 uppercase mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Campaign Estimates
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-cyan-300/80 mb-1">Estimated Cost</p>
+                  <p className="text-2xl font-black text-white">${estimatedCost.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-cyan-300/80 mb-1">Estimated Duration</p>
+                  <p className="text-2xl font-black text-white">{Math.ceil(estimatedDuration / 60)}h</p>
+                </div>
+              </div>
+              <p className="text-xs text-cyan-300/60 mt-4">
+                * Estimates based on successful connections and average call duration
+              </p>
+            </div>
+
+            {/* Action buttons */}
             <div className="flex gap-3">
               <button
                 onClick={() => setStep('contacts')}
-                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50"
+                className="flex-1 px-5 py-3 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 hover:border-slate-600 font-bold text-sm transition-all duration-300"
               >
                 Back
               </button>
               <button
                 onClick={handleStartCampaign}
                 disabled={loading}
-                className="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 font-semibold"
+                className={`flex-1 px-5 py-3 bg-gradient-to-r ${gradientColor} text-white rounded-lg hover:shadow-2xl font-black text-sm transition-all duration-300 disabled:opacity-50 relative overflow-hidden`}
               >
-                {loading ? 'Creating...' : 'Start Campaign'}
+                <span className="relative z-10">{loading ? 'Launching...' : '🚀 Launch Campaign'}</span>
+                {!loading && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                )}
               </button>
             </div>
           </div>
