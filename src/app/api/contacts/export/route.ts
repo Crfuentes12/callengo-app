@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error exporting contacts:', error);
     return NextResponse.json(
-      { error: 'Failed to export contacts', details: error instanceof Error ? error.message : 'Unknown error' },
+      { ewrror: 'Failed to export contacts', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
