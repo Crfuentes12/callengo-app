@@ -97,7 +97,7 @@ export default function DashboardOverview({ contacts, recentCalls, company }: Da
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Total Contacts */}
         <div className="bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-slate-300/80 transition-all duration-200">
           <div className="flex items-start justify-between">
@@ -125,22 +125,6 @@ export default function DashboardOverview({ contacts, recentCalls, company }: Da
             <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
               <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Cost */}
-        <div className="bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-slate-300/80 transition-all duration-200">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Total Cost</p>
-              <p className="text-3xl font-semibold text-slate-900 mt-1">{formatCurrency(stats.totalCost)}</p>
-              <p className="text-sm text-slate-400 mt-1">{recentCalls.length} calls made</p>
-            </div>
-            <div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center">
-              <svg className="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
@@ -223,9 +207,6 @@ export default function DashboardOverview({ contacts, recentCalls, company }: Da
                     Duration
                   </th>
                   <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Cost
-                  </th>
-                  <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Date
                   </th>
                 </tr>
@@ -249,11 +230,6 @@ export default function DashboardOverview({ contacts, recentCalls, company }: Da
                       </p>
                     </td>
                     <td className="py-3.5 px-5">
-                      <p className="text-sm text-slate-700">
-                        {formatCurrency(call.price)}
-                      </p>
-                    </td>
-                    <td className="py-3.5 px-5">
                       <p className="text-sm text-slate-500">
                         {new Date(call.created_at).toLocaleDateString('en-US', {
                           month: 'short',
@@ -274,7 +250,7 @@ export default function DashboardOverview({ contacts, recentCalls, company }: Da
       {/* Quick Actions */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <a
-          href="/dashboard/contacts"
+          href="/contacts"
           className="group bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-indigo-200 transition-all duration-200"
         >
           <div className="flex items-center gap-4">
@@ -293,7 +269,7 @@ export default function DashboardOverview({ contacts, recentCalls, company }: Da
         </a>
 
         <a
-          href="/dashboard/agents"
+          href="/agents"
           className="group bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-emerald-200 transition-all duration-200"
         >
           <div className="flex items-center gap-4">
@@ -312,7 +288,7 @@ export default function DashboardOverview({ contacts, recentCalls, company }: Da
         </a>
 
         <a
-          href="/dashboard/settings"
+          href="/settings"
           className="group bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-violet-200 transition-all duration-200"
         >
           <div className="flex items-center gap-4">

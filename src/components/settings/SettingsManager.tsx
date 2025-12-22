@@ -22,7 +22,7 @@ interface SettingsManagerProps {
 
 export default function SettingsManager({ company: initialCompany, settings: initialSettings, user }: SettingsManagerProps) {
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState<'company' | 'api' | 'calling'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'calling'>('company');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
@@ -38,11 +38,6 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     default_interval_minutes: initialSettings.default_interval_minutes,
     default_max_duration: initialSettings.default_max_duration,
     test_phone_number: initialSettings.test_phone_number || '',
-  });
-
-  const [apiKeys, setApiKeys] = useState({
-    bland_api_key: '',
-    openai_api_key: '',
   });
 
   const handleUpdateCompany = async (e: React.FormEvent) => {
@@ -111,32 +106,6 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     }
   };
 
-  const handleUpdateApiKeys = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setSuccess('');
-
-    try {
-      const updates: any = {};
-      if (apiKeys.bland_api_key) updates.bland_api_key = apiKeys.bland_api_key;
-      if (apiKeys.openai_api_key) updates.openai_api_key = apiKeys.openai_api_key;
-
-      const { error } = await supabase
-        .from('company_settings')
-        .update(updates)
-        .eq('company_id', initialCompany.id);
-
-      if (error) throw error;
-
-      setSuccess('API keys updated successfully');
-      setApiKeys({ bland_api_key: '', openai_api_key: '' });
-    } catch (error) {
-      alert('Failed to update API keys');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Success Message */}
@@ -158,7 +127,6 @@ export default function SettingsManager({ company: initialCompany, settings: ini
             {[
               { id: 'company', label: 'Company Info', icon: '🏢' },
               { id: 'calling', label: 'Call Settings', icon: '📞' },
-              { id: 'api', label: 'API Keys', icon: '🔑' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -337,76 +305,6 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                 className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
               >
                 {loading ? 'Saving...' : 'Save Call Settings'}
-              </button>
-            </form>
-          )}
-
-          {/* API Keys Tab */}
-          {activeTab === 'api' && (
-            <form onSubmit={handleUpdateApiKeys} className="space-y-6">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">API Keys</h3>
-                <p className="text-sm text-slate-600 mb-4">
-                  Configure your own API keys for Bland AI and OpenAI (optional - defaults to system keys)
-                </p>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Bland AI API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={apiKeys.bland_api_key}
-                      onChange={(e) => setApiKeys({ ...apiKeys, bland_api_key: e.target.value })}
-                      placeholder="sk-..."
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-mono"
-                    />
-                    <p className="text-xs text-slate-500 mt-1.5">
-                      Get your API key from <a href="https://app.bland.ai" target="_blank" className="text-indigo-600 hover:underline font-medium">Bland AI Dashboard</a>
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      OpenAI API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={apiKeys.openai_api_key}
-                      onChange={(e) => setApiKeys({ ...apiKeys, openai_api_key: e.target.value })}
-                      placeholder="sk-..."
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-mono"
-                    />
-                    <p className="text-xs text-slate-500 mt-1.5">
-                      Get your API key from <a href="https://platform.openai.com" target="_blank" className="text-indigo-600 hover:underline font-medium">OpenAI Platform</a>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-amber-50/80 rounded-xl p-4 border border-amber-200 mt-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                      <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-amber-900 mb-0.5">Security Note</p>
-                      <p className="text-sm text-amber-700">
-                        API keys are encrypted and stored securely. Leave blank to use system default keys.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-              >
-                {loading ? 'Saving...' : 'Save API Keys'}
               </button>
             </form>
           )}
