@@ -146,162 +146,107 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   if (step === 'preview') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-5xl w-full shadow-2xl border-2 border-slate-700/50 overflow-hidden relative">
-          {/* Animated background effects */}
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-purple-500/5 to-pink-500/5 animate-pulse"></div>
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-500/10 to-pink-500/10 rounded-full blur-3xl"></div>
-
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col">
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-50 w-10 h-10 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
-            <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
-          <div className="relative grid md:grid-cols-2 gap-6 p-8">
-            {/* Left side - Agent Image & Basic Info */}
-            <div className="space-y-6">
-              {/* Character portrait */}
-              <div className="relative group">
-                <div className={`absolute -inset-1 bg-gradient-to-r ${gradientColor} rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-500`}></div>
-                <div className="relative h-[400px] rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl">
+          {/* Scrolleable content */}
+          <div className="overflow-y-auto p-6">
+            <div className="grid md:grid-cols-2 gap-5">
+              {/* Left side - Agent Image */}
+              <div className="space-y-4">
+                <div className="relative h-[280px] rounded-xl overflow-hidden border border-slate-700 shadow-xl">
                   <Image
                     src={avatarImage}
                     alt={agent.name}
                     fill
                     className="object-cover"
                   />
-                  {/* Bottom gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30"></div>
 
                   {/* Agent name overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/90 to-transparent">
-                    <div className={`inline-block px-3 py-1 bg-gradient-to-r ${gradientColor} rounded-md text-xs font-black uppercase mb-2`}>
-                      {agent.category || 'Elite'}
-                    </div>
-                    <h2 className="text-3xl font-black text-white uppercase tracking-tight leading-tight mb-1">
+                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent">
+                    <h2 className="text-2xl font-black text-white uppercase tracking-tight leading-tight mb-1">
                       {agent.name}
                     </h2>
-                    <p className="text-sm text-slate-300">
+                    <p className="text-xs text-slate-300">
                       {agent.description}
                     </p>
                   </div>
+                </div>
 
-                  {/* Corner accents */}
-                  <div className="absolute top-3 left-3 w-8 h-8 border-t-2 border-l-2 border-cyan-400"></div>
-                  <div className="absolute top-3 right-3 w-8 h-8 border-t-2 border-r-2 border-cyan-400"></div>
-                  <div className="absolute bottom-3 left-3 w-8 h-8 border-b-2 border-l-2 border-cyan-400"></div>
-                  <div className="absolute bottom-3 right-3 w-8 h-8 border-b-2 border-r-2 border-cyan-400"></div>
+                {/* Company context */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-3 border border-slate-700/50">
+                  <div className="flex items-start gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase">Representing</p>
+                      <p className="text-sm font-bold text-white">{company.name}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Company context */}
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shrink-0">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
+              {/* Right side - Stats */}
+              <div className="space-y-4">
+                {/* Stats panel */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50">
+                  <h3 className="text-sm font-black text-white uppercase mb-3">Performance Stats</h3>
+                  <div className="space-y-3">
+                    <StatBar label="Power" value={stats.power} color="from-red-500 to-orange-600" />
+                    <StatBar label="Speed" value={stats.speed} color="from-cyan-500 to-blue-600" />
+                    <StatBar label="Intelligence" value={stats.intelligence} color="from-purple-500 to-pink-600" />
+                    <StatBar label="Charisma" value={stats.charisma} color="from-yellow-500 to-orange-600" />
+                    <StatBar label="Efficiency" value={stats.efficiency} color="from-emerald-500 to-teal-600" />
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Representing</p>
-                    <p className="text-sm font-bold text-white">{company.name}</p>
-                    <p className="text-xs text-slate-400 mt-1">Agent will use company data to personalize every conversation</p>
+                </div>
+
+                {/* Abilities */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50">
+                  <h3 className="text-sm font-black text-white uppercase mb-3">Core Capabilities</h3>
+                  <div className="space-y-2">
+                    <div className="bg-slate-900/50 rounded p-2 border border-cyan-500/30">
+                      <p className="text-xs font-bold text-cyan-300">Natural Language Processing</p>
+                    </div>
+                    <div className="bg-slate-900/50 rounded p-2 border border-purple-500/30">
+                      <p className="text-xs font-bold text-purple-300">Real-time Adaptation</p>
+                    </div>
+                    <div className="bg-slate-900/50 rounded p-2 border border-pink-500/30">
+                      <p className="text-xs font-bold text-pink-300">Context Awareness</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right side - Stats & Abilities */}
-            <div className="space-y-6">
-              {/* Stats panel */}
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-tight">Combat Stats</h3>
-                </div>
-
-                <div className="space-y-4">
-                  <StatBar label="Power" value={stats.power} color="from-red-500 to-orange-600" />
-                  <StatBar label="Speed" value={stats.speed} color="from-cyan-500 to-blue-600" />
-                  <StatBar label="Intelligence" value={stats.intelligence} color="from-purple-500 to-pink-600" />
-                  <StatBar label="Charisma" value={stats.charisma} color="from-yellow-500 to-orange-600" />
-                  <StatBar label="Efficiency" value={stats.efficiency} color="from-emerald-500 to-teal-600" />
-                  <StatBar label="Adaptability" value={stats.adaptability} color="from-indigo-500 to-violet-600" />
-                </div>
-
-                {/* Overall rating */}
-                <div className="mt-6 pt-6 border-t border-slate-700">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Overall Rating</span>
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <svg key={i} className={`w-5 h-5 ${i < 4 ? 'text-yellow-500' : 'text-slate-700'}`} fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
-                      </div>
-                      <span className="text-lg font-black text-white">S-Tier</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Special Abilities */}
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-tight">Abilities</h3>
-                </div>
-
-                <div className="space-y-3 max-h-40 overflow-y-auto">
-                  <div className="bg-slate-900/50 rounded-lg p-3 border border-cyan-500/30">
-                    <p className="text-xs font-bold text-cyan-300 uppercase mb-1">🎯 Natural Language Processing</p>
-                    <p className="text-xs text-slate-400">Advanced conversation understanding</p>
-                  </div>
-                  <div className="bg-slate-900/50 rounded-lg p-3 border border-purple-500/30">
-                    <p className="text-xs font-bold text-purple-300 uppercase mb-1">⚡ Real-time Adaptation</p>
-                    <p className="text-xs text-slate-400">Adjusts strategy based on responses</p>
-                  </div>
-                  <div className="bg-slate-900/50 rounded-lg p-3 border border-pink-500/30">
-                    <p className="text-xs font-bold text-pink-300 uppercase mb-1">🧠 Context Awareness</p>
-                    <p className="text-xs text-slate-400">Remembers conversation history</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={onClose}
-                  className="flex-1 px-6 py-3.5 bg-slate-800 border-2 border-slate-700 text-slate-300 rounded-xl hover:bg-slate-700 hover:border-slate-600 font-bold uppercase text-sm tracking-wider transition-all duration-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    loadContactCount();
-                    setStep('contacts');
-                  }}
-                  className={`flex-1 px-6 py-3.5 bg-gradient-to-r ${gradientColor} text-white rounded-xl hover:shadow-2xl font-black uppercase text-sm tracking-wider transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden border-2 border-white/20`}
-                >
-                  <span className="relative z-10">⚡ Deploy Agent</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-200%] hover:translate-x-[200%] transition-transform duration-1000"></div>
-                </button>
-              </div>
+            {/* Action buttons */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={onClose}
+                className="flex-1 px-5 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 hover:border-slate-600 font-bold text-sm transition-all duration-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  loadContactCount();
+                  setStep('contacts');
+                }}
+                className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg hover:shadow-xl font-black text-sm transition-all duration-300 relative overflow-hidden`}
+              >
+                <span className="relative z-10">Deploy Agent</span>
+              </button>
             </div>
           </div>
         </div>

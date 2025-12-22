@@ -66,82 +66,32 @@ export default function AgentCard({ agent, onSelect }: AgentCardProps) {
             src={avatarImage}
             alt={agent.name}
             fill
-            className="object-cover group-hover:scale-110 transition-transform duration-700"
+            className="object-cover group-hover:scale-105 transition-transform duration-700"
             priority
           />
-          {/* Vignette effect */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black"></div>
+          {/* Subtle vignette - lighter to show chest icon */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
         </div>
 
-        {/* Top HUD */}
-        <div className="absolute top-0 left-0 right-0 p-4 flex items-start justify-between z-10">
-          {/* Level badge */}
-          <div className="relative">
-            <div className={`px-3 py-1.5 bg-gradient-to-r ${gradientColor} rounded-lg shadow-lg backdrop-blur-sm border border-white/20`}>
-              <span className="text-white text-xs font-black uppercase tracking-wider">AI AGENT</span>
-            </div>
-            {/* Animated corner accents */}
-            <div className={`absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
-            <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
-          </div>
-
-          {/* Category badge */}
-          <div className="px-3 py-1.5 bg-black/70 backdrop-blur-md rounded-lg border border-white/10 shadow-lg">
-            <span className="text-white text-xs font-bold uppercase tracking-wide">
-              {agent.category || 'Special'}
-            </span>
-          </div>
-        </div>
-
-        {/* Bottom info panel with gradient */}
+        {/* Bottom info panel - more compact */}
         <div className="absolute bottom-0 left-0 right-0 z-10">
-          {/* Dark gradient background for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/95 to-transparent"></div>
+          {/* Smaller gradient background for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent"></div>
 
-          <div className="relative p-5 space-y-3">
+          <div className="relative p-4 space-y-2">
             {/* Agent name with futuristic styling */}
             <div className="relative">
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:via-blue-400 group-hover:to-purple-400 transition-all duration-300">
+              <h3 className="text-xl font-black text-white uppercase tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:via-blue-400 group-hover:to-purple-400 transition-all duration-300">
                 {agent.name}
               </h3>
               {/* Accent line */}
-              <div className={`h-1 w-0 group-hover:w-full bg-gradient-to-r ${gradientColor} rounded-full transition-all duration-500 mt-1`}></div>
+              <div className={`h-0.5 w-0 group-hover:w-full bg-gradient-to-r ${gradientColor} rounded-full transition-all duration-500 mt-1`}></div>
             </div>
 
             {/* Description */}
             <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed drop-shadow-lg">
-              {agent.description || 'Elite AI agent with specialized capabilities for your mission.'}
+              {agent.description || 'Specialized AI agent for your business operations'}
             </p>
-
-            {/* Quick stats mini bars */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-black/40 backdrop-blur-sm rounded border border-cyan-500/30 p-1.5 text-center group-hover:border-cyan-400/60 transition-colors">
-                <div className="text-[10px] text-cyan-300 font-bold uppercase">Power</div>
-                <div className="text-sm font-black text-white">95</div>
-              </div>
-              <div className="bg-black/40 backdrop-blur-sm rounded border border-purple-500/30 p-1.5 text-center group-hover:border-purple-400/60 transition-colors">
-                <div className="text-[10px] text-purple-300 font-bold uppercase">Speed</div>
-                <div className="text-sm font-black text-white">88</div>
-              </div>
-              <div className="bg-black/40 backdrop-blur-sm rounded border border-pink-500/30 p-1.5 text-center group-hover:border-pink-400/60 transition-colors">
-                <div className="text-[10px] text-pink-300 font-bold uppercase">Intel</div>
-                <div className="text-sm font-black text-white">92</div>
-              </div>
-            </div>
-
-            {/* Select button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect();
-              }}
-              className={`w-full py-3 bg-gradient-to-r ${gradientColor} text-white font-black uppercase text-sm tracking-wider rounded-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden border border-white/20 group-hover:border-white/40`}
-            >
-              <span className="relative z-10 drop-shadow-lg">⚡ SELECT AGENT</span>
-              {/* Animated shine effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
-            </button>
           </div>
         </div>
 

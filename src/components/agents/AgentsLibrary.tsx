@@ -61,14 +61,14 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
             <div>
               <div className="flex items-center gap-3 mb-1">
                 <h2 className="text-4xl font-black text-white uppercase tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-purple-200">
-                  Select Your Agent
+                  AI Agents Library
                 </h2>
-                <div className="px-3 py-1 bg-gradient-to-r from-red-500 to-orange-600 rounded-md">
-                  <span className="text-xs font-black text-white uppercase tracking-wider">Live</span>
+                <div className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-md">
+                  <span className="text-xs font-black text-white uppercase tracking-wider">Active</span>
                 </div>
               </div>
               <p className="text-lg text-slate-400 font-medium">
-                Choose your AI fighter • Deploy specialized agents with unique combat abilities
+                Specialized AI agents for your business operations
               </p>
             </div>
           </div>
