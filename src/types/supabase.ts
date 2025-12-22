@@ -507,7 +507,28 @@ export type Database = {
 }
 
 // Export types for convenience
-export type Company = Database['public']['Tables']['companies']['Row'];
+export type Company = Database['public']['Tables']['companies']['Row'] & {
+  phone_number?: string | null;
+};
 export type AgentTemplate = Database['public']['Tables']['agent_templates']['Row'];
 export type CompanyAgent = Database['public']['Tables']['company_agents']['Row'];
 export type Contact = Database['public']['Tables']['contacts']['Row'];
+export type AgentRun = Database['public']['Tables']['agent_runs']['Row'];
+
+// Agent Run Settings Configuration
+export interface AgentRunSettings {
+  voice: string;
+  maxDuration: number;
+  intervalMinutes: number;
+  maxCallsPerDay?: number;
+  workingHoursStart?: string;
+  workingHoursEnd?: string;
+  timezone?: string;
+  customTask?: string;
+  companyInfo?: {
+    name: string;
+    description?: string;
+    website?: string;
+    phone?: string;
+  };
+}
