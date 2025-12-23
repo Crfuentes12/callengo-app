@@ -68,15 +68,28 @@ const getAgentDescription = (agent: AgentTemplate) => {
     };
   }
 
-  if (name.includes('reactivation') || name.includes('lead')) {
+  if (name.includes('qualification') && name.includes('lead')) {
+    return {
+      title: 'Lead Qualification Agent',
+      description: 'Qualifies NEW leads by asking targeted questions to determine if they\'re a good fit for your product or service. Scores leads based on budget, authority, need, and timeline to prioritize your sales efforts.',
+      demoData: {
+        companyName: 'Sales Pro Inc',
+        contactName: 'Alex Martinez',
+        leadSource: 'Website Form',
+        interest: 'Enterprise Plan',
+      }
+    };
+  }
+
+  if (name.includes('reactivation')) {
     return {
       title: 'Lead Reactivation Agent',
-      description: 'Reconnects with dormant leads who showed interest but didn\'t convert. Uses personalized conversation to understand their current needs and reignite their interest in your products or services.',
+      description: 'Reconnects with DORMANT leads who showed interest months ago but didn\'t convert. Uses personalized conversation to understand their current situation and reignite their interest with new offers or solutions.',
       demoData: {
         companyName: 'Growth Marketing Inc',
         contactName: 'Sarah Johnson',
         lastInteraction: '3 months ago',
-        productInterest: 'Premium Plan',
+        previousInterest: 'Premium Plan',
       }
     };
   }
@@ -157,8 +170,18 @@ const getAgentStats = (agent: AgentTemplate) => {
     };
   }
 
+  // Lead Qualification - High analysis and questioning
+  if (name.includes('qualification') && name.includes('lead')) {
+    return {
+      analysis: 96,
+      questioning: 94,
+      efficiency: 92,
+      insight: 93,
+    };
+  }
+
   // Lead Reactivation - High persuasion and persistence
-  if (name.includes('reactivation') || name.includes('lead')) {
+  if (name.includes('reactivation')) {
     return {
       persuasion: 94,
       persistence: 96,
@@ -1123,9 +1146,19 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
 
           {/* Content */}
           <div className="p-6">
-            <p className="text-sm text-slate-300 mb-4">
-              Enter your phone number to receive a demo call from <span className="text-cyan-400 font-bold">{agentName || agent.name}</span> using demo data.
-            </p>
+            <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3 mb-4">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-bold text-purple-300 mb-1">Test with Demo Data</p>
+                  <p className="text-xs text-purple-200/80">
+                    <span className="text-cyan-400 font-bold">{agentName || agent.name}</span> will call you using the demo data below. You'll experience a real conversation to see how the agent works.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Agent Info Summary */}
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 mb-4">
@@ -1157,17 +1190,21 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
             {/* Phone Number Input */}
             <div className="mb-6">
               <label className="block text-xs font-bold text-slate-300 uppercase mb-2">
-                Your Phone Number
+                Your Phone Number <span className="text-red-400">*</span>
               </label>
               <input
                 type="tel"
                 placeholder="+1 (555) 123-4567"
                 value={testPhoneNumber}
                 onChange={(e) => setTestPhoneNumber(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-purple-500 outline-none placeholder-slate-500"
+                className="w-full px-4 py-3 bg-slate-900/50 border-2 border-purple-500/50 rounded-lg text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none placeholder-slate-500"
+                required
               />
-              <p className="text-xs text-slate-400 mt-2">
-                You'll receive a call within a few seconds
+              <p className="text-xs text-purple-300 mt-2 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Required: You'll receive a demo call in a few seconds
               </p>
             </div>
 
