@@ -58,6 +58,7 @@ export default function Layout({
           subtitle={headerSubtitle}
           actions={headerActions}
           onMenuClick={() => setIsSidebarOpen(true)}
+          onLogout={handleLogout}
         />
         <Main>{children}</Main>
       </div>
