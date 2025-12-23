@@ -22,9 +22,9 @@ const getAvatarImage = (name: string, voice?: string) => {
     const maleVoices = ['josh', 'matt'];
 
     if (femaleVoices.includes(voice)) {
-      return '/avatars/female-agent.png';
+      return '/agent-avatars/female-agent.png';
     } else if (maleVoices.includes(voice)) {
-      return '/avatars/male-agent.png';
+      return '/agent-avatars/male-agent.png';
     }
   }
 
@@ -858,7 +858,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                   </div>
                   <div className="flex justify-between">
                     <span className="text-xs text-slate-400">Timezone</span>
-                    <span className="text-sm font-bold text-white text-xs">{settings.timezone}</span>
+                    <span className="text-sm font-bold text-white">{settings.timezone}</span>
                   </div>
                 </div>
               </div>
