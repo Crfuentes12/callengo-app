@@ -134,8 +134,70 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
     return matchesSearch && matchesStatus && matchesList;
   });
 
+  const handleQuickFilterClick = (listId: string) => {
+    if (selectedListFilter === listId) {
+      setSelectedListFilter('all');
+    } else {
+      setSelectedListFilter(listId);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Quick Filters - List Badges */}
+      {contactLists.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-sm">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-sm font-semibold text-slate-600">Quick Filters:</span>
+            <button
+              onClick={() => setSelectedListFilter('all')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border-2 transition-all ${
+                selectedListFilter === 'all'
+                  ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-md scale-105'
+                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
+              }`}
+            >
+              All Contacts ({contacts.length})
+            </button>
+            <button
+              onClick={() => setSelectedListFilter('none')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border-2 transition-all ${
+                selectedListFilter === 'none'
+                  ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-md scale-105'
+                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
+              }`}
+            >
+              No List ({contacts.filter(c => !c.list_id).length})
+            </button>
+            {contactLists.map((list) => {
+              const listContactCount = contacts.filter(c => c.list_id === list.id).length;
+              return (
+                <button
+                  key={list.id}
+                  onClick={() => handleQuickFilterClick(list.id)}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border-2 transition-all ${
+                    selectedListFilter === list.id
+                      ? 'shadow-md scale-105'
+                      : 'hover:scale-105 hover:shadow-md'
+                  }`}
+                  style={{
+                    backgroundColor: selectedListFilter === list.id ? `${list.color}25` : `${list.color}10`,
+                    borderColor: list.color,
+                    color: selectedListFilter === list.id ? list.color : `${list.color}cc`
+                  }}
+                >
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: list.color }}></div>
+                  {list.name}
+                  <span className="ml-1 px-1.5 py-0.5 bg-white/50 rounded text-xs font-bold">
+                    {listContactCount}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Batch Actions Bar */}
       {selectedContactIds.length > 0 && (
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between animate-slideDown">
@@ -289,6 +351,8 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
         onRefresh={refreshContacts}
         selectedContactIds={selectedContactIds}
         onSelectionChange={setSelectedContactIds}
+        contactLists={contactLists}
+        onListClick={handleQuickFilterClick}
       />
 
       {showImportModal && (

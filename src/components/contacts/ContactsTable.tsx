@@ -11,13 +11,17 @@ interface ContactsTableProps {
   onRefresh: () => void;
   selectedContactIds?: string[];
   onSelectionChange?: (selectedIds: string[]) => void;
+  contactLists?: any[];
+  onListClick?: (listId: string) => void;
 }
 
 export default function ContactsTable({
   contacts,
   onRefresh,
   selectedContactIds = [],
-  onSelectionChange
+  onSelectionChange,
+  contactLists = [],
+  onListClick
 }: ContactsTableProps) {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showColumnMenu, setShowColumnMenu] = useState(false);
@@ -28,6 +32,11 @@ export default function ContactsTable({
     lastCallDate: false,
     callAttempts: false,
   });
+
+  const getListForContact = (listId: string | null) => {
+    if (!listId) return null;
+    return contactLists.find(list => list.id === listId);
+  };
 
   const handleSelectAll = (checked: boolean) => {
     if (onSelectionChange) {
@@ -81,6 +90,7 @@ export default function ContactsTable({
                   <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Zip</th>
                 )}
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">List</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
                 {visibleColumns.tags && (
@@ -178,6 +188,27 @@ export default function ContactsTable({
                     <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-lg border ${getStatusColor(contact.status)}`}>
                       {contact.status}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {(() => {
+                      const list = getListForContact(contact.list_id);
+                      return list ? (
+                        <button
+                          onClick={() => onListClick && onListClick(list.id)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border-2 transition-all hover:scale-105 hover:shadow-md"
+                          style={{
+                            backgroundColor: `${list.color}15`,
+                            borderColor: list.color,
+                            color: list.color
+                          }}
+                        >
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: list.color }}></div>
+                          {list.name}
+                        </button>
+                      ) : (
+                        <span className="text-slate-300 text-xs">No list</span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                     {contact.contact_name || <span className="text-slate-300">—</span>}
