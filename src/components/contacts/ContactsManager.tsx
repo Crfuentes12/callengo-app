@@ -138,7 +138,7 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
     <div className="space-y-6">
       {/* Batch Actions Bar */}
       {selectedContactIds.length > 0 && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between animate-slideDown">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-indigo-900">
               {selectedContactIds.length} contact{selectedContactIds.length > 1 ? 's' : ''} selected
@@ -162,13 +162,16 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
                 Actions
               </button>
               {showBatchActions && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
-                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">Move to List</div>
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">Add to List</div>
                   <button
-                    onClick={() => handleBatchMoveToList(null)}
-                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    onClick={() => setShowListManager(true)}
+                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-indigo-50 transition-colors flex items-center gap-2"
                   >
-                    Remove from all lists
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create new list
                   </button>
                   {contactLists.map((list) => (
                     <button
@@ -183,11 +186,22 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
                     </button>
                   ))}
                   <div className="border-t border-slate-200 my-2"></div>
+                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">Other Actions</div>
+                  <button
+                    onClick={() => handleBatchMoveToList(null)}
+                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    Remove from current list
+                  </button>
+                  <div className="border-t border-slate-200 my-2"></div>
                   <button
                     onClick={handleBatchDelete}
-                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors font-semibold flex items-center gap-2"
                   >
-                    Delete selected contacts
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete permanently
                   </button>
                 </div>
               )}
@@ -328,7 +342,11 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate }: ListManagerMo
           color: newListColor,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating list:', error);
+        alert(`Failed to create list: ${error.message}`);
+        return;
+      }
 
       setNewListName('');
       setNewListDescription('');
@@ -336,7 +354,8 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate }: ListManagerMo
       setShowCreateForm(false);
       onUpdate();
     } catch (error) {
-      alert('Failed to create list');
+      console.error('Error creating list:', error);
+      alert(`Failed to create list: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
