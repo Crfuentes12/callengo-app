@@ -301,6 +301,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     timezone: 'America/New_York',
     customTask: '',
     selectedLists: [] as string[],
+    testPhoneNumber: '', // Add phone number to main settings
     companyInfo: {
       name: company.name,
       description: company.description || '',
@@ -534,15 +535,23 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
 
                   {/* Test Agent Button */}
                   <button
-                    onClick={() => setShowTestModal(true)}
-                    disabled={!settings.voice}
-                    className={`mt-4 w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:scale-105'}`}
+                    onClick={() => {
+                      setTestPhoneNumber(settings.testPhoneNumber);
+                      setShowTestModal(true);
+                    }}
+                    disabled={!settings.voice || !settings.testPhoneNumber}
+                    className={`mt-4 w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${(!settings.voice || !settings.testPhoneNumber) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:scale-105'}`}
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                     Test Agent
                   </button>
+                  {(!settings.voice || !settings.testPhoneNumber) && (
+                    <p className="text-xs text-red-400 mt-2 text-center">
+                      {!settings.voice && !settings.testPhoneNumber ? 'Voice and phone number required' : !settings.voice ? 'Voice required' : 'Phone number required'}
+                    </p>
+                  )}
                 </div>
 
                 {/* Right: About this agent */}
@@ -621,6 +630,25 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                       className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none placeholder-slate-500"
                     />
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">
+                      Test Phone Number <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="+1 (555) 123-4567"
+                      value={settings.testPhoneNumber}
+                      onChange={(e) => setSettings({ ...settings, testPhoneNumber: e.target.value })}
+                      className={`w-full px-3 py-2 bg-slate-900/50 border-2 ${!settings.testPhoneNumber ? 'border-red-500/50' : 'border-slate-700'} rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none placeholder-slate-500`}
+                    />
+                    <p className="text-xs text-cyan-300 mt-1 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      Required for agent testing
+                    </p>
+                  </div>
                 </div>
 
                 {/* Core Capabilities */}
@@ -654,12 +682,12 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
               </button>
               <button
                 onClick={() => {
-                  if (!settings.voice) return;
+                  if (!settings.voice || !settings.testPhoneNumber) return;
                   loadContactCount();
                   setStep('contacts');
                 }}
-                disabled={!settings.voice}
-                className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg font-black text-sm transition-all duration-300 relative overflow-hidden ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}`}
+                disabled={!settings.voice || !settings.testPhoneNumber}
+                className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg font-black text-sm transition-all duration-300 relative overflow-hidden ${(!settings.voice || !settings.testPhoneNumber) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}`}
               >
                 <span className="relative z-10">Deploy Agent</span>
               </button>
@@ -1196,7 +1224,10 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                 type="tel"
                 placeholder="+1 (555) 123-4567"
                 value={testPhoneNumber}
-                onChange={(e) => setTestPhoneNumber(e.target.value)}
+                onChange={(e) => {
+                  setTestPhoneNumber(e.target.value);
+                  setSettings({ ...settings, testPhoneNumber: e.target.value });
+                }}
                 className="w-full px-4 py-3 bg-slate-900/50 border-2 border-purple-500/50 rounded-lg text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none placeholder-slate-500"
                 required
               />
