@@ -98,6 +98,43 @@ export type Database = {
           }
         ]
       }
+      contact_lists: {
+        Row: {
+          id: string
+          company_id: string
+          name: string
+          description: string | null
+          color: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          name: string
+          description?: string | null
+          color?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          name?: string
+          description?: string | null
+          color?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_lists_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       contacts: {
         Row: {
           id: string
@@ -126,6 +163,7 @@ export type Database = {
           notes: string | null
           is_test_call: boolean
           tags: string[] | null
+          list_id: string | null
           custom_fields: Json | null
           created_at: string
           updated_at: string
@@ -157,6 +195,7 @@ export type Database = {
           notes?: string | null
           is_test_call?: boolean
           tags?: string[] | null
+          list_id?: string | null
           custom_fields?: Json | null
           created_at?: string
           updated_at?: string
@@ -188,6 +227,7 @@ export type Database = {
           notes?: string | null
           is_test_call?: boolean
           tags?: string[] | null
+          list_id?: string | null
           custom_fields?: Json | null
           created_at?: string
           updated_at?: string
@@ -197,6 +237,12 @@ export type Database = {
             foreignKeyName: "contacts_company_id_fkey"
             columns: ["company_id"]
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_list_id_fkey"
+            columns: ["list_id"]
+            referencedRelation: "contact_lists"
             referencedColumns: ["id"]
           }
         ]
@@ -513,6 +559,7 @@ export type Company = Database['public']['Tables']['companies']['Row'] & {
 export type AgentTemplate = Database['public']['Tables']['agent_templates']['Row'];
 export type CompanyAgent = Database['public']['Tables']['company_agents']['Row'];
 export type Contact = Database['public']['Tables']['contacts']['Row'];
+export type ContactList = Database['public']['Tables']['contact_lists']['Row'];
 export type AgentRun = Database['public']['Tables']['agent_runs']['Row'];
 
 // Agent Run Settings Configuration
@@ -525,6 +572,7 @@ export interface AgentRunSettings {
   workingHoursEnd?: string;
   timezone?: string;
   customTask?: string;
+  selectedLists?: string[]; // Array of list IDs
   companyInfo?: {
     name: string;
     description?: string;

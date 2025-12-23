@@ -1,9 +1,11 @@
 // components/contacts/ImportModal.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { parseCSV, detectColumnMapping } from '@/lib/call-agent-utils';
 import { ColumnMapping } from '@/types/call-agent';
+import { createClient } from '@/lib/supabase/client';
+import { ContactList } from '@/types/supabase';
 
 interface ImportModalProps {
   companyId: string;
@@ -11,9 +13,10 @@ interface ImportModalProps {
   onComplete: () => void;
 }
 
-type ImportStep = 'upload' | 'mapping' | 'preview' | 'complete';
+type ImportStep = 'upload' | 'list-select' | 'mapping' | 'preview' | 'complete';
 
 export default function ImportModal({ companyId, onClose, onComplete }: ImportModalProps) {
+  const supabase = createClient();
   const [step, setStep] = useState<ImportStep>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -30,21 +33,75 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
+  const [contactLists, setContactLists] = useState<ContactList[]>([]);
+  const [selectedListId, setSelectedListId] = useState<string>('');
+  const [newListName, setNewListName] = useState('');
+  const [newListDescription, setNewListDescription] = useState('');
+  const [showCreateList, setShowCreateList] = useState(false);
+
+  // Load contact lists on mount
+  useEffect(() => {
+    loadContactLists();
+  }, []);
+
+  const loadContactLists = async () => {
+    const { data } = await supabase
+      .from('contact_lists')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: true });
+
+    if (data) {
+      setContactLists(data);
+    }
+  };
+
+  const handleCreateList = async () => {
+    if (!newListName.trim()) return;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('contact_lists')
+        .insert({
+          company_id: companyId,
+          name: newListName.trim(),
+          description: newListDescription.trim() || null,
+          color: '#3b82f6',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setContactLists([...contactLists, data]);
+        setSelectedListId(data.id);
+        setNewListName('');
+        setNewListDescription('');
+        setShowCreateList(false);
+      }
+    } catch (error) {
+      alert('Failed to create list');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileUpload = async (uploadedFile: File) => {
     setLoading(true);
     try {
       const text = await uploadedFile.text();
       const { headers: parsedHeaders, rows: parsedRows } = parseCSV(text);
-      
+
       setFile(uploadedFile);
       setHeaders(parsedHeaders);
       setRows(parsedRows);
-      
+
       const suggestedMapping = detectColumnMapping(parsedHeaders);
       setMapping(suggestedMapping);
-      
-      setStep('mapping');
+
+      setStep('list-select');
     } catch (error) {
       alert('Failed to parse CSV file');
     } finally {
@@ -60,6 +117,9 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mapping', JSON.stringify(mapping));
+      if (selectedListId) {
+        formData.append('listId', selectedListId);
+      }
 
       const response = await fetch('/api/contacts/import', {
         method: 'POST',
@@ -94,22 +154,22 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
 
           {/* Progress */}
           <div className="flex items-center gap-2 mt-5">
-            {(['upload', 'mapping', 'preview', 'complete'] as const).map((s, idx) => (
+            {(['upload', 'list-select', 'mapping', 'preview', 'complete'] as const).map((s, idx) => (
               <div key={s} className="flex items-center flex-1">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
                   step === s ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' :
-                  ['upload', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-indigo-100 text-indigo-600' :
+                  ['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-indigo-100 text-indigo-600' :
                   'bg-slate-100 text-slate-400'
                 }`}>
-                  {['upload', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? (
+                  {['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? (
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : idx + 1}
                 </div>
-                {idx < 3 && (
+                {idx < 4 && (
                   <div className={`flex-1 h-1 mx-2 rounded-full transition-all ${
-                    ['upload', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-indigo-600' : 'bg-slate-200'
+                    ['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-indigo-600' : 'bg-slate-200'
                   }`}></div>
                 )}
               </div>
@@ -160,6 +220,150 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
             </div>
           )}
 
+          {step === 'list-select' && (
+            <div>
+              <p className="text-sm text-slate-600 mb-4">
+                Assign these <span className="font-semibold text-slate-900">{rows.length} contacts</span> to a list (optional):
+              </p>
+
+              <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                <button
+                  onClick={() => setSelectedListId('')}
+                  className={`w-full p-3 rounded-lg border-2 transition-all duration-300 text-left ${
+                    selectedListId === ''
+                      ? 'bg-indigo-50 border-indigo-500 shadow-md'
+                      : 'bg-white border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                        selectedListId === ''
+                          ? 'bg-indigo-600 border-indigo-600'
+                          : 'border-slate-300'
+                      }`}
+                    >
+                      {selectedListId === '' && (
+                        <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">No List (All Contacts)</p>
+                      <p className="text-xs text-slate-500">Import without assigning to a list</p>
+                    </div>
+                  </div>
+                </button>
+
+                {contactLists.map((list) => (
+                  <button
+                    key={list.id}
+                    onClick={() => setSelectedListId(list.id)}
+                    className={`w-full p-3 rounded-lg border-2 transition-all duration-300 text-left ${
+                      selectedListId === list.id
+                        ? 'bg-indigo-50 border-indigo-500 shadow-md'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                            selectedListId === list.id
+                              ? 'bg-indigo-600 border-indigo-600'
+                              : 'border-slate-300'
+                          }`}
+                        >
+                          {selectedListId === list.id && (
+                            <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{list.name}</p>
+                          {list.description && (
+                            <p className="text-xs text-slate-500 mt-0.5">{list.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      {list.color && (
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: list.color }}
+                        />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {!showCreateList ? (
+                <button
+                  onClick={() => setShowCreateList(true)}
+                  className="w-full p-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all flex items-center justify-center gap-2 font-medium"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create New List
+                </button>
+              ) : (
+                <div className="border-2 border-indigo-200 rounded-lg p-4 bg-indigo-50/50">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">List Name</label>
+                      <input
+                        type="text"
+                        value={newListName}
+                        onChange={(e) => setNewListName(e.target.value)}
+                        placeholder="e.g., Summer Campaign 2025"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Description (Optional)</label>
+                      <input
+                        type="text"
+                        value={newListDescription}
+                        onChange={(e) => setNewListDescription(e.target.value)}
+                        placeholder="Brief description..."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowCreateList(false)}
+                        className="flex-1 px-3 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleCreateList}
+                        disabled={!newListName.trim() || loading}
+                        className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
+                      >
+                        {loading ? 'Creating...' : 'Create'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setStep('upload')}
+                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={() => setStep('mapping')}
+                  className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          )}
+
           {step === 'mapping' && (
             <div>
               <p className="text-sm text-slate-600 mb-4">
@@ -193,7 +397,7 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
               </div>
               <div className="flex gap-3 mt-6">
                 <button
-                  onClick={() => setStep('upload')}
+                  onClick={() => setStep('list-select')}
                   className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
                 >
                   Back
