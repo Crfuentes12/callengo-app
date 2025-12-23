@@ -9,10 +9,35 @@ import ContactDetailModal from './ContactDetailModal';
 interface ContactsTableProps {
   contacts: Contact[];
   onRefresh: () => void;
+  selectedContactIds?: string[];
+  onSelectionChange?: (selectedIds: string[]) => void;
 }
 
-export default function ContactsTable({ contacts, onRefresh }: ContactsTableProps) {
+export default function ContactsTable({
+  contacts,
+  onRefresh,
+  selectedContactIds = [],
+  onSelectionChange
+}: ContactsTableProps) {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (onSelectionChange) {
+      onSelectionChange(checked ? contacts.map(c => c.id) : []);
+    }
+  };
+
+  const handleSelectOne = (contactId: string, checked: boolean) => {
+    if (onSelectionChange) {
+      const newSelection = checked
+        ? [...selectedContactIds, contactId]
+        : selectedContactIds.filter(id => id !== contactId);
+      onSelectionChange(newSelection);
+    }
+  };
+
+  const allSelected = contacts.length > 0 && selectedContactIds.length === contacts.length;
+  const someSelected = selectedContactIds.length > 0 && selectedContactIds.length < contacts.length;
 
   return (
     <>
@@ -21,6 +46,19 @@ export default function ContactsTable({ contacts, onRefresh }: ContactsTableProp
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50/80">
               <tr>
+                {onSelectionChange && (
+                  <th className="px-6 py-3.5 w-12">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={input => {
+                        if (input) input.indeterminate = someSelected;
+                      }}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 bg-white border-slate-300 rounded focus:ring-indigo-500 focus:ring-2 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Company</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Location</th>
@@ -32,7 +70,17 @@ export default function ContactsTable({ contacts, onRefresh }: ContactsTableProp
             </thead>
             <tbody className="divide-y divide-slate-100">
               {contacts.map((contact) => (
-                <tr key={contact.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={contact.id} className={`hover:bg-slate-50/50 transition-colors ${selectedContactIds.includes(contact.id) ? 'bg-indigo-50/30' : ''}`}>
+                  {onSelectionChange && (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedContactIds.includes(contact.id)}
+                        onChange={(e) => handleSelectOne(contact.id, e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 bg-white border-slate-300 rounded focus:ring-indigo-500 focus:ring-2 cursor-pointer"
+                      />
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-slate-900">{contact.company_name}</span>

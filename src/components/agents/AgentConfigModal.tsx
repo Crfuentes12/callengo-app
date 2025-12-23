@@ -168,7 +168,8 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const [contactCount, setContactCount] = useState(0);
   const [agentName, setAgentName] = useState('');
   const [agentTitle, setAgentTitle] = useState('AI Sales Agent');
-  const [imageTransitioning, setImageTransitioning] = useState(false);
+  const [previousVoice, setPreviousVoice] = useState('');
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [contactLists, setContactLists] = useState<ContactList[]>([]);
   const [selectedLists, setSelectedLists] = useState<string[]>([]);
   const [settings, setSettings] = useState({
@@ -213,13 +214,23 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     }
   };
 
-  // Handle voice change with smooth transition
+  // Handle voice change with smooth crossfade transition
   const handleVoiceChange = (newVoice: string) => {
-    setImageTransitioning(true);
-    setTimeout(() => {
+    if (settings.voice && settings.voice !== newVoice) {
+      setPreviousVoice(settings.voice);
+      setIsTransitioning(true);
+
+      // Update the voice immediately - crossfade will handle the visual transition
       setSettings({ ...settings, voice: newVoice });
-      setTimeout(() => setImageTransitioning(false), 50);
-    }, 300);
+
+      // Reset transition state after animation completes
+      setTimeout(() => {
+        setIsTransitioning(false);
+        setPreviousVoice('');
+      }, 300);
+    } else {
+      setSettings({ ...settings, voice: newVoice });
+    }
   };
 
   const loadContactCount = async () => {
@@ -338,19 +349,36 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
             <div className="space-y-5">
               {/* Agent Profile Section - Centered */}
               <div className="flex flex-col items-center">
-                {/* Agent avatar - 1:1 Square ratio */}
-                <div className={`relative w-64 h-64 rounded-xl overflow-hidden border-2 ${settings.voice ? `border-cyan-500/50` : 'border-slate-700'} shadow-2xl transition-all duration-500 ${imageTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-                  <Image
-                    src={avatarImage}
-                    alt={agentName || agent.name}
-                    fill
-                    className="object-cover"
-                    key={settings.voice}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40"></div>
+                {/* Agent avatar - 1:1 Square ratio with crossfade transition */}
+                <div className={`relative w-64 h-64 rounded-xl overflow-hidden border-2 ${settings.voice ? `border-cyan-500/50` : 'border-slate-700'} shadow-2xl transition-all duration-300`}>
+                  {/* Current image (base layer) */}
+                  <div className="absolute inset-0 z-10">
+                    <Image
+                      src={avatarImage}
+                      alt={agentName || agent.name}
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+
+                  {/* Previous image (fading out during transition) */}
+                  {isTransitioning && previousVoice && (
+                    <div className={`absolute inset-0 z-20 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+                      <Image
+                        src={getAvatarImage(agent.name, previousVoice)}
+                        alt={agentName || agent.name}
+                        fill
+                        className="object-cover"
+                        priority
+                      />
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 z-30 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none"></div>
 
                   {/* Agent name overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
+                  <div className="absolute bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-black via-black/95 to-transparent pointer-events-none">
                     <h2 className="text-xl font-black text-white uppercase tracking-tight leading-tight mb-0.5">
                       {agentName || agent.name}
                     </h2>
