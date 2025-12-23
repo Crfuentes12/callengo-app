@@ -13,6 +13,12 @@ interface ContactsManagerProps {
   companyId: string;
 }
 
+interface Toast {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
 export default function ContactsManager({ initialContacts, companyId }: ContactsManagerProps) {
   const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -23,8 +29,17 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
   const [selectedListFilter, setSelectedListFilter] = useState<string>('all');
   const [showListManager, setShowListManager] = useState(false);
   const [showBatchActions, setShowBatchActions] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   const supabase = createClient();
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(toast => toast.id !== id));
+    }, 4000);
+  };
 
   // Load contact lists on mount
   useEffect(() => {
@@ -70,9 +85,10 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      showToast('Contacts exported successfully', 'success');
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export contacts');
+      showToast('Failed to export contacts', 'error');
     }
   };
 
@@ -87,12 +103,18 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
 
       if (error) throw error;
 
+      const count = selectedContactIds.length;
       await refreshContacts();
       setSelectedContactIds([]);
       setShowBatchActions(false);
-      alert(`Moved ${selectedContactIds.length} contact(s) to list`);
+
+      if (listId === null) {
+        showToast(`Removed ${count} contact${count > 1 ? 's' : ''} from list`, 'success');
+      } else {
+        showToast(`Added ${count} contact${count > 1 ? 's' : ''} to list successfully`, 'success');
+      }
     } catch (error) {
-      alert('Failed to move contacts');
+      showToast('Failed to move contacts', 'error');
     }
   };
 
@@ -102,6 +124,7 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
     if (!confirm(`Are you sure you want to delete ${selectedContactIds.length} contact(s)?`)) return;
 
     try {
+      const count = selectedContactIds.length;
       const { error } = await supabase
         .from('contacts')
         .delete()
@@ -111,9 +134,9 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
 
       await refreshContacts();
       setSelectedContactIds([]);
-      alert(`Deleted ${selectedContactIds.length} contact(s)`);
+      showToast(`Deleted ${count} contact${count > 1 ? 's' : ''} successfully`, 'success');
     } catch (error) {
-      alert('Failed to delete contacts');
+      showToast('Failed to delete contacts', 'error');
     }
   };
 
@@ -195,6 +218,16 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
                 </button>
               );
             })}
+            {/* Add New List Button */}
+            <button
+              onClick={() => setShowListManager(true)}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 border-dashed border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all"
+              title="Create new list"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
           </div>
         </div>
       )}
@@ -370,8 +403,44 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
           lists={contactLists}
           onClose={() => setShowListManager(false)}
           onUpdate={loadContactLists}
+          onShowToast={showToast}
         />
       )}
+
+      {/* Toast Notifications */}
+      <div className="fixed bottom-6 right-6 z-50 space-y-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border-2 backdrop-blur-sm animate-slideUp ${
+              toast.type === 'success'
+                ? 'bg-green-50/95 border-green-400 text-green-800'
+                : toast.type === 'error'
+                ? 'bg-red-50/95 border-red-400 text-red-800'
+                : 'bg-blue-50/95 border-blue-400 text-blue-800'
+            }`}
+          >
+            <div className="flex-shrink-0">
+              {toast.type === 'success' && (
+                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+              {toast.type === 'error' && (
+                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+              {toast.type === 'info' && (
+                <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+            </div>
+            <p className="text-sm font-medium">{toast.message}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -382,9 +451,10 @@ interface ListManagerModalProps {
   lists: ContactList[];
   onClose: () => void;
   onUpdate: () => void;
+  onShowToast: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
-function ListManagerModal({ companyId, lists, onClose, onUpdate }: ListManagerModalProps) {
+function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: ListManagerModalProps) {
   const supabase = createClient();
   const [editingList, setEditingList] = useState<ContactList | null>(null);
   const [newListName, setNewListName] = useState('');
@@ -409,7 +479,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate }: ListManagerMo
 
       if (error) {
         console.error('Error creating list:', error);
-        alert(`Failed to create list: ${error.message}`);
+        onShowToast(`Failed to create list: ${error.message}`, 'error');
         return;
       }
 
@@ -418,9 +488,10 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate }: ListManagerMo
       setNewListColor('#3b82f6');
       setShowCreateForm(false);
       onUpdate();
+      onShowToast('List created successfully', 'success');
     } catch (error) {
       console.error('Error creating list:', error);
-      alert(`Failed to create list: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      onShowToast(`Failed to create list: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -442,8 +513,9 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate }: ListManagerMo
 
       setEditingList(null);
       onUpdate();
+      onShowToast('List updated successfully', 'success');
     } catch (error) {
-      alert('Failed to update list');
+      onShowToast('Failed to update list', 'error');
     } finally {
       setLoading(false);
     }
@@ -462,8 +534,9 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate }: ListManagerMo
       if (error) throw error;
 
       onUpdate();
+      onShowToast('List deleted successfully', 'success');
     } catch (error) {
-      alert('Failed to delete list');
+      onShowToast('Failed to delete list', 'error');
     } finally {
       setLoading(false);
     }
