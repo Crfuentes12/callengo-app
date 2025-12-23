@@ -22,9 +22,9 @@ const getAvatarImage = (name: string, voice?: string) => {
     const maleVoices = ['josh', 'matt'];
 
     if (femaleVoices.includes(voice)) {
-      return '/agent-avatars/female-agent.png';
+      return '/avatars/female-agent.png';
     } else if (maleVoices.includes(voice)) {
-      return '/agent-avatars/male-agent.png';
+      return '/avatars/male-agent.png';
     }
   }
 
