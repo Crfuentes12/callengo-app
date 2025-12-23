@@ -171,6 +171,7 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
             </button>
             {contactLists.map((list) => {
               const listContactCount = contacts.filter(c => c.list_id === list.id).length;
+              const listColor = list.color || '#3b82f6';
               return (
                 <button
                   key={list.id}
@@ -181,12 +182,12 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
                       : 'hover:scale-105 hover:shadow-md'
                   }`}
                   style={{
-                    backgroundColor: selectedListFilter === list.id ? `${list.color}25` : `${list.color}10`,
-                    borderColor: list.color,
-                    color: selectedListFilter === list.id ? list.color : `${list.color}cc`
+                    backgroundColor: selectedListFilter === list.id ? `${listColor}25` : `${listColor}10`,
+                    borderColor: listColor,
+                    color: selectedListFilter === list.id ? listColor : `${listColor}cc`
                   }}
                 >
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: list.color }}></div>
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: listColor }}></div>
                   {list.name}
                   <span className="ml-1 px-1.5 py-0.5 bg-white/50 rounded text-xs font-bold">
                     {listContactCount}
