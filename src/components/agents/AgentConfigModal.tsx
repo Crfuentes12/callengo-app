@@ -51,6 +51,111 @@ const getAvatarImage = (name: string, voice?: string) => {
   return '/agent-avatars/lead-qualification.png';
 };
 
+// Generate agent description based on agent type
+const getAgentDescription = (agent: AgentTemplate) => {
+  const name = agent.name.toLowerCase();
+
+  if (name.includes('data') || name.includes('validation')) {
+    return {
+      title: 'Data Validation Agent',
+      description: 'This agent calls your contacts to verify and update their information. It asks specific questions to ensure your database remains accurate and up-to-date, improving the quality of your contact data.',
+      demoData: {
+        companyName: 'TechCorp Solutions',
+        contactName: 'John Smith',
+        email: 'john.smith@example.com',
+        phone: '+1 (555) 123-4567',
+      }
+    };
+  }
+
+  if (name.includes('qualification') && name.includes('lead')) {
+    return {
+      title: 'Lead Qualification Agent',
+      description: 'Qualifies NEW leads by asking targeted questions to determine if they\'re a good fit for your product or service. Scores leads based on budget, authority, need, and timeline to prioritize your sales efforts.',
+      demoData: {
+        companyName: 'Sales Pro Inc',
+        contactName: 'Alex Martinez',
+        leadSource: 'Website Form',
+        interest: 'Enterprise Plan',
+      }
+    };
+  }
+
+  if (name.includes('reactivation')) {
+    return {
+      title: 'Lead Reactivation Agent',
+      description: 'Reconnects with DORMANT leads who showed interest months ago but didn\'t convert. Uses personalized conversation to understand their current situation and reignite their interest with new offers or solutions.',
+      demoData: {
+        companyName: 'Growth Marketing Inc',
+        contactName: 'Sarah Johnson',
+        lastInteraction: '3 months ago',
+        previousInterest: 'Premium Plan',
+      }
+    };
+  }
+
+  if (name.includes('cart') || name.includes('abandoned')) {
+    return {
+      title: 'Abandoned Cart Recovery Agent',
+      description: 'Reaches out to customers who left items in their cart without completing purchase. Offers assistance, answers questions, and provides incentives to help close the sale.',
+      demoData: {
+        companyName: 'E-Shop Online',
+        contactName: 'Mike Davis',
+        cartValue: '$249.99',
+        itemsLeft: '3 items',
+      }
+    };
+  }
+
+  if (name.includes('feedback') || name.includes('survey')) {
+    return {
+      title: 'Feedback Collection Agent',
+      description: 'Conducts friendly conversations to gather customer feedback and satisfaction ratings. Creates a natural dialogue that encourages honest responses and valuable insights.',
+      demoData: {
+        companyName: 'Customer Success Co',
+        contactName: 'Emily Chen',
+        recentPurchase: 'Premium Service',
+        purchaseDate: '2 weeks ago',
+      }
+    };
+  }
+
+  if (name.includes('appointment') || name.includes('confirmation')) {
+    return {
+      title: 'Appointment Confirmation Agent',
+      description: 'Confirms upcoming appointments with your contacts, reduces no-shows, and handles rescheduling requests. Ensures your calendar stays organized and efficient.',
+      demoData: {
+        companyName: 'Healthcare Clinic',
+        contactName: 'Robert Taylor',
+        appointmentDate: 'Tomorrow at 2:00 PM',
+        appointmentType: 'Consultation',
+      }
+    };
+  }
+
+  if (name.includes('winback') || name.includes('win-back')) {
+    return {
+      title: 'Winback Campaign Agent',
+      description: 'Re-engages with former customers to bring them back. Uses empathy and special offers to understand why they left and presents compelling reasons to return.',
+      demoData: {
+        companyName: 'Subscription Services Ltd',
+        contactName: 'Lisa Anderson',
+        lastSubscription: '6 months ago',
+        cancellationReason: 'Price concerns',
+      }
+    };
+  }
+
+  return {
+    title: agent.name,
+    description: 'This AI agent helps automate your outbound calling campaigns with natural conversations and intelligent responses.',
+    demoData: {
+      companyName: 'Demo Company',
+      contactName: 'Test Contact',
+    }
+  };
+};
+
 // Generate realistic agent stats based on agent type
 const getAgentStats = (agent: AgentTemplate) => {
   const name = agent.name.toLowerCase();
@@ -65,8 +170,18 @@ const getAgentStats = (agent: AgentTemplate) => {
     };
   }
 
+  // Lead Qualification - High analysis and questioning
+  if (name.includes('qualification') && name.includes('lead')) {
+    return {
+      analysis: 96,
+      questioning: 94,
+      efficiency: 92,
+      insight: 93,
+    };
+  }
+
   // Lead Reactivation - High persuasion and persistence
-  if (name.includes('reactivation') || name.includes('lead')) {
+  if (name.includes('reactivation')) {
     return {
       persuasion: 94,
       persistence: 96,
@@ -165,12 +280,17 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const supabase = createClient();
   const [step, setStep] = useState<'preview' | 'contacts' | 'confirm'>('preview');
   const [loading, setLoading] = useState(false);
+  const [loadingContacts, setLoadingContacts] = useState(false);
   const [contactCount, setContactCount] = useState(0);
   const [agentName, setAgentName] = useState('');
   const [agentTitle, setAgentTitle] = useState('AI Sales Agent');
-  const [imageTransitioning, setImageTransitioning] = useState(false);
+  const [previousVoice, setPreviousVoice] = useState('');
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [contactLists, setContactLists] = useState<ContactList[]>([]);
   const [selectedLists, setSelectedLists] = useState<string[]>([]);
+  const [showTestModal, setShowTestModal] = useState(false);
+  const [testPhoneNumber, setTestPhoneNumber] = useState('');
+  const [testingAgent, setTestingAgent] = useState(false);
   const [settings, setSettings] = useState({
     voice: '',
     maxDuration: 5,
@@ -213,29 +333,44 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     }
   };
 
-  // Handle voice change with smooth transition
+  // Handle voice change with smooth crossfade transition
   const handleVoiceChange = (newVoice: string) => {
-    setImageTransitioning(true);
-    setTimeout(() => {
+    if (settings.voice && settings.voice !== newVoice) {
+      setPreviousVoice(settings.voice);
+      setIsTransitioning(true);
+
+      // Update the voice immediately - crossfade will handle the visual transition
       setSettings({ ...settings, voice: newVoice });
-      setTimeout(() => setImageTransitioning(false), 50);
-    }, 300);
+
+      // Reset transition state after animation completes
+      setTimeout(() => {
+        setIsTransitioning(false);
+        setPreviousVoice('');
+      }, 300);
+    } else {
+      setSettings({ ...settings, voice: newVoice });
+    }
   };
 
   const loadContactCount = async () => {
-    let query = supabase
-      .from('contacts')
-      .select('*', { count: 'exact', head: true })
-      .eq('company_id', companyId)
-      .eq('status', 'Pending');
+    setLoadingContacts(true);
+    try {
+      let query = supabase
+        .from('contacts')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('status', 'Pending');
 
-    // Filter by selected lists if any
-    if (selectedLists.length > 0) {
-      query = query.in('list_id', selectedLists);
+      // Filter by selected lists if any
+      if (selectedLists.length > 0) {
+        query = query.in('list_id', selectedLists);
+      }
+
+      const { count } = await query;
+      setContactCount(count || 0);
+    } finally {
+      setLoadingContacts(false);
     }
-
-    const { count } = await query;
-    setContactCount(count || 0);
   };
 
   const toggleListSelection = (listId: string) => {
@@ -245,6 +380,24 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
         : [...prev, listId];
       return newSelection;
     });
+  };
+
+  const handleTestAgent = async () => {
+    if (!testPhoneNumber.trim() || !settings.voice) return;
+
+    setTestingAgent(true);
+    try {
+      // Simulate a test call - in production, this would call your backend API
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      alert(`Test call initiated to ${testPhoneNumber} with demo data. Check your phone!`);
+      setShowTestModal(false);
+      setTestPhoneNumber('');
+    } catch (error) {
+      alert('Failed to initiate test call');
+    } finally {
+      setTestingAgent(false);
+    }
   };
 
   const handleStartCampaign = async () => {
@@ -284,6 +437,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const avatarImage = getAvatarImage(agent.name, settings.voice);
   const stats = getAgentStats(agent);
   const gradientColor = getCategoryColor(agent.category);
+  const agentInfo = getAgentDescription(agent);
 
   // Step indicator component
   const StepIndicator = ({ currentStep }: { currentStep: number }) => (
@@ -334,29 +488,88 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
           <div className="overflow-y-auto p-6">
             <StepIndicator currentStep={getStepNumber()} />
 
-            {/* Single column optimized layout */}
+            {/* Two column layout - Avatar + About */}
             <div className="space-y-5">
-              {/* Agent Profile Section - Centered */}
-              <div className="flex flex-col items-center">
-                {/* Agent avatar - 1:1 Square ratio */}
-                <div className={`relative w-64 h-64 rounded-xl overflow-hidden border-2 ${settings.voice ? `border-cyan-500/50` : 'border-slate-700'} shadow-2xl transition-all duration-500 ${imageTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-                  <Image
-                    src={avatarImage}
-                    alt={agentName || agent.name}
-                    fill
-                    className="object-cover"
-                    key={settings.voice}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40"></div>
+              {/* Agent Profile Section - Side by Side */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Left: Agent avatar */}
+                <div className="flex flex-col">
+                  <div className={`relative w-full aspect-square rounded-xl overflow-hidden border-2 ${settings.voice ? `border-cyan-500/50` : 'border-slate-700'} shadow-2xl transition-all duration-300`}>
+                    {/* Current image (base layer) */}
+                    <div className="absolute inset-0 z-10">
+                      <Image
+                        src={avatarImage}
+                        alt={agentName || agent.name}
+                        fill
+                        className="object-cover"
+                        priority
+                      />
+                    </div>
 
-                  {/* Agent name overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
-                    <h2 className="text-xl font-black text-white uppercase tracking-tight leading-tight mb-0.5">
-                      {agentName || agent.name}
-                    </h2>
-                    <p className="text-xs text-slate-300">
-                      {agentTitle}
+                    {/* Previous image (fading out during transition) */}
+                    {isTransitioning && previousVoice && (
+                      <div className={`absolute inset-0 z-20 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+                        <Image
+                          src={getAvatarImage(agent.name, previousVoice)}
+                          alt={agentName || agent.name}
+                          fill
+                          className="object-cover"
+                          priority
+                        />
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 z-30 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none"></div>
+
+                    {/* Agent name overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-black via-black/95 to-transparent pointer-events-none">
+                      <h2 className="text-xl font-black text-white uppercase tracking-tight leading-tight mb-0.5">
+                        {agentName || agent.name}
+                      </h2>
+                      <p className="text-xs text-slate-300">
+                        {agentTitle}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Test Agent Button */}
+                  <button
+                    onClick={() => setShowTestModal(true)}
+                    disabled={!settings.voice}
+                    className={`mt-4 w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:scale-105'}`}
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Test Agent
+                  </button>
+                </div>
+
+                {/* Right: About this agent */}
+                <div className="flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-lg font-black text-white uppercase mb-3 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      About this agent
+                    </h3>
+                    <p className="text-sm text-slate-300 leading-relaxed mb-4">
+                      {agentInfo.description}
                     </p>
+
+                    {/* Demo Data Preview */}
+                    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                      <p className="text-xs font-bold text-cyan-400 uppercase mb-2">Demo Data Used</p>
+                      <div className="space-y-1.5">
+                        {Object.entries(agentInfo.demoData).map(([key, value]) => (
+                          <div key={key} className="flex justify-between text-xs">
+                            <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                            <span className="text-white font-medium">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -503,7 +716,22 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
               </div>
             </div>
 
-            {contactCount === 0 ? (
+            {loadingContacts ? (
+              <div className="space-y-6">
+                {/* Loading skeleton */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50 animate-pulse">
+                  <div className="h-4 bg-slate-700 rounded w-1/3 mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-16 bg-slate-700 rounded"></div>
+                    <div className="h-16 bg-slate-700 rounded"></div>
+                    <div className="h-16 bg-slate-700 rounded"></div>
+                  </div>
+                </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50 animate-pulse">
+                  <div className="h-24 bg-slate-700 rounded"></div>
+                </div>
+              </div>
+            ) : contactCount === 0 ? (
               <div className="text-center py-12 bg-amber-900/20 rounded-xl border border-amber-500/30">
                 <svg className="w-16 h-16 text-amber-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -755,7 +983,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
             )}
 
             {/* Action buttons */}
-            {contactCount > 0 && (
+            {!loadingContacts && contactCount > 0 && (
               <div className="flex gap-3 mt-6 pt-6 border-t border-slate-700/50">
                 <button
                   onClick={() => setStep('preview')}
@@ -880,6 +1108,135 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                 <span className="relative z-10">{loading ? 'Launching...' : '🚀 Launch Campaign'}</span>
                 {!loading && (
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Test Agent Modal
+  if (showTestModal) {
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[60] p-4">
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
+          {/* Header */}
+          <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/20 to-pink-600/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-black text-white">Test Agent</h2>
+              </div>
+              <button
+                onClick={() => setShowTestModal(false)}
+                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3 mb-4">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-bold text-purple-300 mb-1">Test with Demo Data</p>
+                  <p className="text-xs text-purple-200/80">
+                    <span className="text-cyan-400 font-bold">{agentName || agent.name}</span> will call you using the demo data below. You'll experience a real conversation to see how the agent works.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Agent Info Summary */}
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 mb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-purple-500/50">
+                  <Image
+                    src={avatarImage}
+                    alt={agentName || agent.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">{agentName || agent.name}</p>
+                  <p className="text-xs text-slate-400 capitalize">Voice: {settings.voice}</p>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-purple-400 uppercase">Demo Data</p>
+                {Object.entries(agentInfo.demoData).slice(0, 3).map(([key, value]) => (
+                  <div key={key} className="flex justify-between text-xs">
+                    <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                    <span className="text-white">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Phone Number Input */}
+            <div className="mb-6">
+              <label className="block text-xs font-bold text-slate-300 uppercase mb-2">
+                Your Phone Number <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="tel"
+                placeholder="+1 (555) 123-4567"
+                value={testPhoneNumber}
+                onChange={(e) => setTestPhoneNumber(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-900/50 border-2 border-purple-500/50 rounded-lg text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none placeholder-slate-500"
+                required
+              />
+              <p className="text-xs text-purple-300 mt-2 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Required: You'll receive a demo call in a few seconds
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowTestModal(false)}
+                disabled={testingAgent}
+                className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 font-bold text-sm transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTestAgent}
+                disabled={!testPhoneNumber.trim() || testingAgent}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {testingAgent ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Calling...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Start Test Call
+                  </>
                 )}
               </button>
             </div>

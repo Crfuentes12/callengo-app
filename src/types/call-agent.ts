@@ -122,6 +122,7 @@ export interface Contact {
   notes: string | null;
   is_test_call: boolean;
   tags: string[] | null;
+  list_id: string | null;
   custom_fields: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
