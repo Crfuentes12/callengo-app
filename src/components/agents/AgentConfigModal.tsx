@@ -165,6 +165,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const supabase = createClient();
   const [step, setStep] = useState<'preview' | 'contacts' | 'confirm'>('preview');
   const [loading, setLoading] = useState(false);
+  const [loadingContacts, setLoadingContacts] = useState(false);
   const [contactCount, setContactCount] = useState(0);
   const [agentName, setAgentName] = useState('');
   const [agentTitle, setAgentTitle] = useState('AI Sales Agent');
@@ -234,19 +235,24 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   };
 
   const loadContactCount = async () => {
-    let query = supabase
-      .from('contacts')
-      .select('*', { count: 'exact', head: true })
-      .eq('company_id', companyId)
-      .eq('status', 'Pending');
+    setLoadingContacts(true);
+    try {
+      let query = supabase
+        .from('contacts')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('status', 'Pending');
 
-    // Filter by selected lists if any
-    if (selectedLists.length > 0) {
-      query = query.in('list_id', selectedLists);
+      // Filter by selected lists if any
+      if (selectedLists.length > 0) {
+        query = query.in('list_id', selectedLists);
+      }
+
+      const { count } = await query;
+      setContactCount(count || 0);
+    } finally {
+      setLoadingContacts(false);
     }
-
-    const { count } = await query;
-    setContactCount(count || 0);
   };
 
   const toggleListSelection = (listId: string) => {
@@ -531,7 +537,22 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
               </div>
             </div>
 
-            {contactCount === 0 ? (
+            {loadingContacts ? (
+              <div className="space-y-6">
+                {/* Loading skeleton */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50 animate-pulse">
+                  <div className="h-4 bg-slate-700 rounded w-1/3 mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-16 bg-slate-700 rounded"></div>
+                    <div className="h-16 bg-slate-700 rounded"></div>
+                    <div className="h-16 bg-slate-700 rounded"></div>
+                  </div>
+                </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50 animate-pulse">
+                  <div className="h-24 bg-slate-700 rounded"></div>
+                </div>
+              </div>
+            ) : contactCount === 0 ? (
               <div className="text-center py-12 bg-amber-900/20 rounded-xl border border-amber-500/30">
                 <svg className="w-16 h-16 text-amber-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -783,7 +804,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
             )}
 
             {/* Action buttons */}
-            {contactCount > 0 && (
+            {!loadingContacts && contactCount > 0 && (
               <div className="flex gap-3 mt-6 pt-6 border-t border-slate-700/50">
                 <button
                   onClick={() => setStep('preview')}
