@@ -171,6 +171,7 @@ export function mapRowToContact(
     notes: null,
     is_test_call: false,
     tags: null,
+    list_id: null,
     custom_fields: null,
   };
 }
