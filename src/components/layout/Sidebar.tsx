@@ -10,6 +10,8 @@ type Company = Database['public']['Tables']['companies']['Row'];
 interface SidebarProps {
   company: Company;
   onLogout: () => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 function HomeIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -61,7 +63,7 @@ function LogoutIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-export default function Sidebar({ company, onLogout }: SidebarProps) {
+export default function Sidebar({ company, onLogout, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   const navigation = [
@@ -73,9 +75,17 @@ export default function Sidebar({ company, onLogout }: SidebarProps) {
   ];
 
   return (
-    <aside className="w-[260px] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 flex flex-col h-screen shadow-2xl">
-      {/* Logo */}
-      <div className="h-16 flex items-center px-5">
+    <aside
+      className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-[260px] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950
+        flex flex-col h-screen shadow-2xl
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}
+    >
+      {/* Logo & Close Button */}
+      <div className="h-16 flex items-center justify-between px-5">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/50">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -84,6 +94,15 @@ export default function Sidebar({ company, onLogout }: SidebarProps) {
           </div>
           <span className="font-bold text-[16px] text-white">Callengo</span>
         </div>
+        {/* Close button - Only visible on mobile */}
+        <button
+          onClick={onClose}
+          className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* Company Info */}
@@ -117,6 +136,7 @@ export default function Sidebar({ company, onLogout }: SidebarProps) {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={() => onClose()}
                 className={`
                   flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
                   transition-all duration-200

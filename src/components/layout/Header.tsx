@@ -12,6 +12,7 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  onMenuClick: () => void;
 }
 
 function BellIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -22,7 +23,15 @@ function BellIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-export default function Header({ user, title, subtitle, actions }: HeaderProps) {
+function MenuIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    </svg>
+  );
+}
+
+export default function Header({ user, title, subtitle, actions, onMenuClick }: HeaderProps) {
   const initials = (user.full_name || user.email)
     .split(' ')
     .map(n => n[0])
@@ -31,20 +40,31 @@ export default function Header({ user, title, subtitle, actions }: HeaderProps) 
     .toUpperCase();
 
   return (
-    <header className="bg-white border-b border-slate-200 px-6 py-4 h-16 flex items-center">
-      <div className="flex items-center justify-between w-full">
-        {/* Left: Title */}
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold text-slate-900 tracking-tight truncate">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="text-sm text-slate-500 mt-0.5 truncate">{subtitle}</p>
-          )}
+    <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 h-14 sm:h-16 flex items-center">
+      <div className="flex items-center justify-between w-full gap-3">
+        {/* Left: Menu Button (Mobile) + Title */}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Hamburger Menu - Only visible on mobile */}
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+          >
+            <MenuIcon className="w-6 h-6" />
+          </button>
+
+          {/* Title */}
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-xl font-semibold text-slate-900 tracking-tight truncate">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="hidden sm:block text-sm text-slate-500 mt-0.5 truncate">{subtitle}</p>
+            )}
+          </div>
         </div>
 
         {/* Right: Actions & User */}
-        <div className="flex items-center gap-2 ml-4">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* Custom Actions */}
           {actions && <div className="flex items-center gap-2 mr-2">{actions}</div>}
 
@@ -55,22 +75,22 @@ export default function Header({ user, title, subtitle, actions }: HeaderProps) 
           </button>
 
           {/* Divider */}
-          <div className="w-px h-8 bg-slate-200 mx-2"></div>
+          <div className="hidden sm:block w-px h-8 bg-slate-200 mx-1 sm:mx-2"></div>
 
           {/* User Menu */}
-          <button className="flex items-center gap-3 p-1.5 pr-3 rounded-lg hover:bg-slate-50 transition-colors group">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-medium text-sm shadow-sm">
+          <button className="flex items-center gap-2 sm:gap-3 p-1 sm:p-1.5 sm:pr-3 rounded-lg hover:bg-slate-50 transition-colors group">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-medium text-xs sm:text-sm shadow-sm">
               {initials}
             </div>
-            <div className="text-left hidden sm:block">
-              <p className="text-sm font-medium text-slate-900 group-hover:text-indigo-600 transition-colors truncate max-w-[140px]">
+            <div className="text-left hidden md:block">
+              <p className="text-sm font-medium text-slate-900 group-hover:text-indigo-600 transition-colors truncate max-w-[100px] lg:max-w-[140px]">
                 {user.full_name || 'User'}
               </p>
-              <p className="text-xs text-slate-500 truncate max-w-[140px]">
+              <p className="text-xs text-slate-500 truncate max-w-[100px] lg:max-w-[140px]">
                 {user.email}
               </p>
             </div>
-            <svg className="w-4 h-4 text-slate-400 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4 text-slate-400 hidden md:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
             </svg>
           </button>
