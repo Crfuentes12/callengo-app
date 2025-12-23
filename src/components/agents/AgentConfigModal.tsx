@@ -1,11 +1,11 @@
 // components/agents/AgentConfigModal.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { AgentTemplate, Company } from '@/types/supabase';
+import { AgentTemplate, Company, ContactList } from '@/types/supabase';
 
 interface AgentConfigModalProps {
   agent: AgentTemplate;
@@ -168,6 +168,9 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const [contactCount, setContactCount] = useState(0);
   const [agentName, setAgentName] = useState('');
   const [agentTitle, setAgentTitle] = useState('AI Sales Agent');
+  const [imageTransitioning, setImageTransitioning] = useState(false);
+  const [contactLists, setContactLists] = useState<ContactList[]>([]);
+  const [selectedLists, setSelectedLists] = useState<string[]>([]);
   const [settings, setSettings] = useState({
     voice: '',
     maxDuration: 5,
@@ -177,6 +180,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     workingHoursEnd: '18:00',
     timezone: 'America/New_York',
     customTask: '',
+    selectedLists: [] as string[],
     companyInfo: {
       name: company.name,
       description: company.description || '',
@@ -185,29 +189,83 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     },
   });
 
+  // Load contact lists on mount
+  useEffect(() => {
+    loadContactLists();
+  }, []);
+
+  // Reload contact count when selected lists change
+  useEffect(() => {
+    if (step === 'contacts') {
+      loadContactCount();
+    }
+  }, [selectedLists, step]);
+
+  const loadContactLists = async () => {
+    const { data, error } = await supabase
+      .from('contact_lists')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: true });
+
+    if (data) {
+      setContactLists(data);
+    }
+  };
+
+  // Handle voice change with smooth transition
+  const handleVoiceChange = (newVoice: string) => {
+    setImageTransitioning(true);
+    setTimeout(() => {
+      setSettings({ ...settings, voice: newVoice });
+      setTimeout(() => setImageTransitioning(false), 50);
+    }, 300);
+  };
+
   const loadContactCount = async () => {
-    const { count } = await supabase
+    let query = supabase
       .from('contacts')
       .select('*', { count: 'exact', head: true })
       .eq('company_id', companyId)
       .eq('status', 'Pending');
-    
+
+    // Filter by selected lists if any
+    if (selectedLists.length > 0) {
+      query = query.in('list_id', selectedLists);
+    }
+
+    const { count } = await query;
     setContactCount(count || 0);
+  };
+
+  const toggleListSelection = (listId: string) => {
+    setSelectedLists(prev => {
+      const newSelection = prev.includes(listId)
+        ? prev.filter(id => id !== listId)
+        : [...prev, listId];
+      return newSelection;
+    });
   };
 
   const handleStartCampaign = async () => {
     setLoading(true);
     try {
+      // Update settings with selected lists
+      const finalSettings = {
+        ...settings,
+        selectedLists: selectedLists,
+      };
+
       // Create agent run
       const { data: run, error } = await supabase
         .from('agent_runs')
         .insert({
           company_id: companyId,
           agent_template_id: agent.id,
-          name: `${agent.name} - ${new Date().toLocaleDateString()}`,
+          name: `${agentName || agent.name} - ${new Date().toLocaleDateString()}`,
           status: 'draft',
           total_contacts: contactCount,
-          settings: settings,
+          settings: finalSettings,
         })
         .select()
         .single();
@@ -276,23 +334,24 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
           <div className="overflow-y-auto p-6">
             <StepIndicator currentStep={getStepNumber()} />
 
-            <div className="grid md:grid-cols-2 gap-5">
-              {/* Left side - Agent Image & Customization */}
-              <div className="space-y-4">
-                {/* Agent avatar */}
-                <div className="relative h-[280px] rounded-xl overflow-hidden border border-slate-700 shadow-xl">
+            {/* Single column optimized layout */}
+            <div className="space-y-5">
+              {/* Agent Profile Section - Centered */}
+              <div className="flex flex-col items-center">
+                {/* Agent avatar - 1:1 Square ratio */}
+                <div className={`relative w-64 h-64 rounded-xl overflow-hidden border-2 ${settings.voice ? `border-cyan-500/50` : 'border-slate-700'} shadow-2xl transition-all duration-500 ${imageTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
                   <Image
                     src={avatarImage}
                     alt={agentName || agent.name}
                     fill
-                    className="object-cover transition-all duration-500"
-                    key={settings.voice} // Force re-render on voice change
+                    className="object-cover"
+                    key={settings.voice}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40"></div>
 
                   {/* Agent name overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent">
-                    <h2 className="text-2xl font-black text-white uppercase tracking-tight leading-tight mb-1">
+                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
+                    <h2 className="text-xl font-black text-white uppercase tracking-tight leading-tight mb-0.5">
                       {agentName || agent.name}
                     </h2>
                     <p className="text-xs text-slate-300">
@@ -300,17 +359,22 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                     </p>
                   </div>
                 </div>
+              </div>
 
-                {/* Voice & Name Configuration */}
+              {/* Configuration Grid - Two columns */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Voice & Identity Configuration */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 space-y-3">
                   <h3 className="text-xs font-black text-white uppercase mb-3">Agent Identity</h3>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Voice</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">
+                      Voice <span className="text-red-400">*</span>
+                    </label>
                     <select
                       value={settings.voice}
-                      onChange={(e) => setSettings({ ...settings, voice: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                      onChange={(e) => handleVoiceChange(e.target.value)}
+                      className={`w-full px-3 py-2 bg-slate-900/50 border ${!settings.voice ? 'border-red-500/50' : 'border-slate-700'} rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all`}
                     >
                       <option value="">Select a voice...</option>
                       <option value="maya">Maya (Female)</option>
@@ -318,6 +382,9 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                       <option value="josh">Josh (Male)</option>
                       <option value="matt">Matt (Male)</option>
                     </select>
+                    {!settings.voice && (
+                      <p className="text-xs text-red-400 mt-1">Please select a voice to continue</p>
+                    )}
                   </div>
 
                   <div>
@@ -342,22 +409,22 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Right side - Abilities */}
-              <div className="space-y-4">
-                {/* Abilities */}
+                {/* Core Capabilities */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50">
-                  <h3 className="text-sm font-black text-white uppercase mb-3">Core Capabilities</h3>
-                  <div className="space-y-2">
-                    <div className="bg-slate-900/50 rounded p-2 border border-cyan-500/30">
+                  <h3 className="text-xs font-black text-white uppercase mb-3">Core Capabilities</h3>
+                  <div className="space-y-2.5">
+                    <div className="bg-slate-900/50 rounded-lg p-3 border border-cyan-500/30">
                       <p className="text-xs font-bold text-cyan-300">Advanced NLP</p>
+                      <p className="text-xs text-slate-400 mt-1">Natural language understanding</p>
                     </div>
-                    <div className="bg-slate-900/50 rounded p-2 border border-purple-500/30">
+                    <div className="bg-slate-900/50 rounded-lg p-3 border border-purple-500/30">
                       <p className="text-xs font-bold text-purple-300">Real-time Adaptation</p>
+                      <p className="text-xs text-slate-400 mt-1">Dynamic conversation flow</p>
                     </div>
-                    <div className="bg-slate-900/50 rounded p-2 border border-pink-500/30">
+                    <div className="bg-slate-900/50 rounded-lg p-3 border border-pink-500/30">
                       <p className="text-xs font-bold text-pink-300">Context Memory</p>
+                      <p className="text-xs text-slate-400 mt-1">Conversation history tracking</p>
                     </div>
                   </div>
                 </div>
@@ -374,10 +441,12 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
               </button>
               <button
                 onClick={() => {
+                  if (!settings.voice) return;
                   loadContactCount();
                   setStep('contacts');
                 }}
-                className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg hover:shadow-xl font-black text-sm transition-all duration-300 relative overflow-hidden`}
+                disabled={!settings.voice}
+                className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg font-black text-sm transition-all duration-300 relative overflow-hidden ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}`}
               >
                 <span className="relative z-10">Deploy Agent</span>
               </button>
@@ -450,11 +519,92 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Contact Lists Selector */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black text-white uppercase">Select Contact Lists</h3>
+                    <a
+                      href="/dashboard/contacts"
+                      target="_blank"
+                      className="text-xs text-cyan-400 hover:text-cyan-300 font-bold transition-colors"
+                    >
+                      Manage Lists →
+                    </a>
+                  </div>
+
+                  {contactLists.length === 0 ? (
+                    <div className="text-center py-6 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                      <p className="text-sm text-slate-400 mb-3">No contact lists found</p>
+                      <a
+                        href="/dashboard/contacts"
+                        target="_blank"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-bold text-sm transition-all"
+                      >
+                        Create First List
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {contactLists.map((list) => (
+                        <button
+                          key={list.id}
+                          onClick={() => toggleListSelection(list.id)}
+                          className={`w-full p-3 rounded-lg border-2 transition-all duration-300 text-left ${
+                            selectedLists.includes(list.id)
+                              ? 'bg-cyan-600/20 border-cyan-500 shadow-lg shadow-cyan-500/20'
+                              : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                                  selectedLists.includes(list.id)
+                                    ? 'bg-cyan-500 border-cyan-500'
+                                    : 'border-slate-600'
+                                }`}
+                              >
+                                {selectedLists.includes(list.id) && (
+                                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-white">{list.name}</p>
+                                {list.description && (
+                                  <p className="text-xs text-slate-400 mt-0.5">{list.description}</p>
+                                )}
+                              </div>
+                            </div>
+                            {list.color && (
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: list.color }}
+                              />
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {selectedLists.length > 0 && (
+                    <p className="text-xs text-slate-400 mt-3">
+                      {selectedLists.length} list{selectedLists.length > 1 ? 's' : ''} selected
+                    </p>
+                  )}
+                </div>
+
                 {/* Contacts Info */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase mb-1">Target Contacts</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase mb-1">
+                        Target Contacts
+                        {selectedLists.length > 0 && (
+                          <span className="ml-2 text-cyan-400">(from selected lists)</span>
+                        )}
+                      </p>
                       <p className="text-3xl font-black text-white">{contactCount}</p>
                     </div>
                     <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
