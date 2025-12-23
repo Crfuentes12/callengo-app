@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const mappingJson = formData.get('mapping') as string | null;
+    const listId = formData.get('listId') as string | null;
 
     if (!file || !mappingJson) {
       return NextResponse.json({ error: 'File and mapping required' }, { status: 400 });
@@ -41,11 +42,12 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const contact = mapRowToContact(row, headers, mapping);
-      
+
       if (contact) {
         contacts.push({
           ...contact,
           company_id: userData.company_id,
+          list_id: listId || null,
         });
       } else {
         skipped.push({ row: i + 2, reason: 'Invalid phone number' });
