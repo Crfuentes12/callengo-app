@@ -39,21 +39,40 @@ ${demoDataText}
 CONVERSATION TRANSCRIPT:
 ${conversationText}
 
-Please analyze this call and provide:
-1. A brief summary of what happened during the call (2-3 sentences)
-2. Which data points from the demo data were successfully validated or mentioned
-3. Any important notes or observations about the call quality, customer engagement, or outcomes
-4. Overall call success rating (1-10)
+Your task is to EXTRACT and STRUCTURE all relevant information from the call. DO NOT just summarize - extract actionable data.
 
-Format your response as JSON with this structure:
+Please analyze this call and provide:
+1. **Extracted Data**: All specific data points mentioned by the customer (name, email, phone, company, preferences, needs, etc.)
+2. **Validated Fields**: Which fields from the demo data were confirmed/validated during the call (mark as "Confirmed" or "Updated" with new value)
+3. **New Information**: Any NEW data collected that wasn't in the demo data
+4. **Call Outcome**: What was accomplished (meeting scheduled, interested/not interested, callback needed, etc.)
+5. **Next Actions**: Specific follow-up tasks based on the conversation
+6. **Call Quality**: Overall success rating (1-10) and brief reason
+
+Format your response as JSON with this EXACT structure:
 {
-  "summary": "Brief summary here...",
-  "validatedData": {
-    "fieldName": "validated value or status"
+  "extractedData": {
+    "fieldName": "actual value mentioned in call",
+    "anotherField": "another value"
   },
-  "notes": "Important observations...",
-  "successRating": 8
-}`;
+  "validatedFields": {
+    "fieldName": "Confirmed" or "Updated: new value"
+  },
+  "newInformation": {
+    "fieldName": "value"
+  },
+  "outcome": "Brief outcome (e.g., 'Interested in product, wants demo', 'Not interested', 'Scheduled follow-up')",
+  "nextActions": [
+    "Specific action item 1",
+    "Specific action item 2"
+  ],
+  "callQuality": {
+    "rating": 8,
+    "reason": "Brief reason for rating"
+  }
+}
+
+IMPORTANT: Extract ACTUAL data from the conversation. If the customer mentioned their email is "john@company.com", put that exact email. If they said they have 50 employees, put "50". Be specific and actionable.`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
