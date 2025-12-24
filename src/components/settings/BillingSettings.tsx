@@ -244,12 +244,15 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             {plans.map((plan) => {
             const isEnterprise = plan.slug === 'enterprise';
             const isPopular = plan.slug === 'business';
-            const price = isEnterprise ? plan.price_monthly : (billingCycle === 'monthly' ? plan.price_monthly : plan.price_annual);
             const isCurrentPlan = currentPlan?.id === plan.id;
 
-            // Calculate discount percentage for this specific plan
+            // price_annual is the monthly rate when paid annually, NOT the yearly total
+            const monthlyPrice = billingCycle === 'monthly' ? plan.price_monthly : plan.price_annual;
+            const yearlyTotal = plan.price_annual * 12;
+
+            // Calculate discount percentage
             const discountPercent = !isEnterprise && billingCycle === 'annual'
-              ? Math.round(((plan.price_monthly * 12 - plan.price_annual) / (plan.price_monthly * 12)) * 100)
+              ? Math.round(((plan.price_monthly * 12 - yearlyTotal) / (plan.price_monthly * 12)) * 100)
               : 0;
 
             return (
@@ -287,13 +290,25 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
                   {/* Pricing */}
                   <div className="mb-4">
-                    <div className="flex items-baseline gap-1 mb-1">
-                      {isEnterprise && <span className="text-sm text-slate-500 font-medium mr-1">From</span>}
-                      <span className="text-3xl font-black text-slate-900">{formatPrice(price)}</span>
-                      <span className="text-sm text-slate-500">
-                        {isEnterprise ? '/mo' : `/${billingCycle === 'monthly' ? 'mo' : 'yr'}`}
-                      </span>
-                    </div>
+                    {billingCycle === 'monthly' || isEnterprise ? (
+                      // Monthly pricing or Enterprise
+                      <div className="flex items-baseline gap-1 mb-1">
+                        {isEnterprise && <span className="text-sm text-slate-500 font-medium mr-1">From</span>}
+                        <span className="text-3xl font-black text-slate-900">{formatPrice(monthlyPrice)}</span>
+                        <span className="text-sm text-slate-500">/mo</span>
+                      </div>
+                    ) : (
+                      // Annual pricing - show yearly total
+                      <>
+                        <div className="flex items-baseline gap-1 mb-1">
+                          <span className="text-3xl font-black text-slate-900">{formatPrice(yearlyTotal)}</span>
+                          <span className="text-sm text-slate-500">/yr</span>
+                        </div>
+                        <div className="text-xs text-slate-500 mb-2">
+                          {formatPrice(monthlyPrice)}/mo billed annually
+                        </div>
+                      </>
+                    )}
 
                     {/* Show discount badge for annual billing */}
                     {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
@@ -302,13 +317,6 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
                         </svg>
                         Save {discountPercent}% annually
-                      </div>
-                    )}
-
-                    {/* Show monthly equivalent for annual plans */}
-                    {!isEnterprise && billingCycle === 'annual' && (
-                      <div className="text-[10px] text-slate-500 mt-1">
-                        {formatPrice(price / 12)}/mo billed annually
                       </div>
                     )}
                   </div>
