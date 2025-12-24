@@ -290,24 +290,17 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
                   {/* Pricing */}
                   <div className="mb-4">
-                    {billingCycle === 'monthly' || isEnterprise ? (
-                      // Monthly pricing or Enterprise
-                      <div className="flex items-baseline gap-1 mb-1">
-                        {isEnterprise && <span className="text-sm text-slate-500 font-medium mr-1">From</span>}
-                        <span className="text-3xl font-black text-slate-900">{formatPrice(monthlyPrice)}</span>
-                        <span className="text-sm text-slate-500">/mo</span>
+                    <div className="flex items-baseline gap-1 mb-1">
+                      {isEnterprise && <span className="text-sm text-slate-500 font-medium mr-1">From</span>}
+                      <span className="text-3xl font-black text-slate-900">{formatPrice(monthlyPrice)}</span>
+                      <span className="text-sm text-slate-500">/mo</span>
+                    </div>
+
+                    {/* Show yearly total in small text for annual plans */}
+                    {!isEnterprise && billingCycle === 'annual' && (
+                      <div className="text-xs text-slate-500 mb-2">
+                        {formatPrice(yearlyTotal)} billed annually
                       </div>
-                    ) : (
-                      // Annual pricing - show yearly total
-                      <>
-                        <div className="flex items-baseline gap-1 mb-1">
-                          <span className="text-3xl font-black text-slate-900">{formatPrice(yearlyTotal)}</span>
-                          <span className="text-sm text-slate-500">/yr</span>
-                        </div>
-                        <div className="text-xs text-slate-500 mb-2">
-                          {formatPrice(monthlyPrice)}/mo billed annually
-                        </div>
-                      </>
                     )}
 
                     {/* Show discount badge for annual billing */}
