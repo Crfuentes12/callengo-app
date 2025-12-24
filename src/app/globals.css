@@ -308,3 +308,15 @@ tbody tr {
 .animate-slideUp {
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ============================================
+   WAVEFORM ANIMATION (for call interface)
+   ============================================ */
+@keyframes wave {
+  0%, 100% {
+    height: 20%;
+  }
+  50% {
+    height: 100%;
+  }
+}

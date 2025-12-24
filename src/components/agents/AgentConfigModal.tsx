@@ -291,6 +291,9 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const [showTestModal, setShowTestModal] = useState(false);
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
   const [testingAgent, setTestingAgent] = useState(false);
+  const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
+  const [callDuration, setCallDuration] = useState(0);
+  const [callId, setCallId] = useState<string | null>(null);
   const [settings, setSettings] = useState({
     voice: '',
     maxDuration: 5,
@@ -321,6 +324,19 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
       loadContactCount();
     }
   }, [selectedLists, step]);
+
+  // Call duration timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (callStatus === 'connected') {
+      interval = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [callStatus]);
 
   const loadContactLists = async () => {
     const { data, error } = await supabase
@@ -387,6 +403,9 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     if (!testPhoneNumber.trim() || !settings.voice) return;
 
     setTestingAgent(true);
+    setCallStatus('dialing');
+    setCallDuration(0);
+
     try {
       // Build the task prompt with demo data
       const agentDesc = getAgentDescription(agent);
@@ -425,14 +444,33 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         throw new Error(data.error || 'Failed to initiate call');
       }
 
-      alert(`✅ Demo call initiated successfully! You should receive a call at ${testPhoneNumber} in a few seconds.`);
-      setShowTestModal(false);
+      setCallId(data.call_id);
+
+      // Simulate call progression
+      setTimeout(() => setCallStatus('ringing'), 1500);
+      setTimeout(() => setCallStatus('connected'), 3000);
+
     } catch (error) {
       console.error('Test call error:', error);
+      setCallStatus('ended');
       alert(`❌ Failed to initiate test call: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => {
+        setShowTestModal(false);
+        setCallStatus('idle');
+      }, 2000);
     } finally {
       setTestingAgent(false);
     }
+  };
+
+  const handleEndCall = () => {
+    setCallStatus('ended');
+    setTimeout(() => {
+      setShowTestModal(false);
+      setCallStatus('idle');
+      setCallDuration(0);
+      setCallId(null);
+    }, 2000);
   };
 
   const handleStartCampaign = async () => {
@@ -473,6 +511,13 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   const stats = getAgentStats(agent);
   const gradientColor = getCategoryColor(agent.category);
   const agentInfo = getAgentDescription(agent);
+
+  // Format call duration as MM:SS
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Step indicator component
   const StepIndicator = ({ currentStep }: { currentStep: number }) => (
@@ -1178,8 +1223,111 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
     );
   }
 
-  // Test Agent Modal
+  // Test Agent Modal - Different views based on call status
   if (showTestModal) {
+    // Active call interface (dialing, ringing, connected, ended)
+    if (callStatus !== 'idle') {
+      return (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[60] p-4">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-md w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
+            {/* Call Status Header */}
+            <div className="p-8 text-center">
+              {/* Agent Avatar */}
+              <div className="relative w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-purple-500/50 shadow-2xl">
+                <Image
+                  src={avatarImage}
+                  alt={agentName || agent.name}
+                  fill
+                  className="object-cover"
+                />
+                {/* Pulsing ring animation when connected */}
+                {callStatus === 'connected' && (
+                  <>
+                    <div className="absolute inset-0 rounded-full border-4 border-emerald-400 animate-ping opacity-75"></div>
+                    <div className="absolute inset-0 rounded-full border-4 border-emerald-400"></div>
+                  </>
+                )}
+              </div>
+
+              {/* Agent Name */}
+              <h2 className="text-2xl font-black text-white mb-2">{agentName || agent.name}</h2>
+
+              {/* Call Status Text */}
+              <div className="mb-6">
+                {callStatus === 'dialing' && (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                    </div>
+                    <p className="text-lg font-bold text-cyan-400">Dialing...</p>
+                  </div>
+                )}
+                {callStatus === 'ringing' && (
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5 text-yellow-400 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <p className="text-lg font-bold text-yellow-400">Ringing...</p>
+                  </div>
+                )}
+                {callStatus === 'connected' && (
+                  <div>
+                    <p className="text-lg font-bold text-emerald-400 mb-2">Connected</p>
+                    {/* Call Duration Timer */}
+                    <div className="text-5xl font-black text-white tabular-nums tracking-tight">
+                      {formatDuration(callDuration)}
+                    </div>
+                    <p className="text-sm text-slate-400 mt-2">Demo call in progress</p>
+                  </div>
+                )}
+                {callStatus === 'ended' && (
+                  <div>
+                    <p className="text-lg font-bold text-slate-400">Call Ended</p>
+                    <p className="text-sm text-slate-500 mt-1">Duration: {formatDuration(callDuration)}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Phone Number */}
+              <p className="text-sm text-slate-400 mb-6">{testPhoneNumber}</p>
+
+              {/* Waveform Animation when connected */}
+              {callStatus === 'connected' && (
+                <div className="flex items-center justify-center gap-1 mb-6 h-12">
+                  {[...Array(20)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-1 bg-gradient-to-t from-purple-500 to-pink-500 rounded-full"
+                      style={{
+                        height: `${Math.random() * 100}%`,
+                        animation: `wave 0.${5 + Math.random() * 10}s ease-in-out infinite`,
+                        animationDelay: `${i * 0.05}s`,
+                      }}
+                    ></div>
+                  ))}
+                </div>
+              )}
+
+              {/* End Call Button */}
+              {callStatus === 'connected' && (
+                <button
+                  onClick={handleEndCall}
+                  className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 flex items-center justify-center shadow-xl hover:scale-110 transition-all duration-300"
+                >
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Initial modal to enter phone number and start test
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[60] p-4">
         <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
