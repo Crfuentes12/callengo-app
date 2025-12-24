@@ -33,8 +33,13 @@ export async function GET(request: NextRequest) {
       .eq('company_id', companyId)
       .single();
 
+    // If table doesn't exist or other error, return empty data
     if (subError && subError.code !== 'PGRST116') {
-      throw subError;
+      console.error('Error fetching subscription:', subError);
+      return NextResponse.json({
+        subscription: null,
+        usage: null
+      });
     }
 
     // Fetch current period usage

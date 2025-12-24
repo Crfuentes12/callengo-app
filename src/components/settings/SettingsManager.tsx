@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@/types/supabase';
+import BillingSettings from './BillingSettings';
 
 type Company = Database['public']['Tables']['companies']['Row'];
 type CompanySettings = Database['public']['Tables']['company_settings']['Row'];
@@ -22,7 +23,7 @@ interface SettingsManagerProps {
 
 export default function SettingsManager({ company: initialCompany, settings: initialSettings, user }: SettingsManagerProps) {
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState<'company' | 'calling'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing'>('company');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
@@ -127,6 +128,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
             {[
               { id: 'company', label: 'Company Info', icon: '🏢' },
               { id: 'calling', label: 'Call Settings', icon: '📞' },
+              { id: 'billing', label: 'Billing & Plans', icon: '💳' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -307,6 +309,11 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                 {loading ? 'Saving...' : 'Save Call Settings'}
               </button>
             </form>
+          )}
+
+          {/* Billing Tab */}
+          {activeTab === 'billing' && (
+            <BillingSettings companyId={initialCompany.id} />
           )}
         </div>
       </div>

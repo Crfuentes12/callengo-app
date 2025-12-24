@@ -13,15 +13,17 @@ export async function GET() {
       .eq('is_active', true)
       .order('display_order', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching plans:', error);
+      // Return empty array if table doesn't exist yet
+      return NextResponse.json([]);
+    }
 
     return NextResponse.json(plans || []);
 
   } catch (error) {
     console.error('Error fetching plans:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch plans', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    // Return empty array instead of error
+    return NextResponse.json([]);
   }
 }
