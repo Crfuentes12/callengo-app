@@ -11,11 +11,32 @@ interface ImportModalProps {
   companyId: string;
   onClose: () => void;
   onComplete: () => void;
+  importType?: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null;
 }
 
 type ImportStep = 'upload' | 'list-select' | 'mapping' | 'preview' | 'complete';
 
-export default function ImportModal({ companyId, onClose, onComplete }: ImportModalProps) {
+const getImportTypeInfo = (type?: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null) => {
+  switch (type) {
+    case 'csv':
+      return { title: 'Import CSV', accept: '.csv', icon: '📊' };
+    case 'xlsx':
+      return { title: 'Import XLSX', accept: '.xlsx,.xls', icon: '📈' };
+    case 'google':
+      return { title: 'Import from Google Sheets', accept: '', icon: '📑' };
+    case 'txt':
+      return { title: 'Import TXT', accept: '.txt', icon: '📄' };
+    case 'xml':
+      return { title: 'Import XML', accept: '.xml', icon: '📋' };
+    case 'json':
+      return { title: 'Import JSON', accept: '.json', icon: '📦' };
+    default:
+      return { title: 'Import Contacts', accept: '.csv', icon: '📊' };
+  }
+};
+
+export default function ImportModal({ companyId, onClose, onComplete, importType }: ImportModalProps) {
+  const typeInfo = getImportTypeInfo(importType);
   const supabase = createClient();
   const [step, setStep] = useState<ImportStep>('upload');
   const [file, setFile] = useState<File | null>(null);
@@ -144,7 +165,7 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
       <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200/50">
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">Import Contacts</h2>
+            <h2 className="text-xl font-bold text-slate-900">{typeInfo.icon} {typeInfo.title}</h2>
             <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -193,7 +214,7 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
                 <input
                   id="csv-upload"
                   type="file"
-                  accept=".csv"
+                  accept={typeInfo.accept}
                   className="hidden"
                   onChange={(e) => {
                     const selectedFile = e.target.files?.[0];
