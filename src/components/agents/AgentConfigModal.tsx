@@ -388,14 +388,48 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
 
     setTestingAgent(true);
     try {
-      // Simulate a test call - in production, this would call your backend API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Build the task prompt with demo data
+      const agentDesc = getAgentDescription(agent);
+      const demoDataText = Object.entries(agentDesc.demoData)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(', ');
 
-      alert(`Test call initiated to ${testPhoneNumber} with demo data. Check your phone!`);
+      const task = `You are ${agentName || agent.name}, an AI ${agentDesc.title.toLowerCase()}.
+This is a DEMO call to showcase your capabilities. Use the following demo data for this conversation: ${demoDataText}.
+${agentDesc.description}
+Be natural, professional, and demonstrate your key capabilities in this brief demo call.`;
+
+      const response = await fetch('/api/bland/send-call', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: testPhoneNumber,
+          task: task,
+          voice: settings.voice,
+          first_sentence: `Hi! This is ${agentName || agent.name}, calling for a quick demo. Do you have a moment?`,
+          max_duration: 3, // Short demo call
+          company_id: companyId,
+          metadata: {
+            type: 'demo_call',
+            agent_template_id: agent.id,
+            agent_name: agentName || agent.name,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to initiate call');
+      }
+
+      alert(`✅ Demo call initiated successfully! You should receive a call at ${testPhoneNumber} in a few seconds.`);
       setShowTestModal(false);
-      setTestPhoneNumber('');
     } catch (error) {
-      alert('Failed to initiate test call');
+      console.error('Test call error:', error);
+      alert(`❌ Failed to initiate test call: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setTestingAgent(false);
     }
