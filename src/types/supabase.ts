@@ -536,6 +536,235 @@ export type Database = {
           }
         ]
       }
+      subscription_plans: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          description: string | null
+          price_monthly: number
+          price_annual: number
+          calls_included: number
+          price_per_extra_call: number
+          max_users: number
+          price_per_extra_user: number | null
+          max_agents: number | null
+          features: Json
+          is_active: boolean
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          description?: string | null
+          price_monthly: number
+          price_annual: number
+          calls_included: number
+          price_per_extra_call: number
+          max_users?: number
+          price_per_extra_user?: number | null
+          max_agents?: number | null
+          features?: Json
+          is_active?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          description?: string | null
+          price_monthly?: number
+          price_annual?: number
+          calls_included?: number
+          price_per_extra_call?: number
+          max_users?: number
+          price_per_extra_user?: number | null
+          max_agents?: number | null
+          features?: Json
+          is_active?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      company_subscriptions: {
+        Row: {
+          id: string
+          company_id: string
+          plan_id: string
+          billing_cycle: string
+          status: string
+          current_period_start: string
+          current_period_end: string
+          cancel_at_period_end: boolean
+          trial_end: string | null
+          extra_users: number
+          stripe_subscription_id: string | null
+          stripe_customer_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          plan_id: string
+          billing_cycle: string
+          status?: string
+          current_period_start?: string
+          current_period_end: string
+          cancel_at_period_end?: boolean
+          trial_end?: string | null
+          extra_users?: number
+          stripe_subscription_id?: string | null
+          stripe_customer_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          plan_id?: string
+          billing_cycle?: string
+          status?: string
+          current_period_start?: string
+          current_period_end?: string
+          cancel_at_period_end?: boolean
+          trial_end?: string | null
+          extra_users?: number
+          stripe_subscription_id?: string | null
+          stripe_customer_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      usage_tracking: {
+        Row: {
+          id: string
+          company_id: string
+          subscription_id: string | null
+          period_start: string
+          period_end: string
+          calls_made: number
+          calls_included: number
+          overage_calls: number
+          total_cost: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          subscription_id?: string | null
+          period_start: string
+          period_end: string
+          calls_made?: number
+          calls_included: number
+          total_cost?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          subscription_id?: string | null
+          period_start?: string
+          period_end?: string
+          calls_made?: number
+          calls_included?: number
+          total_cost?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_tracking_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_tracking_subscription_id_fkey"
+            columns: ["subscription_id"]
+            referencedRelation: "company_subscriptions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      billing_history: {
+        Row: {
+          id: string
+          company_id: string
+          subscription_id: string | null
+          amount: number
+          currency: string
+          description: string | null
+          status: string
+          invoice_url: string | null
+          stripe_invoice_id: string | null
+          billing_date: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          subscription_id?: string | null
+          amount: number
+          currency?: string
+          description?: string | null
+          status: string
+          invoice_url?: string | null
+          stripe_invoice_id?: string | null
+          billing_date?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          subscription_id?: string | null
+          amount?: number
+          currency?: string
+          description?: string | null
+          status?: string
+          invoice_url?: string | null
+          stripe_invoice_id?: string | null
+          billing_date?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_history_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            referencedRelation: "company_subscriptions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -561,6 +790,10 @@ export type CompanyAgent = Database['public']['Tables']['company_agents']['Row']
 export type Contact = Database['public']['Tables']['contacts']['Row'];
 export type ContactList = Database['public']['Tables']['contact_lists']['Row'];
 export type AgentRun = Database['public']['Tables']['agent_runs']['Row'];
+export type SubscriptionPlan = Database['public']['Tables']['subscription_plans']['Row'];
+export type CompanySubscription = Database['public']['Tables']['company_subscriptions']['Row'];
+export type UsageTracking = Database['public']['Tables']['usage_tracking']['Row'];
+export type BillingHistory = Database['public']['Tables']['billing_history']['Row'];
 
 // Agent Run Settings Configuration
 export interface AgentRunSettings {
