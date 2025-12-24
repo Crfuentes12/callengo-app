@@ -59,14 +59,14 @@ export default function AgentCard({ agent, onSelect }: AgentCardProps) {
       <div className={`absolute -inset-1 bg-gradient-to-r ${gradientColor} rounded-2xl blur-lg opacity-0 group-hover:opacity-60 transition-all duration-500 animate-pulse`}></div>
 
       {/* Main card container */}
-      <div className="relative h-[420px] rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-700/50 group-hover:border-slate-500 transition-all duration-500 group-hover:scale-[1.02] group-hover:shadow-[0_0_50px_rgba(99,102,241,0.5)]">
-        {/* Character Image Background - full height to show chest icon */}
+      <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-700/50 group-hover:border-slate-500 transition-all duration-500 group-hover:scale-[1.02] group-hover:shadow-[0_0_50px_rgba(99,102,241,0.5)]">
+        {/* Character Image Background - square aspect ratio */}
         <div className="absolute inset-0">
           <Image
             src={avatarImage}
             alt={agent.name}
             fill
-            className="object-cover object-center group-hover:scale-105 transition-transform duration-700"
+            className="object-cover object-top group-hover:scale-105 transition-transform duration-700"
             priority
           />
         </div>
