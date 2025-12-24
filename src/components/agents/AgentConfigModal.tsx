@@ -296,6 +296,8 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const [callId, setCallId] = useState<string | null>(null);
   const [callData, setCallData] = useState<any>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [callAnalysis, setCallAnalysis] = useState<any>(null);
+  const [analyzingCall, setAnalyzingCall] = useState(false);
   const [settings, setSettings] = useState({
     voice: '',
     maxDuration: 5,
@@ -410,6 +412,35 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     });
   };
 
+  // Analyze call with OpenAI
+  const analyzeCall = async (callData: any) => {
+    setAnalyzingCall(true);
+    try {
+      const response = await fetch('/api/openai/analyze-call', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transcripts: callData.transcripts || callData.concatenated_transcript || [],
+          agentType: agent.name,
+          demoData: agentInfo.demoData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setCallAnalysis(result.analysis);
+        console.log('✅ Call analysis complete:', result.analysis);
+      }
+    } catch (error) {
+      console.error('❌ Error analyzing call:', error);
+    } finally {
+      setAnalyzingCall(false);
+    }
+  };
+
   // Poll call status from Bland API
   const pollCallStatus = async (callId: string) => {
     try {
@@ -436,6 +467,11 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
           if (pollingInterval) {
             clearInterval(pollingInterval);
             setPollingInterval(null);
+          }
+
+          // Analyze the call with AI
+          if (data.transcripts || data.concatenated_transcript) {
+            analyzeCall(data);
           }
         }
       }
@@ -866,6 +902,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         setCallStatus('idle');
                         setCallData(null);
                         setCallDuration(0);
+                        setCallAnalysis(null);
                       }}
                       className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
                     >
@@ -882,7 +919,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     {/* Left Column */}
                     <div className="space-y-4">
                       {/* Call Recording */}
-                      {callData.recording_url && (
+                      {(callData.recording_url || callData.recording || callData.concatenated_recording) && (
                         <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
                           <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
                             <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -890,8 +927,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                             </svg>
                             Call Recording
                           </h3>
-                          <audio controls className="w-full">
-                            <source src={callData.recording_url} type="audio/mpeg" />
+                          <audio controls className="w-full" controlsList="nodownload">
+                            <source src={callData.recording_url || callData.recording || callData.concatenated_recording} type="audio/mpeg" />
+                            <source src={callData.recording_url || callData.recording || callData.concatenated_recording} type="audio/wav" />
+                            Your browser does not support the audio element.
                           </audio>
                         </div>
                       )}
@@ -906,14 +945,17 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                             Transcript
                           </h3>
                           <div className="space-y-3 max-h-64 overflow-y-auto">
-                            {callData.transcripts.map((t: any, i: number) => (
-                              <div key={i} className={`flex gap-2 ${t.user === 'agent' ? 'justify-start' : 'justify-end'}`}>
-                                <div className={`max-w-[80%] rounded-lg p-3 ${t.user === 'agent' ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-cyan-600/20 border border-cyan-500/30'}`}>
-                                  <p className="text-xs font-bold text-slate-300 mb-1">{t.user === 'agent' ? agentName || agent.name : 'Customer'}</p>
-                                  <p className="text-sm text-white">{t.text}</p>
+                            {callData.transcripts.map((t: any, i: number) => {
+                              const isAgent = t.user === 'assistant' || t.user === 'agent';
+                              return (
+                                <div key={i} className={`flex gap-2 ${isAgent ? 'justify-start' : 'justify-end'}`}>
+                                  <div className={`max-w-[80%] rounded-lg p-3 ${isAgent ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-cyan-600/20 border border-cyan-500/30'}`}>
+                                    <p className="text-xs font-bold text-slate-300 mb-1">{isAgent ? agentName || agent.name : 'Customer'}</p>
+                                    <p className="text-sm text-white">{t.text}</p>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -963,17 +1005,75 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         </div>
                       </div>
 
-                      {/* Analysis / Notes */}
-                      {callData.analysis && (
+                      {/* AI Analysis */}
+                      {analyzingCall ? (
                         <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
                           <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
-                            <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            <svg className="w-4 h-4 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            Agent Notes
+                            Analyzing Call with AI...
                           </h3>
-                          <p className="text-sm text-slate-300">{callData.analysis.summary || 'No analysis available'}</p>
+                          <p className="text-sm text-slate-400">Processing transcript and validating data...</p>
                         </div>
+                      ) : callAnalysis && (
+                        <>
+                          {/* AI Summary */}
+                          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                            <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                              <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              AI Summary
+                            </h3>
+                            <p className="text-sm text-slate-300 mb-3">{callAnalysis.summary}</p>
+                            {callAnalysis.successRating && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-400">Success Rating:</span>
+                                <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full"
+                                    style={{ width: `${callAnalysis.successRating * 10}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-sm font-bold text-emerald-400">{callAnalysis.successRating}/10</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Validated Data */}
+                          {callAnalysis.validatedData && Object.keys(callAnalysis.validatedData).length > 0 && (
+                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Validated Data
+                              </h3>
+                              <div className="space-y-2">
+                                {Object.entries(callAnalysis.validatedData).map(([key, value]) => (
+                                  <div key={key} className="flex justify-between text-xs">
+                                    <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                                    <span className="text-emerald-400 font-medium">{String(value)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Agent Notes */}
+                          {callAnalysis.notes && (
+                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Agent Notes
+                              </h3>
+                              <p className="text-sm text-slate-300">{callAnalysis.notes}</p>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -987,6 +1087,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       setCallStatus('idle');
                       setCallData(null);
                       setCallDuration(0);
+                      setCallAnalysis(null);
                     }}
                     className="w-full px-5 py-3 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all"
                   >
