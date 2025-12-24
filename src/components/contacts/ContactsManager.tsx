@@ -968,15 +968,15 @@ function ManualAddModal({ companyId, onClose, onComplete }: ManualAddModalProps)
         });
 
         // Extract common fields
-        const name = row.data['Name'] || row.data['name'] || 'Unknown';
-        const phone = row.data['Phone'] || row.data['phone'] || '';
+        const companyName = row.data['Name'] || row.data['name'] || row.data['Company Name'] || row.data['company_name'] || 'Unknown';
+        const phone = row.data['Phone'] || row.data['phone'] || row.data['Phone Number'] || row.data['phone_number'] || '';
         const email = row.data['Email'] || row.data['email'] || '';
 
         return {
           company_id: companyId,
-          name,
+          company_name: companyName,
           phone_number: phone,
-          email,
+          email: email || null,
           status: 'Pending',
           custom_fields: customFields,
         };
