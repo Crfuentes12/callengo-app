@@ -19,6 +19,82 @@ interface Toast {
   type: 'success' | 'error' | 'info';
 }
 
+interface ConfirmDialog {
+  show: boolean;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  type?: 'danger' | 'warning' | 'info';
+  onConfirm: () => void;
+}
+
+// Confirmation Dialog Component
+function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose: () => void }) {
+  if (!dialog.show) return null;
+
+  const typeColors = {
+    danger: 'bg-red-600 hover:bg-red-700',
+    warning: 'bg-amber-600 hover:bg-amber-700',
+    info: 'bg-indigo-600 hover:bg-indigo-700',
+  };
+
+  const typeIcons = {
+    danger: (
+      <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    ),
+    warning: (
+      <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    ),
+    info: (
+      <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  };
+
+  const type = dialog.type || 'info';
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border-2 border-slate-100 animate-slideUp">
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              {typeIcons[type]}
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-slate-900 mb-2">{dialog.title}</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">{dialog.message}</p>
+            </div>
+          </div>
+        </div>
+        <div className="px-6 py-4 bg-slate-50 rounded-b-2xl flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-white hover:border-slate-300 transition-all font-medium"
+          >
+            {dialog.cancelText || 'Cancel'}
+          </button>
+          <button
+            onClick={() => {
+              dialog.onConfirm();
+              onClose();
+            }}
+            className={`flex-1 px-4 py-2.5 text-white rounded-xl transition-all font-medium ${typeColors[type]}`}
+          >
+            {dialog.confirmText || 'Confirm'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ContactsManager({ initialContacts, companyId }: ContactsManagerProps) {
   const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -33,6 +109,12 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
   const [showManualAddModal, setShowManualAddModal] = useState(false);
   const [importType, setImportType] = useState<'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const supabase = createClient();
 
@@ -148,23 +230,32 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
   const handleBatchDelete = async () => {
     if (selectedContactIds.length === 0) return;
 
-    if (!confirm(`Are you sure you want to delete ${selectedContactIds.length} contact(s)?`)) return;
+    setConfirmDialog({
+      show: true,
+      title: 'Delete Contacts',
+      message: `Are you sure you want to permanently delete ${selectedContactIds.length} contact${selectedContactIds.length > 1 ? 's' : ''}? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const count = selectedContactIds.length;
+          const { error } = await supabase
+            .from('contacts')
+            .delete()
+            .in('id', selectedContactIds);
 
-    try {
-      const count = selectedContactIds.length;
-      const { error } = await supabase
-        .from('contacts')
-        .delete()
-        .in('id', selectedContactIds);
+          if (error) throw error;
 
-      if (error) throw error;
-
-      await refreshContacts();
-      setSelectedContactIds([]);
-      showToast(`Deleted ${count} contact${count > 1 ? 's' : ''} successfully`, 'success');
-    } catch (error) {
-      showToast('Failed to delete contacts', 'error');
-    }
+          await refreshContacts();
+          setSelectedContactIds([]);
+          setShowBatchActions(false);
+          showToast(`Deleted ${count} contact${count > 1 ? 's' : ''} successfully`, 'success');
+        } catch (error) {
+          showToast('Failed to delete contacts', 'error');
+        }
+      },
+    });
   };
 
   const filteredContacts = contacts.filter(contact => {
@@ -285,7 +376,7 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
                 Actions
               </button>
               {showBatchActions && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-[60]">
                   <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">Add to List</div>
                   <button
                     onClick={() => setShowListManager(true)}
@@ -513,6 +604,7 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
           }}
           onComplete={handleImportComplete}
           importType={importType}
+          onShowToast={showToast}
         />
       )}
 
@@ -521,6 +613,7 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
           companyId={companyId}
           onClose={() => setShowManualAddModal(false)}
           onComplete={handleImportComplete}
+          onShowToast={showToast}
         />
       )}
 
@@ -568,6 +661,12 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
           </div>
         ))}
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationModal
+        dialog={confirmDialog}
+        onClose={() => setConfirmDialog({ ...confirmDialog, show: false })}
+      />
     </div>
   );
 }
@@ -587,6 +686,12 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
   const [newListName, setNewListName] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
   const [newListColor, setNewListColor] = useState('#3b82f6');
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -649,24 +754,32 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
   };
 
   const handleDeleteList = async (listId: string) => {
-    if (!confirm('Are you sure you want to delete this list? Contacts in this list will not be deleted, but will be removed from the list.')) return;
+    setConfirmDialog({
+      show: true,
+      title: 'Delete List',
+      message: 'Are you sure you want to delete this list? Contacts in this list will not be deleted, but will be removed from the list.',
+      confirmText: 'Delete List',
+      cancelText: 'Cancel',
+      type: 'danger',
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const { error } = await supabase
+            .from('contact_lists')
+            .delete()
+            .eq('id', listId);
 
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('contact_lists')
-        .delete()
-        .eq('id', listId);
+          if (error) throw error;
 
-      if (error) throw error;
-
-      onUpdate();
-      onShowToast('List deleted successfully', 'success');
-    } catch (error) {
-      onShowToast('Failed to delete list', 'error');
-    } finally {
-      setLoading(false);
-    }
+          onUpdate();
+          onShowToast('List deleted successfully', 'success');
+        } catch (error) {
+          onShowToast('Failed to delete list', 'error');
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   const colorOptions = [
@@ -860,6 +973,10 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
           </button>
         </div>
       </div>
+      <ConfirmationModal
+        dialog={confirmDialog}
+        onClose={() => setConfirmDialog({ ...confirmDialog, show: false })}
+      />
     </div>
   );
 }
@@ -869,6 +986,7 @@ interface ManualAddModalProps {
   companyId: string;
   onClose: () => void;
   onComplete: () => void;
+  onShowToast: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 interface CustomField {
@@ -882,7 +1000,7 @@ interface ContactRow {
   data: Record<string, string>;
 }
 
-function ManualAddModal({ companyId, onClose, onComplete }: ManualAddModalProps) {
+function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualAddModalProps) {
   const [loading, setLoading] = useState(false);
   const [fields, setFields] = useState<CustomField[]>([
     { id: '1', name: 'First Name', type: 'text' },
@@ -953,7 +1071,7 @@ function ManualAddModal({ companyId, onClose, onComplete }: ManualAddModalProps)
       const validRows = rows.filter(row => Object.values(row.data).some(val => val.trim()));
 
       if (validRows.length === 0) {
-        alert('Please add at least one contact with data');
+        onShowToast('Please add at least one contact with data', 'error');
         setLoading(false);
         return;
       }
@@ -1006,7 +1124,7 @@ function ManualAddModal({ companyId, onClose, onComplete }: ManualAddModalProps)
       onClose();
     } catch (error) {
       console.error('Error saving contacts:', error);
-      alert('Failed to save contacts. Please try again.');
+      onShowToast('Failed to save contacts. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -1193,7 +1311,7 @@ function ManualAddModal({ companyId, onClose, onComplete }: ManualAddModalProps)
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-slate-200 bg-slate-50 flex gap-3 justify-end">
+        <div className="p-6 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex gap-3 justify-end">
           <button
             onClick={onClose}
             disabled={loading}

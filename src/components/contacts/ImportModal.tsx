@@ -13,6 +13,7 @@ interface ImportModalProps {
   onClose: () => void;
   onComplete: () => void;
   importType?: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null;
+  onShowToast?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 type ImportStep = 'upload' | 'list-select' | 'mapping' | 'preview' | 'complete';
@@ -36,7 +37,7 @@ const getImportTypeInfo = (type?: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'j
   }
 };
 
-export default function ImportModal({ companyId, onClose, onComplete, importType }: ImportModalProps) {
+export default function ImportModal({ companyId, onClose, onComplete, importType, onShowToast }: ImportModalProps) {
   const typeInfo = getImportTypeInfo(importType);
   const supabase = createClient();
   const [step, setStep] = useState<ImportStep>('upload');
@@ -107,7 +108,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
         setShowCreateList(false);
       }
     } catch (error) {
-      alert('Failed to create list');
+      onShowToast?.('Failed to create list', 'error');
     } finally {
       setLoading(false);
     }
@@ -115,7 +116,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
 
   const handleGoogleSheetImport = async () => {
     if (!googleSheetUrl.trim()) {
-      alert('Please enter a Google Sheets URL');
+      onShowToast?.('Please enter a Google Sheets URL', 'error');
       return;
     }
 
@@ -155,7 +156,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
       setStep('list-select');
     } catch (error) {
       console.error('Google Sheets import error:', error);
-      alert(`Failed to import from Google Sheets: ${(error as Error).message}`);
+      onShowToast?.(`Failed to import from Google Sheets: ${(error as Error).message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -196,7 +197,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
       setStep('list-select');
     } catch (error) {
       console.error('File parsing error:', error);
-      alert(`Failed to parse file: ${(error as Error).message || 'Unknown error'}`);
+      onShowToast?.(`Failed to parse file: ${(error as Error).message || 'Unknown error'}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -226,7 +227,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
       setResult({ imported: data.imported, skipped: data.skipped });
       setStep('complete');
     } catch (error) {
-      alert('Failed to import contacts');
+      onShowToast?.('Failed to import contacts', 'error');
     } finally {
       setLoading(false);
     }
@@ -270,7 +271,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 rounded-b-2xl">
           {step === 'upload' && (
             <div>
               {importType === 'google' ? (
