@@ -861,12 +861,12 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               </button>
               <button
                 onClick={() => {
-                  if (!settings.voice || !settings.testPhoneNumber) return;
+                  if (!settings.voice) return;
                   loadContactCount();
                   setStep('contacts');
                 }}
-                disabled={!settings.voice || !settings.testPhoneNumber}
-                className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg font-black text-sm transition-all duration-300 relative overflow-hidden ${(!settings.voice || !settings.testPhoneNumber) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}`}
+                disabled={!settings.voice}
+                className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg font-black text-sm transition-all duration-300 relative overflow-hidden ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}`}
               >
                 <span className="relative z-10">Deploy Agent</span>
               </button>

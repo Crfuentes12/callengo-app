@@ -48,7 +48,7 @@ export default async function AgentsPage() {
         full_name: userData.full_name 
       }}
       company={company}
-      headerTitle="AI Agents"
+      headerTitle="Agents"
       headerSubtitle="Pre-built agents ready to use"
     >
       <AgentsLibrary
