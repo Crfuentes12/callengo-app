@@ -1,7 +1,7 @@
 // components/agents/AgentConfigModal.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
@@ -11,6 +11,7 @@ interface AgentConfigModalProps {
   agent: AgentTemplate;
   companyId: string;
   company: Company;
+  companySettings?: any;
   onClose: () => void;
 }
 
@@ -275,7 +276,7 @@ const StatBar = ({ label, value, color }: { label: string; value: number; color:
   </div>
 );
 
-export default function AgentConfigModal({ agent, companyId, company, onClose }: AgentConfigModalProps) {
+export default function AgentConfigModal({ agent, companyId, company, companySettings, onClose }: AgentConfigModalProps) {
   const router = useRouter();
   const supabase = createClient();
   const [step, setStep] = useState<'preview' | 'contacts' | 'confirm'>('preview');
@@ -295,7 +296,8 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const [callDuration, setCallDuration] = useState(0);
   const [callId, setCallId] = useState<string | null>(null);
   const [callData, setCallData] = useState<any>(null);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Use ref instead of state
+  const hasAnalyzedRef = useRef(false); // Track if call has been analyzed
   const [callAnalysis, setCallAnalysis] = useState<any>(null);
   const [analyzingCall, setAnalyzingCall] = useState(false);
   const [settings, setSettings] = useState({
@@ -308,7 +310,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     timezone: 'America/New_York',
     customTask: '',
     selectedLists: [] as string[],
-    testPhoneNumber: '', // Add phone number to main settings
+    testPhoneNumber: companySettings?.test_phone_number || '', // Pre-fill with saved test phone number
     companyInfo: {
       name: company.name,
       description: company.description || '',
@@ -345,11 +347,12 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
     };
-  }, [pollingInterval]);
+  }, []);
 
   const loadContactLists = async () => {
     const { data, error } = await supabase
@@ -463,14 +466,15 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
           setCallStatus('ended');
           setCallData(data);
 
-          // Stop polling
-          if (pollingInterval) {
-            clearInterval(pollingInterval);
-            setPollingInterval(null);
+          // Stop polling IMMEDIATELY
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
           }
 
-          // Analyze the call with AI
-          if (data.transcripts || data.concatenated_transcript) {
+          // Analyze the call with AI - ONLY ONCE using ref (prevents re-renders from triggering multiple analyses)
+          if (!hasAnalyzedRef.current && (data.transcripts || data.concatenated_transcript)) {
+            hasAnalyzedRef.current = true; // Set BEFORE calling to prevent race conditions
             analyzeCall(data);
           }
         }
@@ -545,11 +549,14 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       console.log('✅ Call initiated! Call ID:', data.call_id);
       setCallId(data.call_id);
 
+      // Reset analysis tracking for new call
+      hasAnalyzedRef.current = false;
+      setCallAnalysis(null);
+
       // Start polling for real call status every 2 seconds
-      const interval = setInterval(() => {
+      pollingIntervalRef.current = setInterval(() => {
         pollCallStatus(data.call_id);
       }, 2000);
-      setPollingInterval(interval);
 
       // Do initial poll immediately
       pollCallStatus(data.call_id);
@@ -903,6 +910,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         setCallData(null);
                         setCallDuration(0);
                         setCallAnalysis(null);
+                        hasAnalyzedRef.current = false;
+                        if (pollingIntervalRef.current) {
+                          clearInterval(pollingIntervalRef.current);
+                          pollingIntervalRef.current = null;
+                        }
                       }}
                       className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
                     >
@@ -1012,65 +1024,170 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                             <svg className="w-4 h-4 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            Analyzing Call with AI...
+                            Analyzing Call...
                           </h3>
-                          <p className="text-sm text-slate-400">Processing transcript and validating data...</p>
+                          <p className="text-sm text-slate-400">Extracting and structuring data from conversation...</p>
                         </div>
                       ) : callAnalysis && (
                         <>
-                          {/* AI Summary */}
-                          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                            <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
-                              <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              AI Summary
-                            </h3>
-                            <p className="text-sm text-slate-300 mb-3">{callAnalysis.summary}</p>
-                            {callAnalysis.successRating && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-slate-400">Success Rating:</span>
-                                <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full"
-                                    style={{ width: `${callAnalysis.successRating * 10}%` }}
-                                  ></div>
-                                </div>
-                                <span className="text-sm font-bold text-emerald-400">{callAnalysis.successRating}/10</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Validated Data */}
-                          {callAnalysis.validatedData && Object.keys(callAnalysis.validatedData).length > 0 && (
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
-                                <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          {/* Call Outcome */}
+                          {callAnalysis.outcome && (
+                            <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 rounded-lg p-4 border border-indigo-500/30">
+                              <h3 className="text-sm font-black text-white uppercase mb-2 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                Validated Data
+                                Call Outcome
                               </h3>
-                              <div className="space-y-2">
-                                {Object.entries(callAnalysis.validatedData).map(([key, value]) => (
-                                  <div key={key} className="flex justify-between text-xs">
-                                    <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                                    <span className="text-emerald-400 font-medium">{String(value)}</span>
-                                  </div>
-                                ))}
+                              <p className="text-sm text-indigo-200 font-medium">{callAnalysis.outcome}</p>
+                            </div>
+                          )}
+
+                          {/* Extracted Data Table */}
+                          {callAnalysis.extractedData && Object.keys(callAnalysis.extractedData).length > 0 && (
+                            <div className="bg-slate-800/50 rounded-lg p-4 border border-emerald-500/30">
+                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                Extracted Data
+                              </h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b border-slate-700">
+                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Field</th>
+                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Value</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {Object.entries(callAnalysis.extractedData).map(([key, value]) => (
+                                      <tr key={key} className="border-b border-slate-700/50 hover:bg-slate-700/20">
+                                        <td className="py-2 px-2 text-slate-300 capitalize font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
+                                        <td className="py-2 px-2 text-emerald-400 font-mono">{String(value)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
                               </div>
                             </div>
                           )}
 
-                          {/* Agent Notes */}
-                          {callAnalysis.notes && (
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                          {/* Validated Fields Table */}
+                          {callAnalysis.validatedFields && Object.keys(callAnalysis.validatedFields).length > 0 && (
+                            <div className="bg-slate-800/50 rounded-lg p-4 border border-cyan-500/30">
+                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Validated Fields
+                              </h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b border-slate-700">
+                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Field</th>
+                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {Object.entries(callAnalysis.validatedFields).map(([key, value]) => (
+                                      <tr key={key} className="border-b border-slate-700/50 hover:bg-slate-700/20">
+                                        <td className="py-2 px-2 text-slate-300 capitalize font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
+                                        <td className="py-2 px-2">
+                                          {String(value).toLowerCase().includes('confirmed') ? (
+                                            <span className="text-green-400 flex items-center gap-1">
+                                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                              </svg>
+                                              {String(value)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-yellow-400">{String(value)}</span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* New Information Table */}
+                          {callAnalysis.newInformation && Object.keys(callAnalysis.newInformation).length > 0 && (
+                            <div className="bg-slate-800/50 rounded-lg p-4 border border-purple-500/30">
                               <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
                                 <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
-                                Agent Notes
+                                New Information Collected
                               </h3>
-                              <p className="text-sm text-slate-300">{callAnalysis.notes}</p>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b border-slate-700">
+                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Field</th>
+                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Value</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {Object.entries(callAnalysis.newInformation).map(([key, value]) => (
+                                      <tr key={key} className="border-b border-slate-700/50 hover:bg-slate-700/20">
+                                        <td className="py-2 px-2 text-slate-300 capitalize font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
+                                        <td className="py-2 px-2 text-purple-400 font-mono">{String(value)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Next Actions */}
+                          {callAnalysis.nextActions && callAnalysis.nextActions.length > 0 && (
+                            <div className="bg-slate-800/50 rounded-lg p-4 border border-yellow-500/30">
+                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                </svg>
+                                Next Actions
+                              </h3>
+                              <ul className="space-y-2">
+                                {callAnalysis.nextActions.map((action: string, idx: number) => (
+                                  <li key={idx} className="flex items-start gap-2 text-xs">
+                                    <div className="w-5 h-5 rounded-full bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                      <span className="text-yellow-400 font-bold text-[10px]">{idx + 1}</span>
+                                    </div>
+                                    <span className="text-slate-200 flex-1">{action}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Call Quality */}
+                          {callAnalysis.callQuality && (
+                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                                </svg>
+                                Call Quality
+                              </h3>
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="flex-1 h-3 bg-slate-700 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full transition-all"
+                                    style={{ width: `${(callAnalysis.callQuality.rating || 0) * 10}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-lg font-black text-emerald-400">{callAnalysis.callQuality.rating}/10</span>
+                              </div>
+                              {callAnalysis.callQuality.reason && (
+                                <p className="text-xs text-slate-400 italic">{callAnalysis.callQuality.reason}</p>
+                              )}
                             </div>
                           )}
                         </>
@@ -1088,6 +1205,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       setCallData(null);
                       setCallDuration(0);
                       setCallAnalysis(null);
+                      hasAnalyzedRef.current = false;
+                      if (pollingIntervalRef.current) {
+                        clearInterval(pollingIntervalRef.current);
+                        pollingIntervalRef.current = null;
+                      }
                     }}
                     className="w-full px-5 py-3 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all"
                   >
@@ -1221,7 +1343,15 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     <h2 className="text-xl font-black text-white">Test Agent</h2>
                   </div>
                   <button
-                    onClick={() => setShowTestModal(false)}
+                    onClick={() => {
+                      setShowTestModal(false);
+                      hasAnalyzedRef.current = false;
+                      setCallAnalysis(null);
+                      if (pollingIntervalRef.current) {
+                        clearInterval(pollingIntervalRef.current);
+                        pollingIntervalRef.current = null;
+                      }
+                    }}
                     className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1285,7 +1415,15 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setShowTestModal(false)}
+                    onClick={() => {
+                      setShowTestModal(false);
+                      hasAnalyzedRef.current = false;
+                      setCallAnalysis(null);
+                      if (pollingIntervalRef.current) {
+                        clearInterval(pollingIntervalRef.current);
+                        pollingIntervalRef.current = null;
+                      }
+                    }}
                     disabled={testingAgent}
                     className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 font-bold text-sm transition-all disabled:opacity-50"
                   >

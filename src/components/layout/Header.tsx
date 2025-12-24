@@ -154,8 +154,8 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
-                      // Navigate to billing
-                      window.location.href = '/settings/billing';
+                      // Navigate to settings (billing tab)
+                      window.location.href = '/settings';
                     }}
                     className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
                   >

@@ -25,9 +25,10 @@ interface AgentsLibraryProps {
   companyAgents: any[];
   companyId: string;
   company: Company;
+  companySettings?: any;
 }
 
-export default function AgentsLibrary({ agentTemplates, companyAgents, companyId, company }: AgentsLibraryProps) {
+export default function AgentsLibrary({ agentTemplates, companyAgents, companyId, company, companySettings }: AgentsLibraryProps) {
   const [selectedAgent, setSelectedAgent] = useState<AgentTemplate | null>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
 
@@ -131,6 +132,7 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
           agent={selectedAgent}
           companyId={companyId}
           company={company}
+          companySettings={companySettings}
           onClose={() => {
             setShowConfigModal(false);
             setSelectedAgent(null);
