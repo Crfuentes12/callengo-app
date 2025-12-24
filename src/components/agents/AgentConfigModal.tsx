@@ -294,6 +294,8 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
   const [callDuration, setCallDuration] = useState(0);
   const [callId, setCallId] = useState<string | null>(null);
+  const [callData, setCallData] = useState<any>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [settings, setSettings] = useState({
     voice: '',
     maxDuration: 5,
@@ -337,6 +339,15 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
       if (interval) clearInterval(interval);
     };
   }, [callStatus]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   const loadContactLists = async () => {
     const { data, error } = await supabase
@@ -397,6 +408,40 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
         : [...prev, listId];
       return newSelection;
     });
+  };
+
+  // Poll call status from Bland API
+  const pollCallStatus = async (callId: string) => {
+    try {
+      const response = await fetch(`/api/bland/get-call/${callId}`);
+      const data = await response.json();
+
+      console.log('📊 Call status poll:', data);
+
+      if (response.ok && data.status) {
+        const blandStatus = data.status.toLowerCase();
+
+        // Map Bland status to our status
+        if (blandStatus === 'queued' || blandStatus === 'initiated') {
+          setCallStatus('dialing');
+        } else if (blandStatus === 'ringing') {
+          setCallStatus('ringing');
+        } else if (blandStatus === 'in-progress' || blandStatus === 'answered') {
+          setCallStatus('connected');
+        } else if (blandStatus === 'completed' || blandStatus === 'ended' || blandStatus === 'no-answer' || blandStatus === 'busy' || blandStatus === 'failed') {
+          setCallStatus('ended');
+          setCallData(data);
+
+          // Stop polling
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error polling call status:', error);
+    }
   };
 
   const handleTestAgent = async () => {
@@ -464,15 +509,14 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       console.log('✅ Call initiated! Call ID:', data.call_id);
       setCallId(data.call_id);
 
-      // Simulate call progression
-      setTimeout(() => {
-        console.log('📞 Status: Ringing');
-        setCallStatus('ringing');
-      }, 1500);
-      setTimeout(() => {
-        console.log('📞 Status: Connected');
-        setCallStatus('connected');
-      }, 3000);
+      // Start polling for real call status every 2 seconds
+      const interval = setInterval(() => {
+        pollCallStatus(data.call_id);
+      }, 2000);
+      setPollingInterval(interval);
+
+      // Do initial poll immediately
+      pollCallStatus(data.call_id);
 
     } catch (error) {
       console.error('❌ Test call error:', error);
@@ -487,16 +531,6 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       console.log('🏁 Setting testingAgent to false');
       setTestingAgent(false);
     }
-  };
-
-  const handleEndCall = () => {
-    setCallStatus('ended');
-    setTimeout(() => {
-      setShowTestModal(false);
-      setCallStatus('idle');
-      setCallDuration(0);
-      setCallId(null);
-    }, 2000);
   };
 
   const handleStartCampaign = async () => {
@@ -808,103 +842,268 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       {/* Test Agent Modal Overlay */}
       {showTestModal && (
         callStatus !== 'idle' ? (
-          // Active call interface (dialing, ringing, connected, ended)
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4">
-            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-md w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
-              {/* Call Status Header */}
-              <div className="p-8 text-center">
-                {/* Agent Avatar */}
-                <div className="relative w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-purple-500/50 shadow-2xl">
-                  <Image
-                    src={avatarImage}
-                    alt={agentName || agent.name}
-                    fill
-                    className="object-cover"
-                  />
-                  {/* Pulsing ring animation when connected */}
-                  {callStatus === 'connected' && (
-                    <>
-                      <div className="absolute inset-0 rounded-full border-4 border-emerald-400 animate-ping opacity-75"></div>
-                      <div className="absolute inset-0 rounded-full border-4 border-emerald-400"></div>
-                    </>
-                  )}
-                </div>
-
-                {/* Agent Name */}
-                <h2 className="text-2xl font-black text-white mb-2">{agentName || agent.name}</h2>
-
-                {/* Call Status Text */}
-                <div className="mb-6">
-                  {callStatus === 'dialing' && (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+          callStatus === 'ended' && callData ? (
+            // Call Results View
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4">
+              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border-2 border-emerald-500/50 overflow-hidden flex flex-col">
+                {/* Header */}
+                <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-emerald-600/20 to-cyan-600/20 flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                       </div>
-                      <p className="text-lg font-bold text-cyan-400">Dialing...</p>
+                      <div>
+                        <h2 className="text-xl font-black text-white">Call Completed</h2>
+                        <p className="text-xs text-emerald-400">Duration: {formatDuration(callDuration)}</p>
+                      </div>
                     </div>
-                  )}
-                  {callStatus === 'ringing' && (
-                    <div className="flex items-center justify-center gap-2">
-                      <svg className="w-5 h-5 text-yellow-400 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    <button
+                      onClick={() => {
+                        setShowTestModal(false);
+                        setCallStatus('idle');
+                        setCallData(null);
+                        setCallDuration(0);
+                      }}
+                      className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      <p className="text-lg font-bold text-yellow-400">Ringing...</p>
-                    </div>
-                  )}
-                  {callStatus === 'connected' && (
-                    <div>
-                      <p className="text-lg font-bold text-emerald-400 mb-2">Connected</p>
-                      {/* Call Duration Timer */}
-                      <div className="text-5xl font-black text-white tabular-nums tracking-tight">
-                        {formatDuration(callDuration)}
-                      </div>
-                      <p className="text-sm text-slate-400 mt-2">Demo call in progress</p>
-                    </div>
-                  )}
-                  {callStatus === 'ended' && (
-                    <div>
-                      <p className="text-lg font-bold text-slate-400">Call Ended</p>
-                      <p className="text-sm text-slate-500 mt-1">Duration: {formatDuration(callDuration)}</p>
-                    </div>
-                  )}
+                    </button>
+                  </div>
                 </div>
 
-                {/* Phone Number */}
-                <p className="text-sm text-slate-400 mb-6">{testPhoneNumber}</p>
+                {/* Scrollable Results */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Left Column */}
+                    <div className="space-y-4">
+                      {/* Call Recording */}
+                      {callData.recording_url && (
+                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                          <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414 1.414m2.828-9.9a9 9 0 012.828 2.828" />
+                            </svg>
+                            Call Recording
+                          </h3>
+                          <audio controls className="w-full">
+                            <source src={callData.recording_url} type="audio/mpeg" />
+                          </audio>
+                        </div>
+                      )}
 
-                {/* Waveform Animation when connected */}
-                {callStatus === 'connected' && (
-                  <div className="flex items-center justify-center gap-1 mb-6 h-12">
-                    {[...Array(20)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-1 bg-gradient-to-t from-purple-500 to-pink-500 rounded-full"
-                        style={{
-                          height: `${Math.random() * 100}%`,
-                          animation: `wave 0.${5 + Math.random() * 10}s ease-in-out infinite`,
-                          animationDelay: `${i * 0.05}s`,
-                        }}
-                      ></div>
-                    ))}
+                      {/* Transcript */}
+                      {callData.transcripts && (
+                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                          <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                            </svg>
+                            Transcript
+                          </h3>
+                          <div className="space-y-3 max-h-64 overflow-y-auto">
+                            {callData.transcripts.map((t: any, i: number) => (
+                              <div key={i} className={`flex gap-2 ${t.user === 'agent' ? 'justify-start' : 'justify-end'}`}>
+                                <div className={`max-w-[80%] rounded-lg p-3 ${t.user === 'agent' ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-cyan-600/20 border border-cyan-500/30'}`}>
+                                  <p className="text-xs font-bold text-slate-300 mb-1">{t.user === 'agent' ? agentName || agent.name : 'Customer'}</p>
+                                  <p className="text-sm text-white">{t.text}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-4">
+                      {/* Call Summary */}
+                      <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                        <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                          Call Summary
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Status:</span>
+                            <span className="text-emerald-400 font-bold capitalize">{callData.status}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Duration:</span>
+                            <span className="text-white font-bold">{formatDuration(callDuration)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Phone:</span>
+                            <span className="text-white font-mono text-xs">{testPhoneNumber}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Demo Data Used */}
+                      <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                        <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                          Demo Data Used
+                        </h3>
+                        <div className="space-y-2">
+                          {Object.entries(agentInfo.demoData).map(([key, value]) => (
+                            <div key={key} className="flex justify-between text-xs">
+                              <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                              <span className="text-white font-medium">{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Analysis / Notes */}
+                      {callData.analysis && (
+                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                          <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Agent Notes
+                          </h3>
+                          <p className="text-sm text-slate-300">{callData.analysis.summary || 'No analysis available'}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
 
-                {/* End Call Button */}
-                {callStatus === 'connected' && (
+                {/* Footer Actions */}
+                <div className="p-6 border-t border-slate-700/50 flex-shrink-0">
                   <button
-                    onClick={handleEndCall}
-                    className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 flex items-center justify-center shadow-xl hover:scale-110 transition-all duration-300"
+                    onClick={() => {
+                      setShowTestModal(false);
+                      setCallStatus('idle');
+                      setCallData(null);
+                      setCallDuration(0);
+                    }}
+                    className="w-full px-5 py-3 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all"
                   >
-                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
-                    </svg>
+                    Close Results
                   </button>
-                )}
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            // Active call interface (dialing, ringing, connected)
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4">
+              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
+                <div className="grid md:grid-cols-2">
+                  {/* Left: Call Status */}
+                  <div className="p-8 text-center border-r border-slate-700/50">
+                    {/* Agent Avatar */}
+                    <div className="relative w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-purple-500/50 shadow-2xl">
+                      <Image
+                        src={avatarImage}
+                        alt={agentName || agent.name}
+                        fill
+                        className="object-cover"
+                      />
+                      {/* Pulsing ring animation when connected */}
+                      {callStatus === 'connected' && (
+                        <>
+                          <div className="absolute inset-0 rounded-full border-4 border-emerald-400 animate-ping opacity-75"></div>
+                          <div className="absolute inset-0 rounded-full border-4 border-emerald-400"></div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Agent Name */}
+                    <h2 className="text-2xl font-black text-white mb-2">{agentName || agent.name}</h2>
+
+                    {/* Call Status Text */}
+                    <div className="mb-6">
+                      {callStatus === 'dialing' && (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="flex gap-1">
+                            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                          </div>
+                          <p className="text-lg font-bold text-cyan-400">Dialing...</p>
+                        </div>
+                      )}
+                      {callStatus === 'ringing' && (
+                        <div className="flex items-center justify-center gap-2">
+                          <svg className="w-5 h-5 text-yellow-400 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          <p className="text-lg font-bold text-yellow-400">Ringing...</p>
+                        </div>
+                      )}
+                      {callStatus === 'connected' && (
+                        <div>
+                          <p className="text-lg font-bold text-emerald-400 mb-2">Connected</p>
+                          {/* Call Duration Timer */}
+                          <div className="text-5xl font-black text-white tabular-nums tracking-tight">
+                            {formatDuration(callDuration)}
+                          </div>
+                          <p className="text-sm text-slate-400 mt-2">Demo call in progress</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Phone Number */}
+                    <p className="text-sm text-slate-400 mb-6">{testPhoneNumber}</p>
+
+                    {/* Waveform Animation when connected */}
+                    {callStatus === 'connected' && (
+                      <div className="flex items-center justify-center gap-1 h-12">
+                        {[...Array(20)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-1 bg-gradient-to-t from-purple-500 to-pink-500 rounded-full"
+                            style={{
+                              height: `${Math.random() * 100}%`,
+                              animation: `wave 0.${5 + Math.random() * 10}s ease-in-out infinite`,
+                              animationDelay: `${i * 0.05}s`,
+                            }}
+                          ></div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: Demo Data */}
+                  <div className="p-6 bg-slate-800/30">
+                    <h3 className="text-sm font-black text-white uppercase mb-4 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      Demo Data Being Used
+                    </h3>
+                    <div className="space-y-3">
+                      {Object.entries(agentInfo.demoData).map(([key, value]) => (
+                        <div key={key} className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                          <p className="text-xs font-bold text-slate-400 uppercase mb-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                          <p className="text-sm text-white font-medium">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-6 bg-purple-900/20 border border-purple-500/30 rounded-lg p-3">
+                      <p className="text-xs text-purple-300">
+                        <svg className="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        The agent is using this demo data in the conversation to showcase its capabilities.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
         ) : (
           // Initial modal to enter phone number and start test
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[70] p-4">
