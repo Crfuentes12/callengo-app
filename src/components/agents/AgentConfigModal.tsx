@@ -11,6 +11,7 @@ interface AgentConfigModalProps {
   agent: AgentTemplate;
   companyId: string;
   company: Company;
+  companySettings?: any;
   onClose: () => void;
 }
 
@@ -275,7 +276,7 @@ const StatBar = ({ label, value, color }: { label: string; value: number; color:
   </div>
 );
 
-export default function AgentConfigModal({ agent, companyId, company, onClose }: AgentConfigModalProps) {
+export default function AgentConfigModal({ agent, companyId, company, companySettings, onClose }: AgentConfigModalProps) {
   const router = useRouter();
   const supabase = createClient();
   const [step, setStep] = useState<'preview' | 'contacts' | 'confirm'>('preview');
@@ -308,7 +309,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     timezone: 'America/New_York',
     customTask: '',
     selectedLists: [] as string[],
-    testPhoneNumber: '', // Add phone number to main settings
+    testPhoneNumber: companySettings?.test_phone_number || '', // Pre-fill with saved test phone number
     companyInfo: {
       name: company.name,
       description: company.description || '',

@@ -40,6 +40,13 @@ export default async function AgentsPage() {
     `)
     .eq('company_id', userData.company_id);
 
+  // Get company settings for test phone number
+  const { data: companySettings } = await supabase
+    .from('company_settings')
+    .select('*')
+    .eq('company_id', userData.company_id)
+    .single();
+
   return (
     <Layout
       user={{
@@ -56,6 +63,7 @@ export default async function AgentsPage() {
         companyAgents={companyAgents || []}
         companyId={userData.company_id}
         company={company}
+        companySettings={companySettings}
       />
     </Layout>
   );
