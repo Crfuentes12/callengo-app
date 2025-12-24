@@ -400,8 +400,17 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   };
 
   const handleTestAgent = async () => {
-    if (!testPhoneNumber.trim() || !settings.voice) return;
+    console.log('🔥 handleTestAgent called!');
+    console.log('testPhoneNumber:', testPhoneNumber);
+    console.log('settings.voice:', settings.voice);
+    console.log('settings.testPhoneNumber:', settings.testPhoneNumber);
 
+    if (!testPhoneNumber.trim() || !settings.voice) {
+      console.error('❌ Validation failed - missing phone or voice');
+      return;
+    }
+
+    console.log('✅ Starting test call...');
     setTestingAgent(true);
     setCallStatus('dialing');
     setCallDuration(0);
@@ -417,6 +426,12 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
 This is a DEMO call to showcase your capabilities. Use the following demo data for this conversation: ${demoDataText}.
 ${agentDesc.description}
 Be natural, professional, and demonstrate your key capabilities in this brief demo call.`;
+
+      console.log('📞 Calling API with:', {
+        phone_number: testPhoneNumber,
+        voice: settings.voice,
+        company_id: companyId,
+      });
 
       const response = await fetch('/api/bland/send-call', {
         method: 'POST',
@@ -438,20 +453,30 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         }),
       });
 
+      console.log('📡 Response status:', response.status);
       const data = await response.json();
+      console.log('📡 Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to initiate call');
       }
 
+      console.log('✅ Call initiated! Call ID:', data.call_id);
       setCallId(data.call_id);
 
       // Simulate call progression
-      setTimeout(() => setCallStatus('ringing'), 1500);
-      setTimeout(() => setCallStatus('connected'), 3000);
+      setTimeout(() => {
+        console.log('📞 Status: Ringing');
+        setCallStatus('ringing');
+      }, 1500);
+      setTimeout(() => {
+        console.log('📞 Status: Connected');
+        setCallStatus('connected');
+      }, 3000);
 
     } catch (error) {
-      console.error('Test call error:', error);
+      console.error('❌ Test call error:', error);
+      console.error('Error details:', error instanceof Error ? error.message : error);
       setCallStatus('ended');
       alert(`❌ Failed to initiate test call: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setTimeout(() => {
@@ -459,6 +484,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         setCallStatus('idle');
       }, 2000);
     } finally {
+      console.log('🏁 Setting testingAgent to false');
       setTestingAgent(false);
     }
   };
@@ -615,8 +641,12 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   {/* Test Agent Button */}
                   <button
                     onClick={() => {
+                      console.log('🎯 Test Agent button clicked!');
+                      console.log('settings.testPhoneNumber:', settings.testPhoneNumber);
+                      console.log('settings.voice:', settings.voice);
                       setTestPhoneNumber(settings.testPhoneNumber);
                       setShowTestModal(true);
+                      console.log('✅ Modal should open now');
                     }}
                     disabled={!settings.voice || !settings.testPhoneNumber}
                     className={`mt-4 w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${(!settings.voice || !settings.testPhoneNumber) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:scale-105'}`}
@@ -1430,7 +1460,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 Cancel
               </button>
               <button
-                onClick={handleTestAgent}
+                onClick={() => {
+                  console.log('🚀 Start Test Call button clicked in modal!');
+                  handleTestAgent();
+                }}
                 disabled={!testPhoneNumber.trim() || testingAgent}
                 className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
