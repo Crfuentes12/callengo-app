@@ -45,12 +45,14 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
   const [rows, setRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({
     companyName: null,
+    firstName: null,
+    lastName: null,
+    contactName: null,
     address: null,
     city: null,
     state: null,
     zipCode: null,
     phoneNumber: null,
-    contactName: null,
     email: null,
   });
   const [loading, setLoading] = useState(false);
@@ -519,14 +521,16 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
               </p>
               <div className="space-y-3">
                 {Object.entries({
+                  firstName: 'First Name',
+                  lastName: 'Last Name',
+                  contactName: 'Full Name (if no First/Last)',
                   companyName: 'Company Name',
                   phoneNumber: 'Phone Number *',
+                  email: 'Email',
                   address: 'Address',
                   city: 'City',
                   state: 'State',
                   zipCode: 'Zip Code',
-                  contactName: 'Contact Name',
-                  email: 'Email',
                 }).map(([field, label]) => (
                   <div key={field} className="flex items-center gap-4">
                     <label className="w-36 text-sm font-medium text-slate-700">{label}</label>

@@ -66,23 +66,27 @@ export function parseCSV(csvText: string): { headers: string[]; rows: string[][]
 export function detectColumnMapping(headers: string[]): ColumnMapping {
   const mapping: ColumnMapping = {
     companyName: null,
+    firstName: null,
+    lastName: null,
+    contactName: null,
     address: null,
     city: null,
     state: null,
     zipCode: null,
     phoneNumber: null,
-    contactName: null,
     email: null,
   };
 
   const patterns: Record<keyof ColumnMapping, RegExp[]> = {
-    companyName: [/company/i, /business/i, /name/i, /dba/i, /store/i, /merchant/i],
+    companyName: [/^company.*name/i, /^business.*name/i, /^company$/i, /^business$/i, /dba/i, /store.*name/i, /merchant/i],
+    firstName: [/^first.*name/i, /^fname/i, /^given.*name/i, /^first$/i],
+    lastName: [/^last.*name/i, /^lname/i, /^surname/i, /^family.*name/i, /^last$/i],
+    contactName: [/^contact.*name/i, /^full.*name/i, /^name$/i, /^contact$/i, /owner/i, /manager/i, /person/i, /rep/i],
     address: [/^address$/i, /street/i, /address.*1/i, /location/i, /addr/i],
     city: [/city/i, /town/i, /municipality/i],
     state: [/^state$/i, /province/i, /^st$/i, /region/i],
     zipCode: [/zip/i, /postal/i, /postcode/i, /^code$/i],
     phoneNumber: [/phone/i, /tel/i, /mobile/i, /cell/i, /number/i],
-    contactName: [/contact/i, /owner/i, /manager/i, /person/i, /rep/i],
     email: [/email/i, /e-mail/i, /mail/i],
   };
 
@@ -145,6 +149,18 @@ export function mapRowToContact(
   const phoneNormalized = normalizePhoneNumber(phoneRaw);
   if (!isValidPhoneNumber(phoneNormalized)) return null;
 
+  // Build contact_name from firstName + lastName or use contactName
+  const firstName = getValue(mapping.firstName);
+  const lastName = getValue(mapping.lastName);
+  const fullContactName = getValue(mapping.contactName);
+
+  let contactName = null;
+  if (firstName || lastName) {
+    contactName = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
+  } else if (fullContactName) {
+    contactName = fullContactName;
+  }
+
   return {
     company_id: '', // Will be set by caller
     company_name: getValue(mapping.companyName) || 'Unknown Company',
@@ -154,7 +170,7 @@ export function mapRowToContact(
     zip_code: getValue(mapping.zipCode) || null,
     phone_number: phoneNormalized,
     original_phone_number: phoneRaw,
-    contact_name: getValue(mapping.contactName) || null,
+    contact_name: contactName,
     email: getValue(mapping.email) || null,
     status: 'Pending',
     call_outcome: 'Not Called',

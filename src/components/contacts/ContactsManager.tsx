@@ -885,9 +885,11 @@ interface ContactRow {
 function ManualAddModal({ companyId, onClose, onComplete }: ManualAddModalProps) {
   const [loading, setLoading] = useState(false);
   const [fields, setFields] = useState<CustomField[]>([
-    { id: '1', name: 'Name', type: 'text' },
-    { id: '2', name: 'Phone', type: 'phone' },
-    { id: '3', name: 'Email', type: 'email' },
+    { id: '1', name: 'First Name', type: 'text' },
+    { id: '2', name: 'Last Name', type: 'text' },
+    { id: '3', name: 'Company Name', type: 'text' },
+    { id: '4', name: 'Phone', type: 'phone' },
+    { id: '5', name: 'Email', type: 'email' },
   ]);
   const [rows, setRows] = useState<ContactRow[]>([
     { id: '1', data: {} }
@@ -958,27 +960,39 @@ function ManualAddModal({ companyId, onClose, onComplete }: ManualAddModalProps)
 
       // Prepare contacts for insertion
       const contactsToInsert = validRows.map(row => {
-        // Build custom_fields object from all fields
-        const customFields: Record<string, any> = {};
-        fields.forEach(field => {
-          const value = row.data[field.name] || '';
-          if (value) {
-            customFields[field.name.toLowerCase().replace(/\s+/g, '_')] = value;
-          }
-        });
-
-        // Extract common fields
-        const companyName = row.data['Name'] || row.data['name'] || row.data['Company Name'] || row.data['company_name'] || 'Unknown';
+        // Extract standard fields
+        const firstName = row.data['First Name'] || row.data['first_name'] || '';
+        const lastName = row.data['Last Name'] || row.data['last_name'] || '';
+        const companyName = row.data['Company Name'] || row.data['company_name'] || '';
         const phone = row.data['Phone'] || row.data['phone'] || row.data['Phone Number'] || row.data['phone_number'] || '';
         const email = row.data['Email'] || row.data['email'] || '';
 
+        // Combine first and last name for contact_name
+        const contactName = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
+
+        // Build custom_fields object from non-standard fields
+        const customFields: Record<string, any> = {};
+        const standardFieldNames = ['First Name', 'Last Name', 'Company Name', 'Phone', 'Email',
+                                   'first_name', 'last_name', 'company_name', 'phone', 'email',
+                                   'Phone Number', 'phone_number'];
+
+        fields.forEach(field => {
+          if (!standardFieldNames.includes(field.name)) {
+            const value = row.data[field.name] || '';
+            if (value) {
+              customFields[field.name.toLowerCase().replace(/\s+/g, '_')] = value;
+            }
+          }
+        });
+
         return {
           company_id: companyId,
-          company_name: companyName,
+          company_name: companyName || 'Unknown',
+          contact_name: contactName,
           phone_number: phone,
           email: email || null,
           status: 'Pending',
-          custom_fields: customFields,
+          custom_fields: Object.keys(customFields).length > 0 ? customFields : null,
         };
       });
 
