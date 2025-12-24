@@ -413,7 +413,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   // Poll call status from Bland API
   const pollCallStatus = async (callId: string) => {
     try {
-      const response = await fetch(`/api/bland/get-call/${callId}`);
+      const response = await fetch(`/api/bland/get-call/${callId}?company_id=${companyId}`);
       const data = await response.json();
 
       console.log('📊 Call status poll:', data);
