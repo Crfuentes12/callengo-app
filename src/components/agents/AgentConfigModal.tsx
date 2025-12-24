@@ -1,7 +1,7 @@
 // components/agents/AgentConfigModal.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
@@ -296,7 +296,8 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const [callDuration, setCallDuration] = useState(0);
   const [callId, setCallId] = useState<string | null>(null);
   const [callData, setCallData] = useState<any>(null);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Use ref instead of state
+  const hasAnalyzedRef = useRef(false); // Track if call has been analyzed
   const [callAnalysis, setCallAnalysis] = useState<any>(null);
   const [analyzingCall, setAnalyzingCall] = useState(false);
   const [settings, setSettings] = useState({
@@ -346,11 +347,12 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
     };
-  }, [pollingInterval]);
+  }, []);
 
   const loadContactLists = async () => {
     const { data, error } = await supabase
@@ -464,14 +466,15 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
           setCallStatus('ended');
           setCallData(data);
 
-          // Stop polling
-          if (pollingInterval) {
-            clearInterval(pollingInterval);
-            setPollingInterval(null);
+          // Stop polling IMMEDIATELY
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
           }
 
-          // Analyze the call with AI - ONLY ONCE (check if not already analyzing or analyzed)
-          if (!callAnalysis && !analyzingCall && (data.transcripts || data.concatenated_transcript)) {
+          // Analyze the call with AI - ONLY ONCE using ref (prevents re-renders from triggering multiple analyses)
+          if (!hasAnalyzedRef.current && (data.transcripts || data.concatenated_transcript)) {
+            hasAnalyzedRef.current = true; // Set BEFORE calling to prevent race conditions
             analyzeCall(data);
           }
         }
@@ -546,11 +549,14 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       console.log('✅ Call initiated! Call ID:', data.call_id);
       setCallId(data.call_id);
 
+      // Reset analysis tracking for new call
+      hasAnalyzedRef.current = false;
+      setCallAnalysis(null);
+
       // Start polling for real call status every 2 seconds
-      const interval = setInterval(() => {
+      pollingIntervalRef.current = setInterval(() => {
         pollCallStatus(data.call_id);
       }, 2000);
-      setPollingInterval(interval);
 
       // Do initial poll immediately
       pollCallStatus(data.call_id);
@@ -904,6 +910,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         setCallData(null);
                         setCallDuration(0);
                         setCallAnalysis(null);
+                        hasAnalyzedRef.current = false;
+                        if (pollingIntervalRef.current) {
+                          clearInterval(pollingIntervalRef.current);
+                          pollingIntervalRef.current = null;
+                        }
                       }}
                       className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
                     >
@@ -1194,6 +1205,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       setCallData(null);
                       setCallDuration(0);
                       setCallAnalysis(null);
+                      hasAnalyzedRef.current = false;
+                      if (pollingIntervalRef.current) {
+                        clearInterval(pollingIntervalRef.current);
+                        pollingIntervalRef.current = null;
+                      }
                     }}
                     className="w-full px-5 py-3 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all"
                   >
@@ -1327,7 +1343,15 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     <h2 className="text-xl font-black text-white">Test Agent</h2>
                   </div>
                   <button
-                    onClick={() => setShowTestModal(false)}
+                    onClick={() => {
+                      setShowTestModal(false);
+                      hasAnalyzedRef.current = false;
+                      setCallAnalysis(null);
+                      if (pollingIntervalRef.current) {
+                        clearInterval(pollingIntervalRef.current);
+                        pollingIntervalRef.current = null;
+                      }
+                    }}
                     className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1391,7 +1415,15 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setShowTestModal(false)}
+                    onClick={() => {
+                      setShowTestModal(false);
+                      hasAnalyzedRef.current = false;
+                      setCallAnalysis(null);
+                      if (pollingIntervalRef.current) {
+                        clearInterval(pollingIntervalRef.current);
+                        pollingIntervalRef.current = null;
+                      }
+                    }}
                     disabled={testingAgent}
                     className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 font-bold text-sm transition-all disabled:opacity-50"
                   >
