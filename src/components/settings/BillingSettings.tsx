@@ -243,197 +243,232 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {plans.map((plan) => {
             const isEnterprise = plan.slug === 'enterprise';
+            const isPopular = plan.slug === 'business';
             const price = isEnterprise ? plan.price_monthly : (billingCycle === 'monthly' ? plan.price_monthly : plan.price_annual);
             const isCurrentPlan = currentPlan?.id === plan.id;
 
+            // Calculate discount percentage for this specific plan
+            const discountPercent = !isEnterprise && billingCycle === 'annual'
+              ? Math.round(((plan.price_monthly * 12 - plan.price_annual) / (plan.price_monthly * 12)) * 100)
+              : 0;
+
             return (
-              <div
-                key={plan.id}
-                className={`border rounded-xl p-5 transition-all flex flex-col h-full ${
-                  isCurrentPlan
-                    ? 'border-indigo-200 bg-indigo-50/30'
-                    : 'border-slate-200 bg-white hover:border-slate-300'
-                }`}
-              >
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-grow">
-                    <h4 className="font-bold text-slate-900 mb-1">{plan.name}</h4>
-                    <p className="text-xs text-slate-600 min-h-[32px]">{plan.description}</p>
-                  </div>
-                  {isCurrentPlan && (
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 ml-2 flex-shrink-0">
-                      Current
-                    </span>
-                  )}
-                </div>
-
-                {/* Pricing */}
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1">
-                    {isEnterprise && <span className="text-sm text-slate-500 font-medium mr-1">From</span>}
-                    <span className="text-3xl font-black text-slate-900">{formatPrice(price)}</span>
-                    <span className="text-sm text-slate-500">
-                      {isEnterprise ? '/mo' : `/${billingCycle === 'monthly' ? 'mo' : 'yr'}`}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Features - Fixed height section */}
-                <div className="flex-grow mb-4">
-                  <div className="space-y-2 text-xs">
-                    {/* Calls */}
-                    <div className="flex items-start gap-2">
-                      <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-slate-700">
-                        <span className="font-semibold text-slate-900">{plan.calls_included.toLocaleString()}</span> calls/month included
-                      </span>
+              <div key={plan.id} className="relative">
+                {/* Popular Badge - Outside the card */}
+                {isPopular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold px-4 py-1.5 rounded-full shadow-lg uppercase tracking-wide">
+                      ⭐ Most Popular
                     </div>
-
-                    {/* Extra call price */}
-                    <div className="flex items-start gap-2">
-                      <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-slate-700">
-                        <span className="font-semibold text-slate-900">${plan.price_per_extra_call}</span> per additional call
-                      </span>
-                    </div>
-
-                    {/* Users */}
-                    <div className="flex items-start gap-2">
-                      <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-slate-700">
-                        {isEnterprise ? (
-                          <span className="font-semibold text-slate-900">Unlimited</span>
-                        ) : plan.max_users === -1 ? (
-                          <span className="font-semibold text-slate-900">Unlimited</span>
-                        ) : (
-                          <span><span className="font-semibold text-slate-900">{plan.max_users}</span> user{plan.max_users > 1 ? 's' : ''}</span>
-                        )}
-                        {' '}(dashboard access)
-                      </span>
-                    </div>
-
-                    {/* Plan-specific features */}
-                    {plan.slug === 'starter' && (
-                      <>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">Best for testing & validation</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">CSV/Excel data export</span>
-                        </div>
-                      </>
-                    )}
-
-                    {plan.slug === 'business' && (
-                      <>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">Automated follow-ups</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">Multiple agents in parallel</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">All enriched data is yours</span>
-                        </div>
-                      </>
-                    )}
-
-                    {plan.slug === 'teams' && (
-                      <>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">Team collaboration & permissions</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">Advanced retry & voicemail logic</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">Governance & audit logs</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">Priority support</span>
-                        </div>
-                      </>
-                    )}
-
-                    {isEnterprise && (
-                      <>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">Custom agents & workflows</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">Dedicated account manager</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700">SLA & compliance support</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-slate-700 italic">Volume-based usage pricing</span>
-                        </div>
-                      </>
-                    )}
                   </div>
-                </div>
+                )}
 
-                {/* Button - Always at bottom */}
-                <button
-                  onClick={() => handleChangePlan(plan.id)}
-                  disabled={isCurrentPlan || changing}
-                  className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto ${
+                <div
+                  className={`rounded-xl p-5 transition-all flex flex-col h-full ${
                     isCurrentPlan
-                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                      : plan.slug === 'business'
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
-                      : 'bg-slate-700 text-white hover:bg-slate-800'
+                      ? 'border-2 border-indigo-200 bg-indigo-50/30'
+                      : isPopular
+                      ? 'border-[3px] border-indigo-500 bg-white shadow-lg shadow-indigo-500/20'
+                      : 'border border-slate-200 bg-white hover:border-slate-300'
                   }`}
                 >
-                  {changing ? 'Processing...' : isCurrentPlan ? 'Current Plan' : isEnterprise ? 'Contact Sales' : 'Select Plan'}
-                </button>
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-grow">
+                      <h4 className="font-bold text-slate-900 mb-1">{plan.name}</h4>
+                      <p className="text-xs text-slate-600 min-h-[32px]">{plan.description}</p>
+                    </div>
+                    {isCurrentPlan && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 ml-2 flex-shrink-0">
+                        Current
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Pricing */}
+                  <div className="mb-4">
+                    <div className="flex items-baseline gap-1 mb-1">
+                      {isEnterprise && <span className="text-sm text-slate-500 font-medium mr-1">From</span>}
+                      <span className="text-3xl font-black text-slate-900">{formatPrice(price)}</span>
+                      <span className="text-sm text-slate-500">
+                        {isEnterprise ? '/mo' : `/${billingCycle === 'monthly' ? 'mo' : 'yr'}`}
+                      </span>
+                    </div>
+
+                    {/* Show discount badge for annual billing */}
+                    {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
+                      <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md bg-green-100 text-green-700 border border-green-200">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                        </svg>
+                        Save {discountPercent}% annually
+                      </div>
+                    )}
+
+                    {/* Show monthly equivalent for annual plans */}
+                    {!isEnterprise && billingCycle === 'annual' && (
+                      <div className="text-[10px] text-slate-500 mt-1">
+                        {formatPrice(price / 12)}/mo billed annually
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Features - Fixed height section */}
+                  <div className="flex-grow mb-4">
+                    <div className="space-y-2 text-xs">
+                      {/* Calls */}
+                      <div className="flex items-start gap-2">
+                        <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-slate-700">
+                          <span className="font-semibold text-slate-900">{plan.calls_included.toLocaleString()}</span> calls/month included
+                        </span>
+                      </div>
+
+                      {/* Extra call price */}
+                      <div className="flex items-start gap-2">
+                        <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-slate-700">
+                          <span className="font-semibold text-slate-900">${plan.price_per_extra_call}</span> per additional call
+                        </span>
+                      </div>
+
+                      {/* Users */}
+                      <div className="flex items-start gap-2">
+                        <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-slate-700">
+                          {isEnterprise ? (
+                            <span className="font-semibold text-slate-900">Unlimited</span>
+                          ) : plan.max_users === -1 ? (
+                            <span className="font-semibold text-slate-900">Unlimited</span>
+                          ) : (
+                            <span><span className="font-semibold text-slate-900">{plan.max_users}</span> user{plan.max_users > 1 ? 's' : ''}</span>
+                          )}
+                          {' '}(dashboard access)
+                        </span>
+                      </div>
+
+                      {/* Plan-specific features */}
+                      {plan.slug === 'starter' && (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">Best for testing & validation</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">CSV/Excel data export</span>
+                          </div>
+                        </>
+                      )}
+
+                      {plan.slug === 'business' && (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">Automated follow-ups</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">Multiple agents in parallel</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">All enriched data is yours</span>
+                          </div>
+                        </>
+                      )}
+
+                      {plan.slug === 'teams' && (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">Team collaboration & permissions</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">Advanced retry & voicemail logic</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">Governance & audit logs</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">Priority support</span>
+                          </div>
+                        </>
+                      )}
+
+                      {isEnterprise && (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">Custom agents & workflows</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">Dedicated account manager</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700">SLA & compliance support</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-slate-700 italic">Volume-based usage pricing</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Button - Always at bottom */}
+                  <button
+                    onClick={() => handleChangePlan(plan.id)}
+                    disabled={isCurrentPlan || changing}
+                    className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto ${
+                      isCurrentPlan
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : isPopular
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/30'
+                        : 'bg-slate-700 text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    {changing ? 'Processing...' : isCurrentPlan ? 'Current Plan' : isEnterprise ? 'Contact Sales' : 'Select Plan'}
+                  </button>
+                </div>
               </div>
             );
           })}
