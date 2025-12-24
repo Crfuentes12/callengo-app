@@ -376,7 +376,7 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
                 Actions
               </button>
               {showBatchActions && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-[60]">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-[100]">
                   <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">Add to List</div>
                   <button
                     onClick={() => setShowListManager(true)}
@@ -424,8 +424,8 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex-1 w-full sm:w-auto">
+      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+        <div className="flex-1 w-full lg:w-auto">
           <div className="relative">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -440,7 +440,7 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
           </div>
         </div>
 
-        <div className="flex gap-3 w-full sm:w-auto flex-wrap">
+        <div className="flex gap-3 w-full lg:w-auto flex-wrap">
           <select
             value={selectedListFilter}
             onChange={(e) => setSelectedListFilter(e.target.value)}
@@ -1131,7 +1131,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+    <div className="fixed inset-0 bg-black backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
       <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl border-2 border-indigo-100 flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-purple-50">
