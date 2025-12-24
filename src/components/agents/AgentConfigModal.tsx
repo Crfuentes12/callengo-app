@@ -291,6 +291,13 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const [showTestModal, setShowTestModal] = useState(false);
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
   const [testingAgent, setTestingAgent] = useState(false);
+  const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
+  const [callDuration, setCallDuration] = useState(0);
+  const [callId, setCallId] = useState<string | null>(null);
+  const [callData, setCallData] = useState<any>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [callAnalysis, setCallAnalysis] = useState<any>(null);
+  const [analyzingCall, setAnalyzingCall] = useState(false);
   const [settings, setSettings] = useState({
     voice: '',
     maxDuration: 5,
@@ -301,6 +308,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     timezone: 'America/New_York',
     customTask: '',
     selectedLists: [] as string[],
+    testPhoneNumber: '', // Add phone number to main settings
     companyInfo: {
       name: company.name,
       description: company.description || '',
@@ -320,6 +328,28 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
       loadContactCount();
     }
   }, [selectedLists, step]);
+
+  // Call duration timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (callStatus === 'connected') {
+      interval = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [callStatus]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   const loadContactLists = async () => {
     const { data, error } = await supabase
@@ -382,20 +412,159 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     });
   };
 
-  const handleTestAgent = async () => {
-    if (!testPhoneNumber.trim() || !settings.voice) return;
-
-    setTestingAgent(true);
+  // Analyze call with OpenAI
+  const analyzeCall = async (callData: any) => {
+    setAnalyzingCall(true);
     try {
-      // Simulate a test call - in production, this would call your backend API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch('/api/openai/analyze-call', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transcripts: callData.transcripts || callData.concatenated_transcript || [],
+          agentType: agent.name,
+          demoData: agentInfo.demoData,
+        }),
+      });
 
-      alert(`Test call initiated to ${testPhoneNumber} with demo data. Check your phone!`);
-      setShowTestModal(false);
-      setTestPhoneNumber('');
+      const result = await response.json();
+
+      if (result.success) {
+        setCallAnalysis(result.analysis);
+        console.log('✅ Call analysis complete:', result.analysis);
+      }
     } catch (error) {
-      alert('Failed to initiate test call');
+      console.error('❌ Error analyzing call:', error);
     } finally {
+      setAnalyzingCall(false);
+    }
+  };
+
+  // Poll call status from Bland API
+  const pollCallStatus = async (callId: string) => {
+    try {
+      const response = await fetch(`/api/bland/get-call/${callId}?company_id=${companyId}`);
+      const data = await response.json();
+
+      console.log('📊 Call status poll:', data);
+
+      if (response.ok && data.status) {
+        const blandStatus = data.status.toLowerCase();
+
+        // Map Bland status to our status
+        if (blandStatus === 'queued' || blandStatus === 'initiated') {
+          setCallStatus('dialing');
+        } else if (blandStatus === 'ringing') {
+          setCallStatus('ringing');
+        } else if (blandStatus === 'in-progress' || blandStatus === 'answered') {
+          setCallStatus('connected');
+        } else if (blandStatus === 'completed' || blandStatus === 'ended' || blandStatus === 'no-answer' || blandStatus === 'busy' || blandStatus === 'failed') {
+          setCallStatus('ended');
+          setCallData(data);
+
+          // Stop polling
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
+          }
+
+          // Analyze the call with AI
+          if (data.transcripts || data.concatenated_transcript) {
+            analyzeCall(data);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error polling call status:', error);
+    }
+  };
+
+  const handleTestAgent = async () => {
+    console.log('🔥 handleTestAgent called!');
+    console.log('testPhoneNumber:', testPhoneNumber);
+    console.log('settings.voice:', settings.voice);
+    console.log('settings.testPhoneNumber:', settings.testPhoneNumber);
+
+    if (!testPhoneNumber.trim() || !settings.voice) {
+      console.error('❌ Validation failed - missing phone or voice');
+      return;
+    }
+
+    console.log('✅ Starting test call...');
+    setTestingAgent(true);
+    setCallStatus('dialing');
+    setCallDuration(0);
+
+    try {
+      // Build the task prompt with demo data
+      const agentDesc = getAgentDescription(agent);
+      const demoDataText = Object.entries(agentDesc.demoData)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(', ');
+
+      const task = `You are ${agentName || agent.name}, an AI ${agentDesc.title.toLowerCase()}.
+This is a DEMO call to showcase your capabilities. Use the following demo data for this conversation: ${demoDataText}.
+${agentDesc.description}
+Be natural, professional, and demonstrate your key capabilities in this brief demo call.`;
+
+      console.log('📞 Calling API with:', {
+        phone_number: testPhoneNumber,
+        voice: settings.voice,
+        company_id: companyId,
+      });
+
+      const response = await fetch('/api/bland/send-call', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: testPhoneNumber,
+          task: task,
+          voice: settings.voice,
+          first_sentence: `Hi! This is ${agentName || agent.name}, calling for a quick demo. Do you have a moment?`,
+          max_duration: 3, // Short demo call
+          company_id: companyId,
+          metadata: {
+            type: 'demo_call',
+            agent_template_id: agent.id,
+            agent_name: agentName || agent.name,
+          },
+        }),
+      });
+
+      console.log('📡 Response status:', response.status);
+      const data = await response.json();
+      console.log('📡 Response data:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to initiate call');
+      }
+
+      console.log('✅ Call initiated! Call ID:', data.call_id);
+      setCallId(data.call_id);
+
+      // Start polling for real call status every 2 seconds
+      const interval = setInterval(() => {
+        pollCallStatus(data.call_id);
+      }, 2000);
+      setPollingInterval(interval);
+
+      // Do initial poll immediately
+      pollCallStatus(data.call_id);
+
+    } catch (error) {
+      console.error('❌ Test call error:', error);
+      console.error('Error details:', error instanceof Error ? error.message : error);
+      setCallStatus('ended');
+      alert(`❌ Failed to initiate test call: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => {
+        setShowTestModal(false);
+        setCallStatus('idle');
+      }, 2000);
+    } finally {
+      console.log('🏁 Setting testingAgent to false');
       setTestingAgent(false);
     }
   };
@@ -439,6 +608,13 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
   const gradientColor = getCategoryColor(agent.category);
   const agentInfo = getAgentDescription(agent);
 
+  // Format call duration as MM:SS
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   // Step indicator component
   const StepIndicator = ({ currentStep }: { currentStep: number }) => (
     <div className="flex items-center justify-center gap-3 mb-6">
@@ -472,8 +648,9 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
 
   if (step === 'preview') {
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col">
+      <>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -534,15 +711,27 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
 
                   {/* Test Agent Button */}
                   <button
-                    onClick={() => setShowTestModal(true)}
-                    disabled={!settings.voice}
-                    className={`mt-4 w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:scale-105'}`}
+                    onClick={() => {
+                      console.log('🎯 Test Agent button clicked!');
+                      console.log('settings.testPhoneNumber:', settings.testPhoneNumber);
+                      console.log('settings.voice:', settings.voice);
+                      setTestPhoneNumber(settings.testPhoneNumber);
+                      setShowTestModal(true);
+                      console.log('✅ Modal should open now');
+                    }}
+                    disabled={!settings.voice || !settings.testPhoneNumber}
+                    className={`mt-4 w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${(!settings.voice || !settings.testPhoneNumber) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:scale-105'}`}
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                     Test Agent
                   </button>
+                  {(!settings.voice || !settings.testPhoneNumber) && (
+                    <p className="text-xs text-red-400 mt-2 text-center">
+                      {!settings.voice && !settings.testPhoneNumber ? 'Voice and phone number required' : !settings.voice ? 'Voice required' : 'Phone number required'}
+                    </p>
+                  )}
                 </div>
 
                 {/* Right: About this agent */}
@@ -559,7 +748,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                     </p>
 
                     {/* Demo Data Preview */}
-                    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 mb-4">
                       <p className="text-xs font-bold text-cyan-400 uppercase mb-2">Demo Data Used</p>
                       <div className="space-y-1.5">
                         {Object.entries(agentInfo.demoData).map(([key, value]) => (
@@ -569,6 +758,24 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
                           </div>
                         ))}
                       </div>
+                    </div>
+
+                    {/* Phone Number Input */}
+                    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                      <p className="text-xs font-bold text-purple-400 uppercase mb-3">Enter your phone number to test it</p>
+                      <input
+                        type="tel"
+                        placeholder="+1 (555) 123-4567"
+                        value={settings.testPhoneNumber}
+                        onChange={(e) => setSettings({ ...settings, testPhoneNumber: e.target.value })}
+                        className={`w-full px-3 py-3 bg-slate-900/50 border-2 ${!settings.testPhoneNumber ? 'border-red-500/50' : 'border-purple-500/50'} rounded-lg text-white text-sm focus:ring-2 focus:ring-purple-500 outline-none placeholder-slate-500`}
+                      />
+                      <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                        <svg className="w-3 h-3 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <span className="text-red-400 font-bold">*</span> Required - You'll receive a demo call
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -654,12 +861,12 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
               </button>
               <button
                 onClick={() => {
-                  if (!settings.voice) return;
+                  if (!settings.voice || !settings.testPhoneNumber) return;
                   loadContactCount();
                   setStep('contacts');
                 }}
-                disabled={!settings.voice}
-                className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg font-black text-sm transition-all duration-300 relative overflow-hidden ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}`}
+                disabled={!settings.voice || !settings.testPhoneNumber}
+                className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg font-black text-sm transition-all duration-300 relative overflow-hidden ${(!settings.voice || !settings.testPhoneNumber) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}`}
               >
                 <span className="relative z-10">Deploy Agent</span>
               </button>
@@ -667,6 +874,455 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
           </div>
         </div>
       </div>
+
+      {/* Test Agent Modal Overlay */}
+      {showTestModal && (
+        callStatus !== 'idle' ? (
+          callStatus === 'ended' && callData ? (
+            // Call Results View
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4">
+              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border-2 border-emerald-500/50 overflow-hidden flex flex-col">
+                {/* Header */}
+                <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-emerald-600/20 to-cyan-600/20 flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-black text-white">Call Completed</h2>
+                        <p className="text-xs text-emerald-400">Duration: {formatDuration(callDuration)}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowTestModal(false);
+                        setCallStatus('idle');
+                        setCallData(null);
+                        setCallDuration(0);
+                        setCallAnalysis(null);
+                      }}
+                      className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Scrollable Results */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Left Column */}
+                    <div className="space-y-4">
+                      {/* Call Recording */}
+                      {(callData.recording_url || callData.recording || callData.concatenated_recording) && (
+                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                          <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414 1.414m2.828-9.9a9 9 0 012.828 2.828" />
+                            </svg>
+                            Call Recording
+                          </h3>
+                          <audio controls className="w-full" controlsList="nodownload">
+                            <source src={callData.recording_url || callData.recording || callData.concatenated_recording} type="audio/mpeg" />
+                            <source src={callData.recording_url || callData.recording || callData.concatenated_recording} type="audio/wav" />
+                            Your browser does not support the audio element.
+                          </audio>
+                        </div>
+                      )}
+
+                      {/* Transcript */}
+                      {callData.transcripts && (
+                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                          <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                            </svg>
+                            Transcript
+                          </h3>
+                          <div className="space-y-3 max-h-64 overflow-y-auto">
+                            {callData.transcripts.map((t: any, i: number) => {
+                              const isAgent = t.user === 'assistant' || t.user === 'agent';
+                              return (
+                                <div key={i} className={`flex gap-2 ${isAgent ? 'justify-start' : 'justify-end'}`}>
+                                  <div className={`max-w-[80%] rounded-lg p-3 ${isAgent ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-cyan-600/20 border border-cyan-500/30'}`}>
+                                    <p className="text-xs font-bold text-slate-300 mb-1">{isAgent ? agentName || agent.name : 'Customer'}</p>
+                                    <p className="text-sm text-white">{t.text}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-4">
+                      {/* Call Summary */}
+                      <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                        <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                          Call Summary
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Status:</span>
+                            <span className="text-emerald-400 font-bold capitalize">{callData.status}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Duration:</span>
+                            <span className="text-white font-bold">{formatDuration(callDuration)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Phone:</span>
+                            <span className="text-white font-mono text-xs">{testPhoneNumber}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Demo Data Used */}
+                      <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                        <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                          Demo Data Used
+                        </h3>
+                        <div className="space-y-2">
+                          {Object.entries(agentInfo.demoData).map(([key, value]) => (
+                            <div key={key} className="flex justify-between text-xs">
+                              <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                              <span className="text-white font-medium">{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* AI Analysis */}
+                      {analyzingCall ? (
+                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                          <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Analyzing Call with AI...
+                          </h3>
+                          <p className="text-sm text-slate-400">Processing transcript and validating data...</p>
+                        </div>
+                      ) : callAnalysis && (
+                        <>
+                          {/* AI Summary */}
+                          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                            <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                              <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              AI Summary
+                            </h3>
+                            <p className="text-sm text-slate-300 mb-3">{callAnalysis.summary}</p>
+                            {callAnalysis.successRating && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-400">Success Rating:</span>
+                                <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full"
+                                    style={{ width: `${callAnalysis.successRating * 10}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-sm font-bold text-emerald-400">{callAnalysis.successRating}/10</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Validated Data */}
+                          {callAnalysis.validatedData && Object.keys(callAnalysis.validatedData).length > 0 && (
+                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Validated Data
+                              </h3>
+                              <div className="space-y-2">
+                                {Object.entries(callAnalysis.validatedData).map(([key, value]) => (
+                                  <div key={key} className="flex justify-between text-xs">
+                                    <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                                    <span className="text-emerald-400 font-medium">{String(value)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Agent Notes */}
+                          {callAnalysis.notes && (
+                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Agent Notes
+                              </h3>
+                              <p className="text-sm text-slate-300">{callAnalysis.notes}</p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="p-6 border-t border-slate-700/50 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      setShowTestModal(false);
+                      setCallStatus('idle');
+                      setCallData(null);
+                      setCallDuration(0);
+                      setCallAnalysis(null);
+                    }}
+                    className="w-full px-5 py-3 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all"
+                  >
+                    Close Results
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Active call interface (dialing, ringing, connected)
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4">
+              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
+                <div className="grid md:grid-cols-2">
+                  {/* Left: Call Status */}
+                  <div className="p-8 text-center border-r border-slate-700/50">
+                    {/* Agent Avatar */}
+                    <div className="relative w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-purple-500/50 shadow-2xl">
+                      <Image
+                        src={avatarImage}
+                        alt={agentName || agent.name}
+                        fill
+                        className="object-cover"
+                      />
+                      {/* Pulsing ring animation when connected */}
+                      {callStatus === 'connected' && (
+                        <>
+                          <div className="absolute inset-0 rounded-full border-4 border-emerald-400 animate-ping opacity-75"></div>
+                          <div className="absolute inset-0 rounded-full border-4 border-emerald-400"></div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Agent Name */}
+                    <h2 className="text-2xl font-black text-white mb-2">{agentName || agent.name}</h2>
+
+                    {/* Call Status Text */}
+                    <div className="mb-6">
+                      {callStatus === 'dialing' && (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="flex gap-1">
+                            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                          </div>
+                          <p className="text-lg font-bold text-cyan-400">Dialing...</p>
+                        </div>
+                      )}
+                      {callStatus === 'ringing' && (
+                        <div className="flex items-center justify-center gap-2">
+                          <svg className="w-5 h-5 text-yellow-400 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          <p className="text-lg font-bold text-yellow-400">Ringing...</p>
+                        </div>
+                      )}
+                      {callStatus === 'connected' && (
+                        <div>
+                          <p className="text-lg font-bold text-emerald-400 mb-2">Connected</p>
+                          {/* Call Duration Timer */}
+                          <div className="text-5xl font-black text-white tabular-nums tracking-tight">
+                            {formatDuration(callDuration)}
+                          </div>
+                          <p className="text-sm text-slate-400 mt-2">Demo call in progress</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Phone Number */}
+                    <p className="text-sm text-slate-400 mb-6">{testPhoneNumber}</p>
+
+                    {/* Waveform Animation when connected */}
+                    {callStatus === 'connected' && (
+                      <div className="flex items-center justify-center gap-1 h-12">
+                        {[...Array(20)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-1 bg-gradient-to-t from-purple-500 to-pink-500 rounded-full"
+                            style={{
+                              height: `${Math.random() * 100}%`,
+                              animation: `wave 0.${5 + Math.random() * 10}s ease-in-out infinite`,
+                              animationDelay: `${i * 0.05}s`,
+                            }}
+                          ></div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: Demo Data */}
+                  <div className="p-6 bg-slate-800/30">
+                    <h3 className="text-sm font-black text-white uppercase mb-4 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      Demo Data Being Used
+                    </h3>
+                    <div className="space-y-3">
+                      {Object.entries(agentInfo.demoData).map(([key, value]) => (
+                        <div key={key} className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                          <p className="text-xs font-bold text-slate-400 uppercase mb-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                          <p className="text-sm text-white font-medium">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-6 bg-purple-900/20 border border-purple-500/30 rounded-lg p-3">
+                      <p className="text-xs text-purple-300">
+                        <svg className="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        The agent is using this demo data in the conversation to showcase its capabilities.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        ) : (
+          // Initial modal to enter phone number and start test
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[70] p-4">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
+              {/* Header */}
+              <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/20 to-pink-600/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </div>
+                    <h2 className="text-xl font-black text-white">Test Agent</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowTestModal(false)}
+                    className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3 mb-4">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-bold text-purple-300 mb-1">Test with Demo Data</p>
+                      <p className="text-xs text-purple-200/80">
+                        <span className="text-cyan-400 font-bold">{agentName || agent.name}</span> will call you using the demo data. You'll experience a real conversation.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Agent Info Summary */}
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 mb-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-purple-500/50">
+                      <Image
+                        src={avatarImage}
+                        alt={agentName || agent.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">{agentName || agent.name}</p>
+                      <p className="text-xs text-slate-400 capitalize">Voice: {settings.voice}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-purple-400 uppercase">Demo Data</p>
+                    {Object.entries(agentInfo.demoData).slice(0, 3).map(([key, value]) => (
+                      <div key={key} className="flex justify-between text-xs">
+                        <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                        <span className="text-white">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Phone Number Display */}
+                <div className="mb-6 bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                  <label className="block text-xs font-bold text-slate-300 uppercase mb-2">
+                    Calling <span className="text-emerald-400">*</span>
+                  </label>
+                  <p className="text-lg font-bold text-white">{testPhoneNumber}</p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowTestModal(false)}
+                    disabled={testingAgent}
+                    className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 font-bold text-sm transition-all disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('🚀 Start Test Call button clicked in modal!');
+                      handleTestAgent();
+                    }}
+                    disabled={!testPhoneNumber.trim() || testingAgent}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {testingAgent ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Calling...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        Start Test Call
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      )}
+    </>
     );
   }
 
@@ -1117,134 +1773,7 @@ export default function AgentConfigModal({ agent, companyId, company, onClose }:
     );
   }
 
-  // Test Agent Modal
-  if (showTestModal) {
-    return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[60] p-4">
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
-          {/* Header */}
-          <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/20 to-pink-600/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-black text-white">Test Agent</h2>
-              </div>
-              <button
-                onClick={() => setShowTestModal(false)}
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-6">
-            <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3 mb-4">
-              <div className="flex items-start gap-2">
-                <svg className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p className="text-sm font-bold text-purple-300 mb-1">Test with Demo Data</p>
-                  <p className="text-xs text-purple-200/80">
-                    <span className="text-cyan-400 font-bold">{agentName || agent.name}</span> will call you using the demo data below. You'll experience a real conversation to see how the agent works.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Agent Info Summary */}
-            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 mb-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-purple-500/50">
-                  <Image
-                    src={avatarImage}
-                    alt={agentName || agent.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">{agentName || agent.name}</p>
-                  <p className="text-xs text-slate-400 capitalize">Voice: {settings.voice}</p>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-purple-400 uppercase">Demo Data</p>
-                {Object.entries(agentInfo.demoData).slice(0, 3).map(([key, value]) => (
-                  <div key={key} className="flex justify-between text-xs">
-                    <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                    <span className="text-white">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Phone Number Input */}
-            <div className="mb-6">
-              <label className="block text-xs font-bold text-slate-300 uppercase mb-2">
-                Your Phone Number <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="tel"
-                placeholder="+1 (555) 123-4567"
-                value={testPhoneNumber}
-                onChange={(e) => setTestPhoneNumber(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-900/50 border-2 border-purple-500/50 rounded-lg text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none placeholder-slate-500"
-                required
-              />
-              <p className="text-xs text-purple-300 mt-2 flex items-center gap-1">
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                Required: You'll receive a demo call in a few seconds
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowTestModal(false)}
-                disabled={testingAgent}
-                className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 font-bold text-sm transition-all disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleTestAgent}
-                disabled={!testPhoneNumber.trim() || testingAgent}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {testingAgent ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Calling...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    Start Test Call
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Modal is now embedded in the preview step above
 
   return null;
 }
