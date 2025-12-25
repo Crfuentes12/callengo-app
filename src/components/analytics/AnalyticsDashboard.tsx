@@ -38,7 +38,7 @@ export default function AnalyticsDashboard({
   agentTemplates,
   agentRuns
 }: AnalyticsDashboardProps) {
-  // Calculate KPIs
+  // Calculate comprehensive KPIs
   const kpis = useMemo(() => {
     const totalCalls = callLogs.length;
     const completedCalls = callLogs.filter(log => log.completed).length;
@@ -50,6 +50,16 @@ export default function AnalyticsDashboard({
 
     const successRate = completedCalls > 0 ? (successfulCalls / completedCalls) * 100 : 0;
 
+    // Contact stats
+    const totalContacts = contacts.length;
+    const verifiedContacts = contacts.filter(c => c.status === 'Fully Verified').length;
+    const pendingContacts = contacts.filter(c => c.status === 'Pending').length;
+
+    // Agent runs stats
+    const activeCampaigns = agentRuns.filter(r => r.status === 'running' || r.status === 'active').length;
+    const completedCampaigns = agentRuns.filter(r => r.status === 'completed').length;
+    const totalCampaignCalls = agentRuns.reduce((sum, r) => sum + r.completed_calls, 0);
+
     return {
       totalCalls,
       completedCalls,
@@ -58,15 +68,21 @@ export default function AnalyticsDashboard({
       totalDuration,
       avgDuration,
       successRate,
+      totalContacts,
+      verifiedContacts,
+      pendingContacts,
+      activeCampaigns,
+      completedCampaigns,
+      totalCampaignCalls,
     };
-  }, [callLogs]);
+  }, [callLogs, contacts, agentRuns]);
 
-  // Calculate daily call trends (last 14 days)
+  // Calculate daily call trends (last 30 days)
   const dailyCallTrends = useMemo(() => {
-    const last14Days: DailyCallData[] = [];
+    const last30Days: DailyCallData[] = [];
     const today = new Date();
 
-    for (let i = 13; i >= 0; i--) {
+    for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
@@ -76,7 +92,7 @@ export default function AnalyticsDashboard({
         return logDate === dateStr;
       });
 
-      last14Days.push({
+      last30Days.push({
         date: dateStr,
         count: dayLogs.length,
         successful: dayLogs.filter(log => log.status === 'completed').length,
@@ -84,7 +100,7 @@ export default function AnalyticsDashboard({
       });
     }
 
-    return last14Days;
+    return last30Days;
   }, [callLogs]);
 
   // Calculate agent performance
@@ -135,231 +151,446 @@ export default function AnalyticsDashboard({
       .sort((a, b) => b.count - a.count);
   }, [contacts]);
 
-  // Top contacted companies
-  const topCompanies = useMemo(() => {
-    const companyMap = new Map<string, { name: string; calls: number; successRate: number }>();
+  // Hour of day analysis
+  const hourlyDistribution = useMemo(() => {
+    const hours = Array(24).fill(0);
 
-    contacts.forEach(contact => {
-      const name = contact.company_name;
-      if (!name) return;
-
-      if (!companyMap.has(name)) {
-        companyMap.set(name, { name, calls: 0, successRate: 0 });
-      }
-
-      const company = companyMap.get(name)!;
-      company.calls += contact.call_attempts;
-      if (contact.status === 'Fully Verified') company.successRate++;
+    callLogs.forEach(log => {
+      const hour = new Date(log.created_at).getHours();
+      hours[hour]++;
     });
 
-    // Calculate success rate percentage
-    companyMap.forEach(company => {
-      company.successRate = company.calls > 0 ? (company.successRate / company.calls) * 100 : 0;
-    });
-
-    return Array.from(companyMap.values())
-      .sort((a, b) => b.calls - a.calls)
-      .slice(0, 10);
-  }, [contacts]);
+    return hours.map((count, hour) => ({
+      hour,
+      count,
+      label: `${hour.toString().padStart(2, '0')}:00`
+    }));
+  }, [callLogs]);
 
   const maxDailyCalls = Math.max(...dailyCallTrends.map(d => d.count), 1);
+  const maxHourlyCalls = Math.max(...hourlyDistribution.map(h => h.count), 1);
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      'Fully Verified': 'from-emerald-400 to-teal-600',
+      'Pending': 'from-slate-400 to-slate-600',
+      'Calling': 'from-blue-400 to-cyan-600',
+      'No Answer': 'from-amber-400 to-orange-600',
+      'Voicemail Left': 'from-purple-400 to-violet-600',
+      'For Callback': 'from-violet-400 to-purple-600',
+    };
+    return colors[status] || 'from-slate-400 to-slate-600';
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 rounded-2xl p-6 text-white shadow-lg shadow-purple-500/10">
-        <div className="relative z-10">
-          <h2 className="text-2xl font-semibold mb-1">Analytics Dashboard</h2>
-          <p className="text-purple-100">
-            Comprehensive insights into your calling performance
-          </p>
-        </div>
-        <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute right-20 bottom-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2"></div>
-      </div>
+      {/* Hero Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-3xl p-10 shadow-2xl border-2 border-slate-800">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent"></div>
 
-      {/* Key Performance Indicators */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-slate-300/80 transition-all duration-200">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Total Calls</p>
-              <p className="text-3xl font-semibold text-slate-900 mt-1">{kpis.totalCalls}</p>
-              <p className="text-sm text-slate-400 mt-1">{kpis.completedCalls} completed</p>
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)'
+        }}></div>
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 flex items-center justify-center shadow-2xl">
+                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+              </div>
+              <div className="absolute -top-1 -left-1 w-5 h-5 border-t-2 border-l-2 border-cyan-400"></div>
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 border-b-2 border-r-2 border-cyan-400"></div>
             </div>
-            <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center">
-              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-              </svg>
+            <div>
+              <h2 className="text-5xl font-black text-white uppercase tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-purple-200">
+                Analytics Hub
+              </h2>
+              <p className="text-lg text-slate-400 font-medium">
+                Deep insights and performance metrics across all operations
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-slate-400 uppercase font-bold">Total Calls</span>
+              </div>
+              <span className="text-3xl text-white font-black">{kpis.totalCalls.toLocaleString()}</span>
+              <p className="text-xs text-slate-400 mt-1">{kpis.successfulCalls} successful</p>
+            </div>
+            <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-slate-400 uppercase font-bold">Success Rate</span>
+              </div>
+              <span className="text-3xl text-white font-black">{kpis.successRate.toFixed(0)}%</span>
+              <p className="text-xs text-slate-400 mt-1">{kpis.completedCalls} completed</p>
+            </div>
+            <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-slate-400 uppercase font-bold">Campaigns</span>
+              </div>
+              <span className="text-3xl text-white font-black">{kpis.activeCampaigns}</span>
+              <p className="text-xs text-slate-400 mt-1">{kpis.completedCampaigns} completed</p>
+            </div>
+            <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-slate-400 uppercase font-bold">Avg Duration</span>
+              </div>
+              <span className="text-3xl text-white font-black">{formatDuration(kpis.avgDuration)}</span>
+              <p className="text-xs text-slate-400 mt-1">per call</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-slate-300/80 transition-all duration-200">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
+        <div className="absolute left-0 bottom-0 w-64 h-64 bg-gradient-to-tr from-purple-500/10 to-pink-500/10 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl"></div>
+      </div>
+
+      {/* Key Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="group bg-white rounded-xl border-2 border-slate-200/80 p-6 hover:shadow-xl hover:border-indigo-300 transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">Success Rate</p>
-              <p className="text-3xl font-semibold text-slate-900 mt-1">{kpis.successRate.toFixed(1)}%</p>
-              <p className="text-sm text-emerald-600 mt-1">{kpis.successfulCalls} successful</p>
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">Total Contacts</p>
+              <p className="text-4xl font-black text-slate-900 mt-2">{kpis.totalContacts.toLocaleString()}</p>
+              <p className="text-sm text-emerald-600 mt-2 font-bold">{kpis.verifiedContacts} verified</p>
             </div>
-            <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:shadow-indigo-500/50 transition-all">
+              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 mt-4"></div>
+        </div>
+
+        <div className="group bg-white rounded-xl border-2 border-slate-200/80 p-6 hover:shadow-xl hover:border-emerald-300 transition-all duration-300 hover:scale-[1.02]">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">Successful Calls</p>
+              <p className="text-4xl font-black text-slate-900 mt-2">{kpis.successfulCalls.toLocaleString()}</p>
+              <p className="text-sm text-emerald-600 mt-2 font-bold">{kpis.successRate.toFixed(1)}% rate</p>
+            </div>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg group-hover:shadow-emerald-500/50 transition-all">
+              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
+          <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500 mt-4"></div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md hover:border-slate-300/80 transition-all duration-200">
+        <div className="group bg-white rounded-xl border-2 border-slate-200/80 p-6 hover:shadow-xl hover:border-red-300 transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">Avg Duration</p>
-              <p className="text-3xl font-semibold text-slate-900 mt-1">{formatDuration(kpis.avgDuration)}</p>
-              <p className="text-sm text-slate-400 mt-1">per call</p>
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">Failed Calls</p>
+              <p className="text-4xl font-black text-slate-900 mt-2">{kpis.failedCalls.toLocaleString()}</p>
+              <p className="text-sm text-slate-500 mt-2 font-medium">{kpis.totalCalls > 0 ? ((kpis.failedCalls / kpis.totalCalls) * 100).toFixed(1) : 0}% of total</p>
             </div>
-            <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center">
-              <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg group-hover:shadow-red-500/50 transition-all">
+              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-red-500 to-rose-500 rounded-full transition-all duration-500 mt-4"></div>
+        </div>
+
+        <div className="group bg-white rounded-xl border-2 border-slate-200/80 p-6 hover:shadow-xl hover:border-cyan-300 transition-all duration-300 hover:scale-[1.02]">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">Total Duration</p>
+              <p className="text-4xl font-black text-slate-900 mt-2">{formatDuration(kpis.totalDuration)}</p>
+              <p className="text-sm text-slate-500 mt-2 font-medium">cumulative time</p>
+            </div>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg group-hover:shadow-cyan-500/50 transition-all">
+              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
+          <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500 mt-4"></div>
         </div>
       </div>
 
-      {/* Call Trends Chart */}
-      <div className="bg-white rounded-xl border border-slate-200/80 p-6">
+      {/* Call Trends - Last 30 Days */}
+      <div className="bg-white rounded-2xl border-2 border-slate-200/80 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-base font-semibold text-slate-900">Call Trends</h3>
-            <p className="text-sm text-slate-500 mt-0.5">Last 14 days</p>
+            <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+              <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+              </svg>
+              Call Volume Trends
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">Last 30 days performance</p>
           </div>
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-4 text-xs font-bold">
+            <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
               <span className="text-slate-600">Successful</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500"></div>
               <span className="text-slate-600">Failed</span>
             </div>
           </div>
         </div>
-        <div className="space-y-3">
-          {dailyCallTrends.map((day, idx) => (
-            <div key={idx} className="flex items-center gap-3">
-              <div className="w-16 text-xs text-slate-500 font-medium">
-                {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </div>
-              <div className="flex-1 flex gap-1 h-8 items-center">
-                <div className="relative flex-1 bg-slate-100 rounded-lg overflow-hidden h-full">
-                  <div
-                    className="absolute left-0 top-0 h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-300"
-                    style={{ width: `${(day.successful / maxDailyCalls) * 100}%` }}
-                  ></div>
-                  <div
-                    className="absolute h-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-300"
-                    style={{
-                      left: `${(day.successful / maxDailyCalls) * 100}%`,
-                      width: `${(day.failed / maxDailyCalls) * 100}%`
-                    }}
-                  ></div>
+        <div className="space-y-2">
+          {dailyCallTrends.map((day, idx) => {
+            const barHeight = day.count > 0 ? (day.count / maxDailyCalls) * 100 : 1;
+            return (
+              <div key={idx} className="flex items-center gap-3 group">
+                <div className="w-20 text-xs text-slate-500 font-bold">
+                  {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </div>
-                <div className="w-12 text-sm font-semibold text-slate-700 text-right">
-                  {day.count}
+                <div className="flex-1 flex gap-1 h-10 items-end">
+                  <div className="relative flex-1 bg-slate-100 rounded-lg overflow-hidden h-full">
+                    {day.count > 0 && (
+                      <>
+                        <div
+                          className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-emerald-500 to-emerald-400 transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500"
+                          style={{ height: `${(day.successful / maxDailyCalls) * 100}%` }}
+                        ></div>
+                        <div
+                          className="absolute w-full bg-gradient-to-t from-red-500 to-red-400 transition-all duration-500 group-hover:from-red-600 group-hover:to-red-500"
+                          style={{
+                            bottom: `${(day.successful / maxDailyCalls) * 100}%`,
+                            height: `${(day.failed / maxDailyCalls) * 100}%`
+                          }}
+                        ></div>
+                      </>
+                    )}
+                  </div>
+                  <div className="w-14 text-sm font-black text-slate-900 text-right">
+                    {day.count}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Two Column Layout for Agent Performance and Contact Status */}
+      {/* Agent Performance & Contact Status */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Agent Performance */}
-        <div className="bg-white rounded-xl border border-slate-200/80 p-6">
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Agent Performance</h3>
-          {agentPerformance.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="bg-white rounded-2xl border-2 border-slate-200/80 overflow-hidden shadow-sm">
+          <div className="p-6 border-b-2 border-slate-100 bg-gradient-to-r from-cyan-50 to-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Agent Performance</h3>
+                <p className="text-sm text-slate-500">Top performing AI agents</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6">
+            {agentPerformance.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                  </svg>
+                </div>
+                <p className="text-slate-900 font-bold">No agent data yet</p>
+                <p className="text-sm text-slate-500 mt-1">Start a campaign to see performance</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {agentPerformance.map(agent => {
+                  const successRate = agent.totalCalls > 0 ? (agent.successfulCalls / agent.totalCalls) * 100 : 0;
+                  return (
+                    <div key={agent.id} className="group p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border-2 border-slate-200 hover:border-cyan-300 hover:shadow-lg transition-all duration-300">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-bold text-slate-900 group-hover:text-cyan-700 transition-colors">{agent.name}</h4>
+                          <p className="text-xs text-slate-500 mt-1">{agent.totalCalls} calls made</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-emerald-600">{successRate.toFixed(0)}%</p>
+                          <p className="text-xs text-slate-500 font-semibold">success</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white/80 rounded-lg p-3 border border-slate-200">
+                          <p className="text-xs text-slate-500 font-semibold">Avg Duration</p>
+                          <p className="text-sm font-black text-slate-900 mt-1">{formatDuration(agent.avgDuration)}</p>
+                        </div>
+                        <div className="bg-white/80 rounded-lg p-3 border border-slate-200">
+                          <p className="text-xs text-slate-500 font-semibold">Successful</p>
+                          <p className="text-sm font-black text-emerald-600 mt-1">{agent.successfulCalls}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Contact Status Distribution */}
+        <div className="bg-white rounded-2xl border-2 border-slate-200/80 overflow-hidden shadow-sm">
+          <div className="p-6 border-b-2 border-slate-100 bg-gradient-to-r from-purple-50 to-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Contact Status</h3>
+                <p className="text-sm text-slate-500">Distribution by outcome</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6">
+            {contactStatusBreakdown.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                  </svg>
+                </div>
+                <p className="text-slate-900 font-bold">No contact data yet</p>
+                <p className="text-sm text-slate-500 mt-1">Import contacts to begin</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {contactStatusBreakdown.map((item, idx) => {
+                  const maxCount = contactStatusBreakdown[0]?.count || 1;
+                  const percentage = (item.count / kpis.totalContacts) * 100;
+
+                  return (
+                    <div key={idx} className="group">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-slate-700">{item.status}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-slate-900">{item.count}</span>
+                          <span className="text-xs text-slate-500 font-semibold">({percentage.toFixed(1)}%)</span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                        <div
+                          className={`h-full bg-gradient-to-r ${getStatusColor(item.status)} transition-all duration-700 group-hover:opacity-90`}
+                          style={{ width: `${(item.count / maxCount) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Hourly Distribution */}
+      <div className="bg-white rounded-2xl border-2 border-slate-200/80 p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-slate-900">Call Activity by Hour</h3>
+            <p className="text-sm text-slate-500">24-hour distribution pattern</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-12 gap-2">
+          {hourlyDistribution.map((hour) => {
+            const height = hour.count > 0 ? (hour.count / maxHourlyCalls) * 100 : 2;
+            return (
+              <div key={hour.hour} className="flex flex-col items-center group">
+                <div className="w-full h-32 flex items-end">
+                  <div
+                    className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t-lg transition-all duration-500 group-hover:from-indigo-600 group-hover:to-indigo-500"
+                    style={{ height: `${height}%` }}
+                    title={`${hour.label}: ${hour.count} calls`}
+                  ></div>
+                </div>
+                <div className="text-xs text-slate-500 font-semibold mt-2">{hour.hour}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Active Campaigns */}
+      {agentRuns.length > 0 && (
+        <div className="bg-white rounded-2xl border-2 border-slate-200/80 overflow-hidden shadow-sm">
+          <div className="p-6 border-b-2 border-slate-100 bg-gradient-to-r from-emerald-50 to-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                 </svg>
               </div>
-              <p className="text-sm text-slate-500">No agent data available</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {agentPerformance.map(agent => {
-                const successRate = agent.totalCalls > 0 ? (agent.successfulCalls / agent.totalCalls) * 100 : 0;
-                return (
-                  <div key={agent.id} className="border border-slate-100 rounded-lg p-4 hover:border-slate-200 transition-colors">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h4 className="font-medium text-slate-900">{agent.name}</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">{agent.totalCalls} total calls</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-emerald-600">{successRate.toFixed(0)}%</p>
-                        <p className="text-xs text-slate-500">success</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-center">
-                      <div className="bg-slate-50 rounded-lg p-2">
-                        <p className="text-xs text-slate-500">Avg Duration</p>
-                        <p className="text-sm font-semibold text-slate-900 mt-0.5">{formatDuration(agent.avgDuration)}</p>
-                      </div>
-                      <div className="bg-slate-50 rounded-lg p-2">
-                        <p className="text-xs text-slate-500">Success</p>
-                        <p className="text-sm font-semibold text-slate-900 mt-0.5">{agent.successfulCalls}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Contact Status Breakdown */}
-        <div className="bg-white rounded-xl border border-slate-200/80 p-6">
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Contact Status Breakdown</h3>
-          {contactStatusBreakdown.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                </svg>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Campaign Performance</h3>
+                <p className="text-sm text-slate-500">{kpis.activeCampaigns} active, {kpis.completedCampaigns} completed</p>
               </div>
-              <p className="text-sm text-slate-500">No contact data available</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {contactStatusBreakdown.map((item, idx) => {
-                const maxCount = contactStatusBreakdown[0]?.count || 1;
-                const percentage = (item.count / maxCount) * 100;
-
-                const statusColors: Record<string, { bg: string; text: string; bar: string }> = {
-                  'Fully Verified': { bg: 'bg-emerald-50', text: 'text-emerald-700', bar: 'bg-emerald-500' },
-                  'Pending': { bg: 'bg-slate-50', text: 'text-slate-700', bar: 'bg-slate-400' },
-                  'Calling': { bg: 'bg-blue-50', text: 'text-blue-700', bar: 'bg-blue-500' },
-                  'No Answer': { bg: 'bg-amber-50', text: 'text-amber-700', bar: 'bg-amber-500' },
-                  'Voicemail Left': { bg: 'bg-purple-50', text: 'text-purple-700', bar: 'bg-purple-500' },
-                  'For Callback': { bg: 'bg-violet-50', text: 'text-violet-700', bar: 'bg-violet-500' },
-                };
-
-                const colors = statusColors[item.status] || { bg: 'bg-slate-50', text: 'text-slate-700', bar: 'bg-slate-400' };
+          </div>
+          <div className="p-6">
+            <div className="grid gap-4">
+              {agentRuns.slice(0, 5).map((run) => {
+                const progress = run.total_contacts > 0 ? (run.completed_calls / run.total_contacts) * 100 : 0;
+                const successRate = run.completed_calls > 0 ? (run.successful_calls / run.completed_calls) * 100 : 0;
 
                 return (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-sm font-medium text-slate-700">{item.status}</span>
-                        <span className="text-sm font-semibold text-slate-900">{item.count}</span>
+                  <div key={run.id} className="p-5 bg-gradient-to-br from-slate-50 to-white rounded-xl border-2 border-slate-200 hover:border-emerald-300 hover:shadow-lg transition-all duration-300">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-black text-slate-900 text-lg">{run.name}</h4>
+                      <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                        run.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                        run.status === 'running' || run.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {run.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3 mb-3">
+                      <div className="text-center p-2 bg-white/80 rounded-lg border border-slate-200">
+                        <p className="text-xs text-slate-500 font-semibold">Total</p>
+                        <p className="text-xl font-black text-slate-900">{run.total_contacts}</p>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                      <div className="text-center p-2 bg-white/80 rounded-lg border border-slate-200">
+                        <p className="text-xs text-slate-500 font-semibold">Completed</p>
+                        <p className="text-xl font-black text-blue-600">{run.completed_calls}</p>
+                      </div>
+                      <div className="text-center p-2 bg-white/80 rounded-lg border border-slate-200">
+                        <p className="text-xs text-slate-500 font-semibold">Successful</p>
+                        <p className="text-xl font-black text-emerald-600">{run.successful_calls}</p>
+                      </div>
+                      <div className="text-center p-2 bg-white/80 rounded-lg border border-slate-200">
+                        <p className="text-xs text-slate-500 font-semibold">Success Rate</p>
+                        <p className="text-xl font-black text-purple-600">{successRate.toFixed(0)}%</p>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-600">Progress</span>
+                        <span className="text-xs font-black text-slate-900">{progress.toFixed(1)}%</span>
+                      </div>
+                      <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
                         <div
-                          className={`h-full ${colors.bar} transition-all duration-500 rounded-full`}
-                          style={{ width: `${percentage}%` }}
+                          className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 rounded-full transition-all duration-500"
+                          style={{ width: `${progress}%` }}
                         ></div>
                       </div>
                     </div>
@@ -367,78 +598,9 @@ export default function AnalyticsDashboard({
                 );
               })}
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Top Companies */}
-      <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
-        <div className="p-5 border-b border-slate-100">
-          <h3 className="text-base font-semibold text-slate-900">Top Companies by Call Volume</h3>
-          <p className="text-sm text-slate-500 mt-0.5">Most contacted organizations</p>
-        </div>
-        {topCompanies.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-              </svg>
-            </div>
-            <p className="text-sm text-slate-500">No company data available</p>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50/50">
-                  <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Rank
-                  </th>
-                  <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Company
-                  </th>
-                  <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Total Calls
-                  </th>
-                  <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Success Rate
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {topCompanies.map((company, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3.5 px-5">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm">
-                        {idx + 1}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <p className="text-sm font-medium text-slate-900">{company.name}</p>
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <p className="text-sm text-slate-700">{company.calls}</p>
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 max-w-[120px] bg-slate-100 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-300"
-                            style={{ width: `${Math.min(company.successRate, 100)}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 w-12">
-                          {company.successRate.toFixed(0)}%
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
