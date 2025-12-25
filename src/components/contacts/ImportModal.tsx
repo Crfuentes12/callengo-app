@@ -234,7 +234,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200/50 overflow-hidden">
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center justify-between">
