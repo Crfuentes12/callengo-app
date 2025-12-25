@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import Image from 'next/image';
 import { Company, AgentTemplate, AgentRun, ContactList } from '@/types/supabase';
 import { Contact } from '@/types/call-agent';
-import { formatCurrency, formatDuration } from '@/lib/call-agent-utils';
+import { formatDuration } from '@/lib/call-agent-utils';
 
 interface CallLog {
   id: string;
@@ -99,7 +99,6 @@ export default function DashboardOverview({
     const callback = typedContacts.filter(c => c.status === 'For Callback').length;
 
     const totalCallDuration = typedContacts.reduce((sum, c) => sum + (c.call_duration || 0), 0);
-    const totalCost = recentCalls.reduce((sum, c) => sum + (c.price || 0), 0);
 
     const calledContacts = typedContacts.filter(c => c.call_attempts > 0).length;
     const successRate = calledContacts > 0 ? (verified / calledContacts) * 100 : 0;
@@ -119,7 +118,6 @@ export default function DashboardOverview({
       voicemail,
       callback,
       totalCallDuration,
-      totalCost,
       successRate,
       avgCallDuration,
       activeCampaigns,
@@ -237,7 +235,7 @@ export default function DashboardOverview({
       </div>
 
       {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Total Contacts */}
         <div className="group bg-white rounded-xl border-2 border-slate-200/80 p-6 hover:shadow-xl hover:border-indigo-300 transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-start justify-between">
@@ -291,23 +289,6 @@ export default function DashboardOverview({
             </div>
           </div>
           <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500 mt-4"></div>
-        </div>
-
-        {/* Total Cost */}
-        <div className="group bg-white rounded-xl border-2 border-slate-200/80 p-6 hover:shadow-xl hover:border-purple-300 transition-all duration-300 hover:scale-[1.02]">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">Total Spent</p>
-              <p className="text-4xl font-black text-slate-900 mt-2">{formatCurrency(stats.totalCost)}</p>
-              <p className="text-sm text-slate-400 mt-2">on recent calls</p>
-            </div>
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg group-hover:shadow-purple-500/50 transition-all">
-              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-purple-500 to-violet-500 rounded-full transition-all duration-500 mt-4"></div>
         </div>
       </div>
 
@@ -404,7 +385,7 @@ export default function DashboardOverview({
                             {run.status.toUpperCase()}
                           </span>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                        <div className="grid grid-cols-3 gap-4 mt-3">
                           <div>
                             <p className="text-xs text-slate-500 font-semibold mb-1">Total Contacts</p>
                             <p className="text-2xl font-black text-slate-900">{run.total_contacts}</p>
@@ -416,10 +397,6 @@ export default function DashboardOverview({
                           <div>
                             <p className="text-xs text-slate-500 font-semibold mb-1">Successful</p>
                             <p className="text-2xl font-black text-emerald-600">{run.successful_calls}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500 font-semibold mb-1">Total Cost</p>
-                            <p className="text-2xl font-black text-purple-600">{formatCurrency(run.total_cost)}</p>
                           </div>
                         </div>
                       </div>
@@ -542,9 +519,6 @@ export default function DashboardOverview({
                     Duration
                   </th>
                   <th className="text-left py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-wider">
-                    Cost
-                  </th>
-                  <th className="text-left py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-wider">
                     Answered By
                   </th>
                   <th className="text-left py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-wider">
@@ -568,11 +542,6 @@ export default function DashboardOverview({
                     <td className="py-4 px-6">
                       <p className="text-sm font-semibold text-slate-700">
                         {formatDuration(call.call_length)}
-                      </p>
-                    </td>
-                    <td className="py-4 px-6">
-                      <p className="text-sm font-bold text-purple-600">
-                        {formatCurrency(call.price)}
                       </p>
                     </td>
                     <td className="py-4 px-6">

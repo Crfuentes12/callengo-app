@@ -76,7 +76,7 @@ export interface CallAnalysis {
 }
 
 export interface CallMetadata {
-  price: number | null;
+  price: number | null; // For internal use only, never show to users in frontend
   from: string | null;
   to: string | null;
   startedAt: string | null;

@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { Database } from '@/types/supabase';
-import { formatCurrency, formatDuration } from '@/lib/call-agent-utils';
+import { formatDuration } from '@/lib/call-agent-utils';
 
 type CallLog = Database['public']['Tables']['call_logs']['Row'];
 type Contact = Database['public']['Tables']['contacts']['Row'];
@@ -29,7 +29,6 @@ interface AgentPerformance {
   name: string;
   totalCalls: number;
   successfulCalls: number;
-  totalCost: number;
   avgDuration: number;
 }
 
@@ -49,9 +48,6 @@ export default function AnalyticsDashboard({
     const totalDuration = callLogs.reduce((sum, log) => sum + (log.call_length || 0), 0);
     const avgDuration = totalCalls > 0 ? totalDuration / totalCalls : 0;
 
-    const totalCost = callLogs.reduce((sum, log) => sum + (log.price || 0), 0);
-    const avgCost = totalCalls > 0 ? totalCost / totalCalls : 0;
-
     const successRate = completedCalls > 0 ? (successfulCalls / completedCalls) * 100 : 0;
 
     return {
@@ -61,8 +57,6 @@ export default function AnalyticsDashboard({
       failedCalls,
       totalDuration,
       avgDuration,
-      totalCost,
-      avgCost,
       successRate,
     };
   }, [callLogs]);
@@ -109,7 +103,6 @@ export default function AnalyticsDashboard({
           name: agent.name,
           totalCalls: 0,
           successfulCalls: 0,
-          totalCost: 0,
           avgDuration: 0,
         });
       }
@@ -117,7 +110,6 @@ export default function AnalyticsDashboard({
       const perf = agentMap.get(agent.id)!;
       perf.totalCalls++;
       if (log.status === 'completed') perf.successfulCalls++;
-      perf.totalCost += log.price || 0;
       perf.avgDuration += log.call_length || 0;
     });
 
