@@ -257,7 +257,7 @@ export type Database = {
           status: string | null
           completed: boolean
           call_length: number | null
-          price: number | null
+          price: number | null // For internal use only, never show to users in frontend
           answered_by: string | null
           recording_url: string | null
           transcript: string | null
@@ -276,7 +276,7 @@ export type Database = {
           status?: string | null
           completed?: boolean
           call_length?: number | null
-          price?: number | null
+          price?: number | null // For internal use only, never show to users in frontend
           answered_by?: string | null
           recording_url?: string | null
           transcript?: string | null
@@ -295,7 +295,7 @@ export type Database = {
           status?: string | null
           completed?: boolean
           call_length?: number | null
-          price?: number | null
+          price?: number | null // For internal use only, never show to users in frontend
           answered_by?: string | null
           recording_url?: string | null
           transcript?: string | null
@@ -434,7 +434,7 @@ export type Database = {
           completed_calls: number
           successful_calls: number
           failed_calls: number
-          total_cost: number
+          total_cost: number // For internal use only, never show to users in frontend
           settings: Json | null
           started_at: string | null
           completed_at: string | null
@@ -451,7 +451,7 @@ export type Database = {
           completed_calls?: number
           successful_calls?: number
           failed_calls?: number
-          total_cost?: number
+          total_cost?: number // For internal use only, never show to users in frontend
           settings?: Json | null
           started_at?: string | null
           completed_at?: string | null
@@ -468,7 +468,7 @@ export type Database = {
           completed_calls?: number
           successful_calls?: number
           failed_calls?: number
-          total_cost?: number
+          total_cost?: number // For internal use only, never show to users in frontend
           settings?: Json | null
           started_at?: string | null
           completed_at?: string | null

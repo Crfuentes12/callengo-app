@@ -50,6 +50,56 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
     .limit(10);
 
+  // Fetch agent templates
+  const { data: agentTemplates } = await supabase
+    .from('agent_templates')
+    .select('*')
+    .eq('is_active', true);
+
+  // Fetch company agents
+  const { data: companyAgents } = await supabase
+    .from('company_agents')
+    .select(`
+      *,
+      agent_templates (*)
+    `)
+    .eq('company_id', userData.company_id)
+    .eq('is_active', true);
+
+  // Fetch agent runs (campaigns)
+  const { data: agentRuns } = await supabase
+    .from('agent_runs')
+    .select('*')
+    .eq('company_id', userData.company_id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  // Fetch contact lists
+  const { data: contactLists } = await supabase
+    .from('contact_lists')
+    .select('*')
+    .eq('company_id', userData.company_id);
+
+  // Fetch usage tracking
+  const { data: usageTracking } = await supabase
+    .from('usage_tracking')
+    .select('*')
+    .eq('company_id', userData.company_id)
+    .order('period_start', { ascending: false })
+    .limit(1)
+    .single();
+
+  // Fetch company subscription
+  const { data: subscription } = await supabase
+    .from('company_subscriptions')
+    .select(`
+      *,
+      subscription_plans (*)
+    `)
+    .eq('company_id', userData.company_id)
+    .eq('status', 'active')
+    .single();
+
   return (
     <Layout
       user={{ 
@@ -61,10 +111,16 @@ export default async function DashboardPage() {
       headerTitle="Dashboard"
       headerSubtitle="Overview of your calling operations"
     >
-      <DashboardOverview 
+      <DashboardOverview
         contacts={contacts || []}
         recentCalls={recentCalls || []}
         company={company}
+        agentTemplates={agentTemplates || []}
+        companyAgents={companyAgents || []}
+        agentRuns={agentRuns || []}
+        contactLists={contactLists || []}
+        usageTracking={usageTracking}
+        subscription={subscription}
       />
     </Layout>
   );

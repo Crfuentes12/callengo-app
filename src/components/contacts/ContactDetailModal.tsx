@@ -2,12 +2,11 @@
 'use client';
 
 import { Contact, CallAnalysis, CallMetadata } from '@/types/call-agent';
-import { 
-  formatPhoneForDisplay, 
-  formatDuration, 
-  formatCurrency, 
-  getSentimentColor, 
-  getInterestLevelColor 
+import {
+  formatPhoneForDisplay,
+  formatDuration,
+  getSentimentColor,
+  getInterestLevelColor
 } from '@/lib/call-agent-utils';
 
 interface ContactDetailModalProps {
@@ -74,7 +73,7 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
             {/* Call Stats */}
             <div>
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Call Statistics</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-50/80 rounded-xl p-4 text-center border border-slate-100">
                   <p className="text-2xl font-bold text-slate-900">{contact.call_attempts}</p>
                   <p className="text-xs text-slate-500 mt-1 font-medium">Attempts</p>
@@ -84,12 +83,6 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
                     {formatDuration(contact.call_duration)}
                   </p>
                   <p className="text-xs text-slate-500 mt-1 font-medium">Duration</p>
-                </div>
-                <div className="bg-slate-50/80 rounded-xl p-4 text-center border border-slate-100">
-                  <p className="text-2xl font-bold text-slate-900">
-                    {formatCurrency(metadata?.price)}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1 font-medium">Cost</p>
                 </div>
               </div>
             </div>
