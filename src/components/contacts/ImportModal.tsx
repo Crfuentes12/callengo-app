@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { parseCSV, detectColumnMapping } from '@/lib/call-agent-utils';
+import { parseFile } from '@/lib/import-parsers';
 import { ColumnMapping } from '@/types/call-agent';
 import { createClient } from '@/lib/supabase/client';
 import { ContactList } from '@/types/supabase';
@@ -11,11 +12,33 @@ interface ImportModalProps {
   companyId: string;
   onClose: () => void;
   onComplete: () => void;
+  importType?: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null;
+  onShowToast?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 type ImportStep = 'upload' | 'list-select' | 'mapping' | 'preview' | 'complete';
 
-export default function ImportModal({ companyId, onClose, onComplete }: ImportModalProps) {
+const getImportTypeInfo = (type?: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null) => {
+  switch (type) {
+    case 'csv':
+      return { title: 'Import CSV', accept: '.csv', icon: '📊' };
+    case 'xlsx':
+      return { title: 'Import XLSX', accept: '.xlsx,.xls', icon: '📈' };
+    case 'google':
+      return { title: 'Import from Google Sheets', accept: '', icon: '📑' };
+    case 'txt':
+      return { title: 'Import TXT', accept: '.txt', icon: '📄' };
+    case 'xml':
+      return { title: 'Import XML', accept: '.xml', icon: '📋' };
+    case 'json':
+      return { title: 'Import JSON', accept: '.json', icon: '📦' };
+    default:
+      return { title: 'Import Contacts', accept: '.csv', icon: '📊' };
+  }
+};
+
+export default function ImportModal({ companyId, onClose, onComplete, importType, onShowToast }: ImportModalProps) {
+  const typeInfo = getImportTypeInfo(importType);
   const supabase = createClient();
   const [step, setStep] = useState<ImportStep>('upload');
   const [file, setFile] = useState<File | null>(null);
@@ -23,12 +46,14 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
   const [rows, setRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({
     companyName: null,
+    firstName: null,
+    lastName: null,
+    contactName: null,
     address: null,
     city: null,
     state: null,
     zipCode: null,
     phoneNumber: null,
-    contactName: null,
     email: null,
   });
   const [loading, setLoading] = useState(false);
@@ -38,6 +63,7 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
   const [newListName, setNewListName] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
   const [showCreateList, setShowCreateList] = useState(false);
+  const [googleSheetUrl, setGoogleSheetUrl] = useState('');
 
   // Load contact lists on mount
   useEffect(() => {
@@ -82,7 +108,55 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
         setShowCreateList(false);
       }
     } catch (error) {
-      alert('Failed to create list');
+      onShowToast?.('Failed to create list', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSheetImport = async () => {
+    if (!googleSheetUrl.trim()) {
+      onShowToast?.('Please enter a Google Sheets URL', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Extract sheet ID from URL
+      const urlPattern = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/;
+      const match = googleSheetUrl.match(urlPattern);
+
+      if (!match) {
+        throw new Error('Invalid Google Sheets URL. Please check the URL and try again.');
+      }
+
+      const sheetId = match[1];
+
+      // Use Google Sheets API v4 public endpoint to fetch CSV export
+      // Note: Sheet must be publicly accessible (view permissions for "Anyone with the link")
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+
+      const response = await fetch(csvUrl);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch Google Sheet. Make sure the sheet is publicly accessible (Anyone with link can view).');
+      }
+
+      const csvText = await response.text();
+
+      // Parse CSV
+      const parsed = parseCSV(csvText);
+
+      setHeaders(parsed.headers);
+      setRows(parsed.rows);
+
+      const suggestedMapping = detectColumnMapping(parsed.headers);
+      setMapping(suggestedMapping);
+
+      setStep('list-select');
+    } catch (error) {
+      console.error('Google Sheets import error:', error);
+      onShowToast?.(`Failed to import from Google Sheets: ${(error as Error).message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -91,8 +165,27 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
   const handleFileUpload = async (uploadedFile: File) => {
     setLoading(true);
     try {
-      const text = await uploadedFile.text();
-      const { headers: parsedHeaders, rows: parsedRows } = parseCSV(text);
+      let parsedHeaders: string[];
+      let parsedRows: string[][];
+
+      // Determine file type from importType or file extension
+      const fileType = importType || (uploadedFile.name.endsWith('.xlsx') || uploadedFile.name.endsWith('.xls') ? 'xlsx' :
+        uploadedFile.name.endsWith('.xml') ? 'xml' :
+        uploadedFile.name.endsWith('.json') ? 'json' :
+        uploadedFile.name.endsWith('.txt') ? 'txt' : 'csv');
+
+      if (fileType === 'csv' || fileType === 'txt' || fileType === 'xlsx' || fileType === 'xml' || fileType === 'json') {
+        // Use new universal parser
+        const parsed = await parseFile(uploadedFile, fileType);
+        parsedHeaders = parsed.headers;
+        parsedRows = parsed.rows;
+      } else {
+        // Fallback to old CSV parser
+        const text = await uploadedFile.text();
+        const parsed = parseCSV(text);
+        parsedHeaders = parsed.headers;
+        parsedRows = parsed.rows;
+      }
 
       setFile(uploadedFile);
       setHeaders(parsedHeaders);
@@ -103,7 +196,8 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
 
       setStep('list-select');
     } catch (error) {
-      alert('Failed to parse CSV file');
+      console.error('File parsing error:', error);
+      onShowToast?.(`Failed to parse file: ${(error as Error).message || 'Unknown error'}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -133,18 +227,18 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
       setResult({ imported: data.imported, skipped: data.skipped });
       setStep('complete');
     } catch (error) {
-      alert('Failed to import contacts');
+      onShowToast?.('Failed to import contacts', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200/50">
+    <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200/50 overflow-hidden">
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">Import Contacts</h2>
+            <h2 className="text-xl font-bold text-slate-900">{typeInfo.icon} {typeInfo.title}</h2>
             <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -177,46 +271,103 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 rounded-b-2xl">
           {step === 'upload' && (
             <div>
-              <div
-                className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center hover:border-indigo-400 hover:bg-indigo-50/50 cursor-pointer transition-all group"
-                onClick={() => document.getElementById('csv-upload')?.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const droppedFile = e.dataTransfer.files[0];
-                  if (droppedFile) handleFileUpload(droppedFile);
-                }}
-              >
-                <input
-                  id="csv-upload"
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={(e) => {
-                    const selectedFile = e.target.files?.[0];
-                    if (selectedFile) handleFileUpload(selectedFile);
-                  }}
-                />
-                {loading ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-slate-600 font-medium">Processing...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
-                      <svg className="w-7 h-7 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              {importType === 'google' ? (
+                // Google Sheets Import Interface
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
+                      <div className="text-sm text-blue-800">
+                        <p className="font-semibold mb-1">Important:</p>
+                        <p>Make sure your Google Sheet is <strong>publicly accessible</strong> (set sharing to "Anyone with the link can view")</p>
+                      </div>
                     </div>
-                    <p className="text-slate-700 font-semibold">Drag and drop a CSV file here</p>
-                    <p className="text-sm text-slate-500 mt-1">or click to browse</p>
-                  </>
-                )}
-              </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Google Sheets URL
+                    </label>
+                    <input
+                      type="text"
+                      value={googleSheetUrl}
+                      onChange={(e) => setGoogleSheetUrl(e.target.value)}
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-slate-500 mt-2">Paste the full URL of your Google Sheet</p>
+                  </div>
+
+                  <button
+                    onClick={handleGoogleSheetImport}
+                    disabled={!googleSheetUrl.trim() || loading}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Importing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Import from Google Sheets
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                // File Upload Interface
+                <div
+                  className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center hover:border-indigo-400 hover:bg-indigo-50/50 cursor-pointer transition-all group"
+                  onClick={() => document.getElementById('csv-upload')?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const droppedFile = e.dataTransfer.files[0];
+                    if (droppedFile) handleFileUpload(droppedFile);
+                  }}
+                >
+                  <input
+                    id="csv-upload"
+                    type="file"
+                    accept={typeInfo.accept}
+                    className="hidden"
+                    onChange={(e) => {
+                      const selectedFile = e.target.files?.[0];
+                      if (selectedFile) handleFileUpload(selectedFile);
+                    }}
+                  />
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-slate-600 font-medium">Processing...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
+                        <svg className="w-7 h-7 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                      </div>
+                      <p className="text-slate-700 font-semibold">Drag and drop your {typeInfo.title.replace('Import ', '')} file here</p>
+                      <p className="text-sm text-slate-500 mt-1">or click to browse</p>
+                      <p className="text-xs text-slate-400 mt-3">Supported: {typeInfo.accept}</p>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -371,14 +522,16 @@ export default function ImportModal({ companyId, onClose, onComplete }: ImportMo
               </p>
               <div className="space-y-3">
                 {Object.entries({
+                  firstName: 'First Name',
+                  lastName: 'Last Name',
+                  contactName: 'Full Name (if no First/Last)',
                   companyName: 'Company Name',
                   phoneNumber: 'Phone Number *',
+                  email: 'Email',
                   address: 'Address',
                   city: 'City',
                   state: 'State',
                   zipCode: 'Zip Code',
-                  contactName: 'Contact Name',
-                  email: 'Email',
                 }).map(([field, label]) => (
                   <div key={field} className="flex items-center gap-4">
                     <label className="w-36 text-sm font-medium text-slate-700">{label}</label>

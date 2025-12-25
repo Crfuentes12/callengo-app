@@ -130,12 +130,14 @@ export interface Contact {
 
 export interface ColumnMapping {
   companyName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  contactName: string | null; // For backward compatibility and full name imports
   address: string | null;
   city: string | null;
   state: string | null;
   zipCode: string | null;
   phoneNumber: string | null;
-  contactName: string | null;
   email: string | null;
 }
 

@@ -887,7 +887,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         callStatus !== 'idle' ? (
           callStatus === 'ended' && callData ? (
             // Call Results View
-            <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4">
+            <div key="results-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn">
               <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border-2 border-emerald-500/50 overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-emerald-600/20 to-cyan-600/20 flex-shrink-0">
@@ -1220,7 +1220,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             </div>
           ) : (
             // Active call interface (dialing, ringing, connected)
-            <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4">
+            <div key="active-call-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn">
               <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
                 <div className="grid md:grid-cols-2">
                   {/* Left: Call Status */}
@@ -1329,7 +1329,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           )
         ) : (
           // Initial modal to enter phone number and start test
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[70] p-4">
+          <div key="setup-view" className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[70] p-4 animate-fadeIn">
             <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
               {/* Header */}
               <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/20 to-pink-600/20">
