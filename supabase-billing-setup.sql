@@ -1,5 +1,6 @@
--- Migration: Add Billing and Subscription functionality
--- This script creates billing tables for subscription plans, company subscriptions, and usage tracking
+-- Initial Setup: Add Billing and Subscription functionality (NEW INSTALLATIONS ONLY)
+-- This script creates billing tables from scratch with minutes-based pricing
+-- ⚠️ WARNING: Only use this for NEW installations. For existing databases, use supabase-pricing-migration.sql
 -- Execute this in your Supabase SQL editor
 
 -- Create subscription_plans table
