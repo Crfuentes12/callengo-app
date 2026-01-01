@@ -42,9 +42,9 @@ interface UsageTracking {
   company_id: string;
   period_start: string;
   period_end: string;
-  calls_made: number;
-  calls_included: number;
-  overage_calls: number;
+  minutes_used: number;
+  minutes_included: number;
+  overage_minutes: number;
   total_cost: number;
 }
 
@@ -58,7 +58,8 @@ interface SubscriptionWithPlan {
   current_period_end: string;
   subscription_plans: {
     name: string;
-    calls_included: number;
+    minutes_included: number;
+    max_call_duration: number;
     price_monthly: number;
     price_annual: number;
   } | null;

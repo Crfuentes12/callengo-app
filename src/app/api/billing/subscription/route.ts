@@ -67,8 +67,8 @@ export async function GET(request: NextRequest) {
             subscription_id: subscription.id,
             period_start: subscription.current_period_start,
             period_end: subscription.current_period_end,
-            calls_made: 0,
-            calls_included: subscription.plan.calls_included,
+            minutes_used: 0,
+            minutes_included: subscription.plan.minutes_included,
             total_cost: 0
           })
           .select()
