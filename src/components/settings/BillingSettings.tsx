@@ -9,8 +9,9 @@ interface Plan {
   description: string | null;
   price_monthly: number;
   price_annual: number;
-  calls_included: number;
-  price_per_extra_call: number;
+  minutes_included: number;
+  max_call_duration: number;
+  price_per_extra_minute: number;
   max_users: number;
   features: string[];
 }
@@ -24,8 +25,8 @@ interface Subscription {
 }
 
 interface Usage {
-  calls_made: number;
-  calls_included: number;
+  minutes_used: number;
+  minutes_included: number;
 }
 
 interface BillingSettingsProps {
@@ -130,7 +131,12 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   }
 
   const currentPlan = subscription?.plan;
-  const usagePercent = usage ? Math.min((usage.calls_made / usage.calls_included) * 100, 100) : 0;
+  const usagePercent = usage ? Math.min((usage.minutes_used / usage.minutes_included) * 100, 100) : 0;
+
+  // Calculate approximate calls based on average duration
+  const getApproxCalls = (minutes: number, avgDuration: number = 3) => {
+    return Math.floor(minutes / avgDuration);
+  };
 
   return (
     <div className="space-y-6">
@@ -172,9 +178,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             {/* Usage Bar */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-700">Calls Used</span>
+                <span className="font-medium text-slate-700">Minutes Used</span>
                 <span className="font-bold text-slate-900">
-                  {usage.calls_made.toLocaleString()} / {usage.calls_included.toLocaleString()}
+                  {usage.minutes_used.toLocaleString()} / {usage.minutes_included.toLocaleString()} min
                 </span>
               </div>
               <div className="h-2 bg-white/80 rounded-full overflow-hidden">
@@ -183,6 +189,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   style={{ width: `${usagePercent}%` }}
                 />
               </div>
+              <p className="text-xs text-slate-600">
+                ~{getApproxCalls(usage.minutes_used)} calls made • ~{getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining
+              </p>
             </div>
 
             {subscription.current_period_end && (
@@ -317,23 +326,33 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   {/* Features - Fixed height section */}
                   <div className="flex-grow mb-4">
                     <div className="space-y-2 text-xs">
-                      {/* Calls */}
+                      {/* Minutes */}
                       <div className="flex items-start gap-2">
                         <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         <span className="text-slate-700">
-                          <span className="font-semibold text-slate-900">{plan.calls_included.toLocaleString()}</span> calls/month included
+                          <span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span> minutes/month (~{getApproxCalls(plan.minutes_included, plan.max_call_duration)} calls)
                         </span>
                       </div>
 
-                      {/* Extra call price */}
+                      {/* Max call duration */}
                       <div className="flex items-start gap-2">
                         <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         <span className="text-slate-700">
-                          <span className="font-semibold text-slate-900">${plan.price_per_extra_call}</span> per additional call
+                          <span className="font-semibold text-slate-900">{plan.max_call_duration} min</span> max per call
+                        </span>
+                      </div>
+
+                      {/* Extra minute price */}
+                      <div className="flex items-start gap-2">
+                        <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-slate-700">
+                          <span className="font-semibold text-slate-900">${plan.price_per_extra_minute.toFixed(2)}</span> per extra minute
                         </span>
                       </div>
 

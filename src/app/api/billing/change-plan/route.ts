@@ -95,8 +95,8 @@ export async function POST(request: NextRequest) {
           subscription_id: updatedSubscription.id,
           period_start: currentDate.toISOString(),
           period_end: periodEnd.toISOString(),
-          calls_made: 0,
-          calls_included: plan.calls_included,
+          minutes_used: 0,
+          minutes_included: plan.minutes_included,
           total_cost: 0
         });
 
@@ -150,8 +150,8 @@ export async function POST(request: NextRequest) {
           subscription_id: newSubscription.id,
           period_start: currentDate.toISOString(),
           period_end: periodEnd.toISOString(),
-          calls_made: 0,
-          calls_included: plan.calls_included,
+          minutes_used: 0,
+          minutes_included: plan.minutes_included,
           total_cost: 0
         });
 

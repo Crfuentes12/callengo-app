@@ -544,8 +544,9 @@ export type Database = {
           description: string | null
           price_monthly: number
           price_annual: number
-          calls_included: number
-          price_per_extra_call: number
+          minutes_included: number
+          max_call_duration: number
+          price_per_extra_minute: number
           max_users: number
           price_per_extra_user: number | null
           max_agents: number | null
@@ -562,8 +563,9 @@ export type Database = {
           description?: string | null
           price_monthly: number
           price_annual: number
-          calls_included: number
-          price_per_extra_call: number
+          minutes_included: number
+          max_call_duration?: number
+          price_per_extra_minute: number
           max_users?: number
           price_per_extra_user?: number | null
           max_agents?: number | null
@@ -580,8 +582,9 @@ export type Database = {
           description?: string | null
           price_monthly?: number
           price_annual?: number
-          calls_included?: number
-          price_per_extra_call?: number
+          minutes_included?: number
+          max_call_duration?: number
+          price_per_extra_minute?: number
           max_users?: number
           price_per_extra_user?: number | null
           max_agents?: number | null
@@ -664,9 +667,9 @@ export type Database = {
           subscription_id: string | null
           period_start: string
           period_end: string
-          calls_made: number
-          calls_included: number
-          overage_calls: number
+          minutes_used: number
+          minutes_included: number
+          overage_minutes: number
           total_cost: number
           created_at: string
           updated_at: string
@@ -677,8 +680,8 @@ export type Database = {
           subscription_id?: string | null
           period_start: string
           period_end: string
-          calls_made?: number
-          calls_included: number
+          minutes_used?: number
+          minutes_included: number
           total_cost?: number
           created_at?: string
           updated_at?: string
@@ -689,8 +692,8 @@ export type Database = {
           subscription_id?: string | null
           period_start?: string
           period_end?: string
-          calls_made?: number
-          calls_included?: number
+          minutes_used?: number
+          minutes_included?: number
           total_cost?: number
           created_at?: string
           updated_at?: string

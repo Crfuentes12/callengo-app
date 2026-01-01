@@ -10,8 +10,9 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
   description TEXT,
   price_monthly DECIMAL(10,2) NOT NULL,
   price_annual DECIMAL(10,2) NOT NULL,
-  calls_included INTEGER NOT NULL,
-  price_per_extra_call DECIMAL(10,4) NOT NULL,
+  minutes_included INTEGER NOT NULL,
+  max_call_duration INTEGER NOT NULL DEFAULT 10,
+  price_per_extra_minute DECIMAL(10,4) NOT NULL,
   max_users INTEGER NOT NULL DEFAULT 1,
   price_per_extra_user DECIMAL(10,2) DEFAULT 0,
   max_agents INTEGER DEFAULT 1,
@@ -48,10 +49,10 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
   subscription_id UUID REFERENCES company_subscriptions(id) ON DELETE SET NULL,
   period_start TIMESTAMPTZ NOT NULL,
   period_end TIMESTAMPTZ NOT NULL,
-  calls_made INTEGER DEFAULT 0,
-  calls_included INTEGER NOT NULL,
-  overage_calls INTEGER GENERATED ALWAYS AS (
-    CASE WHEN calls_made > calls_included THEN calls_made - calls_included ELSE 0 END
+  minutes_used INTEGER DEFAULT 0,
+  minutes_included INTEGER NOT NULL,
+  overage_minutes INTEGER GENERATED ALWAYS AS (
+    CASE WHEN minutes_used > minutes_included THEN minutes_used - minutes_included ELSE 0 END
   ) STORED,
   total_cost DECIMAL(10,2) DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -174,48 +175,50 @@ CREATE TRIGGER update_usage_tracking_updated_at
   EXECUTE FUNCTION update_usage_tracking_updated_at();
 
 -- Insert default subscription plans
-INSERT INTO subscription_plans (name, slug, description, price_monthly, price_annual, calls_included, price_per_extra_call, max_users, price_per_extra_user, max_agents, features, display_order)
+INSERT INTO subscription_plans (name, slug, description, price_monthly, price_annual, minutes_included, max_call_duration, price_per_extra_minute, max_users, price_per_extra_user, max_agents, features, display_order)
 VALUES
   (
     'Starter',
     'starter',
-    'Perfect for testing and getting started',
+    'Perfect for testing and validation',
     99.00,
-    87.00,
-    100,
-    1.20,
+    89.00,
+    300,
+    3,
+    0.60,
     1,
     0,
     1,
     '[
-      "100 llamadas incluidas",
+      "300 minutos incluidos (~100 llamadas)",
+      "Máx 3 min por llamada",
       "1 usuario",
       "1 agente activo",
-      "CSV / Excel / Google Sheets",
-      "Export básico",
-      "$1.20 por llamada extra"
+      "CSV / Excel export",
+      "$0.60/min adicional"
     ]'::jsonb,
     1
   ),
   (
     'Business',
     'business',
-    'For businesses ready to scale operations',
+    'For businesses ready to scale',
     279.00,
-    237.00,
-    700,
-    0.85,
+    249.00,
+    1200,
+    5,
+    0.35,
     3,
     0,
     -1,
     '[
-      "700 llamadas incluidas",
+      "1,200 minutos incluidos (~400 llamadas)",
+      "Máx 5 min por llamada",
       "3 usuarios incluidos",
-      "Todos los agentes",
+      "Agentes ilimitados",
       "Follow-ups automáticos",
-      "Export avanzado",
-      "Scheduling",
-      "$0.85 por llamada extra"
+      "Scheduling avanzado",
+      "$0.35/min adicional"
     ]'::jsonb,
     2
   ),
@@ -224,21 +227,23 @@ VALUES
     'teams',
     'For teams that need scale and governance',
     599.00,
-    479.00,
-    1800,
-    0.65,
+    529.00,
+    2400,
+    8,
+    0.22,
     5,
     79.00,
     -1,
     '[
-      "1,800 llamadas incluidas",
+      "2,400 minutos incluidos (~600 llamadas)",
+      "Máx 8 min por llamada",
       "5 usuarios incluidos",
       "$79 por usuario adicional",
       "Agentes ilimitados",
       "Retry logic + voicemail",
       "Priority support",
-      "Governance básica",
-      "$0.65 por llamada extra"
+      "Governance & logs",
+      "$0.22/min adicional"
     ]'::jsonb,
     3
   ),
@@ -247,21 +252,23 @@ VALUES
     'enterprise',
     'For large organizations with custom needs',
     1500.00,
-    1500.00,
-    3000,
-    0.40,
+    1350.00,
+    6000,
+    15,
+    0.18,
     -1,
     0,
     -1,
     '[
-      "3,000 llamadas incluidas",
+      "6,000 minutos incluidos (custom)",
+      "Sin límite de duración",
       "Usuarios ilimitados",
-      "Admin portal",
-      "Compliance / logs",
+      "Custom workflows",
+      "Dedicated account manager",
       "SLA garantizado",
+      "Compliance & audit logs",
       "Integraciones personalizadas",
-      "Soporte dedicado",
-      "$0.40 por llamada extra",
+      "$0.18/min adicional",
       "Contrato anual"
     ]'::jsonb,
     4
@@ -283,3 +290,10 @@ WHERE NOT EXISTS (
   SELECT 1 FROM company_subscriptions cs
   WHERE cs.company_id = c.id
 );
+
+-- Add comment explaining the pricing model
+COMMENT ON TABLE subscription_plans IS 'Subscription plans with minutes-based pricing. Cost basis: ~$0.15/min. All plans maintain 40-55% margin on base minutes, higher margins on overages.';
+COMMENT ON COLUMN subscription_plans.minutes_included IS 'Total minutes included in the plan per billing period';
+COMMENT ON COLUMN subscription_plans.max_call_duration IS 'Maximum duration in minutes for a single call on this plan';
+COMMENT ON COLUMN subscription_plans.price_per_extra_minute IS 'Price charged per minute over the included minutes';
+COMMENT ON TABLE usage_tracking IS 'Tracks minute usage per billing period. Overage minutes are auto-calculated.';
