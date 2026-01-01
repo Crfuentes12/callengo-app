@@ -14,29 +14,32 @@ The new pricing model:
 
 ## 🚀 Migration Steps
 
-### For EXISTING Databases
+### For EXISTING Databases (YOU ARE HERE)
 
 If you already have the billing tables (`subscription_plans`, `usage_tracking`, etc.) in your database:
 
-**Run this file:** `supabase-pricing-migration.sql`
+**🎯 Run this file:** `migrate-to-minutes-pricing.sql`
 
 This script will:
-1. Add new columns (`minutes_included`, `max_call_duration`, `price_per_extra_minute`)
-2. Migrate existing data from calls to minutes
-3. Update computed columns
-4. Insert the new optimized pricing plans
-5. Keep old columns for safety (you can drop them later)
+1. ✅ Add new columns (`minutes_included`, `max_call_duration`, `price_per_extra_minute`)
+2. ✅ Migrate existing usage data from calls to minutes (3 min average)
+3. ✅ Delete old subscription plans
+4. ✅ Insert new optimized pricing plans with correct margins
+5. ✅ Recreate subscriptions for existing companies
+6. ✅ Keep old columns for safety (commented out DROP commands)
 
 **⚠️ Important:**
-- This will DELETE existing subscription_plans and start fresh with the new pricing
-- Usage tracking data will be migrated (not deleted)
-- Company subscriptions will need to be recreated
+- This will **DELETE** existing subscription_plans (IDs will change)
+- Active subscriptions will be **recreated** with new plan IDs
+- Companies will be assigned to Starter plan (trial or active based on previous status)
+- Usage tracking data will be **migrated** (not deleted)
+- Old columns are kept for safety (you can drop them later)
 
 ### For NEW Installations
 
 If you're setting up billing for the first time:
 
-**Run this file:** `supabase-billing-migration.sql`
+**Run this file:** `supabase-billing-setup.sql`
 
 This is the complete setup script that creates all tables from scratch with the new structure.
 
