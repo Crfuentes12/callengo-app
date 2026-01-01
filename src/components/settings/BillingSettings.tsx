@@ -232,7 +232,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 }`}
               >
                 Annual
-                <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 20%</span>
+                <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 11%</span>
               </button>
             </div>
           )}
