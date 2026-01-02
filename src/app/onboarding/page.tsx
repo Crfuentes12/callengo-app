@@ -166,6 +166,7 @@ export default function OnboardingPage() {
             body: JSON.stringify({
               company_id: companyData.id,
               website: formData.companyWebsite,
+              auto_save: true, // Auto-save for onboarding
             }),
           });
 

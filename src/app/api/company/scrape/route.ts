@@ -1,7 +1,7 @@
 // app/api/company/scrape/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { scrapeWebsite, generateCompanySummary } from '@/lib/web-scraper';
+import { scrapeWebsite, generateCompanySummary, detectIndustry } from '@/lib/web-scraper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body - company_id and website can be passed directly (for onboarding)
     const body = await request.json().catch(() => ({}));
-    const { company_id: bodyCompanyId, website: bodyWebsite } = body;
+    const { company_id: bodyCompanyId, website: bodyWebsite, auto_save = false } = body;
 
     let companyId = bodyCompanyId;
     let websiteUrl = bodyWebsite;
@@ -52,24 +52,31 @@ export async function POST(request: NextRequest) {
     }
 
     const scrapedData = await scrapeWebsite(websiteUrl);
-    const summary = await generateCompanySummary(scrapedData, company.name);
+    const [summary, industry] = await Promise.all([
+      generateCompanySummary(scrapedData, company.name),
+      detectIndustry(scrapedData)
+    ]);
 
-    // FIXED: Cast scrapedData to Json type
-    await supabase
-      .from('companies')
-      .update({
-        context_data: scrapedData as any, // Cast to any to satisfy Json type
-        context_summary: summary,
-        favicon_url: scrapedData.faviconUrl,
-        description: company.description || scrapedData.description,
-        context_extracted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', companyId);
+    // Only auto-save for onboarding flow (when auto_save is true)
+    if (auto_save) {
+      await supabase
+        .from('companies')
+        .update({
+          context_data: scrapedData as any,
+          context_summary: summary,
+          favicon_url: scrapedData.faviconUrl,
+          description: company.description || scrapedData.description,
+          industry: company.industry || industry,
+          context_extracted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', companyId);
+    }
 
     return NextResponse.json({
       status: 'success',
       summary,
+      industry,
       favicon_url: scrapedData.faviconUrl,
       data: {
         title: scrapedData.title,
