@@ -229,7 +229,26 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               </p>
             </div>
 
-            {subscription.current_period_end && (
+            {/* Free Plan Notice */}
+            {currentPlan.slug === 'free' && (
+              <div className="mt-4 pt-4 border-t border-amber-200 bg-amber-50/50 -m-6 mt-4 p-4 rounded-b-xl">
+                <div className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="text-xs font-semibold text-amber-900">One-Time Credit</p>
+                    <p className="text-xs text-amber-800 mt-0.5">
+                      Your 20 free minutes are for testing only and <strong>do not renew</strong>.
+                      For ongoing use, please upgrade to a paid plan.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Paid Plan Renewal */}
+            {currentPlan.slug !== 'free' && subscription.current_period_end && (
               <div className="mt-4 pt-4 border-t border-indigo-100">
                 <p className="text-xs text-slate-600">
                   Renews on <span className="font-semibold text-slate-900">{formatDate(subscription.current_period_end)}</span>
@@ -240,17 +259,36 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         </div>
       )}
 
-      {/* Overage Controls - Only for paid subscriptions */}
+      {/* Overage Controls */}
       {subscription && (
         <div>
           <h3 className="text-lg font-bold text-slate-900 mb-4">Overage Controls</h3>
-          {subscription.status === 'active' && currentPlan && currentPlan.slug !== 'free' ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <div className="bg-white border border-slate-200 rounded-xl p-6">
+            {/* Free Plan Warning */}
+            {currentPlan?.slug === 'free' && (
+              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="flex gap-2">
+                  <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <h5 className="font-semibold text-amber-900 text-sm mb-1">Free Plan Notice</h5>
+                    <p className="text-xs text-amber-800">
+                      Your 20 free minutes are <strong>one-time only</strong>, not monthly. Overage rate: <strong>$0.80/min</strong>. Max budget: <strong>$20</strong>.
+                      For ongoing use, upgrade to a paid plan.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h4 className="font-semibold text-slate-900 mb-1">Auto-Overage Billing</h4>
                 <p className="text-sm text-slate-600">
-                  Continue making calls even after your monthly minutes run out
+                  {currentPlan?.slug === 'free'
+                    ? 'Continue making calls after your 20 free minutes run out'
+                    : 'Continue making calls even after your monthly minutes run out'}
                 </p>
               </div>
               <button
@@ -300,24 +338,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 </div>
               </div>
             )}
-            </div>
-          ) : (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
-              <div className="flex gap-3">
-                <svg className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <div>
-                  <h4 className="font-semibold text-slate-700 mb-1">Overage Controls Unavailable</h4>
-                  <p className="text-sm text-slate-600">
-                    {subscription.status === 'trial' || currentPlan?.slug === 'free'
-                      ? 'Auto-overage billing is only available for paid subscriptions. Upgrade to a paid plan to enable overage billing.'
-                      : 'Auto-overage billing is only available for active subscriptions. Please ensure your subscription is active.'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -337,22 +358,29 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             {!subscription.overage_enabled && (
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-slate-900 mb-2">
-                  Monthly Overage Budget
+                  {currentPlan?.slug === 'free' ? 'Overage Budget (Max $20)' : 'Monthly Overage Budget'}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
                   <input
                     type="number"
                     min="0"
-                    step="50"
+                    max={currentPlan?.slug === 'free' ? 20 : undefined}
+                    step={currentPlan?.slug === 'free' ? '5' : '50'}
                     value={overageBudget}
-                    onChange={(e) => setOverageBudget(Number(e.target.value))}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      const maxBudget = currentPlan?.slug === 'free' ? 20 : value;
+                      setOverageBudget(Math.min(value, maxBudget));
+                    }}
                     className="w-full pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="100"
+                    placeholder={currentPlan?.slug === 'free' ? '10' : '100'}
                   />
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
-                  Calls will stop when you reach this overage limit. Set to 0 for unlimited.
+                  {currentPlan?.slug === 'free'
+                    ? 'Free plan has a maximum overage budget of $20. Set to 0 to disable overage.'
+                    : 'Calls will stop when you reach this overage limit. Set to 0 for unlimited.'}
                 </p>
               </div>
             )}
