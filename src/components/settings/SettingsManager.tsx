@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@/types/supabase';
 import BillingSettings from './BillingSettings';
@@ -23,6 +24,7 @@ interface SettingsManagerProps {
 
 export default function SettingsManager({ company: initialCompany, settings: initialSettings, user }: SettingsManagerProps) {
   const supabase = createClient();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing'>('company');
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -100,6 +102,9 @@ export default function SettingsManager({ company: initialCompany, settings: ini
 
       setCompany({ ...company, favicon_url: logoUrl });
       setSuccess('Company logo updated successfully');
+
+      // Refresh the page to update all components with new logo
+      router.refresh();
     } catch (error) {
       console.error('Logo upload error:', error);
       alert('Failed to upload logo. Please try again.');
@@ -131,6 +136,9 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       // Update local state to match saved data
       setCompany({ ...company, website: websiteInput });
       setSuccess('Company information updated successfully');
+
+      // Refresh the page to update all components with new company data
+      router.refresh();
     } catch (error) {
       alert('Failed to update company information');
     } finally {

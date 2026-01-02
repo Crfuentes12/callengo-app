@@ -28,7 +28,7 @@ interface LayoutProps {
 export default function Layout({
   children,
   user,
-  company,
+  company: initialCompany,
   headerTitle,
   headerSubtitle,
   headerActions,
@@ -37,6 +37,31 @@ export default function Layout({
   const supabase = createClient();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<string>('user');
+  const [company, setCompany] = useState<Company>(initialCompany);
+
+  // Subscribe to company changes in real-time
+  useEffect(() => {
+    const channel = supabase
+      .channel('company-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'companies',
+          filter: `id=eq.${initialCompany.id}`,
+        },
+        (payload) => {
+          console.log('Company updated:', payload.new);
+          setCompany(payload.new as Company);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [initialCompany.id, supabase]);
 
   useEffect(() => {
     const fetchUserRole = async () => {
