@@ -240,11 +240,12 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         </div>
       )}
 
-      {/* Overage Controls */}
+      {/* Overage Controls - Only for paid subscriptions */}
       {subscription && (
         <div>
           <h3 className="text-lg font-bold text-slate-900 mb-4">Overage Controls</h3>
-          <div className="bg-white border border-slate-200 rounded-xl p-6">
+          {subscription.status === 'active' && currentPlan && currentPlan.slug !== 'free' ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h4 className="font-semibold text-slate-900 mb-1">Auto-Overage Billing</h4>
@@ -299,7 +300,24 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          ) : (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
+              <div className="flex gap-3">
+                <svg className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <div>
+                  <h4 className="font-semibold text-slate-700 mb-1">Overage Controls Unavailable</h4>
+                  <p className="text-sm text-slate-600">
+                    {subscription.status === 'trial' || currentPlan?.slug === 'free'
+                      ? 'Auto-overage billing is only available for paid subscriptions. Upgrade to a paid plan to enable overage billing.'
+                      : 'Auto-overage billing is only available for active subscriptions. Please ensure your subscription is active.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -517,6 +535,30 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                           <span className="font-semibold text-slate-900">${plan.price_per_extra_minute.toFixed(2)}</span> per extra minute
                         </span>
                       </div>
+
+                      {/* Concurrent calls */}
+                      <div className="flex items-start gap-2">
+                        <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-slate-700">
+                          <span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span> concurrent call{plan.max_concurrent_calls > 1 ? 's' : ''}
+                        </span>
+                      </div>
+
+                      {/* Call limits (if any) */}
+                      {(plan.max_calls_per_hour || plan.max_calls_per_day) && (
+                        <div className="flex items-start gap-2">
+                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-slate-700">
+                            {plan.max_calls_per_hour && <span><span className="font-semibold text-slate-900">{plan.max_calls_per_hour}</span> calls/hour</span>}
+                            {plan.max_calls_per_hour && plan.max_calls_per_day && ', '}
+                            {plan.max_calls_per_day && <span><span className="font-semibold text-slate-900">{plan.max_calls_per_day}</span> calls/day</span>}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Users */}
                       <div className="flex items-start gap-2">
