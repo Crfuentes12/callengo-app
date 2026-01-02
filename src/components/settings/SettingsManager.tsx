@@ -145,14 +145,13 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       // Update local state with extracted data (not saved to DB yet)
       setCompany(prev => ({
         ...prev,
+        name: data.name || prev.name, // Always update with detected company name
         description: data.summary || prev.description,
         favicon_url: data.favicon_url || prev.favicon_url,
         industry: data.industry || prev.industry,
-        // Optionally update name from scraped title if current name is empty
-        name: prev.name || data.data?.title || prev.name,
       }));
 
-      setSuccess('Website analyzed! Review the extracted information and click "Save Company Info" to apply changes.');
+      setSuccess('Website analyzed! Review the extracted information (including company name) and click "Save Company Info" to apply changes.');
     } catch (error) {
       alert('Failed to analyze website');
     } finally {

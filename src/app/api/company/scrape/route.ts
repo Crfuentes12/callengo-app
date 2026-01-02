@@ -1,7 +1,7 @@
 // app/api/company/scrape/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { scrapeWebsite, generateCompanySummary, detectIndustry } from '@/lib/web-scraper';
+import { scrapeWebsite, generateCompanySummary, detectIndustry, detectCompanyName } from '@/lib/web-scraper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,16 +52,22 @@ export async function POST(request: NextRequest) {
     }
 
     const scrapedData = await scrapeWebsite(websiteUrl);
-    const [summary, industry] = await Promise.all([
-      generateCompanySummary(scrapedData, company.name),
+
+    // Detect company name, industry, and generate summary in parallel
+    const [detectedName, industry] = await Promise.all([
+      detectCompanyName(scrapedData),
       detectIndustry(scrapedData)
     ]);
+
+    // Generate summary using the detected name (not the old saved name)
+    const summary = await generateCompanySummary(scrapedData, detectedName);
 
     // Only auto-save for onboarding flow (when auto_save is true)
     if (auto_save) {
       await supabase
         .from('companies')
         .update({
+          name: detectedName, // Update company name with detected name
           context_data: scrapedData as any,
           context_summary: summary,
           favicon_url: scrapedData.faviconUrl,
@@ -75,6 +81,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       status: 'success',
+      name: detectedName, // Return detected company name
       summary,
       industry,
       favicon_url: scrapedData.faviconUrl,
