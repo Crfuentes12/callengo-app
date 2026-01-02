@@ -360,10 +360,10 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                   </label>
                   <div className="flex gap-2">
                     <input
-                      type="url"
+                      type="text"
                       value={company.website}
                       onChange={(e) => setCompany({ ...company, website: e.target.value })}
-                      placeholder="https://example.com"
+                      placeholder="example.com"
                       className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all bg-white hover:border-slate-300"
                     />
                     <button

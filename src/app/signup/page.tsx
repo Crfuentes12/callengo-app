@@ -255,11 +255,11 @@ export default function SignupPage() {
                     </svg>
                   </div>
                   <input
-                    type="url"
+                    type="text"
                     value={formData.companyWebsite}
                     onChange={(e) => setFormData({ ...formData, companyWebsite: e.target.value })}
                     className="w-full pl-12 pr-4 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
-                    placeholder="https://example.com"
+                    placeholder="example.com"
                   />
                 </div>
                 <p className="text-xs text-slate-500 mt-2 flex items-start gap-1.5">
