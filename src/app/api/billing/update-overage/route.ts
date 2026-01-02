@@ -34,12 +34,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
+    // Get subscription with plan info to check if it's a free plan
+    const { data: subscription } = await supabase
+      .from('company_subscriptions')
+      .select('*, plan:subscription_plans(*)')
+      .eq('id', subscriptionId)
+      .eq('company_id', companyId)
+      .single();
+
+    // Apply budget limits based on plan
+    let finalBudget = budget || 0;
+    if (subscription?.plan?.slug === 'free') {
+      // Free plan has a max budget of $20
+      finalBudget = Math.min(finalBudget, 20);
+    }
+
     // Update subscription overage settings
     const { data: updatedSubscription, error } = await supabase
       .from('company_subscriptions')
       .update({
         overage_enabled: enabled,
-        overage_budget: budget || 0,
+        overage_budget: finalBudget,
         overage_spent: enabled ? undefined : 0, // Reset spent if disabling
         updated_at: new Date().toISOString()
       })

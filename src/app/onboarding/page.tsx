@@ -83,10 +83,23 @@ export default function OnboardingPage() {
 
       const fullName = user.user_metadata?.full_name || '';
 
-      // 1. Create company
+      // 1. Check if user already has a company (prevent duplicates)
+      const { data: existingUserRecord } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (existingUserRecord?.company_id) {
+        // User already has a company, redirect to dashboard
+        router.push('/dashboard');
+        return;
+      }
+
+      // 2. Create company
       setStep('creating_company');
       setProgress(30);
-      
+
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .insert({
@@ -104,7 +117,7 @@ export default function OnboardingPage() {
       setProgress(50);
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 2. Create user record
+      // 3. Create user record
       setStep('setting_up_account');
       setProgress(60);
       
@@ -126,7 +139,7 @@ export default function OnboardingPage() {
       setProgress(70);
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 3. Create company settings
+      // 4. Create company settings
       const { error: settingsError } = await supabase
         .from('company_settings')
         .insert({
@@ -141,7 +154,7 @@ export default function OnboardingPage() {
       setProgress(80);
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 4. Trigger website scraping if URL provided
+      // 5. Trigger website scraping if URL provided
       if (formData.companyWebsite) {
         setStep('analyzing_website');
         setProgress(85);
@@ -170,12 +183,12 @@ export default function OnboardingPage() {
         }
       }
 
-      // 5. Complete
+      // 6. Complete
       setProgress(100);
       setStep('complete');
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // 6. Redirect to dashboard
+      // 7. Redirect to dashboard
       router.push('/dashboard');
       router.refresh();
 
