@@ -239,7 +239,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   <div>
                     <p className="text-xs font-semibold text-amber-900">One-Time Credit</p>
                     <p className="text-xs text-amber-800 mt-0.5">
-                      Your 20 free minutes are for testing only and <strong>do not renew</strong>.
+                      Your 15 free minutes are for testing only and <strong>do not renew</strong>.
                       For ongoing use, please upgrade to a paid plan.
                     </p>
                   </div>
@@ -274,7 +274,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   <div>
                     <h5 className="font-semibold text-amber-900 text-sm mb-1">Free Plan Notice</h5>
                     <p className="text-xs text-amber-800">
-                      Your 20 free minutes are <strong>one-time only</strong>, not monthly. Overage rate: <strong>$0.80/min</strong>. Max budget: <strong>$20</strong>.
+                      Your 15 free minutes are <strong>one-time only</strong>, not monthly. Overage rate: <strong>$0.80/min</strong>. Max budget: <strong>$20</strong>.
                       For ongoing use, upgrade to a paid plan.
                     </p>
                   </div>
@@ -287,7 +287,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <h4 className="font-semibold text-slate-900 mb-1">Auto-Overage Billing</h4>
                 <p className="text-sm text-slate-600">
                   {currentPlan?.slug === 'free'
-                    ? 'Continue making calls after your 20 free minutes run out'
+                    ? 'Continue making calls after your 15 free minutes run out'
                     : 'Continue making calls even after your monthly minutes run out'}
                 </p>
               </div>
