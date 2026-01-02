@@ -28,6 +28,9 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [success, setSuccess] = useState('');
 
+  // Separate state for temporary website input vs saved data
+  const [websiteInput, setWebsiteInput] = useState(initialCompany.website || '');
+
   const [company, setCompany] = useState({
     name: initialCompany.name,
     website: initialCompany.website || '',
@@ -111,14 +114,22 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     setSuccess('');
 
     try {
+      // Update company data including the website input
+      const dataToSave = {
+        ...company,
+        website: websiteInput, // Only save website when explicitly saving
+      };
+
       const response = await fetch('/api/company/update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(company),
+        body: JSON.stringify(dataToSave),
       });
 
       if (!response.ok) throw new Error('Failed to update');
 
+      // Update local state to match saved data
+      setCompany({ ...company, website: websiteInput });
       setSuccess('Company information updated successfully');
     } catch (error) {
       alert('Failed to update company information');
@@ -134,7 +145,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          website: company.website,
+          website: websiteInput, // Use temporary input value, not saved website
           auto_save: false, // Don't save automatically, user will save manually
         }),
       });
@@ -143,12 +154,14 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       if (!response.ok) throw new Error(data.error);
 
       // Update local state with extracted data (not saved to DB yet)
+      // Note: website is NOT updated here - it only saves when user clicks "Save Company Info"
       setCompany(prev => ({
         ...prev,
         name: data.name || prev.name, // Always update with detected company name
         description: data.summary || prev.description,
         favicon_url: data.favicon_url || prev.favicon_url,
         industry: data.industry || prev.industry,
+        // website is intentionally NOT updated - only saved on explicit save
       }));
 
       setSuccess('Website analyzed! Review the extracted information (including company name) and click "Save Company Info" to apply changes.');
@@ -361,15 +374,15 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      value={company.website}
-                      onChange={(e) => setCompany({ ...company, website: e.target.value })}
+                      value={websiteInput}
+                      onChange={(e) => setWebsiteInput(e.target.value)}
                       placeholder="example.com"
                       className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all bg-white hover:border-slate-300"
                     />
                     <button
                       type="button"
                       onClick={handleScrapeWebsite}
-                      disabled={!company.website || loading}
+                      disabled={!websiteInput || loading}
                       className="px-5 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl hover:from-violet-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-bold transition-all shadow-lg shadow-violet-500/30 hover:shadow-xl"
                     >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
