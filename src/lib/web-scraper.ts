@@ -110,6 +110,57 @@ export async function scrapeWebsite(url: string): Promise<ScrapedData> {
   }
 }
 
+export async function detectCompanyName(scrapedData: ScrapedData): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    // Fallback: try to extract from title by removing common suffixes
+    return scrapedData.title
+      .replace(/\s*[-–|]\s*.*/g, '') // Remove everything after - or |
+      .replace(/\s*\(.*?\)\s*/g, '') // Remove parentheses
+      .trim();
+  }
+
+  try {
+    const prompt = `Based on the following website data, identify the company name.
+Return ONLY the company name (2-5 words maximum), nothing else.
+
+Title: ${scrapedData.title}
+Description: ${scrapedData.description}
+Headings: ${scrapedData.headings.slice(0, 5).join(', ')}
+Meta tags: ${JSON.stringify(scrapedData.metaTags)}
+
+Examples of good responses: "Acme Corporation", "TechFlow", "Blue Ocean Ventures", "Smith & Associates"`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are an expert at identifying company names from website data. Return only the company name, nothing else.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1,
+        max_tokens: 30,
+      }),
+    });
+
+    const data = await response.json();
+    const companyName = data.choices[0]?.message?.content?.trim() || '';
+
+    // Clean up the response (remove quotes, periods, etc.)
+    return companyName.replace(/['"\.]/g, '').trim() || scrapedData.title.split(/[-–|]/)[0].trim();
+
+  } catch (error) {
+    console.error('Error detecting company name:', error);
+    return scrapedData.title.split(/[-–|]/)[0].trim();
+  }
+}
+
 export async function generateCompanySummary(scrapedData: ScrapedData, companyName: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -118,8 +169,9 @@ export async function generateCompanySummary(scrapedData: ScrapedData, companyNa
   }
 
   try {
-    const prompt = `Based on the following website data, create a concise 2-3 sentence company summary for ${companyName}:
+    const prompt = `Based on the following website data, create a concise 2-3 sentence company summary:
 
+Company: ${companyName}
 Title: ${scrapedData.title}
 Description: ${scrapedData.description}
 Headings: ${scrapedData.headings.join(', ')}
