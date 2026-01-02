@@ -231,7 +231,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
             {/* Free Plan Notice */}
             {currentPlan.slug === 'free' && (
-              <div className="mt-4 pt-4 border-t border-amber-200 bg-amber-50/50 -m-6 mt-4 p-4 rounded-b-xl">
+              <div className="mt-4 pt-4 border-t border-amber-200 bg-amber-50/50 -m-6 p-4 rounded-b-xl">
                 <div className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
