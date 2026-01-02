@@ -13,6 +13,9 @@ interface Plan {
   max_call_duration: number;
   price_per_extra_minute: number;
   max_users: number;
+  max_concurrent_calls: number;
+  max_calls_per_hour: number | null;
+  max_calls_per_day: number | null;
   features: string[];
 }
 
@@ -22,11 +25,16 @@ interface Subscription {
   billing_cycle: 'monthly' | 'annual';
   status: string;
   current_period_end: string;
+  overage_enabled: boolean;
+  overage_budget: number;
+  overage_spent: number;
+  overage_alert_level: number;
 }
 
 interface Usage {
   minutes_used: number;
   minutes_included: number;
+  overage_minutes: number;
 }
 
 interface BillingSettingsProps {
@@ -41,6 +49,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const [loading, setLoading] = useState(true);
   const [changing, setChanging] = useState(false);
   const [success, setSuccess] = useState('');
+  const [showOverageModal, setShowOverageModal] = useState(false);
+  const [overageBudget, setOverageBudget] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -100,6 +110,31 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       alert('Failed to change plan');
     } finally {
       setChanging(false);
+    }
+  };
+
+  const handleToggleOverage = async (enabled: boolean) => {
+    if (!subscription) return;
+
+    try {
+      const response = await fetch('/api/billing/update-overage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId,
+          subscriptionId: subscription.id,
+          enabled,
+          budget: enabled ? overageBudget : 0
+        })
+      });
+
+      if (response.ok) {
+        setSuccess(enabled ? 'Overage enabled' : 'Overage disabled');
+        await fetchData();
+        setShowOverageModal(false);
+      }
+    } catch (error) {
+      console.error('Error updating overage:', error);
     }
   };
 
@@ -201,6 +236,133 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Overage Controls */}
+      {subscription && (
+        <div>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Overage Controls</h3>
+          <div className="bg-white border border-slate-200 rounded-xl p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h4 className="font-semibold text-slate-900 mb-1">Auto-Overage Billing</h4>
+                <p className="text-sm text-slate-600">
+                  Continue making calls even after your monthly minutes run out
+                </p>
+              </div>
+              <button
+                onClick={() => setShowOverageModal(true)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  subscription.overage_enabled
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                {subscription.overage_enabled ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+
+            {subscription.overage_enabled && (
+              <div className="space-y-3 pt-4 border-t border-slate-100">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-600">Overage Budget</span>
+                  <span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_budget)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-600">Overage Spent This Period</span>
+                  <span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_spent)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-600">Alert Level</span>
+                  <span className="text-sm font-semibold text-slate-900">{subscription.overage_alert_level}%</span>
+                </div>
+
+                {/* Overage Progress Bar */}
+                <div className="space-y-1">
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        subscription.overage_spent >= subscription.overage_budget
+                          ? 'bg-red-500'
+                          : subscription.overage_spent >= subscription.overage_budget * 0.85
+                          ? 'bg-orange-500'
+                          : 'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min((subscription.overage_spent / subscription.overage_budget) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {formatPrice(subscription.overage_budget - subscription.overage_spent)} remaining
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Overage Modal */}
+      {showOverageModal && subscription && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-slate-900 mb-2">
+              {subscription.overage_enabled ? 'Disable' : 'Enable'} Auto-Overage
+            </h3>
+            <p className="text-sm text-slate-600 mb-6">
+              {subscription.overage_enabled
+                ? 'Disabling auto-overage will stop all calls once you reach your plan limits.'
+                : 'Enable auto-overage to continue making calls beyond your plan limits. You\'ll be charged at your plan\'s overage rate.'}
+            </p>
+
+            {!subscription.overage_enabled && (
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  Monthly Overage Budget
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={overageBudget}
+                    onChange={(e) => setOverageBudget(Number(e.target.value))}
+                    className="w-full pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="100"
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Calls will stop when you reach this overage limit. Set to 0 for unlimited.
+                </p>
+              </div>
+            )}
+
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6">
+              <p className="text-xs text-blue-900">
+                <span className="font-semibold">Current overage rate:</span> {formatPrice(currentPlan?.price_per_extra_minute || 0)}/minute
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowOverageModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleToggleOverage(!subscription.overage_enabled)}
+                className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors ${
+                  subscription.overage_enabled
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {subscription.overage_enabled ? 'Disable Overage' : 'Enable Overage'}
+              </button>
+            </div>
           </div>
         </div>
       )}

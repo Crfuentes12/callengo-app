@@ -550,6 +550,10 @@ export type Database = {
           max_users: number
           price_per_extra_user: number | null
           max_agents: number | null
+          max_concurrent_calls: number
+          max_calls_per_hour: number | null
+          max_calls_per_day: number | null
+          auto_overage_default: boolean
           features: Json
           is_active: boolean
           display_order: number
@@ -569,6 +573,10 @@ export type Database = {
           max_users?: number
           price_per_extra_user?: number | null
           max_agents?: number | null
+          max_concurrent_calls?: number
+          max_calls_per_hour?: number | null
+          max_calls_per_day?: number | null
+          auto_overage_default?: boolean
           features?: Json
           is_active?: boolean
           display_order?: number
@@ -588,6 +596,10 @@ export type Database = {
           max_users?: number
           price_per_extra_user?: number | null
           max_agents?: number | null
+          max_concurrent_calls?: number
+          max_calls_per_hour?: number | null
+          max_calls_per_day?: number | null
+          auto_overage_default?: boolean
           features?: Json
           is_active?: boolean
           display_order?: number
@@ -608,6 +620,11 @@ export type Database = {
           cancel_at_period_end: boolean
           trial_end: string | null
           extra_users: number
+          overage_enabled: boolean
+          overage_budget: number
+          overage_spent: number
+          last_overage_alert_at: string | null
+          overage_alert_level: number
           stripe_subscription_id: string | null
           stripe_customer_id: string | null
           created_at: string
@@ -624,6 +641,11 @@ export type Database = {
           cancel_at_period_end?: boolean
           trial_end?: string | null
           extra_users?: number
+          overage_enabled?: boolean
+          overage_budget?: number
+          overage_spent?: number
+          last_overage_alert_at?: string | null
+          overage_alert_level?: number
           stripe_subscription_id?: string | null
           stripe_customer_id?: string | null
           created_at?: string
@@ -640,6 +662,11 @@ export type Database = {
           cancel_at_period_end?: boolean
           trial_end?: string | null
           extra_users?: number
+          overage_enabled?: boolean
+          overage_budget?: number
+          overage_spent?: number
+          last_overage_alert_at?: string | null
+          overage_alert_level?: number
           stripe_subscription_id?: string | null
           stripe_customer_id?: string | null
           created_at?: string
@@ -768,6 +795,239 @@ export type Database = {
           }
         ]
       }
+      call_queue: {
+        Row: {
+          id: string
+          company_id: string
+          contact_id: string | null
+          agent_id: string
+          agent_run_id: string
+          status: string
+          priority: number
+          queued_at: string
+          started_at: string | null
+          completed_at: string | null
+          call_id: string | null
+          error_message: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          contact_id?: string | null
+          agent_id: string
+          agent_run_id: string
+          status?: string
+          priority?: number
+          queued_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+          call_id?: string | null
+          error_message?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          contact_id?: string | null
+          agent_id?: string
+          agent_run_id?: string
+          status?: string
+          priority?: number
+          queued_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+          call_id?: string | null
+          error_message?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_queue_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_queue_contact_id_fkey"
+            columns: ["contact_id"]
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_queue_agent_id_fkey"
+            columns: ["agent_id"]
+            referencedRelation: "company_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_queue_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      billing_events: {
+        Row: {
+          id: string
+          company_id: string
+          subscription_id: string | null
+          event_type: string
+          event_data: Json
+          minutes_consumed: number | null
+          cost_usd: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          subscription_id?: string | null
+          event_type: string
+          event_data?: Json
+          minutes_consumed?: number | null
+          cost_usd?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          subscription_id?: string | null
+          event_type?: string
+          event_data?: Json
+          minutes_consumed?: number | null
+          cost_usd?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            referencedRelation: "company_subscriptions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      admin_finances: {
+        Row: {
+          id: string
+          period_start: string
+          period_end: string
+          bland_plan: string | null
+          bland_plan_cost: number | null
+          bland_talk_rate: number | null
+          bland_transfer_rate: number | null
+          bland_concurrent_limit: number | null
+          bland_hourly_limit: number | null
+          bland_daily_limit: number | null
+          openai_cost: number | null
+          openai_tokens_used: number | null
+          supabase_cost: number | null
+          total_minutes_used: number | null
+          total_calls_made: number | null
+          total_companies_active: number | null
+          total_users_active: number | null
+          revenue_subscriptions: number | null
+          revenue_overages: number | null
+          revenue_extras: number | null
+          revenue_total: number | null
+          cost_bland: number | null
+          cost_openai: number | null
+          cost_supabase: number | null
+          cost_total: number | null
+          gross_margin: number | null
+          gross_margin_percent: number | null
+          avg_revenue_per_company: number | null
+          avg_minutes_per_call: number | null
+          overage_revenue_percent: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          period_start: string
+          period_end: string
+          bland_plan?: string | null
+          bland_plan_cost?: number | null
+          bland_talk_rate?: number | null
+          bland_transfer_rate?: number | null
+          bland_concurrent_limit?: number | null
+          bland_hourly_limit?: number | null
+          bland_daily_limit?: number | null
+          openai_cost?: number | null
+          openai_tokens_used?: number | null
+          supabase_cost?: number | null
+          total_minutes_used?: number | null
+          total_calls_made?: number | null
+          total_companies_active?: number | null
+          total_users_active?: number | null
+          revenue_subscriptions?: number | null
+          revenue_overages?: number | null
+          revenue_extras?: number | null
+          revenue_total?: number | null
+          cost_bland?: number | null
+          cost_openai?: number | null
+          cost_supabase?: number | null
+          cost_total?: number | null
+          gross_margin?: number | null
+          gross_margin_percent?: number | null
+          avg_revenue_per_company?: number | null
+          avg_minutes_per_call?: number | null
+          overage_revenue_percent?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          period_start?: string
+          period_end?: string
+          bland_plan?: string | null
+          bland_plan_cost?: number | null
+          bland_talk_rate?: number | null
+          bland_transfer_rate?: number | null
+          bland_concurrent_limit?: number | null
+          bland_hourly_limit?: number | null
+          bland_daily_limit?: number | null
+          openai_cost?: number | null
+          openai_tokens_used?: number | null
+          supabase_cost?: number | null
+          total_minutes_used?: number | null
+          total_calls_made?: number | null
+          total_companies_active?: number | null
+          total_users_active?: number | null
+          revenue_subscriptions?: number | null
+          revenue_overages?: number | null
+          revenue_extras?: number | null
+          revenue_total?: number | null
+          cost_bland?: number | null
+          cost_openai?: number | null
+          cost_supabase?: number | null
+          cost_total?: number | null
+          gross_margin?: number | null
+          gross_margin_percent?: number | null
+          avg_revenue_per_company?: number | null
+          avg_minutes_per_call?: number | null
+          overage_revenue_percent?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -797,6 +1057,9 @@ export type SubscriptionPlan = Database['public']['Tables']['subscription_plans'
 export type CompanySubscription = Database['public']['Tables']['company_subscriptions']['Row'];
 export type UsageTracking = Database['public']['Tables']['usage_tracking']['Row'];
 export type BillingHistory = Database['public']['Tables']['billing_history']['Row'];
+export type CallQueue = Database['public']['Tables']['call_queue']['Row'];
+export type BillingEvent = Database['public']['Tables']['billing_events']['Row'];
+export type AdminFinance = Database['public']['Tables']['admin_finances']['Row'];
 
 // Agent Run Settings Configuration
 export interface AgentRunSettings {

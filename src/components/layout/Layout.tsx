@@ -1,7 +1,7 @@
 // components/layout/Layout.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from './Sidebar';
@@ -36,6 +36,27 @@ export default function Layout({
   const router = useRouter();
   const supabase = createClient();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string>('user');
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        if (data?.role) {
+          setUserRole(data.role);
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      }
+    };
+
+    fetchUserRole();
+  }, [user.id, supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -47,6 +68,7 @@ export default function Layout({
     <div className="flex h-screen overflow-hidden">
       <Sidebar
         company={company}
+        userRole={userRole}
         onLogout={handleLogout}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
