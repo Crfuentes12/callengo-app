@@ -132,17 +132,27 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     try {
       const response = await fetch('/api/company/scrape', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          website: company.website,
+          auto_save: false, // Don't save automatically, user will save manually
+        }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
 
-      setSuccess('Website analyzed successfully! Your company context has been updated.');
+      // Update local state with extracted data (not saved to DB yet)
+      setCompany(prev => ({
+        ...prev,
+        description: data.summary || prev.description,
+        favicon_url: data.favicon_url || prev.favicon_url,
+        industry: data.industry || prev.industry,
+        // Optionally update name from scraped title if current name is empty
+        name: prev.name || data.data?.title || prev.name,
+      }));
 
-      // Update local company description
-      if (data.summary) {
-        setCompany(prev => ({ ...prev, description: data.summary }));
-      }
+      setSuccess('Website analyzed! Review the extracted information and click "Save Company Info" to apply changes.');
     } catch (error) {
       alert('Failed to analyze website');
     } finally {

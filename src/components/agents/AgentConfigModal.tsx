@@ -656,8 +656,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   if (step === 'preview') {
     return (
       <>
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -669,7 +669,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           </button>
 
           {/* Scrolleable content */}
-          <div className="overflow-y-auto p-6">
+          <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
             {/* Two column layout - Avatar + About */}
@@ -887,8 +887,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         callStatus !== 'idle' ? (
           callStatus === 'ended' && callData ? (
             // Call Results View
-            <div key="results-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn">
-              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border-2 border-emerald-500/50 overflow-hidden flex flex-col">
+            <div key="results-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
+              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border-2 border-emerald-500/50 overflow-hidden flex flex-col" style={{ transform: 'translateZ(0)' }}>
                 {/* Header */}
                 <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-emerald-600/20 to-cyan-600/20 flex-shrink-0">
                   <div className="flex items-center justify-between">
@@ -926,7 +926,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 </div>
 
                 {/* Scrollable Results */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
                   <div className="grid md:grid-cols-2 gap-4">
                     {/* Left Column */}
                     <div className="space-y-4">
@@ -1220,8 +1220,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             </div>
           ) : (
             // Active call interface (dialing, ringing, connected)
-            <div key="active-call-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn">
-              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
+            <div key="active-call-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
+              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
                 <div className="grid md:grid-cols-2">
                   {/* Left: Call Status */}
                   <div className="p-8 text-center border-r border-slate-700/50">
@@ -1329,8 +1329,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           )
         ) : (
           // Initial modal to enter phone number and start test
-          <div key="setup-view" className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[70] p-4 animate-fadeIn">
-            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden">
+          <div key="setup-view" className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
               {/* Header */}
               <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/20 to-pink-600/20">
                 <div className="flex items-center justify-between">
@@ -1466,8 +1466,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
   if (step === 'contacts') {
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -1485,7 +1485,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           </div>
 
           {/* Scrolleable content */}
-          <div className="overflow-y-auto p-6">
+          <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
             {/* Agent summary from step 1 */}
@@ -1801,8 +1801,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
   if (step === 'confirm') {
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -1820,7 +1820,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           </div>
 
           {/* Scrolleable content */}
-          <div className="overflow-y-auto p-6">
+          <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
             {/* Agent Summary Card */}

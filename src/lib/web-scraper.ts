@@ -112,7 +112,7 @@ export async function scrapeWebsite(url: string): Promise<ScrapedData> {
 
 export async function generateCompanySummary(scrapedData: ScrapedData, companyName: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
-  
+
   if (!apiKey) {
     return `${companyName} - ${scrapedData.description}`;
   }
@@ -150,5 +150,52 @@ Focus on: what they do, who they serve, and their main value proposition.`;
   } catch (error) {
     console.error('Error generating summary:', error);
     return `${companyName} - ${scrapedData.description}`;
+  }
+}
+
+export async function detectIndustry(scrapedData: ScrapedData): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    return '';
+  }
+
+  try {
+    const prompt = `Based on the following website data, identify the industry/sector this company operates in.
+Return ONLY the industry name (2-3 words maximum), nothing else.
+
+Title: ${scrapedData.title}
+Description: ${scrapedData.description}
+Headings: ${scrapedData.headings.slice(0, 10).join(', ')}
+Content: ${scrapedData.textContent.substring(0, 500)}
+
+Examples of good responses: "Technology", "Healthcare", "E-commerce", "Financial Services", "Real Estate", "Education", "Marketing & Advertising", "SaaS"`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are an industry classification expert. Return only the industry name, 2-3 words maximum.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.2,
+        max_tokens: 20,
+      }),
+    });
+
+    const data = await response.json();
+    const industry = data.choices[0]?.message?.content?.trim() || '';
+
+    // Clean up the response (remove quotes, periods, etc.)
+    return industry.replace(/['"\.]/g, '').trim();
+
+  } catch (error) {
+    console.error('Error detecting industry:', error);
+    return '';
   }
 }
