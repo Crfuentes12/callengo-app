@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useStripe } from '@/hooks/useStripe';
 
 interface Plan {
   id: string;
@@ -42,6 +43,7 @@ interface BillingSettingsProps {
 }
 
 export default function BillingSettings({ companyId }: BillingSettingsProps) {
+  const { createCheckoutSession, openBillingPortal, loading: stripeLoading } = useStripe();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -89,26 +91,45 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       return;
     }
 
+    // If it's the Free plan, use the old API
+    if (selectedPlan?.slug === 'free') {
+      try {
+        setChanging(true);
+        setSuccess('');
+
+        const response = await fetch('/api/billing/change-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyId, planId, billingCycle })
+        });
+
+        if (response.ok) {
+          setSuccess('Switched to Free plan successfully!');
+          await fetchData();
+        } else {
+          alert('Failed to change plan');
+        }
+      } catch (error) {
+        console.error('Error changing plan:', error);
+        alert('Failed to change plan');
+      } finally {
+        setChanging(false);
+      }
+      return;
+    }
+
+    // For paid plans, redirect to Stripe Checkout
     try {
       setChanging(true);
       setSuccess('');
 
-      const response = await fetch('/api/billing/change-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyId, planId, billingCycle })
+      await createCheckoutSession({
+        planId,
+        billingCycle,
       });
-
-      if (response.ok) {
-        setSuccess('Plan updated successfully!');
-        await fetchData();
-      } else {
-        alert('Failed to change plan');
-      }
     } catch (error) {
-      console.error('Error changing plan:', error);
-      alert('Failed to change plan');
-    } finally {
+      console.error('Error creating checkout session:', error);
+      alert('Failed to start checkout process');
       setChanging(false);
     }
   };
@@ -201,12 +222,32 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   </span>
                 </div>
                 <p className="text-sm text-slate-600">{currentPlan.description}</p>
+
+                {/* Billing Portal Button - Only show for paid plans with Stripe */}
+                {currentPlan.slug !== 'free' && subscription.status === 'active' && (
+                  <button
+                    onClick={() => openBillingPortal()}
+                    disabled={stripeLoading}
+                    className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {stripeLoading ? 'Loading...' : 'Manage Subscription & Payment'}
+                  </button>
+                )}
               </div>
               <div className="text-right">
                 <div className="text-3xl font-black text-slate-900">
                   {formatPrice(subscription.billing_cycle === 'monthly' ? currentPlan.price_monthly : currentPlan.price_annual)}
                 </div>
                 <div className="text-sm text-slate-500">/{subscription.billing_cycle === 'monthly' ? 'month' : 'year'}</div>
+                {subscription.current_period_end && (
+                  <div className="text-xs text-slate-500 mt-1">
+                    Renews {formatDate(subscription.current_period_end)}
+                  </div>
+                )}
               </div>
             </div>
 

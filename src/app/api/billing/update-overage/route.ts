@@ -1,11 +1,18 @@
 // app/api/billing/update-overage/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import {
+  enableOverage,
+  disableOverage,
+  updateOverageBudget,
+} from '@/lib/billing/overage-manager';
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -15,7 +22,10 @@ export async function POST(request: NextRequest) {
     const { companyId, subscriptionId, enabled, budget } = body;
 
     if (!companyId || !subscriptionId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
     // Verify user owns this company
@@ -31,7 +41,10 @@ export async function POST(request: NextRequest) {
 
     // Only owners and admins can modify overage settings
     if (userData.role !== 'owner' && userData.role !== 'admin') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Insufficient permissions' },
+        { status: 403 }
+      );
     }
 
     // Get subscription with plan info to check if it's a free plan
@@ -42,6 +55,13 @@ export async function POST(request: NextRequest) {
       .eq('company_id', companyId)
       .single();
 
+    if (!subscription) {
+      return NextResponse.json(
+        { error: 'Subscription not found' },
+        { status: 404 }
+      );
+    }
+
     // Apply budget limits based on plan
     let finalBudget = budget || 0;
     if (subscription?.plan?.slug === 'free') {
@@ -49,39 +69,43 @@ export async function POST(request: NextRequest) {
       finalBudget = Math.min(finalBudget, 20);
     }
 
-    // Update subscription overage settings
-    const { data: updatedSubscription, error } = await supabase
+    // Use Stripe integration to enable/disable overage
+    if (enabled && !subscription.overage_enabled) {
+      // Enabling overage - add metered billing to Stripe
+      await enableOverage({
+        companyId,
+        budget: finalBudget,
+      });
+    } else if (!enabled && subscription.overage_enabled) {
+      // Disabling overage - remove metered billing from Stripe
+      await disableOverage(companyId);
+    } else if (enabled && subscription.overage_enabled && budget !== subscription.overage_budget) {
+      // Just updating budget - no Stripe changes needed
+      await updateOverageBudget({
+        companyId,
+        budget: finalBudget,
+      });
+    }
+
+    // Get updated subscription
+    const { data: updatedSubscription } = await supabase
       .from('company_subscriptions')
-      .update({
-        overage_enabled: enabled,
-        overage_budget: finalBudget,
-        overage_spent: enabled ? undefined : 0, // Reset spent if disabling
-        updated_at: new Date().toISOString()
-      })
+      .select('*, plan:subscription_plans(*)')
       .eq('id', subscriptionId)
       .eq('company_id', companyId)
-      .select()
       .single();
-
-    if (error) throw error;
-
-    // Log billing event
-    await supabase.from('billing_events').insert({
-      company_id: companyId,
-      subscription_id: subscriptionId,
-      event_type: enabled ? 'overage_enabled' : 'overage_disabled',
-      event_data: { budget: budget || 0 }
-    });
 
     return NextResponse.json({
       status: 'success',
-      subscription: updatedSubscription
+      subscription: updatedSubscription,
     });
-
   } catch (error) {
     console.error('Error updating overage:', error);
     return NextResponse.json(
-      { error: 'Failed to update overage settings', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Failed to update overage settings',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }
