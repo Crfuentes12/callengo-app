@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "stripe:sync": "node -r dotenv/config node_modules/.bin/tsx scripts/stripe-sync.ts dotenv_config_path=.env.local",
+    "stripe:sync:live": "node -r dotenv/config node_modules/.bin/tsx scripts/stripe-sync.ts dotenv_config_path=.env.local --env=live",
+    "stripe:sync:dry": "node -r dotenv/config node_modules/.bin/tsx scripts/stripe-sync.ts dotenv_config_path=.env.local --dry-run --verbose"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.6.0",
