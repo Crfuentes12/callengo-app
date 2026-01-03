@@ -62,7 +62,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const [changing, setChanging] = useState(false);
   const [success, setSuccess] = useState('');
   const [showOverageModal, setShowOverageModal] = useState(false);
-  const [overageBudget, setOverageBudget] = useState(0);
+  const [overageBudget, setOverageBudget] = useState(10);
 
   // Helper functions for currency
   const convertPrice = (usdPrice: number) => {
@@ -164,6 +164,12 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const handleToggleOverage = async (enabled: boolean) => {
     if (!subscription) return;
 
+    // Validate budget when enabling
+    if (enabled && overageBudget <= 0) {
+      alert('Please set a budget greater than $0');
+      return;
+    }
+
     try {
       const response = await fetch('/api/billing/update-overage', {
         method: 'POST',
@@ -177,12 +183,16 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       });
 
       if (response.ok) {
-        setSuccess(enabled ? 'Overage enabled' : 'Overage disabled');
+        setSuccess(enabled ? 'Overage enabled successfully' : 'Overage disabled');
         await fetchData();
         setShowOverageModal(false);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to update overage'}`);
       }
     } catch (error) {
       console.error('Error updating overage:', error);
+      alert('Failed to update overage settings');
     }
   };
 
@@ -404,8 +414,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
       {/* Overage Modal */}
       {showOverageModal && subscription && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 min-h-screen">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative z-10">
             <h3 className="text-xl font-bold text-slate-900 mb-2">
               {subscription.overage_enabled ? 'Disable' : 'Enable'} Auto-Overage
             </h3>
@@ -517,7 +527,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             <p className="text-xs text-slate-600">Run the <code className="px-2 py-1 bg-slate-200 rounded font-mono">supabase-billing-migration.sql</code> script in your Supabase SQL editor.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-fr">
             {plans.map((plan) => {
             const isEnterprise = plan.slug === 'enterprise';
             const isPopular = plan.slug === 'business';
@@ -591,8 +601,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     )}
                   </div>
 
-                  {/* Features - Fixed height section */}
-                  <div className="flex-grow mb-4 min-h-[280px]">
+                  {/* Features */}
+                  <div className="flex-grow mb-4">
                     <div className="space-y-2 text-xs">
                       {/* Minutes */}
                       <div className="flex items-start gap-2">
