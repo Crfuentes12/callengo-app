@@ -273,21 +273,18 @@ async function syncCoupons() {
 
       // Create promotion code for easy sharing
       if (!CONFIG.DRY_RUN) {
+        // Type assertion needed - Stripe SDK types not fully updated for API v2025-12-15
         const existingPromoCodes = await stripe.promotionCodes.list({
-          promotion: {
-            coupon: couponConfig.id,
-          },
+          coupon: couponConfig.id,
           limit: 1,
-        } as any); // Type assertion needed for new API version
+        } as any);
 
         if (existingPromoCodes.data.length === 0) {
           const promoCode = await stripe.promotionCodes.create({
-            promotion: {
-              coupon: couponConfig.id,
-            },
+            coupon: couponConfig.id,
             code: couponConfig.id, // Same as coupon ID for simplicity
             max_redemptions: couponConfig.max_redemptions,
-          } as any); // Type assertion needed for new API version
+          } as any);
           log(`    ✅ Promotion code created: ${promoCode.code}`, 'success');
         } else {
           log(`    ℹ️  Promotion code already exists`, 'info');
@@ -480,33 +477,18 @@ async function syncSinglePlan(plan: any) {
   // =============================================================================
   // STEP 4: Create Metered Price for Overage
   // =============================================================================
+  // NOTE: Starting with Stripe API 2025-03-31.basil, metered prices require
+  // billing meters. For now, we skip metered price creation.
+  // To enable: Create a meter first, then use meter_data.event_name in price.
 
   if (!priceIdMetered && plan.price_per_extra_minute > 0) {
-    if (await confirmAction(`Create metered price for ${plan.name} ($${plan.price_per_extra_minute}/min)`)) {
-      logVerbose('Creating metered/overage price...');
+    log(`  ⚠️  Metered pricing skipped for ${plan.name}`, 'warning');
+    log(`     Stripe API 2025-03-31+ requires billing meters for usage-based pricing`, 'info');
+    log(`     To enable: Create meter first at https://dashboard.stripe.com/billing/meters`, 'info');
+    logVerbose('     See: https://docs.stripe.com/billing/subscriptions/usage-based/implementation-guide');
 
-      const price = await stripe.prices.create({
-        product: productId!,
-        currency: 'usd',
-        unit_amount: Math.round(plan.price_per_extra_minute * 100),
-        recurring: {
-          interval: 'month',
-          usage_type: 'metered',
-        },
-        billing_scheme: 'per_unit',
-        nickname: `${plan.name} - Overage (per minute)`,
-        tax_behavior: 'exclusive',
-        metadata: {
-          plan_id: plan.id,
-          type: 'overage',
-          unit: 'minute',
-          plan_slug: plan.slug,
-        },
-      });
-
-      priceIdMetered = price.id;
-      log(`  ✅ Metered price: ${priceIdMetered} ($${plan.price_per_extra_minute}/min overage)`, 'success');
-    }
+    // Skip metered price creation - can be added manually in Stripe Dashboard
+    // after creating appropriate billing meter
   } else if (priceIdMetered) {
     logVerbose(`Metered price exists: ${priceIdMetered}`);
   } else if (plan.price_per_extra_minute === 0) {
