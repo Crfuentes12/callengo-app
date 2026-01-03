@@ -557,6 +557,10 @@ export type Database = {
           features: Json
           is_active: boolean
           display_order: number
+          stripe_product_id: string | null
+          stripe_price_id_monthly: string | null
+          stripe_price_id_annual: string | null
+          stripe_metered_price_id: string | null
           created_at: string
           updated_at: string
         }
@@ -580,6 +584,10 @@ export type Database = {
           features?: Json
           is_active?: boolean
           display_order?: number
+          stripe_product_id?: string | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_annual?: string | null
+          stripe_metered_price_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -603,6 +611,10 @@ export type Database = {
           features?: Json
           is_active?: boolean
           display_order?: number
+          stripe_product_id?: string | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_annual?: string | null
+          stripe_metered_price_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -627,6 +639,7 @@ export type Database = {
           overage_alert_level: number
           stripe_subscription_id: string | null
           stripe_customer_id: string | null
+          stripe_subscription_item_id: string | null
           created_at: string
           updated_at: string
         }
@@ -648,6 +661,7 @@ export type Database = {
           overage_alert_level?: number
           stripe_subscription_id?: string | null
           stripe_customer_id?: string | null
+          stripe_subscription_item_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -669,6 +683,7 @@ export type Database = {
           overage_alert_level?: number
           stripe_subscription_id?: string | null
           stripe_customer_id?: string | null
+          stripe_subscription_item_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -751,6 +766,9 @@ export type Database = {
           status: string
           invoice_url: string | null
           stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          payment_method: string | null
+          failure_reason: string | null
           billing_date: string
           created_at: string
         }
@@ -764,6 +782,9 @@ export type Database = {
           status: string
           invoice_url?: string | null
           stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          payment_method?: string | null
+          failure_reason?: string | null
           billing_date?: string
           created_at?: string
         }
@@ -777,6 +798,9 @@ export type Database = {
           status?: string
           invoice_url?: string | null
           stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          payment_method?: string | null
+          failure_reason?: string | null
           billing_date?: string
           created_at?: string
         }
@@ -1025,6 +1049,33 @@ export type Database = {
           notes?: string | null
           created_at?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      stripe_events: {
+        Row: {
+          id: string
+          type: string
+          data: Json
+          processed: boolean
+          created_at: string
+          processed_at: string | null
+        }
+        Insert: {
+          id: string
+          type: string
+          data: Json
+          processed?: boolean
+          created_at?: string
+          processed_at?: string | null
+        }
+        Update: {
+          id?: string
+          type?: string
+          data?: Json
+          processed?: boolean
+          created_at?: string
+          processed_at?: string | null
         }
         Relationships: []
       }
