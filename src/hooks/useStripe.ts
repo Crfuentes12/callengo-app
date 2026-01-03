@@ -20,6 +20,7 @@ export function useStripe() {
   const createCheckoutSession = async (params: {
     planId: string;
     billingCycle: 'monthly' | 'annual';
+    currency?: 'USD' | 'EUR' | 'GBP';
   }) => {
     try {
       setLoading(true);

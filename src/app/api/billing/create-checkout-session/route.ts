@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     // Parse request body
     const body = await req.json();
-    const { planId, billingCycle = 'monthly' } = body;
+    const { planId, billingCycle = 'monthly', currency = 'USD' } = body;
 
     if (!planId) {
       return NextResponse.json(
@@ -55,6 +55,13 @@ export async function POST(req: NextRequest) {
     if (!['monthly', 'annual'].includes(billingCycle)) {
       return NextResponse.json(
         { error: 'Invalid billing cycle' },
+        { status: 400 }
+      );
+    }
+
+    if (!['USD', 'EUR', 'GBP'].includes(currency)) {
+      return NextResponse.json(
+        { error: 'Invalid currency' },
         { status: 400 }
       );
     }
@@ -88,15 +95,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get Stripe price ID based on billing cycle
-    const stripePriceId =
-      billingCycle === 'monthly'
-        ? plan.stripe_price_id_monthly
-        : plan.stripe_price_id_annual;
+    // Get Stripe price ID based on billing cycle and currency
+    // If USD, use the stored price IDs (backward compatibility)
+    let stripePriceId: string | null = null;
+
+    if (currency === 'USD') {
+      stripePriceId =
+        billingCycle === 'monthly'
+          ? plan.stripe_price_id_monthly
+          : plan.stripe_price_id_annual;
+    } else {
+      // For EUR/GBP, need to fetch from Stripe API
+      try {
+        const stripe = (await import('@/lib/stripe')).stripe;
+        const prices = await stripe.prices.list({
+          product: plan.stripe_product_id,
+          currency: currency.toLowerCase() as 'usd' | 'eur' | 'gbp',
+          active: true,
+          limit: 100,
+        } as any);
+
+        // Find price matching the billing cycle
+        const interval = billingCycle === 'monthly' ? 'month' : 'year';
+        const matchingPrice = prices.data.find(
+          (p) => p.recurring?.interval === interval
+        );
+
+        stripePriceId = matchingPrice?.id || null;
+      } catch (error) {
+        console.error('[Checkout] Error fetching prices:', error);
+      }
+    }
 
     if (!stripePriceId) {
       return NextResponse.json(
-        { error: 'Stripe price not configured for this plan' },
+        { error: `Stripe price not configured for this plan in ${currency}` },
         { status: 500 }
       );
     }
