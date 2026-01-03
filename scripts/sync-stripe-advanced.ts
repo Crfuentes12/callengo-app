@@ -364,6 +364,7 @@ async function syncSinglePlan(plan: any) {
         name: plan.name,
         description: productDesc?.long || plan.description || `${plan.name} subscription plan`,
         statement_descriptor: productDesc?.statement_descriptor,
+        marketing_features: productDesc?.features?.map(f => ({ name: f })) || [],
         metadata: {
           plan_id: plan.id,
           slug: plan.slug,
@@ -373,13 +374,14 @@ async function syncSinglePlan(plan: any) {
           max_concurrent_calls: plan.max_concurrent_calls.toString(),
           source: 'supabase',
           sync_version: '2.0',
-          // Store features in metadata (can be attached via POST /v1/products/:id/features if needed)
-          features: productDesc?.features?.join(', ') || '',
         },
-      });
+      } as any); // Type assertion for marketing_features (SDK may not be fully updated)
 
       productId = product.id;
       log(`  ✅ Product created: ${productId}`, 'success');
+      if (productDesc?.features && productDesc.features.length > 0) {
+        logVerbose(`     Added ${productDesc.features.length} marketing features`);
+      }
     }
   } else {
     logVerbose(`Using existing product: ${productId}`);
@@ -390,6 +392,7 @@ async function syncSinglePlan(plan: any) {
         name: plan.name,
         description: productDesc?.long || plan.description || `${plan.name} subscription plan`,
         statement_descriptor: productDesc?.statement_descriptor,
+        marketing_features: productDesc?.features?.map(f => ({ name: f })) || [],
         metadata: {
           plan_id: plan.id,
           slug: plan.slug,
@@ -400,11 +403,12 @@ async function syncSinglePlan(plan: any) {
           source: 'supabase',
           sync_version: '2.0',
           last_synced: new Date().toISOString(),
-          // Store features in metadata (can be attached via POST /v1/products/:id/features if needed)
-          features: productDesc?.features?.join(', ') || '',
         },
-      });
-      logVerbose('Product metadata updated');
+      } as any); // Type assertion for marketing_features (SDK may not be fully updated)
+      logVerbose('Product metadata and features updated');
+      if (productDesc?.features && productDesc.features.length > 0) {
+        logVerbose(`     Synced ${productDesc.features.length} marketing features`);
+      }
     }
   }
 
