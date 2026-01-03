@@ -521,7 +521,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 }`}
               >
                 Annual
-                <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 11%</span>
+                <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 12%</span>
               </button>
             </div>
           )}
@@ -555,17 +555,17 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
             return (
               <div key={plan.id} className="relative flex">
-                {/* Popular Badge - Ribbon style in corner */}
+                {/* Popular Badge - Corner ribbon */}
                 {isPopular && (
-                  <div className="absolute -top-0 -right-0 z-10 overflow-hidden w-24 h-24 pointer-events-none">
-                    <div className="absolute top-5 -right-8 w-32 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold py-1 transform rotate-45 shadow-lg text-center">
+                  <div className="absolute top-0 right-0 z-10 overflow-hidden w-16 h-16 pointer-events-none">
+                    <div className="absolute top-3 -right-6 w-20 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[9px] font-bold py-0.5 transform rotate-45 shadow-md text-center">
                       BEST VALUE
                     </div>
                   </div>
                 )}
 
                 <div
-                  className={`rounded-xl p-4 transition-all flex flex-col h-full w-full ${
+                  className={`rounded-xl p-4 transition-all flex flex-col h-full w-full overflow-hidden ${
                     isCurrentPlan
                       ? 'border-2 border-indigo-200 bg-indigo-50/30'
                       : isPopular
