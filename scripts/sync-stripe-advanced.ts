@@ -515,6 +515,27 @@ async function syncSinglePlan(plan: any) {
   // STEP 3: Create Annual Price
   // =============================================================================
 
+  // Check if existing annual price has incorrect amount
+  if (priceIdAnnual && plan.price_annual > 0 && !CONFIG.DRY_RUN) {
+    try {
+      const existingPrice = await stripe.prices.retrieve(priceIdAnnual);
+      const expectedAmount = Math.round(plan.price_annual * 12 * 100);
+
+      if (existingPrice.unit_amount !== expectedAmount) {
+        log(`  ⚠️  Annual price has incorrect amount: $${(existingPrice.unit_amount || 0) / 100} (expected $${expectedAmount / 100})`, 'warning');
+        if (await confirmAction(`Archive incorrect annual price and create new one?`)) {
+          // Archive old price
+          await stripe.prices.update(priceIdAnnual, { active: false });
+          log(`  ✅ Archived incorrect annual price`, 'success');
+          priceIdAnnual = null; // Force creation of new price
+        }
+      }
+    } catch (err) {
+      // Price doesn't exist or can't be retrieved
+      priceIdAnnual = null;
+    }
+  }
+
   if (!priceIdAnnual && plan.price_annual > 0) {
     if (await confirmAction(`Create annual price for ${plan.name} ($${plan.price_annual}/mo, $${plan.price_annual * 12}/yr)`)) {
       logVerbose('Creating annual price...');
