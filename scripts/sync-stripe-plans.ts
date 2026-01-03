@@ -10,6 +10,9 @@
  * Run with: npx tsx scripts/sync-stripe-plans.ts
  */
 
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
 import { stripe, createProduct, createRecurringPrice } from '../src/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../src/types/supabase';
