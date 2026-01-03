@@ -76,6 +76,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     return `${rate.symbol}${converted}`;
   };
 
+  const formatPriceWithDecimals = (usdPrice: number) => {
+    const rate = CURRENCY_RATES[currency] || CURRENCY_RATES.USD;
+    const converted = usdPrice * rate.multiplier;
+    // Show up to 2 decimals, remove trailing zeros
+    const formatted = converted.toFixed(2).replace(/\.?0+$/, '');
+    return `${rate.symbol}${formatted}`;
+  };
+
   const getCurrencySymbol = () => {
     return CURRENCY_RATES[currency]?.symbol || '$';
   };
@@ -457,7 +465,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6">
               <p className="text-xs text-blue-900">
-                <span className="font-semibold">Current overage rate:</span> {formatPrice(currentPlan?.price_per_extra_minute || 0)}/minute
+                <span className="font-semibold">Current overage rate:</span> {formatPriceWithDecimals(currentPlan?.price_per_extra_minute || 0)}/minute
               </p>
             </div>
 
@@ -630,7 +638,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         <span className="text-slate-700">
-                          <span className="font-semibold text-slate-900">{formatPrice(plan.price_per_extra_minute)}</span> per extra minute
+                          <span className="font-semibold text-slate-900">{formatPriceWithDecimals(plan.price_per_extra_minute)}</span> per extra minute
                         </span>
                       </div>
 
