@@ -413,6 +413,72 @@ async function syncSinglePlan(plan: any) {
   }
 
   // =============================================================================
+  // STEP 1.5: Create and Attach Entitlement Features
+  // =============================================================================
+
+  if (productDesc?.features && productDesc.features.length > 0 && productId) {
+    logVerbose(`Syncing ${productDesc.features.length} entitlement features...`);
+
+    for (const featureName of productDesc.features) {
+      try {
+        // Create a unique lookup key for the feature
+        const featureLookupKey = `${plan.slug}_${featureName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+
+        // Try to find existing feature by lookup_key
+        let feature: any = null;
+        try {
+          const existingFeatures = await stripe.entitlements.features.list({
+            limit: 100,
+          } as any);
+          feature = existingFeatures.data.find((f: any) => f.lookup_key === featureLookupKey);
+        } catch (err) {
+          // Feature doesn't exist
+        }
+
+        // Create feature if it doesn't exist
+        if (!feature) {
+          feature = await stripe.entitlements.features.create({
+            name: featureName,
+            lookup_key: featureLookupKey,
+            metadata: {
+              plan: plan.slug,
+            },
+          } as any);
+          logVerbose(`     Created feature: ${featureName}`);
+        } else {
+          logVerbose(`     Feature exists: ${featureName}`);
+        }
+
+        // Attach feature to product
+        try {
+          const existingAttachments = await stripe.products.listFeatures(productId, {
+            limit: 100,
+          } as any);
+
+          const alreadyAttached = existingAttachments.data.find(
+            (pf: any) => pf.entitlement_feature?.id === feature.id
+          );
+
+          if (!alreadyAttached) {
+            await stripe.products.createFeature(productId, {
+              entitlement_feature: feature.id,
+            } as any);
+            logVerbose(`     ✅ Attached feature to product: ${featureName}`);
+          }
+        } catch (attachErr: any) {
+          if (!attachErr.message?.includes('already attached')) {
+            logVerbose(`     Note: Could not attach feature: ${attachErr.message}`);
+          }
+        }
+      } catch (error: any) {
+        logVerbose(`     Warning: Could not process feature "${featureName}": ${error.message}`);
+      }
+    }
+
+    log(`  ✅ Synced ${productDesc.features.length} features to product`, 'success');
+  }
+
+  // =============================================================================
   // STEP 2: Create Monthly Price
   // =============================================================================
 
@@ -450,13 +516,15 @@ async function syncSinglePlan(plan: any) {
   // =============================================================================
 
   if (!priceIdAnnual && plan.price_annual > 0) {
-    if (await confirmAction(`Create annual price for ${plan.name} ($${plan.price_annual})`)) {
+    if (await confirmAction(`Create annual price for ${plan.name} ($${plan.price_annual}/mo, $${plan.price_annual * 12}/yr)`)) {
       logVerbose('Creating annual price...');
 
+      // Annual price in Stripe = monthly price × 12 months
+      const annualTotal = Math.round(plan.price_annual * 12 * 100);
       const price = await stripe.prices.create({
         product: productId!,
         currency: 'usd',
-        unit_amount: Math.round(plan.price_annual * 100),
+        unit_amount: annualTotal,
         recurring: {
           interval: 'year',
         },
@@ -466,13 +534,14 @@ async function syncSinglePlan(plan: any) {
           plan_id: plan.id,
           billing_cycle: 'annual',
           plan_slug: plan.slug,
-          savings: Math.round(((plan.price_monthly * 12 - plan.price_annual) / (plan.price_monthly * 12)) * 100) + '%',
+          monthly_equivalent: plan.price_annual.toString(),
+          savings: Math.round(((plan.price_monthly * 12 - plan.price_annual * 12) / (plan.price_monthly * 12)) * 100) + '%',
         },
       });
 
       priceIdAnnual = price.id;
-      const savings = Math.round(((plan.price_monthly * 12 - plan.price_annual) / (plan.price_monthly * 12)) * 100);
-      log(`  ✅ Annual price: ${priceIdAnnual} ($${plan.price_annual}/yr, save ${savings}%)`, 'success');
+      const savings = Math.round(((plan.price_monthly * 12 - plan.price_annual * 12) / (plan.price_monthly * 12)) * 100);
+      log(`  ✅ Annual price: ${priceIdAnnual} ($${plan.price_annual * 12}/yr = $${plan.price_annual}/mo, save ${savings}%)`, 'success');
     }
   } else if (priceIdAnnual) {
     logVerbose(`Annual price exists: ${priceIdAnnual}`);
