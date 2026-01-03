@@ -555,11 +555,11 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
             return (
               <div key={plan.id} className="relative flex">
-                {/* Popular Badge - Outside the card */}
+                {/* Popular Badge - Ribbon style in corner */}
                 {isPopular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wide">
-                      ⭐ Best Value
+                  <div className="absolute -top-0 -right-0 z-10 overflow-hidden w-24 h-24 pointer-events-none">
+                    <div className="absolute top-5 -right-8 w-32 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold py-1 transform rotate-45 shadow-lg text-center">
+                      BEST VALUE
                     </div>
                   </div>
                 )}
