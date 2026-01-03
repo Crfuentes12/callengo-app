@@ -554,18 +554,18 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               : 0;
 
             return (
-              <div key={plan.id} className="relative flex">
-                {/* Popular Badge - Corner ribbon */}
+              <div key={plan.id} className="relative flex pt-6">
+                {/* Popular Badge - Top badge */}
                 {isPopular && (
-                  <div className="absolute top-0 right-0 z-10 overflow-hidden w-16 h-16 pointer-events-none">
-                    <div className="absolute top-3 -right-6 w-20 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[9px] font-bold py-0.5 transform rotate-45 shadow-md text-center">
-                      BEST VALUE
+                  <div className="absolute -top-0 left-1/2 -translate-x-1/2 z-10">
+                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">
+                      ⭐ BEST VALUE
                     </div>
                   </div>
                 )}
 
                 <div
-                  className={`rounded-xl p-4 transition-all flex flex-col h-full w-full overflow-hidden ${
+                  className={`rounded-xl p-4 transition-all flex flex-col h-full w-full ${
                     isCurrentPlan
                       ? 'border-2 border-indigo-200 bg-indigo-50/30'
                       : isPopular
