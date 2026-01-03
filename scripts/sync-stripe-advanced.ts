@@ -273,21 +273,23 @@ async function syncCoupons() {
 
       // Create promotion code for easy sharing
       if (!CONFIG.DRY_RUN) {
-        // Type assertion needed - Stripe SDK types not fully updated for API v2025-12-15
-        const existingPromoCodes = await stripe.promotionCodes.list({
-          coupon: couponConfig.id,
-          limit: 1,
-        } as any);
-
-        if (existingPromoCodes.data.length === 0) {
+        try {
+          // Try to create the promotion code directly
+          // If it already exists, Stripe will return an error which we handle below
           const promoCode = await stripe.promotionCodes.create({
             coupon: couponConfig.id,
             code: couponConfig.id, // Same as coupon ID for simplicity
             max_redemptions: couponConfig.max_redemptions,
           } as any);
           log(`    ✅ Promotion code created: ${promoCode.code}`, 'success');
-        } else {
-          log(`    ℹ️  Promotion code already exists`, 'info');
+        } catch (promoError: any) {
+          // Promotion code likely already exists
+          if (promoError.code === 'resource_already_exists' || promoError.message?.includes('already exists')) {
+            log(`    ℹ️  Promotion code already exists`, 'info');
+          } else {
+            // Log other errors but don't fail the whole sync
+            logVerbose(`    Note: Could not create promotion code: ${promoError.message}`);
+          }
         }
       }
 
