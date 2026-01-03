@@ -76,6 +76,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     return `${rate.symbol}${converted}`;
   };
 
+  const formatPriceWithDecimals = (usdPrice: number) => {
+    const rate = CURRENCY_RATES[currency] || CURRENCY_RATES.USD;
+    const converted = usdPrice * rate.multiplier;
+    // Show up to 2 decimals, remove trailing zeros
+    const formatted = converted.toFixed(2).replace(/\.?0+$/, '');
+    return `${rate.symbol}${formatted}`;
+  };
+
   const getCurrencySymbol = () => {
     return CURRENCY_RATES[currency]?.symbol || '$';
   };
@@ -457,7 +465,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6">
               <p className="text-xs text-blue-900">
-                <span className="font-semibold">Current overage rate:</span> {formatPrice(currentPlan?.price_per_extra_minute || 0)}/minute
+                <span className="font-semibold">Current overage rate:</span> {formatPriceWithDecimals(currentPlan?.price_per_extra_minute || 0)}/minute
               </p>
             </div>
 
@@ -485,8 +493,11 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
       {/* Available Plans */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-slate-900">Available Plans</h3>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">Choose Your Plan</h3>
+            <p className="text-sm text-slate-600">Select the perfect plan for your needs</p>
+          </div>
 
           {/* Billing Cycle Toggle */}
           {plans.length > 0 && (
@@ -527,7 +538,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             <p className="text-xs text-slate-600">Run the <code className="px-2 py-1 bg-slate-200 rounded font-mono">supabase-billing-migration.sql</code> script in your Supabase SQL editor.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-fr">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {plans.map((plan) => {
             const isEnterprise = plan.slug === 'enterprise';
             const isPopular = plan.slug === 'business';
@@ -543,128 +554,128 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               : 0;
 
             return (
-              <div key={plan.id} className="relative">
+              <div key={plan.id} className="relative flex">
                 {/* Popular Badge - Outside the card */}
                 {isPopular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold px-4 py-1.5 rounded-full shadow-lg uppercase tracking-wide">
-                      ⭐ Most Popular
+                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wide">
+                      ⭐ Best Value
                     </div>
                   </div>
                 )}
 
                 <div
-                  className={`rounded-xl p-5 transition-all flex flex-col h-full ${
+                  className={`rounded-xl p-4 transition-all flex flex-col h-full w-full ${
                     isCurrentPlan
                       ? 'border-2 border-indigo-200 bg-indigo-50/30'
                       : isPopular
-                      ? 'border-[3px] border-indigo-500 bg-white shadow-lg shadow-indigo-500/20'
-                      : 'border border-slate-200 bg-white hover:border-slate-300'
+                      ? 'border-2 border-indigo-500 bg-white shadow-xl shadow-indigo-500/10 scale-105'
+                      : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
                   }`}
                 >
                   {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-grow">
-                      <h4 className="font-bold text-slate-900 mb-1">{plan.name}</h4>
-                      <p className="text-xs text-slate-600 min-h-[32px]">{plan.description}</p>
+                  <div className="mb-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="text-base font-bold text-slate-900">{plan.name}</h4>
+                      {isCurrentPlan && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
+                          Active
+                        </span>
+                      )}
                     </div>
-                    {isCurrentPlan && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 ml-2 flex-shrink-0">
-                        Current
-                      </span>
-                    )}
+                    <p className="text-[11px] text-slate-600 leading-tight">{plan.description}</p>
                   </div>
 
                   {/* Pricing */}
-                  <div className="mb-4">
-                    <div className="flex items-baseline gap-1 mb-1">
-                      {isEnterprise && <span className="text-sm text-slate-500 font-medium mr-1">From</span>}
-                      <span className="text-3xl font-black text-slate-900">{formatPrice(monthlyPrice)}</span>
-                      <span className="text-sm text-slate-500">/mo</span>
+                  <div className="mb-3 pb-3 border-b border-slate-100">
+                    <div className="flex items-baseline gap-1">
+                      {isEnterprise && <span className="text-xs text-slate-500 font-medium">From</span>}
+                      <span className="text-2xl font-black text-slate-900">{formatPrice(monthlyPrice)}</span>
+                      <span className="text-xs text-slate-500">/mo</span>
                     </div>
 
                     {/* Show yearly total in small text for annual plans */}
                     {!isEnterprise && billingCycle === 'annual' && (
-                      <div className="text-xs text-slate-500 mb-2">
-                        {formatPrice(yearlyTotal)} billed annually
+                      <div className="text-[10px] text-slate-500 mt-1">
+                        {formatPrice(yearlyTotal)}/year
                       </div>
                     )}
 
                     {/* Show discount badge for annual billing */}
                     {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
-                      <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md bg-green-100 text-green-700 border border-green-200">
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">
+                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
                         </svg>
-                        Save {discountPercent}% annually
+                        Save {discountPercent}%
                       </div>
                     )}
                   </div>
 
                   {/* Features */}
-                  <div className="flex-grow mb-4">
-                    <div className="space-y-2 text-xs">
+                  <div className="flex-grow mb-3">
+                    <div className="space-y-1.5 text-[11px]">
                       {/* Minutes */}
-                      <div className="flex items-start gap-2">
-                        <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="flex items-start gap-1.5">
+                        <svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-slate-700">
-                          <span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span> minutes/month (~{getApproxCalls(plan.minutes_included, plan.max_call_duration)} calls)
+                        <span className="text-slate-700 leading-tight">
+                          <span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span> min/mo
                         </span>
                       </div>
 
                       {/* Max call duration */}
-                      <div className="flex items-start gap-2">
-                        <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="flex items-start gap-1.5">
+                        <svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-slate-700">
-                          <span className="font-semibold text-slate-900">{plan.max_call_duration} min</span> max per call
+                        <span className="text-slate-700 leading-tight">
+                          <span className="font-semibold text-slate-900">{plan.max_call_duration} min</span> max call
                         </span>
                       </div>
 
                       {/* Extra minute price */}
-                      <div className="flex items-start gap-2">
-                        <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="flex items-start gap-1.5">
+                        <svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-slate-700">
-                          <span className="font-semibold text-slate-900">{formatPrice(plan.price_per_extra_minute)}</span> per extra minute
+                        <span className="text-slate-700 leading-tight">
+                          <span className="font-semibold text-slate-900">{formatPriceWithDecimals(plan.price_per_extra_minute)}</span> overage
                         </span>
                       </div>
 
                       {/* Concurrent calls */}
-                      <div className="flex items-start gap-2">
-                        <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="flex items-start gap-1.5">
+                        <svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-slate-700">
-                          <span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span> concurrent call{plan.max_concurrent_calls > 1 ? 's' : ''}
+                        <span className="text-slate-700 leading-tight">
+                          <span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span> concurrent
                         </span>
                       </div>
 
                       {/* Call limits (if any) */}
                       {(plan.max_calls_per_hour || plan.max_calls_per_day) && (
-                        <div className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <div className="flex items-start gap-1.5">
+                          <svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-slate-700">
-                            {plan.max_calls_per_hour && <span><span className="font-semibold text-slate-900">{plan.max_calls_per_hour}</span> calls/hour</span>}
+                          <span className="text-slate-700 leading-tight">
+                            {plan.max_calls_per_hour && <span><span className="font-semibold text-slate-900">{plan.max_calls_per_hour}</span>/hr</span>}
                             {plan.max_calls_per_hour && plan.max_calls_per_day && ', '}
-                            {plan.max_calls_per_day && <span><span className="font-semibold text-slate-900">{plan.max_calls_per_day}</span> calls/day</span>}
+                            {plan.max_calls_per_day && <span><span className="font-semibold text-slate-900">{plan.max_calls_per_day}</span>/day</span>}
                           </span>
                         </div>
                       )}
 
                       {/* Plan-specific features - Dynamically loaded */}
                       {getPlanFeatures(plan.slug).map((feature, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <div key={idx} className="flex items-start gap-1.5">
+                          <svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-slate-700">{feature}</span>
+                          <span className="text-slate-700 leading-tight">{feature}</span>
                         </div>
                       ))}
                     </div>
@@ -674,15 +685,15 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   <button
                     onClick={() => handleChangePlan(plan.id)}
                     disabled={isCurrentPlan || changing}
-                    className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto ${
+                    className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto ${
                       isCurrentPlan
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                         : isPopular
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/30'
-                        : 'bg-slate-700 text-white hover:bg-slate-800'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-md'
+                        : 'bg-slate-800 text-white hover:bg-slate-900'
                     }`}
                   >
-                    {changing ? 'Processing...' : isCurrentPlan ? 'Current Plan' : isEnterprise ? 'Contact Sales' : 'Select Plan'}
+                    {changing ? 'Processing...' : isCurrentPlan ? 'Current' : isEnterprise ? 'Contact Sales' : 'Get Started'}
                   </button>
                 </div>
               </div>
