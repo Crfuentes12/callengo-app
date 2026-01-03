@@ -247,6 +247,16 @@ async function syncCoupons() {
       }
 
       if (!existingCoupon && await confirmAction(`Create coupon ${couponConfig.id}`)) {
+        // Clean metadata: remove undefined values (Stripe only accepts string | number | null)
+        const cleanMetadata: Record<string, string | number | null> = {};
+        if (couponConfig.metadata) {
+          Object.entries(couponConfig.metadata).forEach(([key, value]) => {
+            if (value !== undefined) {
+              cleanMetadata[key] = value;
+            }
+          });
+        }
+
         const coupon = await stripe.coupons.create({
           id: couponConfig.id,
           name: couponConfig.name,
@@ -254,7 +264,7 @@ async function syncCoupons() {
           duration: couponConfig.duration as 'forever' | 'once' | 'repeating',
           duration_in_months: couponConfig.duration_in_months,
           max_redemptions: couponConfig.max_redemptions,
-          metadata: couponConfig.metadata,
+          metadata: cleanMetadata,
         });
         log(`    ✅ Coupon created: ${coupon.id} (${coupon.percent_off}% off)`, 'success');
       } else if (existingCoupon) {
@@ -264,16 +274,20 @@ async function syncCoupons() {
       // Create promotion code for easy sharing
       if (!CONFIG.DRY_RUN) {
         const existingPromoCodes = await stripe.promotionCodes.list({
-          coupon: couponConfig.id,
+          promotion: {
+            coupon: couponConfig.id,
+          },
           limit: 1,
-        });
+        } as any); // Type assertion needed for new API version
 
         if (existingPromoCodes.data.length === 0) {
           const promoCode = await stripe.promotionCodes.create({
-            coupon: couponConfig.id,
+            promotion: {
+              coupon: couponConfig.id,
+            },
             code: couponConfig.id, // Same as coupon ID for simplicity
             max_redemptions: couponConfig.max_redemptions,
-          });
+          } as any); // Type assertion needed for new API version
           log(`    ✅ Promotion code created: ${promoCode.code}`, 'success');
         } else {
           log(`    ℹ️  Promotion code already exists`, 'info');
@@ -360,8 +374,9 @@ async function syncSinglePlan(plan: any) {
           max_concurrent_calls: plan.max_concurrent_calls.toString(),
           source: 'supabase',
           sync_version: '2.0',
+          // Store features in metadata (can be attached via POST /v1/products/:id/features if needed)
+          features: productDesc?.features?.join(', ') || '',
         },
-        features: productDesc?.features?.map(f => ({ name: f })) || [],
       });
 
       productId = product.id;
@@ -386,8 +401,9 @@ async function syncSinglePlan(plan: any) {
           source: 'supabase',
           sync_version: '2.0',
           last_synced: new Date().toISOString(),
+          // Store features in metadata (can be attached via POST /v1/products/:id/features if needed)
+          features: productDesc?.features?.join(', ') || '',
         },
-        features: productDesc?.features?.map(f => ({ name: f })) || [],
       });
       logVerbose('Product metadata updated');
     }
