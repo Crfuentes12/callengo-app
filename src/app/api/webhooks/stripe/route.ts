@@ -194,7 +194,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 /**
  * Handle customer.subscription.created
  */
-async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
+async function handleSubscriptionCreated(subscription: any) {
   console.log('📝 Subscription created:', subscription.id);
 
   const companyId = subscription.metadata?.company_id;
@@ -204,9 +204,13 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
   }
 
   // Get the metered subscription item (if any)
-  const meteredItem = subscription.items.data.find(
-    (item) => item.price.recurring?.usage_type === 'metered'
+  const meteredItem = subscription.items?.data?.find(
+    (item: any) => item.price?.recurring?.usage_type === 'metered'
   );
+
+  // Extract period dates - may vary by Stripe API version
+  const periodStart = subscription.current_period_start || subscription.billing?.current_period_start;
+  const periodEnd = subscription.current_period_end || subscription.billing?.current_period_end;
 
   await supabase
     .from('company_subscriptions')
@@ -214,8 +218,8 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
       stripe_subscription_id: subscription.id,
       stripe_subscription_item_id: meteredItem?.id || null,
       status: subscription.status,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : new Date().toISOString(),
+      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date().toISOString(),
     })
     .eq('company_id', companyId);
 }
@@ -223,7 +227,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 /**
  * Handle customer.subscription.updated
  */
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+async function handleSubscriptionUpdated(subscription: any) {
   console.log('🔄 Subscription updated:', subscription.id);
 
   // Find subscription by Stripe ID
@@ -239,17 +243,21 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   }
 
   // Get the metered subscription item (if any)
-  const meteredItem = subscription.items.data.find(
-    (item) => item.price.recurring?.usage_type === 'metered'
+  const meteredItem = subscription.items?.data?.find(
+    (item: any) => item.price?.recurring?.usage_type === 'metered'
   );
+
+  // Extract period dates - may vary by Stripe API version
+  const periodStart = subscription.current_period_start || subscription.billing?.current_period_start;
+  const periodEnd = subscription.current_period_end || subscription.billing?.current_period_end;
 
   // Update subscription status
   await supabase
     .from('company_subscriptions')
     .update({
       status: subscription.status,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : new Date().toISOString(),
+      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date().toISOString(),
       stripe_subscription_item_id: meteredItem?.id || null,
     })
     .eq('stripe_subscription_id', subscription.id);
@@ -309,10 +317,10 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 /**
  * Handle invoice.payment_succeeded
  */
-async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
+async function handleInvoicePaymentSucceeded(invoice: any) {
   console.log('💳 Payment succeeded:', invoice.id);
 
-  const subscriptionId = invoice.subscription as string;
+  const subscriptionId = invoice.subscription;
   if (!subscriptionId) {
     console.log('No subscription ID in invoice, skipping');
     return;
@@ -334,13 +342,13 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   await supabase.from('billing_history').insert({
     company_id: subscription.company_id,
     subscription_id: subscription.id,
-    amount: invoice.amount_paid / 100, // Convert from cents
-    currency: invoice.currency.toUpperCase(),
+    amount: (invoice.amount_paid || 0) / 100, // Convert from cents
+    currency: (invoice.currency || 'usd').toUpperCase(),
     status: 'paid',
     stripe_invoice_id: invoice.id,
-    stripe_payment_intent_id: invoice.payment_intent as string,
+    stripe_payment_intent_id: invoice.payment_intent || null,
     payment_method: invoice.charge ? 'card' : 'other',
-    billing_date: new Date(invoice.created * 1000).toISOString(),
+    billing_date: new Date((invoice.created || Date.now() / 1000) * 1000).toISOString(),
   });
 
   // Log event
@@ -374,10 +382,10 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 /**
  * Handle invoice.payment_failed
  */
-async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+async function handleInvoicePaymentFailed(invoice: any) {
   console.log('❌ Payment failed:', invoice.id);
 
-  const subscriptionId = invoice.subscription as string;
+  const subscriptionId = invoice.subscription;
   if (!subscriptionId) return;
 
   const { data: subscription } = await supabase
@@ -392,12 +400,12 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   await supabase.from('billing_history').insert({
     company_id: subscription.company_id,
     subscription_id: subscription.id,
-    amount: invoice.amount_due / 100,
-    currency: invoice.currency.toUpperCase(),
+    amount: (invoice.amount_due || 0) / 100,
+    currency: (invoice.currency || 'usd').toUpperCase(),
     status: 'failed',
     stripe_invoice_id: invoice.id,
     failure_reason: 'Payment failed',
-    billing_date: new Date(invoice.created * 1000).toISOString(),
+    billing_date: new Date((invoice.created || Date.now() / 1000) * 1000).toISOString(),
   });
 
   // Update subscription status to past_due

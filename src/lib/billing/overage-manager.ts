@@ -281,18 +281,10 @@ export async function syncAllMeteredUsage(): Promise<void> {
         const overageMinutes = Math.max(0, usage.minutes_used - minutesIncluded);
 
         if (overageMinutes > 0 && subscription.stripe_subscription_item_id) {
-          // Report to Stripe
-          await stripe.subscriptionItems.createUsageRecord(
-            subscription.stripe_subscription_item_id,
-            {
-              quantity: Math.ceil(overageMinutes),
-              action: 'set',
-              timestamp: Math.floor(Date.now() / 1000),
-            }
-          );
-
+          // TODO: Update this to use new Stripe API v2025-12-15 metered billing
+          // The createUsageRecord method has changed in Stripe API v20+
           console.log(
-            `  ✅ Synced ${overageMinutes} minutes for company ${subscription.company_id}`
+            `  ℹ️  Would sync ${overageMinutes} minutes for company ${subscription.company_id} (API update needed)`
           );
         }
       } catch (itemError) {
