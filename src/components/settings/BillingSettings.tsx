@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useStripe } from '@/hooks/useStripe';
 import { getPlanFeatures } from '@/config/plan-features';
+import { useUserCurrency } from '@/hooks/useAutoGeolocation';
 
 interface Plan {
   id: string;
@@ -43,8 +44,16 @@ interface BillingSettingsProps {
   companyId: string;
 }
 
+// Currency conversion rates (same as in stripe-sync.ts)
+const CURRENCY_RATES = {
+  USD: { symbol: '$', multiplier: 1 },
+  EUR: { symbol: '€', multiplier: 0.92 },
+  GBP: { symbol: '£', multiplier: 0.79 },
+};
+
 export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const { createCheckoutSession, openBillingPortal, loading: stripeLoading } = useStripe();
+  const { currency, loading: currencyLoading } = useUserCurrency();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -54,6 +63,22 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const [success, setSuccess] = useState('');
   const [showOverageModal, setShowOverageModal] = useState(false);
   const [overageBudget, setOverageBudget] = useState(0);
+
+  // Helper functions for currency
+  const convertPrice = (usdPrice: number) => {
+    const rate = CURRENCY_RATES[currency] || CURRENCY_RATES.USD;
+    return Math.round(usdPrice * rate.multiplier);
+  };
+
+  const formatPrice = (usdPrice: number) => {
+    const rate = CURRENCY_RATES[currency] || CURRENCY_RATES.USD;
+    const converted = Math.round(usdPrice * rate.multiplier);
+    return `${rate.symbol}${converted}`;
+  };
+
+  const getCurrencySymbol = () => {
+    return CURRENCY_RATES[currency]?.symbol || '$';
+  };
 
   useEffect(() => {
     fetchData();
@@ -127,6 +152,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       await createCheckoutSession({
         planId,
         billingCycle,
+        currency,
       });
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -158,14 +184,6 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     } catch (error) {
       console.error('Error updating overage:', error);
     }
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(price);
   };
 
   const formatDate = (dateString: string) => {
@@ -602,7 +620,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         <span className="text-slate-700">
-                          <span className="font-semibold text-slate-900">${plan.price_per_extra_minute.toFixed(2)}</span> per extra minute
+                          <span className="font-semibold text-slate-900">{formatPrice(plan.price_per_extra_minute)}</span> per extra minute
                         </span>
                       </div>
 

@@ -64,6 +64,15 @@ export type Database = {
           role: string
           created_at: string
           updated_at: string
+          currency: string
+          country_code: string | null
+          country_name: string | null
+          city: string | null
+          region: string | null
+          timezone: string | null
+          ip_address: string | null
+          location_logs: Json
+          location_updated_at: string | null
         }
         Insert: {
           id: string
@@ -73,6 +82,15 @@ export type Database = {
           role?: string
           created_at?: string
           updated_at?: string
+          currency?: string
+          country_code?: string | null
+          country_name?: string | null
+          city?: string | null
+          region?: string | null
+          timezone?: string | null
+          ip_address?: string | null
+          location_logs?: Json
+          location_updated_at?: string | null
         }
         Update: {
           id?: string
@@ -82,6 +100,15 @@ export type Database = {
           role?: string
           created_at?: string
           updated_at?: string
+          currency?: string
+          country_code?: string | null
+          country_name?: string | null
+          city?: string | null
+          region?: string | null
+          timezone?: string | null
+          ip_address?: string | null
+          location_logs?: Json
+          location_updated_at?: string | null
         }
         Relationships: [
           {
