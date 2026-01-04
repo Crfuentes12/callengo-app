@@ -30,3 +30,21 @@ export interface VoiceSample {
   loading: boolean;
   error: string | null;
 }
+
+export type VoiceCharacteristic =
+  | 'professional'
+  | 'casual'
+  | 'young'
+  | 'mature'
+  | 'warm'
+  | 'energetic'
+  | 'calm'
+  | 'formal'
+  | 'friendly'
+  | 'authoritative'
+  | 'soft'
+  | 'engaging';
+
+export interface VoiceWithCharacteristics extends BlandVoice {
+  characteristics: VoiceCharacteristic[];
+}
