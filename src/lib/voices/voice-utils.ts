@@ -151,24 +151,30 @@ export function getVoicesByCategory(language: string, accent: string): BlandVoic
   });
 }
 
-// Generate sample text for a voice based on language
+// Generate sample text for a voice based on language and accent
 export function getSampleText(voice: BlandVoice): string {
   const category = determineCategory(voice);
   const voiceName = voice.name.replace(/-/g, ' ');
 
+  // Special greetings based on accent
+  if (category.accent === 'Australian') {
+    return `G'day, how are you? I'm ${voiceName} from Callengo. I'm here to handle your call just like a real person would. I can answer questions, collect important details, and make sure everything gets passed on properly. Take your time and tell me how I can help.`;
+  }
+
   switch (category.language) {
     case 'Spanish':
-      return `Hola, ¿cómo estás? Soy ${voiceName} de Callengo.`;
+      return `Hola, ¿cómo estás? Soy ${voiceName} de Callengo. Estoy aquí para atender tu llamada como lo haría una persona real. Puedo responder preguntas, recopilar detalles importantes y asegurarme de que todo se pase correctamente. Tómate tu tiempo y dime cómo puedo ayudarte.`;
     case 'French':
-      return `Bonjour, comment allez-vous? Je suis ${voiceName} de Callengo.`;
+      return `Bonjour, comment allez-vous? Je suis ${voiceName} de Callengo. Je suis là pour gérer votre appel comme le ferait une vraie personne. Je peux répondre aux questions, collecter des détails importants et m'assurer que tout est transmis correctement. Prenez votre temps et dites-moi comment je peux vous aider.`;
     case 'German':
-      return `Hallo, wie geht es dir? Ich bin ${voiceName} von Callengo.`;
+      return `Hallo, wie geht es dir? Ich bin ${voiceName} von Callengo. Ich bin hier, um Ihren Anruf wie eine echte Person zu bearbeiten. Ich kann Fragen beantworten, wichtige Details sammeln und sicherstellen, dass alles ordnungsgemäß weitergegeben wird. Nehmen Sie sich Zeit und sagen Sie mir, wie ich helfen kann.`;
     case 'Italian':
-      return `Ciao, come stai? Sono ${voiceName} da Callengo.`;
+      return `Ciao, come stai? Sono ${voiceName} da Callengo. Sono qui per gestire la tua chiamata proprio come farebbe una persona reale. Posso rispondere a domande, raccogliere dettagli importanti e assicurarmi che tutto venga trasmesso correttamente. Prenditi il tuo tempo e dimmi come posso aiutarti.`;
     case 'Dutch':
-      return `Hallo, hoe gaat het? Ik ben ${voiceName} van Callengo.`;
+      return `Hallo, hoe gaat het? Ik ben ${voiceName} van Callengo. Ik ben hier om uw oproep af te handelen zoals een echte persoon dat zou doen. Ik kan vragen beantwoorden, belangrijke details verzamelen en ervoor zorgen dat alles correct wordt doorgegeven. Neem de tijd en vertel me hoe ik kan helpen.`;
     default:
-      return `Hello, how are you? I'm ${voiceName} from Callengo.`;
+      // English default
+      return `Hi, how are you? I'm ${voiceName} from Callengo. I'm here to handle your call just like a real person would. I can answer questions, collect important details, and make sure everything gets passed on properly. Take your time and tell me how I can help.`;
   }
 }
 
@@ -202,4 +208,129 @@ export function searchVoices(query: string): BlandVoice[] {
       voice.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
     );
   });
+}
+
+// Determine voice characteristics from description and tags
+export function getVoiceCharacteristics(voice: BlandVoice): string[] {
+  const characteristics: string[] = [];
+  const desc = (voice.description || '').toLowerCase();
+  const tags = voice.tags.map(t => t.toLowerCase());
+
+  // Professional
+  if (desc.includes('professional') || tags.includes('professional')) {
+    characteristics.push('Professional');
+  }
+
+  // Casual/Friendly
+  if (desc.includes('casual') || desc.includes('friendly') || desc.includes('warm')) {
+    characteristics.push('Friendly');
+  }
+
+  // Young
+  if (desc.includes('young') || desc.includes('chirpy')) {
+    characteristics.push('Young');
+  }
+
+  // Mature/Old
+  if (desc.includes('mature') || desc.includes('middle-aged') || desc.includes('old')) {
+    characteristics.push('Mature');
+  }
+
+  // Warm
+  if (desc.includes('warm') || desc.includes('sweet') || desc.includes('kind') || tags.includes('warm')) {
+    characteristics.push('Warm');
+  }
+
+  // Energetic/Excited
+  if (desc.includes('energetic') || desc.includes('excited') || desc.includes('upbeat')) {
+    characteristics.push('Energetic');
+  }
+
+  // Calm
+  if (desc.includes('calm') || desc.includes('soft') || desc.includes('gentle') || desc.includes('relaxed') || tags.includes('calm') || tags.includes('soft')) {
+    characteristics.push('Calm');
+  }
+
+  // Formal/Authoritative
+  if (desc.includes('authoritative') || desc.includes('confident') || desc.includes('measured')) {
+    characteristics.push('Formal');
+  }
+
+  // Engaging
+  if (desc.includes('engaging') || desc.includes('conversational')) {
+    characteristics.push('Engaging');
+  }
+
+  // Clear/Articulate
+  if (desc.includes('clear') || desc.includes('articulate')) {
+    characteristics.push('Clear');
+  }
+
+  return characteristics.length > 0 ? characteristics : ['Standard'];
+}
+
+// Get recommended voices for the 4 main categories
+export function getRecommendedVoices(): {
+  american: { female: BlandVoice[]; male: BlandVoice[] };
+  british: { female: BlandVoice[]; male: BlandVoice[] };
+  australian: { female: BlandVoice[]; male: BlandVoice[] };
+  spanish: { female: BlandVoice[]; male: BlandVoice[] };
+} {
+  const recommended = {
+    american: { female: [] as BlandVoice[], male: [] as BlandVoice[] },
+    british: { female: [] as BlandVoice[], male: [] as BlandVoice[] },
+    australian: { female: [] as BlandVoice[], male: [] as BlandVoice[] },
+    spanish: { female: [] as BlandVoice[], male: [] as BlandVoice[] },
+  };
+
+  // American: Nat and Maya as main females
+  const nat = BLAND_VOICES.find(v => v.id === '13843c96-ab9e-4938-baf3-ad53fcee541d');
+  const maya = BLAND_VOICES.find(v => v.id === '2f9fdbc7-4bf2-4792-8a18-21ce3c93978f');
+  if (nat) recommended.american.female.push(nat);
+  if (maya) recommended.american.female.push(maya);
+
+  // American males: Ryan and Matt
+  const ryan = BLAND_VOICES.find(v => v.id === '37b3f1c8-a01e-4d70-b251-294733f08371');
+  const matt = BLAND_VOICES.find(v => v.id === 'a3d43393-dacb-43d3-91d7-b4cb913a5908');
+  if (ryan) recommended.american.male.push(ryan);
+  if (matt) recommended.american.male.push(matt);
+
+  // British: Alice and Emily for females
+  const alice = BLAND_VOICES.find(v => v.id === 'dac8fda9-5c55-45e5-b378-ebd311dbb311');
+  const emily = BLAND_VOICES.find(v => v.id === '9497013c-c348-485b-9ede-9b6e246c9578');
+  if (alice) recommended.british.female.push(alice);
+  if (emily) recommended.british.female.push(emily);
+
+  // British males: Max and Oscar
+  const max = BLAND_VOICES.find(v => v.id === '013813f0-e96f-4c55-8c2c-b36a6d4d7916');
+  const oscar = BLAND_VOICES.find(v => v.id === 'f97aa643-19b2-4a65-8677-b41839be72bc');
+  if (max) recommended.british.male.push(max);
+  if (oscar) recommended.british.male.push(oscar);
+
+  // Australian: Lucy and Sophie for females
+  const lucy = BLAND_VOICES.find(v => v.id === '88831b36-7c85-4879-b6b0-22c2ff9f59d7');
+  const sophie = BLAND_VOICES.find(v => v.id === '857ed371-9b28-4006-99da-a28c41c6fa55');
+  if (lucy) recommended.australian.female.push(lucy);
+  if (sophie) recommended.australian.female.push(sophie);
+
+  // Australian males: Liam and Dave
+  const liam = BLAND_VOICES.find(v => v.id === '63092d46-e154-4e8b-96e9-de85245e82ab');
+  const dave = BLAND_VOICES.find(v => v.id === '1c1ca816-f457-4dde-a12a-eaf19fb0b523');
+  if (liam) recommended.australian.male.push(liam);
+  if (dave) recommended.australian.male.push(dave);
+
+  // Spanish: Rosa and Helena for females
+  const rosa = BLAND_VOICES.find(v => v.id === 'ecf0f240-3a2a-4d9e-876a-d175108b2e42');
+  const helena = BLAND_VOICES.find(v => v.id === '642bfa76-18da-4574-857d-4e1a7144db39');
+  if (rosa) recommended.spanish.female.push(rosa);
+  if (helena) recommended.spanish.female.push(helena);
+
+  // Spanish males: Find males from the list (limited options)
+  BLAND_VOICES.filter(v => {
+    const category = determineCategory(v);
+    const gender = determineGender(v);
+    return category.language === 'Spanish' && gender === 'male';
+  }).slice(0, 2).forEach(v => recommended.spanish.male.push(v));
+
+  return recommended;
 }
