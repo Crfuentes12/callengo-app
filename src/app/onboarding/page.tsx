@@ -165,6 +165,10 @@ export default function OnboardingPage() {
 
         if (freePlan) {
           // Create subscription for the company with Free plan
+          const now = new Date();
+          const periodEnd = new Date();
+          periodEnd.setFullYear(periodEnd.getFullYear() + 10); // Free plan valid for 10 years
+
           await supabase
             .from('company_subscriptions')
             .insert({
@@ -172,6 +176,8 @@ export default function OnboardingPage() {
               plan_id: freePlan.id,
               billing_cycle: 'monthly',
               status: 'active',
+              current_period_start: now.toISOString(),
+              current_period_end: periodEnd.toISOString(),
             });
         }
       } catch (planError) {
