@@ -394,6 +394,13 @@ function RecommendedVoices({
   onSelectVoice: (voiceId: string) => void;
   onToggleFavorite: (voiceId: string) => void;
 }) {
+  // Get user's favorite voices
+  const favoriteVoices = BLAND_VOICES.filter(voice => favorites.has(voice.id));
+
+  // Separate favorites by gender
+  const favoriteFemales = favoriteVoices.filter(voice => determineGender(voice) === 'female');
+  const favoriteMales = favoriteVoices.filter(voice => determineGender(voice) === 'male');
+
   const categories = [
     { key: 'american', label: 'American', flag: '🇺🇸', color: 'from-blue-500 to-indigo-600' },
     { key: 'british', label: 'British', flag: '🇬🇧', color: 'from-purple-500 to-pink-600' },
@@ -403,6 +410,66 @@ function RecommendedVoices({
 
   return (
     <div className="space-y-8">
+      {/* User Favorites Section */}
+      {favorites.size > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">⭐</span>
+            <h3 className="text-xl font-black bg-gradient-to-r from-yellow-500 to-amber-600 bg-clip-text text-transparent">
+              Your Favorites
+            </h3>
+            <span className="text-sm text-slate-500">({favorites.size})</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Favorite Females */}
+            <div className="space-y-3">
+              <div className="text-xs font-bold text-slate-500 uppercase">Female</div>
+              {favoriteFemales.length > 0 ? (
+                favoriteFemales.map(voice => (
+                  <VoiceCard
+                    key={voice.id}
+                    voice={voice}
+                    isSelected={selectedVoiceId === voice.id}
+                    isPlaying={playingVoice === voice.id}
+                    isLoading={loadingVoice === voice.id}
+                    isFavorite={true}
+                    isRecommended={false}
+                    onPlay={() => onPlaySample(voice)}
+                    onSelect={() => onSelectVoice(voice.id)}
+                    onToggleFavorite={() => onToggleFavorite(voice.id)}
+                  />
+                ))
+              ) : (
+                <p className="text-sm text-slate-400 italic py-2">No favorites yet</p>
+              )}
+            </div>
+            {/* Favorite Males */}
+            <div className="space-y-3">
+              <div className="text-xs font-bold text-slate-500 uppercase">Male</div>
+              {favoriteMales.length > 0 ? (
+                favoriteMales.map(voice => (
+                  <VoiceCard
+                    key={voice.id}
+                    voice={voice}
+                    isSelected={selectedVoiceId === voice.id}
+                    isPlaying={playingVoice === voice.id}
+                    isLoading={loadingVoice === voice.id}
+                    isFavorite={true}
+                    isRecommended={false}
+                    onPlay={() => onPlaySample(voice)}
+                    onSelect={() => onSelectVoice(voice.id)}
+                    onToggleFavorite={() => onToggleFavorite(voice.id)}
+                  />
+                ))
+              ) : (
+                <p className="text-sm text-slate-400 italic py-2">No favorites yet</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* System Recommended Voices */}
       {categories.map(category => (
         <div key={category.key} className="space-y-4">
           <div className="flex items-center gap-3">
