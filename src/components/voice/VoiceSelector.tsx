@@ -47,27 +47,27 @@ export default function VoiceSelector({ selectedVoiceId, onVoiceSelect, classNam
       <button
         type="button"
         onClick={() => setIsModalOpen(true)}
-        className={`w-full px-4 py-3 border-2 border-slate-200 rounded-xl hover:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all bg-white text-left ${className}`}
+        className={`w-full px-4 py-3 border-2 border-slate-700 rounded-xl hover:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all bg-slate-900/50 text-left ${className}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className={`font-bold ${selectedVoice ? 'text-slate-900' : 'text-slate-500'}`}>
+              <span className={`font-bold ${selectedVoice ? 'text-white' : 'text-slate-400'}`}>
                 {display.name}
               </span>
               {selectedVoice && display.gender && (
                 <span
                   className={`px-2 py-0.5 rounded text-xs font-bold ${
                     display.gender === 'female'
-                      ? 'bg-pink-100 text-pink-700'
-                      : 'bg-blue-100 text-blue-700'
+                      ? 'bg-pink-600/30 text-pink-400 border border-pink-500/50'
+                      : 'bg-blue-600/30 text-blue-400 border border-blue-500/50'
                   }`}
                 >
                   {display.gender === 'female' ? '♀' : '♂'}
                 </span>
               )}
             </div>
-            <p className={`text-xs mt-0.5 ${selectedVoice ? 'text-slate-600' : 'text-slate-400'}`}>
+            <p className={`text-xs mt-0.5 ${selectedVoice ? 'text-slate-400' : 'text-slate-500'}`}>
               {display.details}
             </p>
           </div>

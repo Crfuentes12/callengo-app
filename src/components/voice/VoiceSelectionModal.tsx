@@ -42,7 +42,41 @@ export default function VoiceSelectionModal({
   const [selectedCharacteristic, setSelectedCharacteristic] = useState<string>('all');
   const [selectedGender, setSelectedGender] = useState<string>('all');
 
+  // Favorites state (persisted in localStorage)
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('voiceFavorites');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    }
+    return new Set();
+  });
+
   const recommended = getRecommendedVoices();
+
+  // Helper to check if a voice is recommended
+  const isRecommended = (voiceId: string): boolean => {
+    return Object.values(recommended).some(category =>
+      category.female.some(v => v.id === voiceId) ||
+      category.male.some(v => v.id === voiceId)
+    );
+  };
+
+  // Toggle favorite
+  const toggleFavorite = (voiceId: string) => {
+    setFavorites(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(voiceId)) {
+        newFavorites.delete(voiceId);
+      } else {
+        newFavorites.add(voiceId);
+      }
+      // Persist to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('voiceFavorites', JSON.stringify([...newFavorites]));
+      }
+      return newFavorites;
+    });
+  };
 
   // Get unique values for filters
   const countries = Array.from(new Set(BLAND_VOICES.map(v => determineCategory(v).country))).sort();
@@ -155,34 +189,34 @@ export default function VoiceSelectionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-6xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div className="relative w-full max-w-6xl max-h-[90vh] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col border-2 border-slate-700/50">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+        <div className="flex items-center justify-between p-6 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/20 to-pink-600/20">
           <div>
-            <h2 className="text-2xl font-black text-slate-900">Select Voice</h2>
-            <p className="text-sm text-slate-600 mt-1">
+            <h2 className="text-2xl font-black text-white">Select Voice</h2>
+            <p className="text-sm text-slate-400 mt-1">
               Choose the perfect voice for your AI agent
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/80 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
           >
-            <svg className="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* View Mode Tabs */}
-        <div className="flex gap-2 p-4 border-b border-slate-200 bg-slate-50">
+        <div className="flex gap-2 p-4 border-b border-slate-700/50 bg-slate-800/50">
           <button
             onClick={() => setViewMode('recommended')}
             className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
               viewMode === 'recommended'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-white text-slate-600 hover:bg-slate-100'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
             }`}
           >
             ⭐ Recommended
@@ -191,8 +225,8 @@ export default function VoiceSelectionModal({
             onClick={() => setViewMode('explore')}
             className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
               viewMode === 'explore'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-white text-slate-600 hover:bg-slate-100'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
             }`}
           >
             🔍 Explore All Voices
@@ -207,18 +241,20 @@ export default function VoiceSelectionModal({
               selectedVoiceId={selectedVoiceId}
               playingVoice={playingVoice}
               loadingVoice={loadingVoice}
+              favorites={favorites}
               onPlaySample={handlePlaySample}
               onSelectVoice={handleSelectVoice}
+              onToggleFavorite={toggleFavorite}
             />
           ) : (
             <>
               {/* Filters */}
-              <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="mb-6 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-black text-slate-900 uppercase">Filters</h3>
+                  <h3 className="text-sm font-black text-white uppercase">Filters</h3>
                   <button
                     onClick={resetFilters}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
+                    className="text-xs font-bold text-purple-400 hover:text-purple-300"
                   >
                     Reset All
                   </button>
@@ -263,8 +299,11 @@ export default function VoiceSelectionModal({
                 selectedVoiceId={selectedVoiceId}
                 playingVoice={playingVoice}
                 loadingVoice={loadingVoice}
+                favorites={favorites}
                 onPlaySample={handlePlaySample}
                 onSelectVoice={handleSelectVoice}
+                onToggleFavorite={toggleFavorite}
+                isRecommended={isRecommended}
               />
             </>
           )}
@@ -280,15 +319,19 @@ function RecommendedVoices({
   selectedVoiceId,
   playingVoice,
   loadingVoice,
+  favorites,
   onPlaySample,
   onSelectVoice,
+  onToggleFavorite,
 }: {
   recommended: ReturnType<typeof getRecommendedVoices>;
   selectedVoiceId: string;
   playingVoice: string | null;
   loadingVoice: string | null;
+  favorites: Set<string>;
   onPlaySample: (voice: BlandVoice) => void;
   onSelectVoice: (voiceId: string) => void;
+  onToggleFavorite: (voiceId: string) => void;
 }) {
   const categories = [
     { key: 'american', label: 'American', flag: '🇺🇸', color: 'from-blue-500 to-indigo-600' },
@@ -318,8 +361,11 @@ function RecommendedVoices({
                   isSelected={selectedVoiceId === voice.id}
                   isPlaying={playingVoice === voice.id}
                   isLoading={loadingVoice === voice.id}
+                  isFavorite={favorites.has(voice.id)}
+                  isRecommended={true}
                   onPlay={() => onPlaySample(voice)}
                   onSelect={() => onSelectVoice(voice.id)}
+                  onToggleFavorite={() => onToggleFavorite(voice.id)}
                 />
               ))}
             </div>
@@ -333,8 +379,11 @@ function RecommendedVoices({
                   isSelected={selectedVoiceId === voice.id}
                   isPlaying={playingVoice === voice.id}
                   isLoading={loadingVoice === voice.id}
+                  isFavorite={favorites.has(voice.id)}
+                  isRecommended={true}
                   onPlay={() => onPlaySample(voice)}
                   onSelect={() => onSelectVoice(voice.id)}
+                  onToggleFavorite={() => onToggleFavorite(voice.id)}
                 />
               ))}
             </div>
@@ -351,20 +400,26 @@ function AllVoicesGrid({
   selectedVoiceId,
   playingVoice,
   loadingVoice,
+  favorites,
   onPlaySample,
   onSelectVoice,
+  onToggleFavorite,
+  isRecommended,
 }: {
   voices: BlandVoice[];
   selectedVoiceId: string;
   playingVoice: string | null;
   loadingVoice: string | null;
+  favorites: Set<string>;
   onPlaySample: (voice: BlandVoice) => void;
   onSelectVoice: (voiceId: string) => void;
+  onToggleFavorite: (voiceId: string) => void;
+  isRecommended: (voiceId: string) => boolean;
 }) {
   if (voices.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-500">No voices found matching your filters</p>
+        <p className="text-slate-400">No voices found matching your filters</p>
       </div>
     );
   }
@@ -378,8 +433,11 @@ function AllVoicesGrid({
           isSelected={selectedVoiceId === voice.id}
           isPlaying={playingVoice === voice.id}
           isLoading={loadingVoice === voice.id}
+          isFavorite={favorites.has(voice.id)}
+          isRecommended={isRecommended(voice.id)}
           onPlay={() => onPlaySample(voice)}
           onSelect={() => onSelectVoice(voice.id)}
+          onToggleFavorite={() => onToggleFavorite(voice.id)}
         />
       ))}
     </div>
@@ -392,15 +450,21 @@ function VoiceCard({
   isSelected,
   isPlaying,
   isLoading,
+  isFavorite,
+  isRecommended,
   onPlay,
   onSelect,
+  onToggleFavorite,
 }: {
   voice: BlandVoice;
   isSelected: boolean;
   isPlaying: boolean;
   isLoading: boolean;
+  isFavorite: boolean;
+  isRecommended: boolean;
   onPlay: () => void;
   onSelect: () => void;
+  onToggleFavorite: () => void;
 }) {
   const gender = determineGender(voice);
   const category = determineCategory(voice);
@@ -410,30 +474,51 @@ function VoiceCard({
     <div
       className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
         isSelected
-          ? 'border-indigo-600 bg-indigo-50'
-          : 'border-slate-200 bg-white hover:border-slate-300'
+          ? 'border-purple-600 bg-purple-600/10'
+          : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
       }`}
       onClick={onSelect}
     >
       <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h4 className="font-bold text-slate-900">{voice.name}</h4>
-          <p className="text-xs text-slate-500 mt-0.5">{category.accent} {category.language}</p>
+        <div className="flex-1 flex items-start gap-2">
+          <div className="flex-1">
+            <h4 className="font-bold text-white">{voice.name}</h4>
+            <p className="text-xs text-slate-400 mt-0.5">{category.accent} {category.language}</p>
+          </div>
+          {/* Star Icon for Recommended/Favorite */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
+            className="p-1 hover:bg-slate-700 rounded transition-colors"
+            title={isFavorite || isRecommended ? "Remove from favorites" : "Add to favorites"}
+          >
+            {isFavorite || isRecommended ? (
+              <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            )}
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {/* Gender Badge */}
           <span
             className={`px-2 py-0.5 rounded text-xs font-bold ${
               gender === 'female'
-                ? 'bg-pink-100 text-pink-700'
-                : 'bg-blue-100 text-blue-700'
+                ? 'bg-pink-600/30 text-pink-400 border border-pink-500/50'
+                : 'bg-blue-600/30 text-blue-400 border border-blue-500/50'
             }`}
           >
             {gender === 'female' ? '♀' : '♂'}
           </span>
           {/* Selected Badge */}
           {isSelected && (
-            <span className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
+            <span className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
@@ -447,7 +532,7 @@ function VoiceCard({
         {characteristics.slice(0, 3).map(char => (
           <span
             key={char}
-            className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium"
+            className="px-2 py-0.5 bg-slate-700/50 text-slate-300 rounded text-xs font-medium border border-slate-600/50"
           >
             {char}
           </span>
@@ -464,7 +549,7 @@ function VoiceCard({
         className={`w-full py-2 px-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
           isPlaying
             ? 'bg-red-600 text-white hover:bg-red-700'
-            : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg'
+            : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg'
         }`}
       >
         {isLoading ? (
@@ -506,11 +591,11 @@ function FilterSelect({
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-slate-700 mb-1.5">{label}</label>
+      <label className="block text-xs font-bold text-slate-400 mb-1.5">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white outline-none transition-all text-sm"
+        className="w-full px-3 py-2 border-2 border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-900/50 text-white outline-none transition-all text-sm"
       >
         <option value="all">All {label}s</option>
         {options.map(option => (
