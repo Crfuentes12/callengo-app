@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { AgentTemplate, Company, ContactList } from '@/types/supabase';
+import VoiceSelector from '@/components/voice/VoiceSelector';
+import { BLAND_VOICES } from '@/lib/voices/bland-voices';
+import { determineGender } from '@/lib/voices/voice-utils';
 
 interface AgentConfigModalProps {
   agent: AgentTemplate;
@@ -19,13 +22,14 @@ interface AgentConfigModalProps {
 const getAvatarImage = (name: string, voice?: string) => {
   // If voice is selected, use gender-specific avatar
   if (voice) {
-    const femaleVoices = ['maya', 'nat'];
-    const maleVoices = ['josh', 'matt'];
-
-    if (femaleVoices.includes(voice)) {
-      return '/agent-avatars/female-agent.png';
-    } else if (maleVoices.includes(voice)) {
-      return '/agent-avatars/male-agent.png';
+    const voiceData = BLAND_VOICES.find(v => v.id === voice);
+    if (voiceData) {
+      const gender = determineGender(voiceData);
+      if (gender === 'female') {
+        return '/agent-avatars/female-agent.png';
+      } else if (gender === 'male') {
+        return '/agent-avatars/male-agent.png';
+      }
     }
   }
 
@@ -795,22 +799,15 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   <h3 className="text-xs font-black text-white uppercase mb-3">Agent Identity</h3>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
                       Voice <span className="text-red-400">*</span>
                     </label>
-                    <select
-                      value={settings.voice}
-                      onChange={(e) => handleVoiceChange(e.target.value)}
-                      className={`w-full px-3 py-2 bg-slate-900/50 border ${!settings.voice ? 'border-red-500/50' : 'border-slate-700'} rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all`}
-                    >
-                      <option value="">Select a voice...</option>
-                      <option value="maya">Maya (Female)</option>
-                      <option value="nat">Natalie (Female)</option>
-                      <option value="josh">Josh (Male)</option>
-                      <option value="matt">Matt (Male)</option>
-                    </select>
+                    <VoiceSelector
+                      selectedVoiceId={settings.voice}
+                      onVoiceSelect={(voiceId) => handleVoiceChange(voiceId)}
+                    />
                     {!settings.voice && (
-                      <p className="text-xs text-red-400 mt-1">Please select a voice to continue</p>
+                      <p className="text-xs text-red-400 mt-2">Please select a voice to continue</p>
                     )}
                   </div>
 
@@ -1680,17 +1677,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     <h3 className="text-sm font-black text-white uppercase mb-4">Call Settings</h3>
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Voice</label>
-                        <select
-                          value={settings.voice}
-                          onChange={(e) => setSettings({ ...settings, voice: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
-                        >
-                          <option value="maya">Maya (Female)</option>
-                          <option value="nat">Natalie (Female)</option>
-                          <option value="josh">Josh (Male)</option>
-                          <option value="matt">Matt (Male)</option>
-                        </select>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Voice</label>
+                        <VoiceSelector
+                          selectedVoiceId={settings.voice}
+                          onVoiceSelect={(voiceId) => setSettings({ ...settings, voice: voiceId })}
+                        />
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Max Duration (min)</label>

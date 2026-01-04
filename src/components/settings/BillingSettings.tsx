@@ -591,7 +591,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     <div className="flex items-baseline gap-1">
                       {isEnterprise && <span className="text-xs text-slate-500 font-medium">From</span>}
                       <span className="text-2xl font-black text-slate-900">{formatPrice(monthlyPrice)}</span>
-                      <span className="text-xs text-slate-500">/mo</span>
+                      {!isEnterprise && <span className="text-xs text-slate-500">/mo</span>}
                     </div>
 
                     {/* Show yearly total in small text for annual plans */}

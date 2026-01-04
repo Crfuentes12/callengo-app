@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@/types/supabase';
 import BillingSettings from './BillingSettings';
+import VoiceSelector from '@/components/voice/VoiceSelector';
 
 type Company = Database['public']['Tables']['companies']['Row'];
 type CompanySettings = Database['public']['Tables']['company_settings']['Row'];
@@ -468,40 +469,14 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                     Voice & Language
                   </h4>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Default Voice
-                      </label>
-                      <select
-                        value={settings.default_voice}
-                        onChange={(e) => setSettings({ ...settings, default_voice: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white outline-none transition-all cursor-pointer hover:border-slate-300"
-                      >
-                        <option value="maya">Maya (Female - Friendly)</option>
-                        <option value="nat">Natalie (Female - Professional)</option>
-                        <option value="josh">Josh (Male - Energetic)</option>
-                        <option value="matt">Matt (Male - Calm)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Language
-                      </label>
-                      <select
-                        value={settings.language}
-                        onChange={(e) => setSettings({ ...settings, language: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white outline-none transition-all cursor-pointer hover:border-slate-300"
-                      >
-                        <option value="en-US">English (US)</option>
-                        <option value="en-GB">English (UK)</option>
-                        <option value="es-ES">Spanish (Spain)</option>
-                        <option value="es-MX">Spanish (Mexico)</option>
-                        <option value="fr-FR">French</option>
-                        <option value="de-DE">German</option>
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-3">
+                      Default Voice
+                    </label>
+                    <VoiceSelector
+                      selectedVoiceId={settings.default_voice}
+                      onVoiceSelect={(voiceId) => setSettings({ ...settings, default_voice: voiceId })}
+                    />
                   </div>
                 </div>
 
