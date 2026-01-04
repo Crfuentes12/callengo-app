@@ -52,24 +52,34 @@ export default function VoiceSelectionModal({
   // Load favorites from database
   useEffect(() => {
     const loadFavorites = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const { data, error } = await supabase
-        .from('users')
-        .select('fav_voices')
-        .eq('id', user.id)
-        .single();
+        const { data, error } = await supabase
+          .from('users')
+          .select('fav_voices')
+          .eq('id', user.id)
+          .single();
 
-      if (data && data.fav_voices) {
-        setFavorites(new Set(data.fav_voices));
+        // Silently handle if column doesn't exist yet (migration not run)
+        if (error) {
+          console.warn('Could not load favorites:', error.message);
+          return;
+        }
+
+        if (data && (data as any).fav_voices) {
+          setFavorites(new Set((data as any).fav_voices));
+        }
+      } catch (err) {
+        console.warn('Error loading favorites:', err);
       }
     };
 
     if (isOpen) {
       loadFavorites();
     }
-  }, [isOpen]);
+  }, [isOpen, supabase]);
 
   // Helper to check if a voice is recommended
   const isRecommended = (voiceId: string): boolean => {
@@ -81,30 +91,34 @@ export default function VoiceSelectionModal({
 
   // Toggle favorite
   const toggleFavorite = async (voiceId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(voiceId)) {
-        newFavorites.delete(voiceId);
-      } else {
-        newFavorites.add(voiceId);
-      }
+      setFavorites(prev => {
+        const newFavorites = new Set(prev);
+        if (newFavorites.has(voiceId)) {
+          newFavorites.delete(voiceId);
+        } else {
+          newFavorites.add(voiceId);
+        }
 
-      // Persist to database
-      supabase
-        .from('users')
-        .update({ fav_voices: [...newFavorites] })
-        .eq('id', user.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error saving favorites:', error);
-          }
-        });
+        // Persist to database (silently fail if column doesn't exist yet)
+        supabase
+          .from('users')
+          .update({ fav_voices: [...newFavorites] } as any)
+          .eq('id', user.id)
+          .then(({ error }) => {
+            if (error) {
+              console.warn('Could not save favorites (migration may not be applied yet):', error.message);
+            }
+          });
 
-      return newFavorites;
-    });
+        return newFavorites;
+      });
+    } catch (err) {
+      console.warn('Error toggling favorite:', err);
+    }
   };
 
   // Get unique values for filters
