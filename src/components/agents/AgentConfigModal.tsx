@@ -805,6 +805,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     <VoiceSelector
                       selectedVoiceId={settings.voice}
                       onVoiceSelect={(voiceId) => handleVoiceChange(voiceId)}
+                      variant="dark"
                     />
                     {!settings.voice && (
                       <p className="text-xs text-red-400 mt-2">Please select a voice to continue</p>
@@ -1681,6 +1682,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         <VoiceSelector
                           selectedVoiceId={settings.voice}
                           onVoiceSelect={(voiceId) => setSettings({ ...settings, voice: voiceId })}
+                          variant="dark"
                         />
                       </div>
                       <div>
