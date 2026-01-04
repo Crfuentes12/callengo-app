@@ -151,10 +151,38 @@ export default function OnboardingPage() {
         // Non-critical, continue
       }
 
+      setProgress(75);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 5. Assign Free plan to new user
+      try {
+        // Get the Free plan
+        const { data: freePlan } = await supabase
+          .from('subscription_plans')
+          .select('id')
+          .eq('slug', 'free')
+          .single();
+
+        if (freePlan) {
+          // Create subscription for the company with Free plan
+          await supabase
+            .from('company_subscriptions')
+            .insert({
+              company_id: companyData.id,
+              plan_id: freePlan.id,
+              billing_cycle: 'monthly',
+              status: 'active',
+            });
+        }
+      } catch (planError) {
+        console.error('Error assigning free plan:', planError);
+        // Non-critical, continue
+      }
+
       setProgress(80);
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 5. Trigger website scraping if URL provided
+      // 6. Trigger website scraping if URL provided
       if (formData.companyWebsite) {
         setStep('analyzing_website');
         setProgress(85);
@@ -184,12 +212,12 @@ export default function OnboardingPage() {
         }
       }
 
-      // 6. Complete
+      // 7. Complete
       setProgress(100);
       setStep('complete');
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // 7. Redirect to dashboard
+      // 8. Redirect to dashboard
       router.push('/dashboard');
       router.refresh();
 

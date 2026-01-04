@@ -38,19 +38,27 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = [
     '/auth/login',
     '/auth/signup',
-    '/auth/verify-email',
     '/auth/forgot-password',
     '/auth/reset-password',
   ];
 
-  // Protected routes that require authentication
+  // Routes that require auth but not email verification
+  const verificationRoutes = ['/auth/verify-email'];
+
+  // Protected routes that require authentication AND email verification
   const protectedRoutes = ['/dashboard', '/onboarding'];
 
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  const isVerificationRoute = verificationRoutes.some(route => pathname.startsWith(route));
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
   // Allow callback always (it handles its own redirects)
   if (pathname === '/auth/callback') {
+    return supabaseResponse;
+  }
+
+  // Allow verification routes for users with session
+  if (isVerificationRoute) {
     return supabaseResponse;
   }
 
@@ -59,8 +67,34 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
-  // If user is logged in and tries to access auth pages, check onboarding status first
-  if (session && isPublicRoute) {
+  // If user is logged in, check email verification for protected routes
+  if (session && isProtectedRoute) {
+    // Check if email is verified
+    if (!session.user.email_confirmed_at) {
+      // Email not verified - redirect to verify page
+      return NextResponse.redirect(new URL('/auth/verify-email?email=' + encodeURIComponent(session.user.email || ''), request.url));
+    }
+
+    // Email is verified, check onboarding status
+    const { data: userData } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    if (!userData?.company_id && pathname !== '/onboarding') {
+      // User hasn't completed onboarding - redirect there
+      return NextResponse.redirect(new URL('/onboarding', request.url));
+    }
+
+    if (userData?.company_id && pathname === '/onboarding') {
+      // User has completed onboarding but is on onboarding page - redirect to dashboard
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
+  // If user is logged in and verified and tries to access public auth pages
+  if (session && session.user.email_confirmed_at && isPublicRoute) {
     // Check if user has completed onboarding
     const { data: userData } = await supabase
       .from('users')
