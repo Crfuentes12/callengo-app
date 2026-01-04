@@ -12,6 +12,7 @@ import {
   getRecommendedVoices,
   getVoiceCharacteristics,
 } from '@/lib/voices/voice-utils';
+import { createClient } from '@/lib/supabase/client';
 
 interface VoiceSelectionModalProps {
   isOpen: boolean;
@@ -42,16 +43,33 @@ export default function VoiceSelectionModal({
   const [selectedCharacteristic, setSelectedCharacteristic] = useState<string>('all');
   const [selectedGender, setSelectedGender] = useState<string>('all');
 
-  // Favorites state (persisted in localStorage)
-  const [favorites, setFavorites] = useState<Set<string>>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('voiceFavorites');
-      return saved ? new Set(JSON.parse(saved)) : new Set();
-    }
-    return new Set();
-  });
+  // Favorites state (persisted in database)
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const supabase = createClient();
 
   const recommended = getRecommendedVoices();
+
+  // Load favorites from database
+  useEffect(() => {
+    const loadFavorites = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('fav_voices')
+        .eq('id', user.id)
+        .single();
+
+      if (data && data.fav_voices) {
+        setFavorites(new Set(data.fav_voices));
+      }
+    };
+
+    if (isOpen) {
+      loadFavorites();
+    }
+  }, [isOpen]);
 
   // Helper to check if a voice is recommended
   const isRecommended = (voiceId: string): boolean => {
@@ -62,7 +80,10 @@ export default function VoiceSelectionModal({
   };
 
   // Toggle favorite
-  const toggleFavorite = (voiceId: string) => {
+  const toggleFavorite = async (voiceId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     setFavorites(prev => {
       const newFavorites = new Set(prev);
       if (newFavorites.has(voiceId)) {
@@ -70,10 +91,18 @@ export default function VoiceSelectionModal({
       } else {
         newFavorites.add(voiceId);
       }
-      // Persist to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('voiceFavorites', JSON.stringify([...newFavorites]));
-      }
+
+      // Persist to database
+      supabase
+        .from('users')
+        .update({ fav_voices: [...newFavorites] })
+        .eq('id', user.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error saving favorites:', error);
+          }
+        });
+
       return newFavorites;
     });
   };

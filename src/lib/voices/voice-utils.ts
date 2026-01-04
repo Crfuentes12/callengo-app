@@ -323,12 +323,10 @@ export function getRecommendedVoices(): {
   if (nat) recommended.american.female.push(nat);
   if (maya) recommended.american.female.push(maya);
 
-  // American males: Ryan, Derek, and David
+  // American males: Ryan and David
   const ryan = BLAND_VOICES.find(v => v.id === '37b3f1c8-a01e-4d70-b251-294733f08371');
-  const derek = BLAND_VOICES.find(v => v.id === '2c01ebe7-45d4-4b58-9686-617fa283dd8e');
   const david = BLAND_VOICES.find(v => v.id === 'ff2c405b-3dba-41e0-9261-bc8ee3f91f46');
   if (ryan) recommended.american.male.push(ryan);
-  if (derek) recommended.american.male.push(derek);
   if (david) recommended.american.male.push(david);
 
   // British: Alice and Willow for females (not Emily - too whispery)
