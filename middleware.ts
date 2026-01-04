@@ -29,8 +29,8 @@ export async function middleware(request: NextRequest) {
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
 
@@ -63,23 +63,23 @@ export async function middleware(request: NextRequest) {
   }
 
   // If user is not logged in and tries to access protected route
-  if (!session && isProtectedRoute) {
+  if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
   // If user is logged in, check email verification for protected routes
-  if (session && isProtectedRoute) {
+  if (user && isProtectedRoute) {
     // Check if email is verified
-    if (!session.user.email_confirmed_at) {
+    if (!user.email_confirmed_at) {
       // Email not verified - redirect to verify page
-      return NextResponse.redirect(new URL('/auth/verify-email?email=' + encodeURIComponent(session.user.email || ''), request.url));
+      return NextResponse.redirect(new URL('/auth/verify-email?email=' + encodeURIComponent(user.email || ''), request.url));
     }
 
     // Email is verified, check onboarding status
     const { data: userData } = await supabase
       .from('users')
       .select('company_id')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .maybeSingle();
 
     if (!userData?.company_id && pathname !== '/onboarding') {
@@ -94,12 +94,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // If user is logged in and verified and tries to access public auth pages
-  if (session && session.user.email_confirmed_at && isPublicRoute) {
+  if (user && user.email_confirmed_at && isPublicRoute) {
     // Check if user has completed onboarding
     const { data: userData } = await supabase
       .from('users')
       .select('company_id')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .maybeSingle();
 
     if (!userData?.company_id) {

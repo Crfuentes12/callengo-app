@@ -50,8 +50,18 @@ export function determineCategory(voice: BlandVoice): { language: string; accent
     return { language: 'English', accent: 'American', country: 'USA' };
   }
 
-  // Spanish
+  // Spanish from Spain
   if (tags.includes('spanish') || description.includes('spanish')) {
+    // Check if it's a specific voice to determine if Spain or Latam
+    if (voice.id === 'ecf0f240-3a2a-4d9e-876a-d175108b2e42') {
+      // Rosa - Spanish from Spain
+      return { language: 'Spanish', accent: 'European', country: 'Spain' };
+    }
+    if (voice.id === '6432587a-1454-4b3f-820a-7a2962124b7c') {
+      // Mariam - Spanish from Latam
+      return { language: 'Spanish', accent: 'Latin American', country: 'Latin America' };
+    }
+    // Default Spanish
     return { language: 'Spanish', accent: 'Spanish', country: 'Spain' };
   }
 
@@ -313,11 +323,11 @@ export function getRecommendedVoices(): {
   if (nat) recommended.american.female.push(nat);
   if (maya) recommended.american.female.push(maya);
 
-  // American males: Ryan and Matt
+  // American males: Ryan and Derek (Derek replaces Matt due to API timeouts)
   const ryan = BLAND_VOICES.find(v => v.id === '37b3f1c8-a01e-4d70-b251-294733f08371');
-  const matt = BLAND_VOICES.find(v => v.id === 'a3d43393-dacb-43d3-91d7-b4cb913a5908');
+  const derek = BLAND_VOICES.find(v => v.id === '2c01ebe7-45d4-4b58-9686-617fa283dd8e');
   if (ryan) recommended.american.male.push(ryan);
-  if (matt) recommended.american.male.push(matt);
+  if (derek) recommended.american.male.push(derek);
 
   // British: Alice and Willow for females (not Emily - too whispery)
   const alice = BLAND_VOICES.find(v => v.id === 'dac8fda9-5c55-45e5-b378-ebd311dbb311');
@@ -331,11 +341,11 @@ export function getRecommendedVoices(): {
   if (max) recommended.british.male.push(max);
   if (oscar) recommended.british.male.push(oscar);
 
-  // Australian: Lucy and Sophie for females
+  // Australian: Lucy and Daisy for females (Daisy replaces Sophie due to API timeouts)
   const lucy = BLAND_VOICES.find(v => v.id === '88831b36-7c85-4879-b6b0-22c2ff9f59d7');
-  const sophie = BLAND_VOICES.find(v => v.id === '857ed371-9b28-4006-99da-a28c41c6fa55');
+  const daisy = BLAND_VOICES.find(v => v.id === '8d398d73-a3a6-472b-aad9-ce61b1563a23');
   if (lucy) recommended.australian.female.push(lucy);
-  if (sophie) recommended.australian.female.push(sophie);
+  if (daisy) recommended.australian.female.push(daisy);
 
   // Australian males: Liam and Dave
   const liam = BLAND_VOICES.find(v => v.id === '63092d46-e154-4e8b-96e9-de85245e82ab');
@@ -343,18 +353,13 @@ export function getRecommendedVoices(): {
   if (liam) recommended.australian.male.push(liam);
   if (dave) recommended.australian.male.push(dave);
 
-  // Spanish: Rosa and Mariam for females (not Helena - too robotic)
+  // Spanish: Rosa (Spain) and Mariam (Latam) for females only (no good males available)
   const rosa = BLAND_VOICES.find(v => v.id === 'ecf0f240-3a2a-4d9e-876a-d175108b2e42');
   const mariam = BLAND_VOICES.find(v => v.id === '6432587a-1454-4b3f-820a-7a2962124b7c');
   if (rosa) recommended.spanish.female.push(rosa);
   if (mariam) recommended.spanish.female.push(mariam);
 
-  // Spanish males: Find males from the list (limited options)
-  BLAND_VOICES.filter(v => {
-    const category = determineCategory(v);
-    const gender = determineGender(v);
-    return category.language === 'Spanish' && gender === 'male';
-  }).slice(0, 2).forEach(v => recommended.spanish.male.push(v));
+  // No males for Spanish - none available with good quality
 
   return recommended;
 }
