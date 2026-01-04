@@ -19,6 +19,9 @@ interface VoiceSelectionModalProps {
   onClose: () => void;
   selectedVoiceId: string;
   onVoiceSelect: (voiceId: string) => void;
+  fullscreen?: boolean;
+  defaultVoiceId?: string;
+  showSettingsNotice?: boolean;
 }
 
 type ViewMode = 'recommended' | 'explore';
@@ -29,6 +32,9 @@ export default function VoiceSelectionModal({
   onClose,
   selectedVoiceId,
   onVoiceSelect,
+  fullscreen = false,
+  defaultVoiceId,
+  showSettingsNotice = false,
 }: VoiceSelectionModalProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('recommended');
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
@@ -231,16 +237,28 @@ export default function VoiceSelectionModal({
 
   if (!isOpen) return null;
 
+  const containerSize = fullscreen
+    ? 'w-full h-full max-w-none max-h-none rounded-none'
+    : 'w-full max-w-6xl max-h-[90vh] rounded-2xl';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-6xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className={`relative bg-white shadow-2xl overflow-hidden flex flex-col ${containerSize}`}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-          <div>
+          <div className="flex-1">
             <h2 className="text-2xl font-black text-slate-900">Select Voice</h2>
             <p className="text-sm text-slate-600 mt-1">
               Choose the perfect voice for your AI agent
             </p>
+            {showSettingsNotice && (
+              <p className="text-xs text-indigo-600 mt-2 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Tip: Set a default voice in Settings to use across all agents
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}

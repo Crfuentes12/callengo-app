@@ -305,7 +305,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const [callAnalysis, setCallAnalysis] = useState<any>(null);
   const [analyzingCall, setAnalyzingCall] = useState(false);
   const [settings, setSettings] = useState({
-    voice: '',
+    voice: companySettings?.default_voice || '', // Pre-fill with default voice from Settings
     maxDuration: 5,
     intervalMinutes: 5,
     maxCallsPerDay: 100,

@@ -105,6 +105,8 @@ export default function VoiceSelector({ selectedVoiceId, onVoiceSelect, classNam
         onClose={() => setIsModalOpen(false)}
         selectedVoiceId={selectedVoiceId || ''}
         onVoiceSelect={onVoiceSelect}
+        fullscreen={variant === 'dark'}
+        showSettingsNotice={variant === 'dark'}
       />
     </>
   );
