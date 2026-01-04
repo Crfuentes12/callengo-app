@@ -23,6 +23,17 @@ export function determineGender(voice: BlandVoice): 'male' | 'female' | 'unknown
 export function determineCategory(voice: BlandVoice): { language: string; accent: string; country: string } {
   const tags = voice.tags.map(t => t.toLowerCase());
   const description = (voice.description || '').toLowerCase();
+  const name = voice.name.toLowerCase();
+
+  // French accent speaking English (specific voices: Elsa, Pierre)
+  if ((tags.includes('french') || description.includes('french')) && (tags.includes('english') || description.includes('accent'))) {
+    return { language: 'English', accent: 'French', country: 'France' };
+  }
+
+  // German accent speaking English (specific voice: Karl)
+  if ((tags.includes('german') || description.includes('german')) && tags.includes('english')) {
+    return { language: 'English', accent: 'German', country: 'Germany' };
+  }
 
   // British English
   if (tags.includes('british') || description.includes('british')) {
@@ -216,6 +227,19 @@ export function getVoiceCharacteristics(voice: BlandVoice): string[] {
   const desc = (voice.description || '').toLowerCase();
   const tags = voice.tags.map(t => t.toLowerCase());
 
+  // Specific voice overrides based on IDs
+  const specificCharacteristics: Record<string, string[]> = {
+    '9497013c-c348-485b-9ede-9b6e246c9578': ['Young', 'Soft', 'Whispery'], // Emily
+    '78982ab1-6a3f-4320-97f5-73bdb853f73d': ['Energetic', 'Cheerful', 'Friendly'], // Freddie
+    'b93a4030-8391-4c54-a35a-7983a3e7a16a': ['Mature', 'Professional', 'Warm'], // Keelan
+    '4f5222b2-230f-419b-b776-faa063392584': ['Young', 'Energetic', 'Professional'], // Trixie
+    '78c8543e-e5fe-448e-8292-20a7b8c45247': ['Energetic', 'Positive', 'Friendly'], // Harper
+  };
+
+  if (specificCharacteristics[voice.id]) {
+    return specificCharacteristics[voice.id];
+  }
+
   // Professional
   if (desc.includes('professional') || tags.includes('professional')) {
     characteristics.push('Professional');
@@ -295,11 +319,11 @@ export function getRecommendedVoices(): {
   if (ryan) recommended.american.male.push(ryan);
   if (matt) recommended.american.male.push(matt);
 
-  // British: Alice and Emily for females
+  // British: Alice and Willow for females (not Emily - too whispery)
   const alice = BLAND_VOICES.find(v => v.id === 'dac8fda9-5c55-45e5-b378-ebd311dbb311');
-  const emily = BLAND_VOICES.find(v => v.id === '9497013c-c348-485b-9ede-9b6e246c9578');
+  const willow = BLAND_VOICES.find(v => v.id === 'bc97a31e-b0b8-49e5-bcb8-393fcc6a86ea');
   if (alice) recommended.british.female.push(alice);
-  if (emily) recommended.british.female.push(emily);
+  if (willow) recommended.british.female.push(willow);
 
   // British males: Max and Oscar
   const max = BLAND_VOICES.find(v => v.id === '013813f0-e96f-4c55-8c2c-b36a6d4d7916');
@@ -319,11 +343,11 @@ export function getRecommendedVoices(): {
   if (liam) recommended.australian.male.push(liam);
   if (dave) recommended.australian.male.push(dave);
 
-  // Spanish: Rosa and Helena for females
+  // Spanish: Rosa and Mariam for females (not Helena - too robotic)
   const rosa = BLAND_VOICES.find(v => v.id === 'ecf0f240-3a2a-4d9e-876a-d175108b2e42');
-  const helena = BLAND_VOICES.find(v => v.id === '642bfa76-18da-4574-857d-4e1a7144db39');
+  const mariam = BLAND_VOICES.find(v => v.id === '6432587a-1454-4b3f-820a-7a2962124b7c');
   if (rosa) recommended.spanish.female.push(rosa);
-  if (helena) recommended.spanish.female.push(helena);
+  if (mariam) recommended.spanish.female.push(mariam);
 
   // Spanish males: Find males from the list (limited options)
   BLAND_VOICES.filter(v => {
