@@ -40,6 +40,7 @@ export default function VoiceSelectionModal({
   const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
   const [selectedAccent, setSelectedAccent] = useState<string>('all');
   const [selectedCharacteristic, setSelectedCharacteristic] = useState<string>('all');
+  const [selectedGender, setSelectedGender] = useState<string>('all');
 
   const recommended = getRecommendedVoices();
 
@@ -55,27 +56,32 @@ export default function VoiceSelectionModal({
   const filteredVoices = BLAND_VOICES.filter(voice => {
     const category = determineCategory(voice);
     const chars = getVoiceCharacteristics(voice);
+    const gender = determineGender(voice);
 
     if (selectedCountry !== 'all' && category.country !== selectedCountry) return false;
     if (selectedLanguage !== 'all' && category.language !== selectedLanguage) return false;
     if (selectedAccent !== 'all' && category.accent !== selectedAccent) return false;
     if (selectedCharacteristic !== 'all' && !chars.includes(selectedCharacteristic)) return false;
+    if (selectedGender !== 'all' && gender !== selectedGender) return false;
 
     return true;
   }).sort((a, b) => b.average_rating - a.average_rating);
 
   const handlePlaySample = async (voice: BlandVoice) => {
+    // Always stop any currently playing audio first
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
     if (playingVoice === voice.id) {
-      // Stop playing
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      // If clicking the same voice, just stop
       setPlayingVoice(null);
       return;
     }
 
     setLoadingVoice(voice.id);
+    setPlayingVoice(null);
 
     try {
       // Check cache first
@@ -133,6 +139,7 @@ export default function VoiceSelectionModal({
     setSelectedLanguage('all');
     setSelectedAccent('all');
     setSelectedCharacteristic('all');
+    setSelectedGender('all');
   };
 
   useEffect(() => {
@@ -216,7 +223,13 @@ export default function VoiceSelectionModal({
                     Reset All
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <FilterSelect
+                    label="Gender"
+                    value={selectedGender}
+                    onChange={setSelectedGender}
+                    options={['male', 'female']}
+                  />
                   <FilterSelect
                     label="Country"
                     value={selectedCountry}
