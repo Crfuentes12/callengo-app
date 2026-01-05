@@ -33,8 +33,25 @@ function UsersIcon({ className = "w-5 h-5" }: { className?: string }) {
 
 function BotIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      {/* Head/Face */}
+      <rect x="6" y="7" width="12" height="12" rx="3" strokeLinecap="round" strokeLinejoin="round" />
+
+      {/* Antenna */}
+      <line x1="12" y1="4" x2="12" y2="7" strokeLinecap="round" />
+      <circle cx="12" cy="3" r="1" fill="currentColor" />
+
+      {/* Eyes - glowing digital style */}
+      <rect x="8.5" y="10.5" width="2" height="3" rx="0.5" fill="currentColor" />
+      <rect x="13.5" y="10.5" width="2" height="3" rx="0.5" fill="currentColor" />
+
+      {/* Mouth/Speaker */}
+      <path d="M9 15.5 h6" strokeLinecap="round" />
+      <path d="M9.5 17 h5" strokeLinecap="round" />
+
+      {/* Headphone/Headset detail on sides */}
+      <path d="M5.5 10 Q5 11.5 5 13 Q5 14.5 5.5 16" strokeLinecap="round" />
+      <path d="M18.5 10 Q19 11.5 19 13 Q19 14.5 18.5 16" strokeLinecap="round" />
     </svg>
   );
 }
