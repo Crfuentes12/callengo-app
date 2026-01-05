@@ -106,7 +106,6 @@ export default function VoiceSelector({ selectedVoiceId, onVoiceSelect, classNam
         selectedVoiceId={selectedVoiceId || ''}
         onVoiceSelect={onVoiceSelect}
         fullscreen={variant === 'dark'}
-        showSettingsNotice={variant === 'dark'}
       />
     </>
   );

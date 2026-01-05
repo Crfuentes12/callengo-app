@@ -22,7 +22,6 @@ interface VoiceSelectionModalProps {
   onVoiceSelect: (voiceId: string) => void;
   fullscreen?: boolean;
   defaultVoiceId?: string;
-  showSettingsNotice?: boolean;
 }
 
 type ViewMode = 'recommended' | 'explore';
@@ -35,7 +34,6 @@ export default function VoiceSelectionModal({
   onVoiceSelect,
   fullscreen = false,
   defaultVoiceId,
-  showSettingsNotice = false,
 }: VoiceSelectionModalProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('recommended');
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
@@ -52,16 +50,20 @@ export default function VoiceSelectionModal({
 
   // Favorites state (persisted in database)
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   const supabase = createClient();
 
   const recommended = getRecommendedVoices();
 
-  // Load favorites from database
+  // Load favorites from database BEFORE opening modal to avoid flash
   useEffect(() => {
     const loadFavorites = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setFavoritesLoaded(true);
+          return;
+        }
 
         const { data, error } = await supabase
           .from('users')
@@ -72,21 +74,24 @@ export default function VoiceSelectionModal({
         // Silently handle if column doesn't exist yet (migration not run)
         if (error) {
           console.warn('Could not load favorites:', error.message);
+          setFavoritesLoaded(true);
           return;
         }
 
         if (data && (data as any).fav_voices) {
           setFavorites(new Set((data as any).fav_voices));
         }
+        setFavoritesLoaded(true);
       } catch (err) {
         console.warn('Error loading favorites:', err);
+        setFavoritesLoaded(true);
       }
     };
 
-    if (isOpen) {
+    if (isOpen && !favoritesLoaded) {
       loadFavorites();
     }
-  }, [isOpen, supabase]);
+  }, [isOpen, favoritesLoaded, supabase]);
 
   // Helper to check if a voice is recommended
   const isRecommended = (voiceId: string): boolean => {
@@ -256,14 +261,6 @@ export default function VoiceSelectionModal({
             <p className="text-sm text-slate-600 mt-1">
               Choose the perfect voice for your AI agent
             </p>
-            {showSettingsNotice && (
-              <p className="text-xs text-indigo-600 mt-2 flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Tip: Set a default voice in Settings to use across all agents
-              </p>
-            )}
           </div>
           <button
             onClick={onClose}
