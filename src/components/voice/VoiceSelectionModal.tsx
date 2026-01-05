@@ -241,7 +241,7 @@ export default function VoiceSelectionModal({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !favoritesLoaded) return null;
 
   const containerSize = fullscreen
     ? 'w-full max-w-7xl max-h-[95vh] rounded-2xl'
@@ -402,10 +402,6 @@ function RecommendedVoices({
   // Get user's favorite voices
   const favoriteVoices = BLAND_VOICES.filter(voice => favorites.has(voice.id));
 
-  // Separate favorites by gender
-  const favoriteFemales = favoriteVoices.filter(voice => determineGender(voice) === 'female');
-  const favoriteMales = favoriteVoices.filter(voice => determineGender(voice) === 'male');
-
   const categories = [
     { key: 'american', label: 'American', flag: '🇺🇸', color: 'from-blue-500 to-indigo-600' },
     { key: 'british', label: 'British', flag: '🇬🇧', color: 'from-purple-500 to-pink-600' },
@@ -426,86 +422,42 @@ function RecommendedVoices({
             <span className="text-sm text-slate-500">({favorites.size})</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Favorite Females */}
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-slate-500 uppercase">Female</div>
-              {favoriteFemales.length > 0 ? (
-                favoriteFemales.map(voice => (
-                  <VoiceCard
-                    key={voice.id}
-                    voice={voice}
-                    isSelected={selectedVoiceId === voice.id}
-                    isPlaying={playingVoice === voice.id}
-                    isLoading={loadingVoice === voice.id}
-                    isFavorite={true}
-                    isRecommended={false}
-                    onPlay={() => onPlaySample(voice)}
-                    onSelect={() => onSelectVoice(voice.id)}
-                    onToggleFavorite={() => onToggleFavorite(voice.id)}
-                  />
-                ))
-              ) : (
-                <p className="text-sm text-slate-400 italic py-2">No favorites yet</p>
-              )}
-            </div>
-            {/* Favorite Males */}
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-slate-500 uppercase">Male</div>
-              {favoriteMales.length > 0 ? (
-                favoriteMales.map(voice => (
-                  <VoiceCard
-                    key={voice.id}
-                    voice={voice}
-                    isSelected={selectedVoiceId === voice.id}
-                    isPlaying={playingVoice === voice.id}
-                    isLoading={loadingVoice === voice.id}
-                    isFavorite={true}
-                    isRecommended={false}
-                    onPlay={() => onPlaySample(voice)}
-                    onSelect={() => onSelectVoice(voice.id)}
-                    onToggleFavorite={() => onToggleFavorite(voice.id)}
-                  />
-                ))
-              ) : (
-                <p className="text-sm text-slate-400 italic py-2">No favorites yet</p>
-              )}
-            </div>
+            {favoriteVoices.map(voice => (
+              <VoiceCard
+                key={voice.id}
+                voice={voice}
+                isSelected={selectedVoiceId === voice.id}
+                isPlaying={playingVoice === voice.id}
+                isLoading={loadingVoice === voice.id}
+                isFavorite={true}
+                isRecommended={false}
+                onPlay={() => onPlaySample(voice)}
+                onSelect={() => onSelectVoice(voice.id)}
+                onToggleFavorite={() => onToggleFavorite(voice.id)}
+              />
+            ))}
           </div>
         </div>
       )}
 
       {/* System Recommended Voices */}
-      {categories.map(category => (
-        <div key={category.key} className="space-y-4">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{category.flag}</span>
-            <h3 className={`text-xl font-black bg-gradient-to-r ${category.color} bg-clip-text text-transparent`}>
-              {category.label}
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Females */}
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-slate-500 uppercase">Female</div>
-              {recommended[category.key as keyof typeof recommended].female.map(voice => (
-                <VoiceCard
-                  key={voice.id}
-                  voice={voice}
-                  isSelected={selectedVoiceId === voice.id}
-                  isPlaying={playingVoice === voice.id}
-                  isLoading={loadingVoice === voice.id}
-                  isFavorite={favorites.has(voice.id)}
-                  isRecommended={true}
-                  onPlay={() => onPlaySample(voice)}
-                  onSelect={() => onSelectVoice(voice.id)}
-                  onToggleFavorite={() => onToggleFavorite(voice.id)}
-                />
-              ))}
+      {categories.map(category => {
+        // Combine female and male voices into a single array
+        const categoryVoices = [
+          ...recommended[category.key as keyof typeof recommended].female,
+          ...recommended[category.key as keyof typeof recommended].male,
+        ];
+
+        return (
+          <div key={category.key} className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{category.flag}</span>
+              <h3 className={`text-xl font-black bg-gradient-to-r ${category.color} bg-clip-text text-transparent`}>
+                {category.label}
+              </h3>
             </div>
-            {/* Males */}
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-slate-500 uppercase">Male</div>
-              {recommended[category.key as keyof typeof recommended].male.map(voice => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categoryVoices.map(voice => (
                 <VoiceCard
                   key={voice.id}
                   voice={voice}
@@ -521,8 +473,8 @@ function RecommendedVoices({
               ))}
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
