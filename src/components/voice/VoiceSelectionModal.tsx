@@ -264,9 +264,9 @@ export default function VoiceSelectionModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/80 rounded-lg transition-colors"
+            className="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
-            <svg className="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

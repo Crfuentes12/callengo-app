@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { AgentTemplate, Company, ContactList } from '@/types/supabase';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 import { BLAND_VOICES } from '@/lib/voices/bland-voices';
-import { determineGender } from '@/lib/voices/voice-utils';
+import { determineGender, determineCategory } from '@/lib/voices/voice-utils';
 
 interface AgentConfigModalProps {
   agent: AgentTemplate;
@@ -1335,7 +1335,14 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </div>
                     <div>
                       <p className="text-sm font-bold text-white">{agentName || agent.name}</p>
-                      <p className="text-xs text-slate-400 capitalize">Voice: {settings.voice}</p>
+                      <p className="text-xs text-slate-400">
+                        Voice: {(() => {
+                          const voice = BLAND_VOICES.find(v => v.id === settings.voice);
+                          if (!voice) return settings.voice;
+                          const category = determineCategory(voice);
+                          return `${voice.name} • ${category.accent} ${category.language}`;
+                        })()}
+                      </p>
                     </div>
                   </div>
                   <div className="space-y-1">
