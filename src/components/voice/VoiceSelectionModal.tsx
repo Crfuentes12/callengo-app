@@ -238,12 +238,12 @@ export default function VoiceSelectionModal({
   if (!isOpen) return null;
 
   const containerSize = fullscreen
-    ? 'w-full h-full max-w-none max-h-none rounded-none'
+    ? 'w-full max-w-7xl max-h-[95vh] rounded-2xl'
     : 'w-full max-w-6xl max-h-[90vh] rounded-2xl';
 
   const wrapperClass = fullscreen
-    ? 'fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm'
-    : 'fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm';
+    ? 'fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4'
+    : 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm';
 
   return (
     <div className={wrapperClass}>

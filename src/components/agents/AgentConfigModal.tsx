@@ -746,7 +746,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 </div>
 
                 {/* Right: About this agent */}
-                <div className="flex flex-col justify-between">
+                <div className="flex flex-col space-y-4">
                   <div>
                     <h3 className="text-lg font-black text-white uppercase mb-3 flex items-center gap-2">
                       <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -758,47 +758,47 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       {agentInfo.description}
                     </p>
                   </div>
-                </div>
-              </div>
 
-              {/* Voice & Identity Configuration */}
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 space-y-3">
-                <h3 className="text-xs font-black text-white uppercase mb-3">Agent Identity</h3>
+                  {/* Voice & Identity Configuration */}
+                  <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 space-y-3">
+                    <h3 className="text-xs font-black text-white uppercase mb-3">Agent Identity</h3>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
-                    Voice <span className="text-red-400">*</span>
-                  </label>
-                  <VoiceSelector
-                    selectedVoiceId={settings.voice}
-                    onVoiceSelect={(voiceId) => handleVoiceChange(voiceId)}
-                    variant="dark"
-                  />
-                  {!settings.voice && (
-                    <p className="text-xs text-red-400 mt-2">Please select a voice to continue</p>
-                  )}
-                </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
+                        Voice <span className="text-red-400">*</span>
+                      </label>
+                      <VoiceSelector
+                        selectedVoiceId={settings.voice}
+                        onVoiceSelect={(voiceId) => handleVoiceChange(voiceId)}
+                        variant="dark"
+                      />
+                      {!settings.voice && (
+                        <p className="text-xs text-red-400 mt-2">Please select a voice to continue</p>
+                      )}
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Agent Name</label>
-                  <input
-                    type="text"
-                    placeholder={agent.name}
-                    value={agentName}
-                    onChange={(e) => setAgentName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none placeholder-slate-500"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Agent Name</label>
+                      <input
+                        type="text"
+                        placeholder={agent.name}
+                        value={agentName}
+                        onChange={(e) => setAgentName(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none placeholder-slate-500"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Agent Title</label>
-                  <input
-                    type="text"
-                    placeholder="AI Sales Agent"
-                    value={agentTitle}
-                    onChange={(e) => setAgentTitle(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none placeholder-slate-500"
-                  />
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Agent Title</label>
+                      <input
+                        type="text"
+                        placeholder="AI Sales Agent"
+                        value={agentTitle}
+                        onChange={(e) => setAgentTitle(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none placeholder-slate-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
