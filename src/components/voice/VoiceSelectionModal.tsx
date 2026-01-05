@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { BlandVoice } from '@/lib/voices/types';
 import { BLAND_VOICES } from '@/lib/voices/bland-voices';
 import {
@@ -245,7 +246,7 @@ export default function VoiceSelectionModal({
     ? 'fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4'
     : 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm';
 
-  return (
+  const modalContent = (
     <div className={wrapperClass}>
       <div className={`relative bg-white shadow-2xl overflow-hidden flex flex-col ${containerSize}`}>
         {/* Header */}
@@ -376,6 +377,9 @@ export default function VoiceSelectionModal({
       </div>
     </div>
   );
+
+  // Render modal in a portal at document body level to avoid restrictions from parent containers
+  return typeof window !== 'undefined' ? createPortal(modalContent, document.body) : null;
 }
 
 // Recommended Voices Component
