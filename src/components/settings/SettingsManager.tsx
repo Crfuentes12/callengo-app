@@ -273,7 +273,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                     <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl">
                       {company.favicon_url ? (
                         <img
-                          src={company.favicon_url}
+                          key={company.favicon_url}
+                          src={`${company.favicon_url}${company.favicon_url.includes('?') ? '&' : '?'}t=${Date.now()}`}
                           alt={company.name}
                           className="w-full h-full object-cover"
                         />

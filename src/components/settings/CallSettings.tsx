@@ -167,9 +167,12 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
   const getPlanLimitIndicator = () => {
     if (!plan) return null;
 
+    const minDuration = 0.25; // Minimum value of the slider
     const maxDuration = plan.max_call_duration;
     const currentDuration = settings.default_max_duration;
-    const percentage = (currentDuration / maxDuration) * 100;
+
+    // Calculate percentage considering the actual range (0.25 to max)
+    const percentage = ((currentDuration - minDuration) / (maxDuration - minDuration)) * 100;
 
     return { maxDuration, currentDuration, percentage };
   };
