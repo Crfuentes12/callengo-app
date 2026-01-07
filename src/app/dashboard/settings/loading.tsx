@@ -1,6 +1,11 @@
 // app/dashboard/settings/loading.tsx
+import LayoutShell from '@/components/layout/LayoutShell';
 import SettingsSkeleton from '@/components/skeletons/SettingsSkeleton';
 
 export default function Loading() {
-  return <SettingsSkeleton />;
+  return (
+    <LayoutShell>
+      <SettingsSkeleton />
+    </LayoutShell>
+  );
 }
