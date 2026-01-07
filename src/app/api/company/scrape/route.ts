@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       name: detectedName, // Return detected company name
       summary,
       industry,
-      favicon_url: scrapedData.faviconUrl || scrapedData.favicon_url, // Support both naming conventions
+      favicon_url: scrapedData.faviconUrl,
       data: {
         title: scrapedData.title,
         description: scrapedData.description,
