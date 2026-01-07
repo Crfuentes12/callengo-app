@@ -31,6 +31,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [success, setSuccess] = useState('');
+  const [faviconTimestamp, setFaviconTimestamp] = useState(Date.now());
 
   // Separate state for temporary website input vs saved data
   const [websiteInput, setWebsiteInput] = useState(initialCompany.website || '');
@@ -104,6 +105,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
 
       setCompany({ ...company, favicon_url: logoUrl });
       setSuccess('Company logo updated successfully');
+      setFaviconTimestamp(Date.now()); // Force favicon refresh
 
       // Refresh the page to update all components with new logo
       router.refresh();
@@ -138,9 +140,12 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       // Update local state to match saved data
       setCompany({ ...company, website: websiteInput });
       setSuccess('Company information updated successfully');
+      setFaviconTimestamp(Date.now()); // Force favicon refresh
 
       // Refresh the page to update all components with new company data
-      router.refresh();
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error) {
       alert('Failed to update company information');
     } finally {
@@ -173,6 +178,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
         industry: data.industry || prev.industry,
         // website is intentionally NOT updated - only saved on explicit save
       }));
+      setFaviconTimestamp(Date.now()); // Force favicon refresh
 
       setSuccess('Website analyzed! Review the extracted information (including company name) and click "Save Company Info" to apply changes.');
     } catch (error) {
@@ -273,8 +279,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                     <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl">
                       {company.favicon_url ? (
                         <img
-                          key={company.favicon_url}
-                          src={`${company.favicon_url}${company.favicon_url.includes('?') ? '&' : '?'}t=${Date.now()}`}
+                          key={`${company.favicon_url}-${faviconTimestamp}`}
+                          src={`${company.favicon_url}${company.favicon_url.includes('?') ? '&' : '?'}t=${faviconTimestamp}`}
                           alt={company.name}
                           className="w-full h-full object-cover"
                         />
