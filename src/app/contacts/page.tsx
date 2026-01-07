@@ -1,10 +1,8 @@
 // app/contacts/page.tsx
-import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import Layout from '@/components/layout/Layout';
 import ContactsManager from '@/components/contacts/ContactsManager';
-import ContactsSkeleton from '@/components/skeletons/ContactsSkeleton';
 
 export default async function ContactsPage() {
   const supabase = await createServerClient();
@@ -45,12 +43,10 @@ export default async function ContactsPage() {
       headerTitle="Contacts"
       headerSubtitle="Manage your contact database"
     >
-      <Suspense fallback={<ContactsSkeleton />}>
-        <ContactsManager
-          initialContacts={contacts || []}
-          companyId={userData.company_id}
-        />
-      </Suspense>
+      <ContactsManager
+        initialContacts={contacts || []}
+        companyId={userData.company_id}
+      />
     </Layout>
   );
 }

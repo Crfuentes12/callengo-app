@@ -1,10 +1,8 @@
 // app/agents/page.tsx
-import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import Layout from '@/components/layout/Layout';
 import AgentsLibrary from '@/components/agents/AgentsLibrary';
-import AgentsSkeleton from '@/components/skeletons/AgentsSkeleton';
 
 export default async function AgentsPage() {
   const supabase = await createServerClient();
@@ -60,15 +58,13 @@ export default async function AgentsPage() {
       headerTitle="AI Agents"
       headerSubtitle="Pre-built agents ready to use"
     >
-      <Suspense fallback={<AgentsSkeleton />}>
-        <AgentsLibrary
-          agentTemplates={agentTemplates || []}
-          companyAgents={companyAgents || []}
-          companyId={userData.company_id}
-          company={company}
-          companySettings={companySettings}
-        />
-      </Suspense>
+      <AgentsLibrary
+        agentTemplates={agentTemplates || []}
+        companyAgents={companyAgents || []}
+        companyId={userData.company_id}
+        company={company}
+        companySettings={companySettings}
+      />
     </Layout>
   );
 }
