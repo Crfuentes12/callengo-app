@@ -1,10 +1,8 @@
 // app/dashboard/page.tsx
-import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import Layout from '@/components/layout/Layout';
 import DashboardOverview from '@/components/dashboard/DashboardOverview';
-import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton';
 
 export default async function DashboardPage() {
   const supabase = await createServerClient();
@@ -113,19 +111,17 @@ export default async function DashboardPage() {
       headerTitle="Dashboard"
       headerSubtitle="Overview of your calling operations"
     >
-      <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardOverview
-          contacts={contacts || []}
-          recentCalls={recentCalls || []}
-          company={company}
-          agentTemplates={agentTemplates || []}
-          companyAgents={companyAgents || []}
-          agentRuns={agentRuns || []}
-          contactLists={contactLists || []}
-          usageTracking={usageTracking}
-          subscription={subscription}
-        />
-      </Suspense>
+      <DashboardOverview
+        contacts={contacts || []}
+        recentCalls={recentCalls || []}
+        company={company}
+        agentTemplates={agentTemplates || []}
+        companyAgents={companyAgents || []}
+        agentRuns={agentRuns || []}
+        contactLists={contactLists || []}
+        usageTracking={usageTracking}
+        subscription={subscription}
+      />
     </Layout>
   );
 }

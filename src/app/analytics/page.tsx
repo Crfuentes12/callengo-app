@@ -1,10 +1,8 @@
 // app/analytics/page.tsx
-import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import Layout from '@/components/layout/Layout';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
-import AnalyticsSkeleton from '@/components/skeletons/AnalyticsSkeleton';
 
 export default async function AnalyticsPage() {
   const supabase = await createServerClient();
@@ -65,14 +63,12 @@ export default async function AnalyticsPage() {
       headerTitle="Analytics"
       headerSubtitle="Detailed insights and performance metrics"
     >
-      <Suspense fallback={<AnalyticsSkeleton />}>
-        <AnalyticsDashboard
-          callLogs={callLogs || []}
-          contacts={contacts || []}
-          agentTemplates={agentTemplates || []}
-          agentRuns={agentRuns || []}
-        />
-      </Suspense>
+      <AnalyticsDashboard
+        callLogs={callLogs || []}
+        contacts={contacts || []}
+        agentTemplates={agentTemplates || []}
+        agentRuns={agentRuns || []}
+      />
     </Layout>
   );
 }

@@ -1,10 +1,8 @@
 // app/dashboard/calls/page.tsx
-import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import Layout from '@/components/layout/Layout';
 import CallsHistory from '@/components/calls/CallsHistory';
-import CallsSkeleton from '@/components/skeletons/CallsSkeleton';
 
 export default async function CallsPage() {
   const supabase = await createServerClient();
@@ -59,12 +57,10 @@ export default async function CallsPage() {
       headerTitle="Call History"
       headerSubtitle="Complete record of all AI calling activity"
     >
-      <Suspense fallback={<CallsSkeleton />}>
-        <CallsHistory
-          callLogs={callLogs || []}
-          agentTemplates={agentTemplates || []}
-        />
-      </Suspense>
+      <CallsHistory
+        callLogs={callLogs || []}
+        agentTemplates={agentTemplates || []}
+      />
     </Layout>
   );
 }
