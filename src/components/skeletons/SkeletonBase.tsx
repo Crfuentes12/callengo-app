@@ -9,8 +9,6 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className = '', variant = 'default', width, height }: SkeletonProps) {
-  const baseClasses = 'animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%]';
-
   const variantClasses = {
     default: 'rounded-xl',
     circular: 'rounded-full',
@@ -20,26 +18,15 @@ export function Skeleton({ className = '', variant = 'default', width, height }:
   const style = {
     width: width || undefined,
     height: height || undefined,
-    animation: 'shimmer 2s infinite',
   };
 
   return (
-    <>
-      <style jsx global>{`
-        @keyframes shimmer {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-      `}</style>
-      <div
-        className={`${baseClasses} ${variantClasses[variant]} ${className}`}
-        style={style}
-      />
-    </>
+    <div
+      className={`relative overflow-hidden bg-slate-200 ${variantClasses[variant]} ${className}`}
+      style={style}
+    >
+      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+    </div>
   );
 }
 
