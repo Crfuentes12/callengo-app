@@ -387,6 +387,12 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       type="text"
                       value={websiteInput}
                       onChange={(e) => setWebsiteInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && websiteInput && !loading) {
+                          e.preventDefault();
+                          handleScrapeWebsite();
+                        }
+                      }}
                       placeholder="example.com"
                       className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all bg-white hover:border-slate-300"
                     />
