@@ -26,13 +26,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, website, description, industry } = body;
+    const { name, website, description, industry, favicon_url } = body;
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name) updates.name = name;
     if (website !== undefined) updates.website = website;
     if (description !== undefined) updates.description = description;
     if (industry !== undefined) updates.industry = industry;
+    if (favicon_url !== undefined) updates.favicon_url = favicon_url;
 
     const { data, error } = await supabase
       .from('companies')
