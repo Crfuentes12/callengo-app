@@ -142,8 +142,7 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800/60 transition-all cursor-pointer backdrop-blur-sm">
           {company.favicon_url ? (
             <img
-              key={company.favicon_url}
-              src={`${company.favicon_url}${company.favicon_url.includes('?') ? '&' : '?'}t=${Date.now()}`}
+              src={company.favicon_url}
               alt={company.name}
               className="w-8 h-8 rounded-lg object-cover bg-slate-700 ring-2 ring-slate-700/50"
             />
