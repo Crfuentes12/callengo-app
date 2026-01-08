@@ -25,13 +25,13 @@ export default async function DashboardPage() {
   const { data: contacts } = await supabase
     .from('contacts')
     .select('*')
-    .eq('company_id', userData.company_id);
+    .eq('company_id', userData!.company_id);
 
   // Fetch recent calls
   const { data: recentCalls } = await supabase
     .from('call_logs')
     .select('*')
-    .eq('company_id', userData.company_id)
+    .eq('company_id', userData!.company_id)
     .order('created_at', { ascending: false })
     .limit(10);
 
@@ -48,14 +48,14 @@ export default async function DashboardPage() {
       *,
       agent_templates (*)
     `)
-    .eq('company_id', userData.company_id)
+    .eq('company_id', userData!.company_id)
     .eq('is_active', true);
 
   // Fetch agent runs (campaigns)
   const { data: agentRuns } = await supabase
     .from('agent_runs')
     .select('*')
-    .eq('company_id', userData.company_id)
+    .eq('company_id', userData!.company_id)
     .order('created_at', { ascending: false })
     .limit(5);
 
@@ -63,13 +63,13 @@ export default async function DashboardPage() {
   const { data: contactLists } = await supabase
     .from('contact_lists')
     .select('*')
-    .eq('company_id', userData.company_id);
+    .eq('company_id', userData!.company_id);
 
   // Fetch usage tracking
   const { data: usageTracking } = await supabase
     .from('usage_tracking')
     .select('*')
-    .eq('company_id', userData.company_id)
+    .eq('company_id', userData!.company_id)
     .order('period_start', { ascending: false })
     .limit(1)
     .single();
@@ -81,7 +81,7 @@ export default async function DashboardPage() {
       *,
       subscription_plans (*)
     `)
-    .eq('company_id', userData.company_id)
+    .eq('company_id', userData!.company_id)
     .eq('status', 'active')
     .single();
 

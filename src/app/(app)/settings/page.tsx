@@ -18,13 +18,13 @@ export default async function SettingsPage() {
   let { data: settings } = await supabase
     .from('company_settings')
     .select('*')
-    .eq('company_id', userData.company_id)
+    .eq('company_id', userData!.company_id)
     .single();
 
   if (!settings) {
     const { data: newSettings } = await supabase
       .from('company_settings')
-      .insert({ company_id: userData.company_id })
+      .insert({ company_id: userData!.company_id })
       .select()
       .single();
     settings = newSettings;

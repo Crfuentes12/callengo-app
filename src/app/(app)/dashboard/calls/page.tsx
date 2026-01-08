@@ -28,7 +28,7 @@ export default async function CallsPage() {
         phone_number
       )
     `)
-    .eq('company_id', userData.company_id)
+    .eq('company_id', userData!.company_id)
     .order('created_at', { ascending: false });
 
   // Fetch agent templates for filtering
