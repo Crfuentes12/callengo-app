@@ -149,14 +149,17 @@ export default function AnalyticsSkeleton() {
           </div>
         </div>
         <div className="grid grid-cols-12 gap-2">
-          {[...Array(24)].map((_, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div className="w-full h-32 flex items-end">
-                <Skeleton className="w-full rounded-t-lg" style={{ height: `${Math.random() * 80 + 20}%` }} />
+          {[...Array(24)].map((_, i) => {
+            const heights = ['25%', '40%', '60%', '80%', '50%', '70%', '45%', '35%', '55%', '75%', '30%', '65%', '50%', '85%', '40%', '60%', '35%', '55%', '70%', '45%', '30%', '50%', '65%', '40%'];
+            return (
+              <div key={i} className="flex flex-col items-center">
+                <div className="w-full h-32 flex items-end">
+                  <Skeleton className="w-full rounded-t-lg" height={heights[i]} />
+                </div>
+                <Skeleton className="h-3 w-6 mt-2" />
               </div>
-              <Skeleton className="h-3 w-6 mt-2" />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
