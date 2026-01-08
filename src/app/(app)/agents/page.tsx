@@ -1,14 +1,11 @@
-// app/agents/page.tsx
-import { redirect } from 'next/navigation';
+// app/(app)/agents/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
-import Layout from '@/components/layout/Layout';
 import AgentsLibrary from '@/components/agents/AgentsLibrary';
 
 export default async function AgentsPage() {
   const supabase = await createServerClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/auth/login');
 
   const { data: userData } = await supabase
     .from('users')
@@ -17,14 +14,11 @@ export default async function AgentsPage() {
       full_name,
       companies (*)
     `)
-    .eq('id', user.id)
+    .eq('id', user!.id)
     .single();
 
-  if (!userData?.company_id) redirect('/onboarding');
-
   // @ts-ignore - Supabase join typing
-  const company = userData.companies;
-  if (!company) redirect('/onboarding');
+  const company = userData!.companies;
 
   const { data: agentTemplates } = await supabase
     .from('agent_templates')
@@ -38,33 +32,21 @@ export default async function AgentsPage() {
       *,
       agent_templates (*)
     `)
-    .eq('company_id', userData.company_id);
+    .eq('company_id', userData!.company_id);
 
-  // Get company settings for test phone number
   const { data: companySettings } = await supabase
     .from('company_settings')
     .select('*')
-    .eq('company_id', userData.company_id)
+    .eq('company_id', userData!.company_id)
     .single();
 
   return (
-    <Layout
-      user={{
-        id: user.id,
-        email: user.email!,
-        full_name: userData.full_name
-      }}
+    <AgentsLibrary
+      agentTemplates={agentTemplates || []}
+      companyAgents={companyAgents || []}
+      companyId={userData!.company_id}
       company={company}
-      headerTitle="AI Agents"
-      headerSubtitle="Pre-built agents ready to use"
-    >
-      <AgentsLibrary
-        agentTemplates={agentTemplates || []}
-        companyAgents={companyAgents || []}
-        companyId={userData.company_id}
-        company={company}
-        companySettings={companySettings}
-      />
-    </Layout>
+      companySettings={companySettings}
+    />
   );
 }

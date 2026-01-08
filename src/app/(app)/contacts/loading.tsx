@@ -1,4 +1,4 @@
-// app/dashboard/contacts/loading.tsx
+// app/(app)/contacts/loading.tsx
 import ContactsSkeleton from '@/components/skeletons/ContactsSkeleton';
 
 export default function Loading() {

@@ -6,13 +6,14 @@ import { Skeleton, SkeletonTable } from './SkeletonBase';
 export default function CallsSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Header with Filters */}
+      {/* Filters and Actions */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <Skeleton className="h-10 w-64" />
         <div className="flex gap-3">
-          <Skeleton className="h-10 w-32" />
           <Skeleton className="h-10 w-40" />
+          <Skeleton className="h-10 w-40" />
+          <Skeleton className="h-10 w-32" />
         </div>
+        <Skeleton className="h-10 w-48" />
       </div>
 
       {/* Stats Cards */}
@@ -25,13 +26,13 @@ export default function CallsSkeleton() {
           <Skeleton className="h-4 w-24 mb-3" />
           <Skeleton className="h-8 w-16" />
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border border-purple-200">
-          <Skeleton className="h-4 w-24 mb-3" />
-          <Skeleton className="h-8 w-20" />
-        </div>
         <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200">
           <Skeleton className="h-4 w-24 mb-3" />
-          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-16" />
+        </div>
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border border-purple-200">
+          <Skeleton className="h-4 w-24 mb-3" />
+          <Skeleton className="h-8 w-16" />
         </div>
       </div>
 

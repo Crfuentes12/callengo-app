@@ -1,4 +1,4 @@
-// app/dashboard/agents/loading.tsx
+// app/(app)/agents/loading.tsx
 import AgentsSkeleton from '@/components/skeletons/AgentsSkeleton';
 
 export default function Loading() {
