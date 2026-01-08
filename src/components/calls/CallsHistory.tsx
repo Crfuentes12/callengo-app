@@ -3,6 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { formatDuration } from '@/lib/call-agent-utils';
+import Link from 'next/link';
 
 interface CallLogWithContact {
   id: string;
@@ -107,6 +108,19 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
   return (
     <div className="space-y-6">
+      {/* Back to Dashboard Button */}
+      <div>
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 hover:text-slate-900 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-md transition-all duration-200"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Volver al Dashboard
+        </Link>
+      </div>
+
       {/* Hero Banner */}
       <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-3xl p-10 shadow-2xl border-2 border-slate-800">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent"></div>
