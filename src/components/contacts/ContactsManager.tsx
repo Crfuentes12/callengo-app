@@ -10,6 +10,7 @@ import ImportModal from './ImportModal';
 
 interface ContactsManagerProps {
   initialContacts: any[];
+  initialContactLists?: ContactList[];
   companyId: string;
 }
 
@@ -95,13 +96,13 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
   );
 }
 
-export default function ContactsManager({ initialContacts, companyId }: ContactsManagerProps) {
+export default function ContactsManager({ initialContacts, initialContactLists = [], companyId }: ContactsManagerProps) {
   const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
-  const [contactLists, setContactLists] = useState<ContactList[]>([]);
+  const [contactLists, setContactLists] = useState<ContactList[]>(initialContactLists);
   const [selectedListFilter, setSelectedListFilter] = useState<string>('all');
   const [showListManager, setShowListManager] = useState(false);
   const [showBatchActions, setShowBatchActions] = useState(false);
@@ -126,9 +127,11 @@ export default function ContactsManager({ initialContacts, companyId }: Contacts
     }, 4000);
   };
 
-  // Load contact lists on mount
+  // Load contact lists on mount (only if not provided initially)
   useEffect(() => {
-    loadContactLists();
+    if (initialContactLists.length === 0) {
+      loadContactLists();
+    }
   }, []);
 
   // Close dropdown when clicking outside

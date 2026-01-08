@@ -23,9 +23,16 @@ export default async function ContactsPage() {
     .eq('company_id', userData!.company_id)
     .order('created_at', { ascending: false });
 
+  const { data: contactLists } = await supabase
+    .from('contact_lists')
+    .select('*')
+    .eq('company_id', userData!.company_id)
+    .order('name');
+
   return (
     <ContactsManager
       initialContacts={contacts || []}
+      initialContactLists={contactLists || []}
       companyId={userData!.company_id}
     />
   );
