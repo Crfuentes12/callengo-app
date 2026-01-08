@@ -1,42 +1,25 @@
-// app/dashboard/page.tsx
-import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+// app/(app)/dashboard/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
-import Layout from '@/components/layout/Layout';
 import DashboardOverview from '@/components/dashboard/DashboardOverview';
-import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton';
 
 export default async function DashboardPage() {
   const supabase = await createServerClient();
-  
+
   const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    redirect('/auth/login');
-  }
 
   // Fetch user data
-  const { data: userData, error: userError } = await supabase
+  const { data: userData } = await supabase
     .from('users')
     .select('company_id, full_name, role')
-    .eq('id', user.id)
+    .eq('id', user!.id)
     .single();
-
-  // If user doesn't have a company_id, redirect to onboarding
-  if (!userData?.company_id) {
-    redirect('/onboarding');
-  }
 
   // Fetch company data
-  const { data: company, error: companyError } = await supabase
+  const { data: company } = await supabase
     .from('companies')
     .select('*')
-    .eq('id', userData.company_id)
+    .eq('id', userData!.company_id)
     .single();
-  
-  if (!company) {
-    redirect('/onboarding');
-  }
 
   // Fetch contacts
   const { data: contacts } = await supabase
@@ -103,29 +86,16 @@ export default async function DashboardPage() {
     .single();
 
   return (
-    <Layout
-      user={{
-        id: user.id,
-        email: user.email!,
-        full_name: userData.full_name
-      }}
-      company={company}
-      headerTitle="Dashboard"
-      headerSubtitle="Overview of your calling operations"
-    >
-      <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardOverview
-          contacts={contacts || []}
-          recentCalls={recentCalls || []}
-          company={company}
-          agentTemplates={agentTemplates || []}
-          companyAgents={companyAgents || []}
-          agentRuns={agentRuns || []}
-          contactLists={contactLists || []}
-          usageTracking={usageTracking}
-          subscription={subscription}
-        />
-      </Suspense>
-    </Layout>
+    <DashboardOverview
+      contacts={contacts || []}
+      recentCalls={recentCalls || []}
+      company={company!}
+      agentTemplates={agentTemplates || []}
+      companyAgents={companyAgents || []}
+      agentRuns={agentRuns || []}
+      contactLists={contactLists || []}
+      usageTracking={usageTracking}
+      subscription={subscription}
+    />
   );
 }
