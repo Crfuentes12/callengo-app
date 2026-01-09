@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Database } from '@/types/supabase';
 import BillingSettings from './BillingSettings';
 import CallSettings from './CallSettings';
+import NotificationSettings from './NotificationSettings';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 
 type Company = Database['public']['Tables']['companies']['Row'];
@@ -16,6 +17,7 @@ type User = {
   email: string;
   full_name: string | null;
   role: string;
+  notifications_enabled?: boolean;
 };
 
 interface SettingsManagerProps {
@@ -27,7 +29,7 @@ interface SettingsManagerProps {
 export default function SettingsManager({ company: initialCompany, settings: initialSettings, user }: SettingsManagerProps) {
   const supabase = createClient();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing' | 'notifications'>('company');
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [success, setSuccess] = useState('');
@@ -246,6 +248,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
               { id: 'company', label: 'Company Info', icon: '🏢' },
               { id: 'calling', label: 'Call Settings', icon: '📞' },
               { id: 'billing', label: 'Billing & Plans', icon: '💳' },
+              { id: 'notifications', label: 'Notifications', icon: '🔔' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -469,6 +472,14 @@ export default function SettingsManager({ company: initialCompany, settings: ini
           {/* Billing Tab */}
           {activeTab === 'billing' && (
             <BillingSettings companyId={initialCompany.id} />
+          )}
+
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <NotificationSettings
+              userId={user.id}
+              initialEnabled={user.notifications_enabled ?? true}
+            />
           )}
         </div>
       </div>

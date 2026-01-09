@@ -2,11 +2,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import NotificationsDropdown from '@/components/notifications/NotificationsDropdown';
 
 type User = {
   id: string;
   email: string;
   full_name: string | null;
+  company_id?: string;
 };
 
 interface HeaderProps {
@@ -16,6 +18,7 @@ interface HeaderProps {
   actions?: React.ReactNode;
   onMenuClick: () => void;
   onLogout?: () => void;
+  companyId?: string;
 }
 
 function BellIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -34,7 +37,7 @@ function MenuIcon({ className = "w-6 h-6" }: { className?: string }) {
   );
 }
 
-export default function Header({ user, title, subtitle, actions, onMenuClick, onLogout }: HeaderProps) {
+export default function Header({ user, title, subtitle, actions, onMenuClick, onLogout, companyId }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -92,10 +95,9 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
           {actions && <div className="flex items-center gap-2 mr-2">{actions}</div>}
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
-            <BellIcon className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full ring-2 ring-white"></span>
-          </button>
+          {companyId && (
+            <NotificationsDropdown companyId={companyId} userId={user.id} />
+          )}
 
           {/* Divider */}
           <div className="hidden sm:block w-px h-8 bg-slate-200 mx-1 sm:mx-2"></div>
