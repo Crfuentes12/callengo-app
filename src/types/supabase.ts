@@ -73,6 +73,7 @@ export type Database = {
           ip_address: string | null
           location_logs: Json
           location_updated_at: string | null
+          notifications_enabled: boolean
         }
         Insert: {
           id: string
@@ -91,6 +92,7 @@ export type Database = {
           ip_address?: string | null
           location_logs?: Json
           location_updated_at?: string | null
+          notifications_enabled?: boolean
         }
         Update: {
           id?: string
@@ -109,6 +111,7 @@ export type Database = {
           ip_address?: string | null
           location_logs?: Json
           location_updated_at?: string | null
+          notifications_enabled?: boolean
         }
         Relationships: [
           {
@@ -1106,6 +1109,58 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          id: string
+          company_id: string
+          user_id: string | null
+          type: string
+          title: string
+          message: string
+          read: boolean
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          user_id?: string | null
+          type: string
+          title: string
+          message: string
+          read?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          user_id?: string | null
+          type?: string
+          title?: string
+          message?: string
+          read?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1138,6 +1193,7 @@ export type BillingHistory = Database['public']['Tables']['billing_history']['Ro
 export type CallQueue = Database['public']['Tables']['call_queue']['Row'];
 export type BillingEvent = Database['public']['Tables']['billing_events']['Row'];
 export type AdminFinance = Database['public']['Tables']['admin_finances']['Row'];
+export type Notification = Database['public']['Tables']['notifications']['Row'];
 
 // Agent Run Settings Configuration
 export interface AgentRunSettings {

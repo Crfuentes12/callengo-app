@@ -106,6 +106,7 @@ export default function Layout({
           actions={headerActions}
           onMenuClick={() => setIsSidebarOpen(true)}
           onLogout={handleLogout}
+          companyId={company.id}
         />
         <Main>{children}</Main>
       </div>
