@@ -117,7 +117,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-          Volver al Dashboard
+          Back to Dashboard
         </Link>
       </div>
 
@@ -154,28 +154,28 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
                 <span className="text-xs text-slate-400 uppercase font-bold">Total Calls</span>
               </div>
               <span className="text-3xl text-white font-black">{stats.total.toLocaleString()}</span>
             </div>
             <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                 <span className="text-xs text-slate-400 uppercase font-bold">Successful</span>
               </div>
               <span className="text-3xl text-white font-black">{stats.successful.toLocaleString()}</span>
             </div>
             <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                 <span className="text-xs text-slate-400 uppercase font-bold">Failed</span>
               </div>
               <span className="text-3xl text-white font-black">{stats.failed.toLocaleString()}</span>
             </div>
             <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
                 <span className="text-xs text-slate-400 uppercase font-bold">Avg Duration</span>
               </div>
               <span className="text-3xl text-white font-black">{formatDuration(stats.avgDuration)}</span>

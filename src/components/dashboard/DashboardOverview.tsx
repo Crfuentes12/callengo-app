@@ -201,28 +201,28 @@ export default function DashboardOverview({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                 <span className="text-xs text-slate-400 uppercase font-bold">Active Agents</span>
               </div>
               <span className="text-3xl text-white font-black">{companyAgents.length}</span>
             </div>
             <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
                 <span className="text-xs text-slate-400 uppercase font-bold">Campaigns</span>
               </div>
               <span className="text-3xl text-white font-black">{stats.activeCampaigns}</span>
             </div>
             <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                 <span className="text-xs text-slate-400 uppercase font-bold">Total Calls</span>
               </div>
               <span className="text-3xl text-white font-black">{recentCalls.length}</span>
             </div>
             <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
                 <span className="text-xs text-slate-400 uppercase font-bold">Success Rate</span>
               </div>
               <span className="text-3xl text-white font-black">{stats.successRate.toFixed(0)}%</span>
@@ -236,7 +236,7 @@ export default function DashboardOverview({
       </div>
 
       {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Contacts */}
         <div className="group bg-white rounded-xl border-2 border-slate-200/80 p-6 hover:shadow-xl hover:border-indigo-300 transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-start justify-between">
@@ -291,6 +291,29 @@ export default function DashboardOverview({
           </div>
           <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500 mt-4"></div>
         </div>
+
+        {/* Minutes Remaining */}
+        <div className="group bg-white rounded-xl border-2 border-slate-200/80 p-6 hover:shadow-xl hover:border-cyan-300 transition-all duration-300 hover:scale-[1.02]">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">Minutes Remaining</p>
+              <p className="text-4xl font-black text-slate-900 mt-2">
+                {usageTracking && subscription?.subscription_plans
+                  ? (subscription.subscription_plans.minutes_included - (usageTracking.minutes_used || 0)).toLocaleString()
+                  : subscription?.subscription_plans?.minutes_included?.toLocaleString() || '0'}
+              </p>
+              <p className="text-sm text-slate-400 mt-2">
+                of {subscription?.subscription_plans?.minutes_included?.toLocaleString() || '0'} included
+              </p>
+            </div>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg group-hover:shadow-cyan-500/50 transition-all">
+              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+              </svg>
+            </div>
+          </div>
+          <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500 mt-4"></div>
+        </div>
       </div>
 
       {/* Active Agents Section */}
@@ -309,7 +332,7 @@ export default function DashboardOverview({
               </div>
             </div>
             <a
-              href="/dashboard/agents"
+              href="/agents"
               className="text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors flex items-center gap-1"
             >
               View all
@@ -339,7 +362,7 @@ export default function DashboardOverview({
                         {agent.agent_templates?.description || 'AI calling agent'}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                         <span className="text-xs text-emerald-600 font-bold">Active</span>
                       </div>
                     </div>
@@ -575,9 +598,9 @@ export default function DashboardOverview({
       </div>
 
       {/* Quick Actions */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <a
-          href="/dashboard/contacts"
+          href="/contacts"
           className="group bg-gradient-to-br from-white to-indigo-50 rounded-2xl border-2 border-indigo-200 p-6 hover:shadow-xl hover:border-indigo-400 transition-all duration-300 hover:scale-[1.02]"
         >
           <div className="flex items-center gap-4">
@@ -596,7 +619,7 @@ export default function DashboardOverview({
         </a>
 
         <a
-          href="/dashboard/agents"
+          href="/agents"
           className="group bg-gradient-to-br from-white to-emerald-50 rounded-2xl border-2 border-emerald-200 p-6 hover:shadow-xl hover:border-emerald-400 transition-all duration-300 hover:scale-[1.02]"
         >
           <div className="flex items-center gap-4">
@@ -615,7 +638,7 @@ export default function DashboardOverview({
         </a>
 
         <a
-          href="/dashboard/settings"
+          href="/settings"
           className="group bg-gradient-to-br from-white to-violet-50 rounded-2xl border-2 border-violet-200 p-6 hover:shadow-xl hover:border-violet-400 transition-all duration-300 hover:scale-[1.02]"
         >
           <div className="flex items-center gap-4">
@@ -630,6 +653,27 @@ export default function DashboardOverview({
                 Settings
               </h4>
               <p className="text-sm text-slate-500 mt-1 font-medium">Configure your account</p>
+            </div>
+          </div>
+        </a>
+
+        <a
+          href="https://calengo.com/resources/help-center"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group bg-gradient-to-br from-white to-amber-50 rounded-2xl border-2 border-amber-200 p-6 hover:shadow-xl hover:border-amber-400 transition-all duration-300 hover:scale-[1.02]"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg group-hover:shadow-amber-500/40 transition-all group-hover:scale-110 duration-300">
+              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="font-black text-slate-900 text-lg group-hover:text-amber-600 transition-colors">
+                Help Center
+              </h4>
+              <p className="text-sm text-slate-500 mt-1 font-medium">Learn how to use Callengo</p>
             </div>
           </div>
         </a>
