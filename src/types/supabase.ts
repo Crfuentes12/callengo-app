@@ -283,6 +283,7 @@ export type Database = {
           company_id: string
           contact_id: string | null
           agent_template_id: string | null
+          agent_run_id: string | null
           call_id: string
           status: string | null
           completed: boolean
@@ -295,6 +296,10 @@ export type Database = {
           analysis: Json | null
           error_message: string | null
           metadata: Json | null
+          voicemail_detected: boolean
+          voicemail_left: boolean
+          voicemail_message_url: string | null
+          voicemail_duration: number | null
           created_at: string
         }
         Insert: {
@@ -302,6 +307,7 @@ export type Database = {
           company_id: string
           contact_id?: string | null
           agent_template_id?: string | null
+          agent_run_id?: string | null
           call_id: string
           status?: string | null
           completed?: boolean
@@ -314,6 +320,10 @@ export type Database = {
           analysis?: Json | null
           error_message?: string | null
           metadata?: Json | null
+          voicemail_detected?: boolean
+          voicemail_left?: boolean
+          voicemail_message_url?: string | null
+          voicemail_duration?: number | null
           created_at?: string
         }
         Update: {
@@ -321,6 +331,7 @@ export type Database = {
           company_id?: string
           contact_id?: string | null
           agent_template_id?: string | null
+          agent_run_id?: string | null
           call_id?: string
           status?: string | null
           completed?: boolean
@@ -333,6 +344,10 @@ export type Database = {
           analysis?: Json | null
           error_message?: string | null
           metadata?: Json | null
+          voicemail_detected?: boolean
+          voicemail_left?: boolean
+          voicemail_message_url?: string | null
+          voicemail_duration?: number | null
           created_at?: string
         }
         Relationships: [
@@ -352,6 +367,12 @@ export type Database = {
             foreignKeyName: "call_logs_agent_template_id_fkey"
             columns: ["agent_template_id"]
             referencedRelation: "agent_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            referencedRelation: "agent_runs"
             referencedColumns: ["id"]
           }
         ]
@@ -468,6 +489,14 @@ export type Database = {
           settings: Json | null
           started_at: string | null
           completed_at: string | null
+          follow_up_enabled: boolean
+          follow_up_max_attempts: number
+          follow_up_interval_hours: number
+          follow_up_conditions: Json
+          voicemail_enabled: boolean
+          voicemail_detection_enabled: boolean
+          voicemail_message: string | null
+          voicemail_action: string
           created_at: string
           updated_at: string
         }
@@ -485,6 +514,14 @@ export type Database = {
           settings?: Json | null
           started_at?: string | null
           completed_at?: string | null
+          follow_up_enabled?: boolean
+          follow_up_max_attempts?: number
+          follow_up_interval_hours?: number
+          follow_up_conditions?: Json
+          voicemail_enabled?: boolean
+          voicemail_detection_enabled?: boolean
+          voicemail_message?: string | null
+          voicemail_action?: string
           created_at?: string
           updated_at?: string
         }
@@ -502,6 +539,14 @@ export type Database = {
           settings?: Json | null
           started_at?: string | null
           completed_at?: string | null
+          follow_up_enabled?: boolean
+          follow_up_max_attempts?: number
+          follow_up_interval_hours?: number
+          follow_up_conditions?: Json
+          voicemail_enabled?: boolean
+          voicemail_detection_enabled?: boolean
+          voicemail_message?: string | null
+          voicemail_action?: string
           created_at?: string
           updated_at?: string
         }
@@ -1157,6 +1202,170 @@ export type Database = {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      follow_up_queue: {
+        Row: {
+          id: string
+          company_id: string
+          agent_run_id: string
+          contact_id: string
+          original_call_id: string | null
+          attempt_number: number
+          max_attempts: number
+          next_attempt_at: string
+          last_attempt_at: string | null
+          status: string
+          reason: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          agent_run_id: string
+          contact_id: string
+          original_call_id?: string | null
+          attempt_number?: number
+          max_attempts?: number
+          next_attempt_at: string
+          last_attempt_at?: string | null
+          status?: string
+          reason?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          agent_run_id?: string
+          contact_id?: string
+          original_call_id?: string | null
+          attempt_number?: number
+          max_attempts?: number
+          next_attempt_at?: string
+          last_attempt_at?: string | null
+          status?: string
+          reason?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_up_queue_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_up_queue_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_up_queue_contact_id_fkey"
+            columns: ["contact_id"]
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_up_queue_original_call_id_fkey"
+            columns: ["original_call_id"]
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      voicemail_logs: {
+        Row: {
+          id: string
+          company_id: string
+          call_id: string
+          agent_run_id: string | null
+          contact_id: string | null
+          detected_at: string
+          confidence_score: number | null
+          detection_method: string | null
+          message_left: boolean
+          message_text: string | null
+          message_duration: number | null
+          message_audio_url: string | null
+          follow_up_scheduled: boolean
+          follow_up_id: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          call_id: string
+          agent_run_id?: string | null
+          contact_id?: string | null
+          detected_at: string
+          confidence_score?: number | null
+          detection_method?: string | null
+          message_left?: boolean
+          message_text?: string | null
+          message_duration?: number | null
+          message_audio_url?: string | null
+          follow_up_scheduled?: boolean
+          follow_up_id?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          call_id?: string
+          agent_run_id?: string | null
+          contact_id?: string | null
+          detected_at?: string
+          confidence_score?: number | null
+          detection_method?: string | null
+          message_left?: boolean
+          message_text?: string | null
+          message_duration?: number | null
+          message_audio_url?: string | null
+          follow_up_scheduled?: boolean
+          follow_up_id?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voicemail_logs_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voicemail_logs_call_id_fkey"
+            columns: ["call_id"]
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voicemail_logs_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voicemail_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voicemail_logs_follow_up_id_fkey"
+            columns: ["follow_up_id"]
+            referencedRelation: "follow_up_queue"
             referencedColumns: ["id"]
           }
         ]

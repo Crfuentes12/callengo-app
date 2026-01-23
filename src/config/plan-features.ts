@@ -19,7 +19,7 @@ export const COMMON_FEATURES = [
 export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
   free: [
     '1 active agent',
-    'Perfect for testing',
+    'Test AI calling workflows',
   ],
 
   starter: [
@@ -32,6 +32,7 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
     'Unlimited agents',
     '3 users (dashboard access)',
     'Automatic follow-ups',
+    'Smart voicemail handling',
     'Call scheduling',
     'Simple campaigns',
     'Priority email support',
@@ -43,10 +44,9 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
     'User permissions',
     'Governance & logs',
     'Agent/campaign analytics',
-    'Voicemail handling',
     'Advanced retry logic',
     'Priority support',
-    'CRM integrations (soon)',
+    'CRM integrations (Beta)',
   ],
 
   enterprise: [
