@@ -29,6 +29,17 @@ interface ScrapedResults {
   };
 }
 
+interface Pain {
+  id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  color: string;
+  gradient: string;
+  value: string;
+  agentSlug: string;
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -38,7 +49,7 @@ export default function OnboardingPage() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [scrapedData, setScrapedData] = useState<ScrapedResults | null>(null);
-  const [selectedPain, setSelectedPain] = useState<any>(null);
+  const [selectedPain, setSelectedPain] = useState<Pain | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     companyName: '',
@@ -462,11 +473,14 @@ export default function OnboardingPage() {
   }
 
   // Agent Test Step
-  if (step === 'agent_test') {
+  if (step === 'agent_test' && selectedPain) {
     return (
       <AgentTestExperience
+        agentSlug={selectedPain.agentSlug}
+        agentTitle={selectedPain.title}
+        agentDescription={selectedPain.description}
         companyId={companyId!}
-        selectedPain={selectedPain}
+        companyName={formData.companyName}
         onComplete={handleAgentTestComplete}
         onSkip={handleSkipAgentTest}
       />
