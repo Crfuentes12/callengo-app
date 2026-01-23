@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import PainSelection from '@/components/onboarding/PainSelection';
+import AgentTestExperience from '@/components/onboarding/AgentTestExperience';
 
 type OnboardingStep =
   | 'form'
@@ -12,6 +14,8 @@ type OnboardingStep =
   | 'setting_up_account'
   | 'analyzing_website'
   | 'showing_results'
+  | 'pain_selection'
+  | 'agent_test'
   | 'complete'
   | 'error';
 
@@ -25,6 +29,17 @@ interface ScrapedResults {
   };
 }
 
+interface Pain {
+  id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  color: string;
+  gradient: string;
+  value: string;
+  agentSlug: string;
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -34,6 +49,8 @@ export default function OnboardingPage() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [scrapedData, setScrapedData] = useState<ScrapedResults | null>(null);
+  const [selectedPain, setSelectedPain] = useState<Pain | null>(null);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     companyName: '',
     companyWebsite: '',
@@ -114,13 +131,16 @@ export default function OnboardingPage() {
         throw new Error(`Failed to create company: ${companyError.message}`);
       }
 
+      // Store company ID for later use
+      setCompanyId(companyData.id);
+
       setProgress(50);
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // 3. Create user record
       setStep('setting_up_account');
       setProgress(60);
-      
+
       const { error: userError } = await supabase
         .from('users')
         .insert({
@@ -207,7 +227,7 @@ export default function OnboardingPage() {
           if (scrapeResponse.ok) {
             const scrapeData = await scrapeResponse.json();
             setScrapedData(scrapeData);
-            setProgress(95);
+            setProgress(88);
             setStep('showing_results');
             // Show the wow effect for 4 seconds so user can see the results
             await new Promise(resolve => setTimeout(resolve, 4000));
@@ -218,20 +238,47 @@ export default function OnboardingPage() {
         }
       }
 
-      // 7. Complete
-      setProgress(100);
-      setStep('complete');
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // 8. Redirect to dashboard
-      router.push('/dashboard');
-      router.refresh();
+      // 7. Move to pain selection
+      setProgress(90);
+      setStep('pain_selection');
 
     } catch (err: any) {
       console.error('Onboarding error:', err);
       setError(err.message || 'Failed to set up your account');
       setStep('error');
     }
+  };
+
+  const handlePainSelection = (pain: any) => {
+    setSelectedPain(pain);
+    setProgress(95);
+    setStep('agent_test');
+  };
+
+  const handleSkipPain = () => {
+    setProgress(100);
+    setStep('complete');
+    setTimeout(() => {
+      router.push('/dashboard');
+      router.refresh();
+    }, 1500);
+  };
+
+  const handleAgentTestComplete = async (callData: any) => {
+    setProgress(100);
+    setStep('complete');
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    router.push('/dashboard');
+    router.refresh();
+  };
+
+  const handleSkipAgentTest = () => {
+    setProgress(100);
+    setStep('complete');
+    setTimeout(() => {
+      router.push('/dashboard');
+      router.refresh();
+    }, 1500);
   };
 
   const getStepMessage = () => {
@@ -299,7 +346,7 @@ export default function OnboardingPage() {
     );
   };
 
-  const isProcessing = step !== 'form' && step !== 'error';
+  const isProcessing = step !== 'form' && step !== 'error' && step !== 'pain_selection' && step !== 'agent_test';
 
   if (step === 'form') {
     return (
@@ -415,6 +462,31 @@ export default function OnboardingPage() {
     );
   }
 
+  // Pain Selection Step
+  if (step === 'pain_selection') {
+    return (
+      <PainSelection
+        onSelect={handlePainSelection}
+        onSkip={handleSkipPain}
+      />
+    );
+  }
+
+  // Agent Test Step
+  if (step === 'agent_test' && selectedPain) {
+    return (
+      <AgentTestExperience
+        agentSlug={selectedPain.agentSlug}
+        agentTitle={selectedPain.title}
+        agentDescription={selectedPain.description}
+        companyId={companyId!}
+        companyName={formData.companyName}
+        onComplete={handleAgentTestComplete}
+        onSkip={handleSkipAgentTest}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Animated background elements */}
@@ -436,7 +508,7 @@ export default function OnboardingPage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-3">
               {step === 'error' ? 'Setup Failed' : 'Setting Up Your Workspace'}
             </h2>
-            
+
             <p className="text-slate-600 mb-8">
               {getStepMessage()}
             </p>
@@ -445,7 +517,7 @@ export default function OnboardingPage() {
             {isProcessing && (
               <div className="mb-8">
                 <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-600 transition-all duration-500 ease-out"
                     style={{ width: `${progress}%` }}
                   ></div>

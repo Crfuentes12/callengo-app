@@ -35,13 +35,9 @@ const getAvatarImage = (name: string, voice?: string) => {
 
   // Default behavior without voice - show robot avatars
   const nameMap: Record<string, string> = {
-    'abandoned-cart': '/agent-avatars/abandoned-cart.png',
     'appointment': '/agent-avatars/appointment-confirmation.png',
     'data-validation': '/agent-avatars/data-validation.png',
-    'feedback': '/agent-avatars/feedback.png',
     'lead-qualification': '/agent-avatars/lead-qualification.png',
-    'lead-reactivation': '/agent-avatars/lead-reactivation.png',
-    'winback': '/agent-avatars/winback.png',
   };
 
   const slug = name.toLowerCase().replace(/\s+/g, '-');
@@ -86,45 +82,6 @@ const getAgentDescription = (agent: AgentTemplate) => {
     };
   }
 
-  if (name.includes('reactivation')) {
-    return {
-      title: 'Lead Reactivation Agent',
-      description: 'Reconnects with DORMANT leads who showed interest months ago but didn\'t convert. Uses personalized conversation to understand their current situation and reignite their interest with new offers or solutions.',
-      demoData: {
-        companyName: 'Growth Marketing Inc',
-        contactName: 'Sarah Johnson',
-        lastInteraction: '3 months ago',
-        previousInterest: 'Premium Plan',
-      }
-    };
-  }
-
-  if (name.includes('cart') || name.includes('abandoned')) {
-    return {
-      title: 'Abandoned Cart Recovery Agent',
-      description: 'Reaches out to customers who left items in their cart without completing purchase. Offers assistance, answers questions, and provides incentives to help close the sale.',
-      demoData: {
-        companyName: 'E-Shop Online',
-        contactName: 'Mike Davis',
-        cartValue: '$249.99',
-        itemsLeft: '3 items',
-      }
-    };
-  }
-
-  if (name.includes('feedback') || name.includes('survey')) {
-    return {
-      title: 'Feedback Collection Agent',
-      description: 'Conducts friendly conversations to gather customer feedback and satisfaction ratings. Creates a natural dialogue that encourages honest responses and valuable insights.',
-      demoData: {
-        companyName: 'Customer Success Co',
-        contactName: 'Emily Chen',
-        recentPurchase: 'Premium Service',
-        purchaseDate: '2 weeks ago',
-      }
-    };
-  }
-
   if (name.includes('appointment') || name.includes('confirmation')) {
     return {
       title: 'Appointment Confirmation Agent',
@@ -134,19 +91,6 @@ const getAgentDescription = (agent: AgentTemplate) => {
         contactName: 'Robert Taylor',
         appointmentDate: 'Tomorrow at 2:00 PM',
         appointmentType: 'Consultation',
-      }
-    };
-  }
-
-  if (name.includes('winback') || name.includes('win-back')) {
-    return {
-      title: 'Winback Campaign Agent',
-      description: 'Re-engages with former customers to bring them back. Uses empathy and special offers to understand why they left and presents compelling reasons to return.',
-      demoData: {
-        companyName: 'Subscription Services Ltd',
-        contactName: 'Lisa Anderson',
-        lastSubscription: '6 months ago',
-        cancellationReason: 'Price concerns',
       }
     };
   }
@@ -185,36 +129,6 @@ const getAgentStats = (agent: AgentTemplate) => {
     };
   }
 
-  // Lead Reactivation - High persuasion and persistence
-  if (name.includes('reactivation')) {
-    return {
-      persuasion: 94,
-      persistence: 96,
-      empathy: 88,
-      communication: 91,
-    };
-  }
-
-  // Abandoned Cart - High urgency and conversion focus
-  if (name.includes('cart') || name.includes('abandoned')) {
-    return {
-      persuasion: 92,
-      urgency: 95,
-      empathy: 87,
-      conversion: 93,
-    };
-  }
-
-  // Feedback Collection - High empathy and communication
-  if (name.includes('feedback') || name.includes('survey')) {
-    return {
-      empathy: 96,
-      communication: 94,
-      patience: 90,
-      listening: 93,
-    };
-  }
-
   // Appointment Confirmation - High reliability and precision
   if (name.includes('appointment') || name.includes('confirmation')) {
     return {
@@ -222,16 +136,6 @@ const getAgentStats = (agent: AgentTemplate) => {
       communication: 89,
       precision: 96,
       scheduling: 94,
-    };
-  }
-
-  // Winback campaigns - Maximum persuasion
-  if (name.includes('winback') || name.includes('win-back')) {
-    return {
-      persuasion: 97,
-      empathy: 91,
-      persistence: 89,
-      value_proposition: 94,
     };
   }
 
