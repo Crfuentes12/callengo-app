@@ -20,11 +20,10 @@ export default async function AgentsPage() {
   // @ts-ignore - Supabase join typing
   const company = userData!.companies;
 
-  // Get only the 3 core agents
+  // Get active agents (the migration ensures only the 3 core agents are active)
   const { data: agentTemplates } = await supabase
     .from('agent_templates')
     .select('*')
-    .in('slug', ['data-validation', 'appointment-confirmation', 'lead-qualification'])
     .eq('is_active', true)
     .order('sort_order');
 
