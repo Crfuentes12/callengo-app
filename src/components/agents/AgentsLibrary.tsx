@@ -69,11 +69,11 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
             <div>
               <div className="flex items-center gap-3 mb-1">
                 <h2 className="text-4xl font-black text-white uppercase tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-purple-200">
-                  Solve Your Problems
+                  AI Agents
                 </h2>
               </div>
               <p className="text-lg text-slate-400 font-medium">
-                Choose what you want to fix and start saving time and money today
+                Deploy specialized AI agents to automate your business operations
               </p>
             </div>
           </div>
@@ -116,26 +116,63 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
         ))}
       </div>
 
-      {/* Working on More Message */}
-      <div className="mt-8 relative overflow-hidden bg-gradient-to-br from-indigo-900/40 via-purple-900/40 to-slate-900/40 rounded-2xl p-8 border border-indigo-800/50 backdrop-blur-sm">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-600/10 via-transparent to-transparent"></div>
-        <div className="relative z-10 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mb-4">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <h3 className="text-2xl font-bold text-white mb-2">More Solutions Coming Soon</h3>
-          <p className="text-lg text-slate-300 max-w-2xl mx-auto">
-            We're working hard to bring you more AI-powered experiences to solve your business problems, save you time, and help you make more money.
-          </p>
-          <div className="mt-6 flex items-center justify-center gap-2">
-            <div className="flex -space-x-1">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 border-2 border-slate-900"></div>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 border-2 border-slate-900"></div>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 border-2 border-slate-900"></div>
+      {/* Additional Agents in Development */}
+      <div className="mt-8 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border-2 border-slate-800">
+        {/* Scan lines effect */}
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)'
+        }}></div>
+
+        {/* Glowing orbs */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-cyan-500/10 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-purple-500/10 to-transparent rounded-full blur-3xl"></div>
+
+        <div className="relative z-10 p-8">
+          <div className="flex items-start gap-6">
+            {/* Icon */}
+            <div className="shrink-0">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                {/* Corner accents */}
+                <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-cyan-400 rounded-tl"></div>
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-cyan-400 rounded-br"></div>
+              </div>
             </div>
-            <span className="text-sm text-slate-400 font-medium">+5 more agents in development</span>
+
+            {/* Content */}
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="text-xl font-black text-white uppercase tracking-tight">
+                  Agent Development Pipeline
+                </h3>
+                <span className="px-2 py-0.5 bg-cyan-500/20 border border-cyan-500/30 rounded text-xs font-bold text-cyan-400 uppercase">
+                  Active
+                </span>
+              </div>
+              <p className="text-slate-300 mb-4 leading-relaxed">
+                Our team is continuously building new specialized agents to expand your automation capabilities. Each agent is designed to solve specific business challenges and integrate seamlessly with your existing workflows.
+              </p>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                  <div className="text-2xl font-black text-cyan-400 mb-1">5+</div>
+                  <div className="text-xs text-slate-400 uppercase font-bold">In Development</div>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                  <div className="text-2xl font-black text-purple-400 mb-1">Q1</div>
+                  <div className="text-xs text-slate-400 uppercase font-bold">Next Release</div>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                  <div className="text-2xl font-black text-emerald-400 mb-1">12+</div>
+                  <div className="text-xs text-slate-400 uppercase font-bold">Planned 2026</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
