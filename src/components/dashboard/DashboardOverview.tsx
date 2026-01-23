@@ -517,15 +517,15 @@ export default function DashboardOverview({
               </svg>
             </div>
             <p className="text-slate-900 font-bold text-lg mb-2">No calls yet</p>
-            <p className="text-sm text-slate-500 mb-6">Start a campaign to begin making calls</p>
+            <p className="text-sm text-slate-500 mb-6">Select an AI agent and build your first campaign</p>
             <a
-              href="/dashboard/agents"
+              href="/agents"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-xl transition-all font-bold"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
-              Launch Campaign
+              Go to Agents
             </a>
           </div>
         ) : (
