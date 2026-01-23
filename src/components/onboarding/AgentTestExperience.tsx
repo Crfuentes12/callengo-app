@@ -286,8 +286,9 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                   Select Voice
                 </label>
                 <VoiceSelector
-                  selectedVoice={selectedVoice}
-                  onVoiceChange={setSelectedVoice}
+                  selectedVoiceId={selectedVoice}
+                  onVoiceSelect={setSelectedVoice}
+                  variant="dark"
                 />
               </div>
 
