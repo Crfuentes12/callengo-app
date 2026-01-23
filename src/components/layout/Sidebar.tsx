@@ -31,6 +31,14 @@ function UsersIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+function CampaignsIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+    </svg>
+  );
+}
+
 function BotIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -96,6 +104,7 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Contacts', href: '/contacts', icon: UsersIcon },
     { name: 'Agents', href: '/agents', icon: BotIcon },
+    { name: 'Campaigns', href: '/campaigns', icon: CampaignsIcon },
     { name: 'Analytics', href: '/analytics', icon: ChartIcon },
     { name: 'Settings', href: '/settings', icon: CogIcon },
   ];
