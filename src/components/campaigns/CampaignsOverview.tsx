@@ -3,6 +3,9 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { AgentTemplate, Company } from '@/types/supabase';
+import AgentSelectionModal from '@/components/agents/AgentSelectionModal';
+import AgentConfigModal from '@/components/agents/AgentConfigModal';
 
 interface Campaign {
   id: string;
@@ -41,6 +44,8 @@ interface CampaignsOverviewProps {
   companyId: string;
   followUpStats: FollowUpStat[];
   voicemailStats: VoicemailStat[];
+  agentTemplates: AgentTemplate[];
+  company: Company;
 }
 
 type FilterStatus = 'all' | 'active' | 'completed' | 'paused' | 'failed';
@@ -50,9 +55,20 @@ export default function CampaignsOverview({
   companyId,
   followUpStats,
   voicemailStats,
+  agentTemplates,
+  company,
 }: CampaignsOverviewProps) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAgentSelection, setShowAgentSelection] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AgentTemplate | null>(null);
+
+  const handleAgentSelect = (agent: AgentTemplate) => {
+    setSelectedAgent(agent);
+    setShowAgentSelection(false);
+    setShowConfigModal(true);
+  };
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -143,12 +159,12 @@ export default function CampaignsOverview({
           <h1 className="text-3xl font-black text-slate-900">Campaigns</h1>
           <p className="text-slate-600 mt-1">Track and manage your AI calling campaigns</p>
         </div>
-        <Link
-          href="/agents"
+        <button
+          onClick={() => setShowAgentSelection(true)}
           className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold hover:shadow-lg transition-all"
         >
           + New Campaign
-        </Link>
+        </button>
       </div>
 
       {/* Stats Grid */}
@@ -360,6 +376,28 @@ export default function CampaignsOverview({
           </div>
         )}
       </div>
+
+      {/* Agent Selection Modal */}
+      {showAgentSelection && (
+        <AgentSelectionModal
+          agentTemplates={agentTemplates}
+          onSelect={handleAgentSelect}
+          onClose={() => setShowAgentSelection(false)}
+        />
+      )}
+
+      {/* Agent Config Modal */}
+      {showConfigModal && selectedAgent && (
+        <AgentConfigModal
+          agent={selectedAgent}
+          companyId={companyId}
+          company={company}
+          onClose={() => {
+            setShowConfigModal(false);
+            setSelectedAgent(null);
+          }}
+        />
+      )}
     </div>
   );
 }

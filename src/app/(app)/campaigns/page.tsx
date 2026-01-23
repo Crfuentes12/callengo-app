@@ -41,12 +41,28 @@ export default async function CampaignsPage() {
     .select('message_left, agent_run_id')
     .eq('company_id', userData!.company_id);
 
+  // Get agent templates for campaign creation
+  const { data: agentTemplates } = await supabase
+    .from('agent_templates')
+    .select('*')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  // Get company data
+  const { data: company } = await supabase
+    .from('companies')
+    .select('*')
+    .eq('id', userData!.company_id)
+    .single();
+
   return (
     <CampaignsOverview
       campaigns={campaigns || []}
       companyId={userData!.company_id}
       followUpStats={followUpStats || []}
       voicemailStats={voicemailStats || []}
+      agentTemplates={agentTemplates || []}
+      company={company!}
     />
   );
 }
