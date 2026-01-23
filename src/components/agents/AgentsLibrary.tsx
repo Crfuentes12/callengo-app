@@ -116,60 +116,57 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
         ))}
       </div>
 
-      {/* Additional Agents in Development */}
+      {/* Additional Agents Banner */}
       <div className="mt-8 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border-2 border-slate-800">
         {/* Scan lines effect */}
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)'
         }}></div>
 
-        {/* Glowing orbs */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-cyan-500/10 to-transparent rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-purple-500/10 to-transparent rounded-full blur-3xl"></div>
+        {/* Glowing gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-purple-500/5 to-pink-500/5"></div>
 
-        <div className="relative z-10 p-8">
-          <div className="flex items-start gap-6">
-            {/* Icon */}
-            <div className="shrink-0">
+        <div className="relative z-10 px-8 py-6">
+          <div className="flex items-center justify-between">
+            {/* Left side - Icon + Text */}
+            <div className="flex items-center gap-6">
               <div className="relative">
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
-                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                {/* Corner accents */}
-                <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-cyan-400 rounded-tl"></div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-cyan-400 rounded-br"></div>
+                {/* Pulse effect */}
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 animate-ping opacity-20"></div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">
+                  New Agents Coming Soon
+                </h3>
+                <p className="text-slate-400 text-sm">
+                  Expanding your automation capabilities with specialized agents
+                </p>
               </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-xl font-black text-white uppercase tracking-tight">
-                  Agent Development Pipeline
-                </h3>
-                <span className="px-2 py-0.5 bg-cyan-500/20 border border-cyan-500/30 rounded text-xs font-bold text-cyan-400 uppercase">
-                  Active
-                </span>
+            {/* Right side - Badge */}
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400">
+                  2
+                </div>
+                <div className="text-xs text-slate-500 uppercase font-bold tracking-wide">
+                  In Development
+                </div>
               </div>
-              <p className="text-slate-300 mb-4 leading-relaxed">
-                Our team is continuously building new specialized agents to expand your automation capabilities. Each agent is designed to solve specific business challenges and integrate seamlessly with your existing workflows.
-              </p>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                  <div className="text-2xl font-black text-cyan-400 mb-1">5+</div>
-                  <div className="text-xs text-slate-400 uppercase font-bold">In Development</div>
+              <div className="w-px h-12 bg-gradient-to-b from-transparent via-slate-700 to-transparent"></div>
+              <div className="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                <div className="text-xs text-slate-400 uppercase font-bold mb-0.5">
+                  Next Release
                 </div>
-                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                  <div className="text-2xl font-black text-purple-400 mb-1">Q1</div>
-                  <div className="text-xs text-slate-400 uppercase font-bold">Next Release</div>
-                </div>
-                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                  <div className="text-2xl font-black text-emerald-400 mb-1">12+</div>
-                  <div className="text-xs text-slate-400 uppercase font-bold">Planned 2026</div>
+                <div className="text-sm font-black text-emerald-400">
+                  Q1 2026
                 </div>
               </div>
             </div>
