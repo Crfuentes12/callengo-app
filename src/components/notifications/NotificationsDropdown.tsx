@@ -23,6 +23,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [tableExists, setTableExists] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,7 +41,15 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) throw error;
+      if (error) {
+        // Check if table doesn't exist (PGRST205 error)
+        if (error.code === 'PGRST205') {
+          setTableExists(false);
+          setLoading(false);
+          return;
+        }
+        throw error;
+      }
 
       if (data) {
         setNotifications(data);
@@ -55,6 +64,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
 
   // Mark notification as read
   const markAsRead = async (notificationId: string) => {
+    if (!tableExists) return;
     try {
       const { error } = await supabase
         .from('notifications')
@@ -75,6 +85,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
 
   // Mark all as read
   const markAllAsRead = async () => {
+    if (!tableExists) return;
     try {
       const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
 
@@ -97,6 +108,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
 
   // Delete notification
   const deleteNotification = async (notificationId: string) => {
+    if (!tableExists) return;
     try {
       const { error } = await supabase
         .from('notifications')
@@ -170,7 +182,9 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
   useEffect(() => {
     fetchNotifications();
 
-    // Set up real-time subscription
+    // Set up real-time subscription only if table exists
+    if (!tableExists) return;
+
     const channel = supabase
       .channel('notifications')
       .on(
@@ -190,7 +204,12 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [companyId, userId]);
+  }, [companyId, userId, tableExists]);
+
+  // Don't render if table doesn't exist
+  if (!tableExists) {
+    return null;
+  }
 
   return (
     <div className="relative" ref={dropdownRef}>
