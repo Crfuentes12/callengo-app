@@ -28,12 +28,12 @@ interface Campaign {
 
 interface FollowUpStat {
   status: string;
-  agent_run_id: string;
+  agent_run_id: string | null;
 }
 
 interface VoicemailStat {
   message_left: boolean;
-  agent_run_id: string;
+  agent_run_id: string | null;
 }
 
 interface CampaignsOverviewProps {
