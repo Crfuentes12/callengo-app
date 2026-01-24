@@ -630,9 +630,9 @@ export default function DashboardOverview({
           </div>
         </a>
 
-        <a
-          href="/agents"
-          className="group bg-gradient-to-br from-white to-emerald-50 rounded-2xl border-2 border-emerald-200 p-6 hover:shadow-xl hover:border-emerald-400 transition-all duration-300 hover:scale-[1.02]"
+        <button
+          onClick={() => setShowAgentSelection(true)}
+          className="group bg-gradient-to-br from-white to-emerald-50 rounded-2xl border-2 border-emerald-200 p-6 hover:shadow-xl hover:border-emerald-400 transition-all duration-300 hover:scale-[1.02] text-left w-full"
         >
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg group-hover:shadow-emerald-500/40 transition-all group-hover:scale-110 duration-300">
@@ -647,7 +647,7 @@ export default function DashboardOverview({
               <p className="text-sm text-slate-500 mt-1 font-medium">Launch AI calling agent</p>
             </div>
           </div>
-        </a>
+        </button>
 
         <a
           href="/settings"
