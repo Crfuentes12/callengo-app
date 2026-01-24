@@ -23,7 +23,7 @@ INSERT INTO agent_templates (
 ) VALUES (
   'data-validation',
   'Data Validation Agent',
-  'Stop wasting money on bad data. Automatically verify and update contact information - no more bounced emails or wrong numbers. Your team saves hours every week.',
+  'Limpia tu base de datos. Verifica emails y teléfonos automáticamente.',
   '🔍',
   'verification',
   'Call {{contact_name}} to verify and update their contact information for {{company_name}}. Be friendly and professional. Ask to confirm their email address, phone number, and any other relevant details. If anything has changed, politely ask for the updated information.',
@@ -59,7 +59,7 @@ INSERT INTO agent_templates (
 ) VALUES (
   'appointment-confirmation',
   'Appointment Confirmation Agent',
-  'Stop losing money from no-shows. Confirm appointments automatically and see results in days. Perfect for clinics, services, and any business that books meetings.',
+  'Confirma citas y reduce no-shows. Ideal para clínicas y servicios.',
   '📅',
   'appointment',
   'Call {{contact_name}} to confirm their appointment with {{company_name}} scheduled for {{appointment_date}}. Be friendly and helpful. If they need to reschedule, help them find a new time. Confirm they have the location and any preparation needed.',
@@ -95,7 +95,7 @@ INSERT INTO agent_templates (
 ) VALUES (
   'lead-qualification',
   'Lead Qualification Agent',
-  'Stop wasting your sales team''s time on bad leads. Filter and score leads automatically before your team touches them. Your sellers only talk to qualified prospects.',
+  'Califica leads antes de ventas. Filtra automáticamente los buenos prospectos.',
   '🎯',
   'sales',
   'Call {{contact_name}} to qualify their interest in {{company_name}}''s products/services. Ask about their budget, timeline, decision-making authority, and specific needs. Be consultative and helpful, not pushy. Determine if they''re a good fit.',

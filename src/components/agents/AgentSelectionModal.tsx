@@ -74,27 +74,23 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-3xl shadow-2xl border-2 border-slate-800">
-        {/* Animated background effects */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent rounded-3xl"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent rounded-3xl"></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" style={{ isolation: 'isolate', willChange: 'transform' }}>
+      <div className="relative w-full max-w-4xl max-h-[90vh] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border-2 border-slate-700/50 overflow-hidden flex flex-col" style={{ transform: 'translateZ(0)' }}>
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+        >
+          <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
 
-        {/* Scan lines effect */}
-        <div className="absolute inset-0 opacity-10 rounded-3xl" style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)'
-        }}></div>
-
-        <div className="relative z-10 p-8">
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-xl bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 px-8 py-6" style={{
+          scrollbarGutter: 'stable',
+          scrollbarWidth: 'thin'
+        }}>
 
           {/* Header */}
           <div className="text-center mb-8">
@@ -183,12 +179,12 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
           </div>
 
           {/* Manual Agent Selection */}
-          <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="grid md:grid-cols-3 gap-4 mb-6">
             {agentTemplates.map((agent) => (
               <button
                 key={agent.id}
                 onClick={() => handleSelectAgent(agent)}
-                className={`group relative p-6 rounded-2xl border-2 transition-all text-left ${
+                className={`group relative p-4 rounded-2xl border-2 transition-all text-left ${
                   selectedAgentId === agent.id
                     ? 'bg-gradient-to-br from-cyan-900/40 to-purple-900/40 border-cyan-500 shadow-lg shadow-cyan-500/25'
                     : 'bg-slate-900/30 border-slate-700 hover:border-slate-600 hover:bg-slate-900/50'
@@ -203,19 +199,22 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
                   </div>
                 )}
 
-                <div className="w-14 h-14 rounded-xl overflow-hidden mb-4 border-2 border-slate-700 group-hover:border-cyan-500/50 transition-all">
-                  <Image
-                    src={`/agent-avatars/${agent.slug}.png`}
-                    alt={agent.name}
-                    width={56}
-                    height={56}
-                    className="w-full h-full object-cover"
-                  />
+                {/* Avatar and title side by side */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border-2 border-slate-700 group-hover:border-cyan-500/50 transition-all">
+                    <Image
+                      src={`/agent-avatars/${agent.slug}.png`}
+                      alt={agent.name}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors flex-1">
+                    {agent.name}
+                  </h3>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">
-                  {agent.name}
-                </h3>
-                <p className="text-sm text-slate-400 line-clamp-3">
+                <p className="text-sm text-slate-400 line-clamp-2">
                   {agent.description}
                 </p>
               </button>
@@ -223,17 +222,17 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-700/50 mt-4">
             <button
               onClick={onClose}
-              className="px-6 py-3 bg-slate-800 text-white font-semibold rounded-xl hover:bg-slate-700 transition-all"
+              className="px-6 py-2.5 bg-slate-800 text-white font-semibold rounded-lg hover:bg-slate-700 transition-all"
             >
               Cancel
             </button>
             <button
               onClick={handleContinue}
               disabled={!selectedAgentId && !recommendedAgent}
-              className="px-8 py-3 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-8 py-2.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               Continue
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -242,10 +241,6 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
             </button>
           </div>
         </div>
-
-        {/* Decorative glowing orbs */}
-        <div className="absolute right-0 top-0 w-96 h-96 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
-        <div className="absolute left-0 bottom-0 w-64 h-64 bg-gradient-to-tr from-purple-500/10 to-pink-500/10 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl pointer-events-none"></div>
       </div>
     </div>
   );
