@@ -244,8 +244,8 @@ export default function VoiceSelectionModal({
   if (!isOpen || !favoritesLoaded) return null;
 
   const containerSize = fullscreen
-    ? 'w-full max-w-7xl max-h-[95vh] rounded-2xl'
-    : 'w-full max-w-6xl max-h-[90vh] rounded-2xl';
+    ? 'w-full max-w-3xl max-h-[70vh] rounded-2xl'
+    : 'w-full max-w-5xl max-h-[70vh] rounded-2xl';
 
   const wrapperClass = fullscreen
     ? 'fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4'
@@ -264,7 +264,7 @@ export default function VoiceSelectionModal({
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
             <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
