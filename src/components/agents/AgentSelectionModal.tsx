@@ -109,6 +109,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 placeholder="Example: I need to clean up my contact database with outdated phone numbers..."
+                maxLength={500}
                 className="w-full h-32 px-6 py-4 bg-slate-900/50 border-2 border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all resize-none"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.ctrlKey) {
@@ -116,6 +117,10 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
                   }
                 }}
               />
+              {/* Character counter */}
+              <div className="absolute bottom-4 left-4 text-xs text-slate-500">
+                {userInput.length}/500
+              </div>
               <button
                 onClick={handleAnalyzeInput}
                 disabled={!userInput.trim() || isAnalyzing}
