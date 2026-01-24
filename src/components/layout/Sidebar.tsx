@@ -102,10 +102,10 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Contacts', href: '/contacts', icon: UsersIcon },
-    { name: 'Agents', href: '/agents', icon: BotIcon },
     { name: 'Campaigns', href: '/campaigns', icon: CampaignsIcon },
     { name: 'Analytics', href: '/analytics', icon: ChartIcon },
+    { name: 'Contacts', href: '/contacts', icon: UsersIcon },
+    { name: 'Agents', href: '/agents', icon: BotIcon },
     { name: 'Settings', href: '/settings', icon: CogIcon },
   ];
 
