@@ -94,10 +94,10 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
 
           {/* Header */}
           <div className="text-center mb-8">
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-purple-200">
+            <h2 className="text-2xl md:text-3xl font-black text-white mb-2 uppercase tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-purple-200">
               What do you want to do today?
             </h2>
-            <p className="text-lg text-slate-400">
+            <p className="text-sm text-slate-400">
               Tell us about your challenge, and we'll find the perfect AI agent for you
             </p>
           </div>
@@ -139,9 +139,6 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
                 )}
               </button>
             </div>
-            <p className="text-xs text-slate-500 mt-2 text-center">
-              Press Ctrl+Enter or click "Find My Agent" to get AI-powered recommendation
-            </p>
           </div>
 
           {/* AI Recommendation */}
@@ -214,7 +211,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
                     {agent.name}
                   </h3>
                 </div>
-                <p className="text-sm text-slate-400 line-clamp-2">
+                <p className="text-sm text-slate-400">
                   {agent.description}
                 </p>
               </button>
