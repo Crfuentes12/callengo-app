@@ -1,11 +1,13 @@
 // components/dashboard/DashboardOverview.tsx
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Company, AgentTemplate, AgentRun, ContactList } from '@/types/supabase';
 import { Contact } from '@/types/call-agent';
 import { formatDuration } from '@/lib/call-agent-utils';
+import AgentSelectionModal from '@/components/agents/AgentSelectionModal';
+import AgentConfigModal from '@/components/agents/AgentConfigModal';
 
 interface CallLog {
   id: string;
@@ -88,6 +90,16 @@ export default function DashboardOverview({
   usageTracking,
   subscription,
 }: DashboardOverviewProps) {
+  const [showAgentSelection, setShowAgentSelection] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AgentTemplate | null>(null);
+
+  const handleAgentSelect = (agent: AgentTemplate) => {
+    setSelectedAgent(agent);
+    setShowAgentSelection(false);
+    setShowConfigModal(true);
+  };
+
   const stats = useMemo(() => {
     const typedContacts = contacts as Contact[];
 
@@ -518,15 +530,15 @@ export default function DashboardOverview({
             </div>
             <p className="text-slate-900 font-bold text-lg mb-2">No calls yet</p>
             <p className="text-sm text-slate-500 mb-6">Select an AI agent and build your first campaign</p>
-            <a
-              href="/agents"
+            <button
+              onClick={() => setShowAgentSelection(true)}
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-xl transition-all font-bold"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
-              Go to Agents
-            </a>
+              Create Campaign
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -678,6 +690,28 @@ export default function DashboardOverview({
           </div>
         </a>
       </div>
+
+      {/* Agent Selection Modal */}
+      {showAgentSelection && (
+        <AgentSelectionModal
+          agentTemplates={agentTemplates}
+          onSelect={handleAgentSelect}
+          onClose={() => setShowAgentSelection(false)}
+        />
+      )}
+
+      {/* Agent Config Modal */}
+      {showConfigModal && selectedAgent && (
+        <AgentConfigModal
+          agent={selectedAgent}
+          companyId={company.id}
+          company={company}
+          onClose={() => {
+            setShowConfigModal(false);
+            setSelectedAgent(null);
+          }}
+        />
+      )}
     </div>
   );
 }
