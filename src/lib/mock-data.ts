@@ -610,8 +610,6 @@ export function generateUsageTracking(companyId: string, subscriptionId: string 
     period_end: periodEnd.toISOString(),
     minutes_used: 247,
     minutes_included: 500,
-    overage_minutes: 0,
-    total_cost: 0,
     created_at: periodStart.toISOString(),
     updated_at: now.toISOString(),
   };
