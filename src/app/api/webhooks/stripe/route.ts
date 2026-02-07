@@ -158,7 +158,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
   }
 
-  // Upsert subscription
+  // Upsert subscription (onConflict ensures existing record is updated, not duplicated)
   const { error: subError } = await supabase
     .from('company_subscriptions')
     .upsert({
@@ -170,13 +170,13 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       current_period_end: currentPeriodEnd.toISOString(),
       stripe_subscription_id: subscriptionId,
       stripe_customer_id: customerId,
-    });
+    }, { onConflict: 'company_id' });
 
   if (subError) {
     console.error('Error upserting subscription:', subError);
   }
 
-  // Create usage tracking
+  // Create usage tracking (omit computed columns: overage_minutes, total_cost)
   await supabase.from('usage_tracking').upsert({
     company_id: companyId,
     subscription_id: subscriptionId,
@@ -184,9 +184,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     period_end: currentPeriodEnd.toISOString(),
     minutes_used: 0,
     minutes_included: plan.minutes_included,
-    overage_minutes: 0,
-    total_cost: 0,
-  });
+  }, { onConflict: 'company_id' });
 
   console.log('✅ Subscription created/updated for company:', companyId);
 }

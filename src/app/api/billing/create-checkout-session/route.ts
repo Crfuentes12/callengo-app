@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
     const session = await createCheckoutSession({
       customerId: stripeCustomer.id,
       priceId: stripePriceId,
-      successUrl: `${appUrl}/settings?session_id={CHECKOUT_SESSION_ID}&success=true`,
+      successUrl: `${appUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${appUrl}/settings?canceled=true`,
       metadata: {
         company_id: company.id,

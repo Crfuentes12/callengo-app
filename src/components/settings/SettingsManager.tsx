@@ -1,7 +1,7 @@
 // components/settings/SettingsManager.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@/types/supabase';
@@ -471,7 +471,13 @@ export default function SettingsManager({ company: initialCompany, settings: ini
 
           {/* Billing Tab */}
           {activeTab === 'billing' && (
-            <BillingSettings companyId={initialCompany.id} />
+            <Suspense fallback={
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+              </div>
+            }>
+              <BillingSettings companyId={initialCompany.id} />
+            </Suspense>
           )}
 
           {/* Notifications Tab */}
