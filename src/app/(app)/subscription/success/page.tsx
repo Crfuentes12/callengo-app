@@ -8,9 +8,53 @@ import { Suspense } from 'react';
 function SubscriptionSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(7);
+  const [verifying, setVerifying] = useState(true);
+  const [verified, setVerified] = useState(false);
   const sessionId = searchParams.get('session_id');
 
+  // Verify the session and update subscription directly in the DB
+  useEffect(() => {
+    if (!sessionId) {
+      setVerifying(false);
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    const verify = async () => {
+      attempts++;
+      try {
+        const res = await fetch('/api/billing/verify-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.updated) {
+            setVerified(true);
+            setVerifying(false);
+            return;
+          }
+        }
+      } catch {
+        // ignore and retry
+      }
+
+      if (attempts < maxAttempts) {
+        setTimeout(verify, 2000);
+      } else {
+        setVerifying(false);
+      }
+    };
+
+    verify();
+  }, [sessionId]);
+
+  // Countdown and redirect
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
@@ -29,8 +73,8 @@ function SubscriptionSuccessContent() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="text-center max-w-lg">
-        {/* Success Animation */}
-        <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 mb-6 animate-bounce">
+        {/* Success Icon */}
+        <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 mb-6">
           <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
@@ -43,6 +87,17 @@ function SubscriptionSuccessContent() {
         <p className="text-base text-slate-600 mb-2">
           Your plan has been successfully upgraded. You now have access to all your new features.
         </p>
+        {verifying && (
+          <p className="text-sm text-indigo-600 mb-2 flex items-center justify-center gap-2">
+            <span className="w-3 h-3 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin inline-block"></span>
+            Activating your subscription...
+          </p>
+        )}
+        {verified && (
+          <p className="text-sm text-emerald-600 font-medium mb-2">
+            Subscription activated successfully!
+          </p>
+        )}
         <p className="text-sm text-slate-500 mb-8">
           Your payment has been processed securely through Stripe.
         </p>

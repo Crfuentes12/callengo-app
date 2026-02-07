@@ -158,11 +158,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
   }
 
-  // Upsert subscription (onConflict ensures existing record is updated, not duplicated)
-  const { error: subError } = await supabase
+  // Update existing subscription record (use .update().eq() instead of upsert
+  // because company_id may not have a UNIQUE constraint)
+  const { data: updatedSub, error: subError } = await supabase
     .from('company_subscriptions')
-    .upsert({
-      company_id: companyId,
+    .update({
       plan_id: planId,
       billing_cycle: billingCycle,
       status: 'active',
@@ -170,21 +170,57 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       current_period_end: currentPeriodEnd.toISOString(),
       stripe_subscription_id: subscriptionId,
       stripe_customer_id: customerId,
-    }, { onConflict: 'company_id' });
+    })
+    .eq('company_id', companyId)
+    .select()
+    .single();
 
   if (subError) {
-    console.error('Error upserting subscription:', subError);
+    console.error('Error updating subscription:', subError);
+    // If no existing record, try insert as fallback
+    if (subError.code === 'PGRST116') {
+      const { error: insertError } = await supabase
+        .from('company_subscriptions')
+        .insert({
+          company_id: companyId,
+          plan_id: planId,
+          billing_cycle: billingCycle,
+          status: 'active',
+          current_period_start: currentPeriodStart.toISOString(),
+          current_period_end: currentPeriodEnd.toISOString(),
+          stripe_subscription_id: subscriptionId,
+          stripe_customer_id: customerId,
+        });
+      if (insertError) {
+        console.error('Error inserting subscription:', insertError);
+      }
+    }
   }
 
-  // Create usage tracking (omit computed columns: overage_minutes, total_cost)
-  await supabase.from('usage_tracking').upsert({
-    company_id: companyId,
-    subscription_id: subscriptionId,
-    period_start: currentPeriodStart.toISOString(),
-    period_end: currentPeriodEnd.toISOString(),
-    minutes_used: 0,
-    minutes_included: plan.minutes_included,
-  }, { onConflict: 'company_id' });
+  // Update or create usage tracking (omit computed columns: overage_minutes, total_cost)
+  const subId = updatedSub?.id || subscriptionId;
+  const { error: usageUpdateError } = await supabase
+    .from('usage_tracking')
+    .update({
+      subscription_id: subId,
+      period_start: currentPeriodStart.toISOString(),
+      period_end: currentPeriodEnd.toISOString(),
+      minutes_used: 0,
+      minutes_included: plan.minutes_included,
+    })
+    .eq('company_id', companyId);
+
+  // If no existing usage record, insert one
+  if (usageUpdateError && usageUpdateError.code === 'PGRST116') {
+    await supabase.from('usage_tracking').insert({
+      company_id: companyId,
+      subscription_id: subId,
+      period_start: currentPeriodStart.toISOString(),
+      period_end: currentPeriodEnd.toISOString(),
+      minutes_used: 0,
+      minutes_included: plan.minutes_included,
+    });
+  }
 
   console.log('✅ Subscription created/updated for company:', companyId);
 }
