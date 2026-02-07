@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { createBillingPortalSession } from '@/lib/stripe';
+import { createBillingPortalSession, stripe } from '@/lib/stripe';
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,10 +19,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get user's company
+    // Get user's company (include email and name for Stripe sync)
     const { data: userData, error: userDataError } = await supabase
       .from('users')
-      .select('company_id, role')
+      .select('company_id, role, email, full_name')
       .eq('id', user.id)
       .single();
 
@@ -53,6 +53,35 @@ export async function POST(req: NextRequest) {
         { error: 'No active Stripe subscription found' },
         { status: 404 }
       );
+    }
+
+    // Fetch company details to sync metadata to Stripe
+    const { data: company } = await supabase
+      .from('companies')
+      .select('name, website')
+      .eq('id', userData.company_id)
+      .single();
+
+    // Update Stripe customer metadata with latest company info
+    if (company) {
+      const displayName = userData.full_name && company.name
+        ? `${userData.full_name} (${company.name})`
+        : userData.full_name || company.name || undefined;
+
+      await stripe.customers.update(subscription.stripe_customer_id, {
+        ...(displayName && { name: displayName }),
+        email: userData.email,
+        metadata: {
+          company_id: userData.company_id,
+          user_id: user.id,
+          company_name: company.name || '',
+          company_website: company.website || '',
+          metadata_updated_at: new Date().toISOString(),
+        },
+      }).catch((err) => {
+        // Non-blocking: don't fail the portal session if metadata update fails
+        console.error('[Portal] Error syncing customer metadata:', err);
+      });
     }
 
     // Create billing portal session
