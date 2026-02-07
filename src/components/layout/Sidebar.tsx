@@ -146,27 +146,6 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
         </button>
       </div>
 
-      {/* Company Info */}
-      <div className="px-3 py-4 border-b border-slate-800/50">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800/60 transition-all cursor-pointer backdrop-blur-sm">
-          {company.favicon_url ? (
-            <img
-              src={company.favicon_url}
-              alt={company.name}
-              className="w-8 h-8 rounded-lg object-cover bg-slate-700 ring-2 ring-slate-700/50"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-slate-300 font-bold text-sm ring-2 ring-slate-700/50">
-              {company.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-white truncate">{company.name}</p>
-            <p className="text-[11px] text-slate-400 truncate">{company.website || 'No website'}</p>
-          </div>
-        </div>
-      </div>
-
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         <div className="space-y-1">
