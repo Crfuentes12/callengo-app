@@ -60,7 +60,7 @@ function SubscriptionSuccessContent() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.push('/settings?success=true');
+          router.push('/dashboard');
           return 0;
         }
         return prev - 1;
@@ -135,15 +135,15 @@ function SubscriptionSuccessContent() {
 
         {/* Redirect notice */}
         <p className="text-sm text-slate-500 mb-4">
-          Redirecting to settings in <span className="font-bold text-indigo-600">{countdown}</span> seconds...
+          Redirecting to dashboard in <span className="font-bold text-indigo-600">{countdown}</span> seconds...
         </p>
 
         {/* Manual redirect button */}
         <button
-          onClick={() => router.push('/settings?success=true')}
+          onClick={() => router.push('/dashboard')}
           className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:from-indigo-500 hover:to-indigo-400 transition-all duration-200"
         >
-          Go to Settings Now
+          Go to Dashboard
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
           </svg>

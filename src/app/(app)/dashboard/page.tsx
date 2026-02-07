@@ -75,7 +75,7 @@ export default async function DashboardPage() {
     .single();
 
   // Fetch company subscription
-  const { data: subscription } = await supabase
+  let { data: subscription } = await supabase
     .from('company_subscriptions')
     .select(`
       *,
@@ -84,6 +84,51 @@ export default async function DashboardPage() {
     .eq('company_id', userData!.company_id)
     .eq('status', 'active')
     .single();
+
+  // Fallback: if no subscription exists, auto-assign the Free plan
+  if (!subscription) {
+    const { data: freePlan } = await supabase
+      .from('subscription_plans')
+      .select('id, minutes_included')
+      .eq('slug', 'free')
+      .single();
+
+    if (freePlan) {
+      const now = new Date();
+      const periodEnd = new Date();
+      periodEnd.setFullYear(periodEnd.getFullYear() + 10);
+
+      const { data: newSub } = await supabase
+        .from('company_subscriptions')
+        .insert({
+          company_id: userData!.company_id,
+          plan_id: freePlan.id,
+          billing_cycle: 'monthly',
+          status: 'active',
+          current_period_start: now.toISOString(),
+          current_period_end: periodEnd.toISOString(),
+        })
+        .select(`
+          *,
+          subscription_plans (*)
+        `)
+        .single();
+
+      if (newSub) {
+        subscription = newSub;
+
+        // Also create usage tracking
+        await supabase.from('usage_tracking').insert({
+          company_id: userData!.company_id,
+          subscription_id: newSub.id,
+          period_start: now.toISOString(),
+          period_end: periodEnd.toISOString(),
+          minutes_used: 0,
+          minutes_included: freePlan.minutes_included,
+        });
+      }
+    }
+  }
 
   return (
     <DashboardOverview
