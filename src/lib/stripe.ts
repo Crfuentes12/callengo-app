@@ -10,34 +10,62 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 /**
- * Creates or retrieves a Stripe customer for a company
+ * Creates or retrieves a Stripe customer, keyed by user email.
+ * Always updates metadata with the latest user/company info so Stripe
+ * stays in sync even if the user renames their company or changes details.
  */
 export async function getOrCreateStripeCustomer(params: {
   companyId: string;
   email: string;
-  name?: string;
-  metadata?: Record<string, string>;
+  userName?: string;
+  companyName?: string;
+  companyWebsite?: string;
+  userId?: string;
 }): Promise<Stripe.Customer> {
-  const { companyId, email, name, metadata = {} } = params;
+  const { companyId, email, userName, companyName, companyWebsite, userId } = params;
 
-  // Try to find existing customer
+  const now = new Date().toISOString();
+
+  // Build metadata with all trackable info
+  const metadata: Record<string, string> = {
+    company_id: companyId,
+    ...(userId && { user_id: userId }),
+    ...(companyName && { company_name: companyName }),
+    ...(companyWebsite && { company_website: companyWebsite }),
+    metadata_updated_at: now,
+  };
+
+  // The customer name shown in Stripe dashboard: "User Name (Company)"
+  const displayName = userName && companyName
+    ? `${userName} (${companyName})`
+    : userName || companyName || undefined;
+
+  // Try to find existing customer by email
   const existingCustomers = await stripe.customers.list({
     email,
     limit: 1,
   });
 
   if (existingCustomers.data.length > 0) {
-    return existingCustomers.data[0];
+    const existing = existingCustomers.data[0];
+
+    // Always update metadata so Stripe stays current with any company name/website changes
+    const updatedCustomer = await stripe.customers.update(existing.id, {
+      ...(displayName && { name: displayName }),
+      metadata: {
+        ...existing.metadata,
+        ...metadata,
+      },
+    });
+
+    return updatedCustomer;
   }
 
-  // Create new customer
+  // Create new customer keyed by email
   const customer = await stripe.customers.create({
     email,
-    name,
-    metadata: {
-      company_id: companyId,
-      ...metadata,
-    },
+    ...(displayName && { name: displayName }),
+    metadata,
   });
 
   return customer;

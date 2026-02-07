@@ -81,10 +81,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get company details
+    // Get company details (including website for Stripe metadata)
     const { data: company, error: companyError } = await supabase
       .from('companies')
-      .select('id, name')
+      .select('id, name, website')
       .eq('id', userData.company_id)
       .single();
 
@@ -134,15 +134,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get or create Stripe customer
+    // Get or create Stripe customer (keyed by user email, enriched with company data)
     const stripeCustomer = await getOrCreateStripeCustomer({
       companyId: company.id,
       email: userData.email,
-      name: company.name || userData.full_name || undefined,
-      metadata: {
-        company_id: company.id,
-        user_id: user.id,
-      },
+      userName: userData.full_name || undefined,
+      companyName: company.name || undefined,
+      companyWebsite: company.website || undefined,
+      userId: user.id,
     });
 
     // Check if company already has a subscription
