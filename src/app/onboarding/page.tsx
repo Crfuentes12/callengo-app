@@ -174,32 +174,13 @@ export default function OnboardingPage() {
       setProgress(75);
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 5. Assign Free plan to new user
+      // 5. Assign Free plan to new user (server-side API to bypass RLS)
       try {
-        // Get the Free plan
-        const { data: freePlan } = await supabase
-          .from('subscription_plans')
-          .select('id')
-          .eq('slug', 'free')
-          .single();
-
-        if (freePlan) {
-          // Create subscription for the company with Free plan
-          const now = new Date();
-          const periodEnd = new Date();
-          periodEnd.setFullYear(periodEnd.getFullYear() + 10); // Free plan valid for 10 years
-
-          await supabase
-            .from('company_subscriptions')
-            .insert({
-              company_id: companyData.id,
-              plan_id: freePlan.id,
-              billing_cycle: 'monthly',
-              status: 'active',
-              current_period_start: now.toISOString(),
-              current_period_end: periodEnd.toISOString(),
-            });
-        }
+        await fetch('/api/billing/ensure-free-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ company_id: companyData.id }),
+        });
       } catch (planError) {
         console.error('Error assigning free plan:', planError);
         // Non-critical, continue
