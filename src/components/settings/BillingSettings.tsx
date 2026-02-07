@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useStripe } from '@/hooks/useStripe';
 import { getPlanFeatures } from '@/config/plan-features';
 import { useUserCurrency } from '@/hooks/useAutoGeolocation';
@@ -54,6 +55,7 @@ const CURRENCY_RATES = {
 export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const { createCheckoutSession, openBillingPortal, loading: stripeLoading } = useStripe();
   const { currency, loading: currencyLoading } = useUserCurrency();
+  const searchParams = useSearchParams();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -88,11 +90,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     return CURRENCY_RATES[currency]?.symbol || '$';
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [companyId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -116,7 +114,40 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Detect post-checkout return and poll for updated subscription
+  useEffect(() => {
+    const isSuccess = searchParams.get('success') === 'true';
+    if (!isSuccess) return;
+
+    setSuccess('Your subscription has been upgraded successfully!');
+
+    // Poll for the updated subscription (webhook may still be processing)
+    let attempts = 0;
+    const maxAttempts = 6;
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await fetch(`/api/billing/subscription?companyId=${companyId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.subscription?.plan?.slug !== 'free') {
+            setSubscription(data.subscription);
+            setUsage(data.usage);
+            clearInterval(pollInterval);
+          }
+        }
+      } catch { /* ignore polling errors */ }
+      if (attempts >= maxAttempts) clearInterval(pollInterval);
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, [searchParams, companyId]);
 
   const handleChangePlan = async (planId: string) => {
     const selectedPlan = plans.find(p => p.id === planId);
