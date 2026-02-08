@@ -11,3 +11,12 @@ export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseService
     persistSession: false
   }
 });
+
+// Untyped admin client for tables not yet in the Database type definition
+// (cancellation_feedback, retention_offers, retention_offer_log)
+export const supabaseAdminRaw = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});

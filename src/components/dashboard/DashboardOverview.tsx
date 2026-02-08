@@ -247,8 +247,8 @@ export default function DashboardOverview({
         <div className="absolute left-0 bottom-0 w-64 h-64 bg-gradient-to-tr from-purple-500/10 to-pink-500/10 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl"></div>
       </div>
 
-      {/* Free Plan Banner */}
-      {(!subscription || subscription.subscription_plans?.name === 'Free') && (
+      {/* Free Plan Banner — only for Free plan users */}
+      {subscription && subscription.subscription_plans?.name === 'Free' && (
         <div className="relative overflow-hidden bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-200 rounded-2xl p-6">
           <div className="absolute right-0 top-0 w-32 h-32 bg-gradient-to-br from-amber-200/30 to-orange-200/30 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl"></div>
           <div className="relative z-10 flex items-start gap-4">
