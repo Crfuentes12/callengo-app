@@ -431,42 +431,56 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           </div>
         </div>
 
-        {/* ── Plan Details (redesigned — clean 2-column layout) ── */}
+        {/* ── Plan Details (clean table) ── */}
         <div>
           <h3 className="text-lg font-bold text-slate-900 mb-4">Plan Details</h3>
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-            {/* Key metrics as a clean horizontal bar */}
-            <div className="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
-              <div className="p-4 text-center">
-                <div className="text-xl font-bold text-slate-900">{currentPlan.minutes_included.toLocaleString()}</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">Minutes/month</div>
-              </div>
-              <div className="p-4 text-center">
-                <div className="text-xl font-bold text-slate-900">{currentPlan.max_call_duration}</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">Max call (min)</div>
-              </div>
-              <div className="p-4 text-center">
-                <div className="text-xl font-bold text-slate-900">{currentPlan.max_concurrent_calls}</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">Concurrent calls</div>
-              </div>
-              <div className="p-4 text-center">
-                <div className="text-xl font-bold text-slate-900">{formatPriceWithDecimals(currentPlan.price_per_extra_minute)}</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">Overage/min</div>
-              </div>
-            </div>
-            {/* Features in a 2-column grid */}
-            {planFeatures.length > 0 && (
-              <div className="p-5">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                  {planFeatures.map((feature, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm">
-                      <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                      <span className="text-slate-700">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-slate-100">
+                <tr>
+                  <td className="px-5 py-3 text-slate-600">Minutes Included</td>
+                  <td className="px-5 py-3 text-right font-semibold text-slate-900">{currentPlan.minutes_included.toLocaleString()}/month</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3 text-slate-600">Max Call Duration</td>
+                  <td className="px-5 py-3 text-right font-semibold text-slate-900">{currentPlan.max_call_duration} min</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3 text-slate-600">Concurrent Calls</td>
+                  <td className="px-5 py-3 text-right font-semibold text-slate-900">{currentPlan.max_concurrent_calls}</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3 text-slate-600">Overage Rate</td>
+                  <td className="px-5 py-3 text-right font-semibold text-slate-900">{formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/min</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3 text-slate-600">Max Users</td>
+                  <td className="px-5 py-3 text-right font-semibold text-slate-900">{currentPlan.max_users === -1 ? 'Unlimited' : currentPlan.max_users}</td>
+                </tr>
+                {currentPlan.max_calls_per_hour && (
+                  <tr>
+                    <td className="px-5 py-3 text-slate-600">Rate Limit (hourly)</td>
+                    <td className="px-5 py-3 text-right font-semibold text-slate-900">{currentPlan.max_calls_per_hour} calls/hr</td>
+                  </tr>
+                )}
+                {currentPlan.max_calls_per_day && (
+                  <tr>
+                    <td className="px-5 py-3 text-slate-600">Rate Limit (daily)</td>
+                    <td className="px-5 py-3 text-right font-semibold text-slate-900">{currentPlan.max_calls_per_day} calls/day</td>
+                  </tr>
+                )}
+                {planFeatures.map((feature, idx) => (
+                  <tr key={idx}>
+                    <td className="px-5 py-3 text-slate-600" colSpan={2}>
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                        <span>{feature}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -484,7 +498,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
           {showBillingDetails && (
             <div className="mt-4 space-y-6 animate-in slide-in-from-top-2">
-              {/* Payment Information */}
+              {/* Payment Information (no Stripe portal button) */}
               <div className="bg-white border border-slate-200 rounded-xl p-6">
                 <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
@@ -518,31 +532,6 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     <span className="text-xs font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">Active</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => openBillingPortal()}
-                  disabled={stripeLoading}
-                  className="mt-4 w-full flex items-center justify-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-100 transition-all disabled:opacity-50"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
-                  {stripeLoading ? 'Loading...' : 'Manage on Stripe'}
-                </button>
-              </div>
-
-              {/* Invoice History */}
-              <div className="bg-white border border-slate-200 rounded-xl p-6">
-                <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-                  Invoice History
-                </h4>
-                <p className="text-sm text-slate-500 mb-3">Access your full invoice history and download receipts from the Stripe billing portal.</p>
-                <button
-                  onClick={() => openBillingPortal()}
-                  disabled={stripeLoading}
-                  className="w-full flex items-center justify-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-100 transition-all disabled:opacity-50"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
-                  {stripeLoading ? 'Loading...' : 'View Invoices on Stripe'}
-                </button>
               </div>
 
               {/* Account Details */}
