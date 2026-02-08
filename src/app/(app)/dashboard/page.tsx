@@ -1,5 +1,6 @@
 // app/(app)/dashboard/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/service';
 import DashboardOverview from '@/components/dashboard/DashboardOverview';
 
 export default async function DashboardPage() {
@@ -85,9 +86,9 @@ export default async function DashboardPage() {
     .eq('status', 'active')
     .single();
 
-  // Fallback: if no subscription exists, auto-assign the Free plan
+  // Fallback: if no subscription exists, auto-assign the Free plan using admin client (bypasses RLS)
   if (!subscription) {
-    const { data: freePlan } = await supabase
+    const { data: freePlan } = await supabaseAdmin
       .from('subscription_plans')
       .select('id, minutes_included')
       .eq('slug', 'free')
@@ -98,7 +99,7 @@ export default async function DashboardPage() {
       const periodEnd = new Date();
       periodEnd.setFullYear(periodEnd.getFullYear() + 10);
 
-      const { data: newSub } = await supabase
+      const { data: newSub } = await supabaseAdmin
         .from('company_subscriptions')
         .insert({
           company_id: userData!.company_id,
@@ -117,8 +118,8 @@ export default async function DashboardPage() {
       if (newSub) {
         subscription = newSub;
 
-        // Also create usage tracking
-        await supabase.from('usage_tracking').insert({
+        // Also create usage tracking using admin client
+        await supabaseAdmin.from('usage_tracking').insert({
           company_id: userData!.company_id,
           subscription_id: newSub.id,
           period_start: now.toISOString(),

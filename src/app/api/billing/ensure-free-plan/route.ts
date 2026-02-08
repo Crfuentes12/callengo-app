@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/service';
 
 /**
  * Ensures a company has a Free plan subscription.
  * Called during onboarding and as a fallback from the dashboard.
- * Uses server-side Supabase client to bypass RLS.
+ * Uses supabaseAdmin (service role) to bypass RLS for INSERT operations.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'company_id is required' }, { status: 400 });
     }
 
-    // Verify user belongs to this company
+    // Verify user belongs to this company (using authenticated client for auth check)
     const { data: userData } = await supabase
       .from('users')
       .select('company_id')
@@ -37,8 +38,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Check if company already has a subscription
-    const { data: existingSub } = await supabase
+    // Check if company already has a subscription (using admin to bypass RLS)
+    const { data: existingSub } = await supabaseAdmin
       .from('company_subscriptions')
       .select('id, plan_id')
       .eq('company_id', company_id)
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the Free plan
-    const { data: freePlan, error: planError } = await supabase
+    const { data: freePlan, error: planError } = await supabaseAdmin
       .from('subscription_plans')
       .select('id, minutes_included')
       .eq('slug', 'free')
@@ -61,12 +62,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Free plan not found in database' }, { status: 500 });
     }
 
-    // Create the subscription
+    // Create the subscription using admin client (bypasses RLS)
     const now = new Date();
     const periodEnd = new Date();
     periodEnd.setFullYear(periodEnd.getFullYear() + 10);
 
-    const { data: newSub, error: subError } = await supabase
+    const { data: newSub, error: subError } = await supabaseAdmin
       .from('company_subscriptions')
       .insert({
         company_id,
@@ -84,8 +85,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create subscription', details: subError.message }, { status: 500 });
     }
 
-    // Create usage tracking record
-    await supabase.from('usage_tracking').insert({
+    // Create usage tracking record using admin client
+    await supabaseAdmin.from('usage_tracking').insert({
       company_id,
       subscription_id: newSub.id,
       period_start: now.toISOString(),
