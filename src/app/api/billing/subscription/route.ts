@@ -69,7 +69,6 @@ export async function GET(request: NextRequest) {
             period_end: subscription.current_period_end,
             minutes_used: 0,
             minutes_included: subscription.plan.minutes_included,
-            total_cost: 0
           })
           .select()
           .single();
@@ -77,6 +76,12 @@ export async function GET(request: NextRequest) {
         usage = newUsage;
       } else {
         usage = usageData;
+      }
+
+      // Always ensure minutes_included matches the current plan
+      // (usage record may be stale if plan changed but usage wasn't updated)
+      if (usage && subscription?.plan) {
+        usage.minutes_included = subscription.plan.minutes_included;
       }
     }
 

@@ -131,6 +131,11 @@ export default async function DashboardPage() {
     }
   }
 
+  // Ensure usage minutes_included matches the current plan (may be stale after plan upgrade)
+  const correctedUsage = usageTracking && subscription?.subscription_plans
+    ? { ...usageTracking, minutes_included: (subscription.subscription_plans as any).minutes_included ?? usageTracking.minutes_included }
+    : usageTracking;
+
   return (
     <DashboardOverview
       contacts={contacts || []}
@@ -140,7 +145,7 @@ export default async function DashboardPage() {
       companyAgents={companyAgents || []}
       agentRuns={agentRuns || []}
       contactLists={contactLists || []}
-      usageTracking={usageTracking}
+      usageTracking={correctedUsage}
       subscription={subscription}
     />
   );
