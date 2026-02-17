@@ -253,11 +253,11 @@ export default function VoiceSelectionModal({
 
   const modalContent = (
     <div className={wrapperClass} style={{ isolation: 'isolate', willChange: 'transform' }}>
-      <div className={`relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl border-2 border-slate-700/50 overflow-hidden flex flex-col ${containerSize}`} style={{ transform: 'translateZ(0)' }}>
+      <div className={`relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col ${containerSize}`} style={{ transform: 'translateZ(0)' }}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
           <div className="flex-1">
-            <h2 className="text-xl font-black text-white">Select Voice</h2>
+            <h2 className="text-xl font-bold text-white">Select Voice</h2>
             <p className="text-xs text-slate-400 mt-0.5">
               Choose the perfect voice for your AI agent
             </p>
@@ -278,7 +278,7 @@ export default function VoiceSelectionModal({
             onClick={() => setViewMode('recommended')}
             className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${
               viewMode === 'recommended'
-                ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white shadow-lg'
+                ? 'gradient-bg text-white shadow-lg'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
@@ -288,7 +288,7 @@ export default function VoiceSelectionModal({
             onClick={() => setViewMode('explore')}
             className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${
               viewMode === 'explore'
-                ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white shadow-lg'
+                ? 'gradient-bg text-white shadow-lg'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
@@ -317,10 +317,10 @@ export default function VoiceSelectionModal({
               {/* Filters */}
               <div className="mb-4 p-3 bg-slate-900/50 rounded-xl border border-slate-700/50">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-black text-white uppercase">Filters</h3>
+                  <h3 className="text-xs font-bold text-white uppercase">Filters</h3>
                   <button
                     onClick={resetFilters}
-                    className="text-xs font-bold text-cyan-400 hover:text-cyan-300"
+                    className="text-xs font-bold text-[var(--color-primary-light)] hover:text-[var(--color-primary)]"
                   >
                     Reset All
                   </button>
@@ -406,7 +406,7 @@ function RecommendedVoices({
   const favoriteVoices = BLAND_VOICES.filter(voice => favorites.has(voice.id));
 
   const categories = [
-    { key: 'american', label: 'American', flag: '🇺🇸', color: 'from-blue-500 to-indigo-600' },
+    { key: 'american', label: 'American', flag: '🇺🇸', color: 'from-blue-500 to-blue-700' },
     { key: 'british', label: 'British', flag: '🇬🇧', color: 'from-purple-500 to-pink-600' },
     { key: 'australian', label: 'Australian', flag: '🇦🇺', color: 'from-emerald-500 to-teal-600' },
     { key: 'spanish', label: 'Spanish', flag: '🇪🇸', color: 'from-amber-500 to-orange-600' },
@@ -419,7 +419,7 @@ function RecommendedVoices({
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-2xl">⭐</span>
-            <h3 className="text-lg font-black bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
+            <h3 className="text-lg font-bold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
               Your Favorites
             </h3>
             <span className="text-xs text-slate-500">({favorites.size})</span>
@@ -455,7 +455,7 @@ function RecommendedVoices({
           <div key={category.key} className="space-y-3">
             <div className="flex items-center gap-2">
               <span className="text-2xl">{category.flag}</span>
-              <h3 className={`text-lg font-black bg-gradient-to-r ${category.color} bg-clip-text text-transparent`}>
+              <h3 className={`text-lg font-bold bg-gradient-to-r ${category.color} bg-clip-text text-transparent`}>
                 {category.label}
               </h3>
             </div>
@@ -560,9 +560,9 @@ function VoiceCard({
 
   return (
     <div
-      className={`p-3 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
+      className={`p-3 rounded-xl border transition-all cursor-pointer hover:shadow-lg ${
         isSelected
-          ? 'border-cyan-500 bg-gradient-to-br from-cyan-900/40 to-purple-900/40 shadow-lg shadow-cyan-500/25'
+          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-md'
           : 'border-slate-700 bg-slate-900/30 hover:border-slate-600'
       }`}
       onClick={onSelect}
@@ -606,7 +606,7 @@ function VoiceCard({
           </span>
           {/* Selected Badge */}
           {isSelected && (
-            <span className="w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center">
+            <span className="w-5 h-5 rounded-full bg-[var(--color-primary)] flex items-center justify-center">
               <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
@@ -637,7 +637,7 @@ function VoiceCard({
         className={`w-full py-1.5 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 ${
           isPlaying
             ? 'bg-red-600 text-white hover:bg-red-700'
-            : 'bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white hover:shadow-lg'
+            : 'gradient-bg text-white hover:shadow-lg'
         }`}
       >
         {isLoading ? (
@@ -683,7 +683,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-2 py-1.5 border-2 border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 bg-slate-800 text-white outline-none transition-all text-xs"
+        className="w-full px-2 py-1.5 border border-slate-700 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-slate-800 text-white outline-none transition-all text-xs"
       >
         <option value="all">All {label}s</option>
         {options.map(option => (

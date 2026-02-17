@@ -36,71 +36,44 @@ const getAvatarImage = (name: string) => {
   return '/agent-avatars/lead-qualification.png';
 };
 
-const getCategoryColor = (category: string | null) => {
-  const colors = {
-    'sales': 'from-emerald-400 via-emerald-500 to-teal-600',
-    'support': 'from-blue-400 via-blue-500 to-cyan-600',
-    'verification': 'from-purple-400 via-purple-500 to-pink-600',
-    'appointment': 'from-blue-400 via-blue-500 to-cyan-600',
-    'survey': 'from-indigo-400 via-indigo-500 to-violet-600',
-  };
-
-  const cat = category?.toLowerCase() || 'default';
-  return colors[cat as keyof typeof colors] || 'from-slate-400 via-slate-500 to-slate-600';
-};
-
 export default function AgentCard({ agent, onSelect }: AgentCardProps) {
   const avatarImage = getAvatarImage(agent.name);
-  const gradientColor = getCategoryColor(agent.category);
 
   return (
-    <div className="group relative cursor-pointer" onClick={onSelect}>
-      {/* Outer glow effect */}
-      <div className={`absolute -inset-1 bg-gradient-to-r ${gradientColor} rounded-2xl blur-lg opacity-0 group-hover:opacity-60 transition-all duration-500 animate-pulse`}></div>
-
+    <div
+      className="group relative cursor-pointer"
+      onClick={onSelect}
+    >
       {/* Main card container */}
-      <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-700/50 group-hover:border-slate-500 transition-all duration-500 group-hover:scale-[1.02] group-hover:shadow-[0_0_50px_rgba(99,102,241,0.5)]">
-        {/* Character Image Background - square aspect ratio */}
+      <div className="relative aspect-square rounded-2xl overflow-hidden shadow-md border border-slate-200 group-hover:shadow-lg group-hover:border-[var(--color-primary-300)] transition-all duration-300">
+        {/* Character Image Background */}
         <div className="absolute inset-0">
           <Image
             src={avatarImage}
             alt={agent.name}
             fill
-            className="object-cover object-top group-hover:scale-105 transition-transform duration-700"
+            className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
             priority
           />
         </div>
 
-        {/* Bottom text overlay with gradient - no black bar */}
+        {/* Bottom text overlay with gradient */}
         <div className="absolute bottom-0 left-0 right-0 z-10">
-          {/* Strong gradient for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent h-32"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent h-32"></div>
 
           <div className="relative px-4 pb-4 pt-8">
-            {/* Agent name with futuristic styling */}
             <div className="relative">
-              <h3 className="text-lg font-black text-white uppercase tracking-tight leading-tight drop-shadow-[0_2px_15px_rgba(0,0,0,1)] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:via-blue-400 group-hover:to-purple-400 transition-all duration-300">
+              <h3 className="text-lg font-semibold text-white leading-tight drop-shadow-md">
                 {agent.name}
               </h3>
-              {/* Accent line */}
-              <div className={`h-0.5 w-0 group-hover:w-full bg-gradient-to-r ${gradientColor} rounded-full transition-all duration-500 mt-1`}></div>
+              <div className="h-0.5 w-0 group-hover:w-full gradient-bg rounded-full transition-all duration-500 mt-1"></div>
             </div>
 
-            {/* Description */}
-            <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,1)] mt-1.5">
+            <p className="text-xs text-slate-200 line-clamp-2 leading-relaxed drop-shadow-md mt-1.5">
               {agent.description || 'Specialized AI agent for your business operations'}
             </p>
           </div>
         </div>
-
-        {/* Scan line effect */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-2000 pointer-events-none"></div>
-
-        {/* Corner accents */}
-        <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-cyan-400/0 group-hover:border-cyan-400/80 transition-all duration-300"></div>
-        <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-cyan-400/0 group-hover:border-cyan-400/80 transition-all duration-300"></div>
-        <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-cyan-400/0 group-hover:border-cyan-400/80 transition-all duration-300"></div>
-        <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-cyan-400/0 group-hover:border-cyan-400/80 transition-all duration-300"></div>
       </div>
     </div>
   );

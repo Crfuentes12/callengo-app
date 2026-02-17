@@ -42,22 +42,13 @@ function CampaignsIcon({ className = "w-5 h-5" }: { className?: string }) {
 function BotIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      {/* Head/Face */}
       <rect x="6" y="7" width="12" height="12" rx="3" strokeLinecap="round" strokeLinejoin="round" />
-
-      {/* Antenna */}
       <line x1="12" y1="4" x2="12" y2="7" strokeLinecap="round" />
       <circle cx="12" cy="3" r="1" fill="currentColor" />
-
-      {/* Eyes - glowing digital style */}
       <rect x="8.5" y="10.5" width="2" height="3" rx="0.5" fill="currentColor" />
       <rect x="13.5" y="10.5" width="2" height="3" rx="0.5" fill="currentColor" />
-
-      {/* Mouth/Speaker */}
       <path d="M9 15.5 h6" strokeLinecap="round" />
       <path d="M9.5 17 h5" strokeLinecap="round" />
-
-      {/* Headphone/Headset detail on sides */}
       <path d="M5.5 10 Q5 11.5 5 13 Q5 14.5 5.5 16" strokeLinecap="round" />
       <path d="M18.5 10 Q19 11.5 19 13 Q19 14.5 18.5 16" strokeLinecap="round" />
     </svg>
@@ -119,8 +110,8 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
     <aside
       className={`
         fixed lg:static inset-y-0 left-0 z-50
-        w-[260px] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950
-        flex flex-col h-screen shadow-2xl
+        w-[260px] gradient-bg
+        flex flex-col h-screen shadow-xl
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}
@@ -128,15 +119,15 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
       {/* Logo & Close Button */}
       <div className="h-16 flex items-center justify-between px-5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/50">
+          <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
             <img src="/callengo-logo-white.svg" alt="Callengo" className="w-5 h-5" />
           </div>
-          <span className="font-bold text-[16px] text-white">Callengo</span>
+          <span className="font-semibold text-[16px] text-white">Callengo</span>
         </div>
         {/* Close button - Only visible on mobile */}
         <button
           onClick={onClose}
-          className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="lg:hidden p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -159,12 +150,12 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
                   flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
                   transition-all duration-200
                   ${isActive
-                    ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-white/20 text-white shadow-sm'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
                   }
                 `}
               >
-                <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-white/50'}`} />
                 <span>{item.name}</span>
               </Link>
             );
@@ -175,7 +166,7 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
         {isAdmin && (
           <>
             <div className="px-3 pt-6 pb-2">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Admin</p>
+              <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Admin</p>
             </div>
             <div className="space-y-1">
               {adminNavigation.map((item) => {
@@ -189,12 +180,12 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
                       flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
                       transition-all duration-200
                       ${isActive
-                        ? 'bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/30'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                        ? 'bg-white/20 text-white shadow-sm'
+                        : 'text-white/70 hover:text-white hover:bg-white/10'
                       }
                     `}
                   >
-                    <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                    <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-white/50'}`} />
                     <span>{item.name}</span>
                   </Link>
                 );
@@ -205,11 +196,11 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
       </nav>
 
       {/* Logout Button */}
-      <div className="p-3 border-t border-slate-800/50">
+      <div className="p-3 border-t border-white/10">
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
-                     text-slate-300 hover:text-red-400 hover:bg-red-900/20 transition-all duration-200"
+                     text-white/70 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200"
         >
           <LogoutIcon className="w-5 h-5" />
           <span>Sign out</span>

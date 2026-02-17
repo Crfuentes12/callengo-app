@@ -112,7 +112,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
       <div>
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 hover:text-slate-900 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-md transition-all duration-200"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-sm transition-all duration-200"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -121,74 +121,58 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
         </Link>
       </div>
 
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-3xl p-10 shadow-2xl border-2 border-slate-800">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent"></div>
-
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)'
-        }}></div>
-
-        <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 flex items-center justify-center shadow-2xl">
-                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                </svg>
-              </div>
-              <div className="absolute -top-1 -left-1 w-5 h-5 border-t-2 border-l-2 border-cyan-400"></div>
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 border-b-2 border-r-2 border-cyan-400"></div>
-            </div>
-            <div>
-              <h2 className="text-5xl font-black text-white uppercase tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-purple-200">
-                Call History
-              </h2>
-              <p className="text-lg text-slate-400 font-medium">
-                Complete record of all AI calling activity
-              </p>
-            </div>
+      {/* Section Header */}
+      <div className="gradient-bg-subtle rounded-2xl p-10 shadow-sm border border-slate-200">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-16 h-16 rounded-2xl gradient-bg flex items-center justify-center shadow-md">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+            </svg>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                <span className="text-xs text-slate-400 uppercase font-bold">Total Calls</span>
-              </div>
-              <span className="text-3xl text-white font-black">{stats.total.toLocaleString()}</span>
-            </div>
-            <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                <span className="text-xs text-slate-400 uppercase font-bold">Successful</span>
-              </div>
-              <span className="text-3xl text-white font-black">{stats.successful.toLocaleString()}</span>
-            </div>
-            <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span className="text-xs text-slate-400 uppercase font-bold">Failed</span>
-              </div>
-              <span className="text-3xl text-white font-black">{stats.failed.toLocaleString()}</span>
-            </div>
-            <div className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                <span className="text-xs text-slate-400 uppercase font-bold">Avg Duration</span>
-              </div>
-              <span className="text-3xl text-white font-black">{formatDuration(stats.avgDuration)}</span>
-            </div>
+          <div>
+            <h2 className="text-3xl font-bold text-slate-900">
+              Call History
+            </h2>
+            <p className="text-base text-slate-500 font-medium">
+              Complete record of all AI calling activity
+            </p>
           </div>
         </div>
 
-        <div className="absolute right-0 top-0 w-96 h-96 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
-        <div className="absolute left-0 bottom-0 w-64 h-64 bg-gradient-to-tr from-purple-500/10 to-pink-500/10 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl"></div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
+              <span className="text-xs text-slate-500 uppercase font-semibold">Total Calls</span>
+            </div>
+            <span className="text-3xl text-slate-900 font-bold">{stats.total.toLocaleString()}</span>
+          </div>
+          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+              <span className="text-xs text-slate-500 uppercase font-semibold">Successful</span>
+            </div>
+            <span className="text-3xl text-slate-900 font-bold">{stats.successful.toLocaleString()}</span>
+          </div>
+          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span className="text-xs text-slate-500 uppercase font-semibold">Failed</span>
+            </div>
+            <span className="text-3xl text-slate-900 font-bold">{stats.failed.toLocaleString()}</span>
+          </div>
+          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+              <span className="text-xs text-slate-500 uppercase font-semibold">Avg Duration</span>
+            </div>
+            <span className="text-3xl text-slate-900 font-bold">{formatDuration(stats.avgDuration)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border-2 border-slate-200/80 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
@@ -201,7 +185,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                 placeholder="Search by call ID, company, or phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border-2 border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-900 placeholder-slate-400 font-medium"
+                className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-900 placeholder-slate-400 font-medium"
               />
             </div>
           </div>
@@ -211,7 +195,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2.5 border-2 border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 cursor-pointer font-medium"
+              className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer font-medium"
             >
               <option value="all">All Status</option>
               <option value="completed">Completed</option>
@@ -223,7 +207,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
             <select
               value={agentFilter}
               onChange={(e) => setAgentFilter(e.target.value)}
-              className="px-4 py-2.5 border-2 border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 cursor-pointer font-medium"
+              className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer font-medium"
             >
               <option value="all">All Agents</option>
               {agentTemplates.map(agent => (
@@ -234,7 +218,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
             <select
               value={answeredByFilter}
               onChange={(e) => setAnsweredByFilter(e.target.value)}
-              className="px-4 py-2.5 border-2 border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 cursor-pointer font-medium"
+              className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer font-medium"
             >
               <option value="all">All Types</option>
               <option value="human">Human</option>
@@ -243,7 +227,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
             <button
               onClick={resetFilters}
-              className="px-4 py-2.5 border-2 border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 font-bold"
+              className="px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 font-semibold"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -256,13 +240,13 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
         {/* Results count */}
         <div className="mt-4 flex items-center justify-between">
           <p className="text-sm text-slate-600 font-medium">
-            Showing <span className="font-black text-slate-900">{filteredCalls.length}</span> of <span className="font-black text-slate-900">{callLogs.length}</span> calls
+            Showing <span className="font-bold text-slate-900">{filteredCalls.length}</span> of <span className="font-bold text-slate-900">{callLogs.length}</span> calls
           </p>
         </div>
       </div>
 
       {/* Calls Table */}
-      <div className="bg-white rounded-2xl border-2 border-slate-200/80 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
         {filteredCalls.length === 0 ? (
           <div className="text-center py-20 px-6">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-4">
@@ -270,7 +254,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
             </div>
-            <p className="text-slate-900 font-bold text-lg mb-2">No calls found</p>
+            <p className="text-slate-900 font-semibold text-lg mb-2">No calls found</p>
             <p className="text-sm text-slate-500">Try adjusting your filters or search terms</p>
           </div>
         ) : (
@@ -278,41 +262,41 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 border-b-2 border-slate-200">
-                    <th className="text-left py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-wider">
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Call ID
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Contact
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Duration
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Answered By
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Date
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {paginatedCalls.map((call) => (
-                    <tr key={call.id} className="hover:bg-indigo-50/50 transition-colors group">
+                    <tr key={call.id} className="hover:bg-slate-50 transition-colors group">
                       <td className="py-4 px-6">
-                        <p className="text-sm font-bold text-slate-900 font-mono">
+                        <p className="text-sm font-semibold text-slate-900 font-mono">
                           {call.call_id.substring(0, 16)}...
                         </p>
                       </td>
                       <td className="py-4 px-6">
                         <div>
-                          <p className="text-sm font-bold text-slate-900">
+                          <p className="text-sm font-semibold text-slate-900">
                             {call.contacts?.company_name || 'Unknown'}
                           </p>
                           {call.contacts?.contact_name && (
@@ -326,7 +310,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold border-2 ${getStatusStyles(call.status)}`}>
+                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${getStatusStyles(call.status)}`}>
                           {call.status || 'Unknown'}
                         </span>
                       </td>
@@ -364,7 +348,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                               href={call.recording_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-all"
+                              className="p-2 rounded-lg text-[var(--color-primary)] hover:bg-slate-50 transition-all"
                               title="Play Recording"
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -393,22 +377,22 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="px-6 py-4 bg-slate-50 border-t-2 border-slate-200 flex items-center justify-between">
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
                 <p className="text-sm text-slate-600 font-medium">
-                  Page <span className="font-black text-slate-900">{currentPage}</span> of <span className="font-black text-slate-900">{totalPages}</span>
+                  Page <span className="font-bold text-slate-900">{currentPage}</span> of <span className="font-bold text-slate-900">{totalPages}</span>
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 border-2 border-slate-200 text-slate-700 rounded-xl hover:bg-white hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                    className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-white hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                   >
                     Previous
                   </button>
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                    className="btn-primary px-4 py-2 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                   >
                     Next
                   </button>

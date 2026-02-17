@@ -108,11 +108,11 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 sm:gap-3 p-1 sm:p-1.5 sm:pr-3 rounded-lg hover:bg-slate-50 transition-colors group"
             >
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-medium text-xs sm:text-sm shadow-sm">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg gradient-bg flex items-center justify-center text-white font-medium text-xs sm:text-sm shadow-sm">
                 {initials}
               </div>
               <div className="text-left hidden md:block">
-                <p className="text-sm font-medium text-slate-900 group-hover:text-indigo-600 transition-colors truncate max-w-[100px] lg:max-w-[140px]">
+                <p className="text-sm font-medium text-slate-900 group-hover:text-[var(--color-primary)] transition-colors truncate max-w-[100px] lg:max-w-[140px]">
                   {user.full_name || 'User'}
                 </p>
                 <p className="text-xs text-slate-500 truncate max-w-[100px] lg:max-w-[140px]">
@@ -142,7 +142,6 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
-                      // Navigate to account settings
                       window.location.href = '/settings';
                     }}
                     className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
@@ -156,7 +155,6 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
-                      // Navigate to settings (billing tab)
                       window.location.href = '/settings';
                     }}
                     className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
@@ -170,7 +168,6 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
-                      // Navigate to help
                       window.location.href = '/help';
                     }}
                     className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"

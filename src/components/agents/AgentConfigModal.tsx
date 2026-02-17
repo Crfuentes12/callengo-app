@@ -154,7 +154,7 @@ const getCategoryColor = (category: string | null) => {
     'support': 'from-blue-400 via-blue-500 to-cyan-600',
     'verification': 'from-purple-400 via-purple-500 to-pink-600',
     'appointment': 'from-blue-400 via-blue-500 to-cyan-600',
-    'survey': 'from-indigo-400 via-indigo-500 to-violet-600',
+    'survey': 'from-blue-400 via-blue-500 to-violet-600',
   };
 
   const cat = category?.toLowerCase() || 'default';
@@ -166,7 +166,7 @@ const StatBar = ({ label, value, color }: { label: string; value: number; color:
   <div className="space-y-1.5">
     <div className="flex items-center justify-between">
       <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">{label}</span>
-      <span className="text-sm font-black text-white">{value}</span>
+      <span className="text-sm font-bold text-white">{value}</span>
     </div>
     <div className="h-3 bg-slate-800/50 rounded-full overflow-hidden border border-slate-700/50 relative">
       <div
@@ -542,7 +542,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               ? 'bg-emerald-600 border-emerald-400'
               : 'bg-slate-800 border-slate-600'
           }`}>
-            <span className="text-white font-black text-sm">{stepNum}</span>
+            <span className="text-white font-bold text-sm">{stepNum}</span>
           </div>
           {stepNum < 3 && (
             <div className={`w-12 h-0.5 mx-1 transition-all duration-300 ${
@@ -565,7 +565,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
     return (
       <>
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -586,7 +586,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Left: Agent avatar */}
                 <div className="flex flex-col">
-                  <div className={`relative w-full aspect-square rounded-xl overflow-hidden border-2 ${settings.voice ? `border-cyan-500/50` : 'border-slate-700'} shadow-2xl transition-all duration-300`}>
+                  <div className={`relative w-full aspect-square rounded-xl overflow-hidden border ${settings.voice ? `border-[var(--color-primary)]/30` : 'border-slate-700'} shadow-2xl transition-all duration-300`}>
                     {/* Current image (base layer) */}
                     <div className="absolute inset-0 z-10">
                       <Image
@@ -615,7 +615,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                     {/* Agent name overlay */}
                     <div className="absolute bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-black via-black/95 to-transparent pointer-events-none">
-                      <h2 className="text-xl font-black text-white uppercase tracking-tight leading-tight mb-0.5">
+                      <h2 className="text-xl font-bold text-white uppercase tracking-tight leading-tight mb-0.5">
                         {agentName || agent.name}
                       </h2>
                       <p className="text-xs text-slate-300">
@@ -635,7 +635,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       console.log('✅ Modal should open now');
                     }}
                     disabled={!settings.voice}
-                    className={`mt-4 w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:scale-105'}`}
+                    className={`mt-4 w-full px-4 py-3 gradient-bg text-white rounded-lg font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -652,8 +652,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 {/* Right: About this agent */}
                 <div className="flex flex-col space-y-4">
                   <div>
-                    <h3 className="text-lg font-black text-white uppercase mb-3 flex items-center gap-2">
-                      <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <h3 className="text-lg font-bold text-white uppercase mb-3 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       About this agent
@@ -665,7 +665,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                   {/* Voice & Identity Configuration */}
                   <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 space-y-3">
-                    <h3 className="text-xs font-black text-white uppercase mb-3">Agent Identity</h3>
+                    <h3 className="text-xs font-bold text-white uppercase mb-3">Agent Identity</h3>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
@@ -688,7 +688,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         placeholder={agent.name}
                         value={agentName}
                         onChange={(e) => setAgentName(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none placeholder-slate-500"
+                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-500"
                       />
                     </div>
 
@@ -699,7 +699,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         placeholder="AI Sales Agent"
                         value={agentTitle}
                         onChange={(e) => setAgentTitle(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none placeholder-slate-500"
+                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-500"
                       />
                     </div>
                   </div>
@@ -722,7 +722,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   setStep('contacts');
                 }}
                 disabled={!settings.voice}
-                className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg font-black text-sm transition-all duration-300 relative overflow-hidden ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}`}
+                className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg font-semibold text-sm transition-all duration-300 relative overflow-hidden ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
               >
                 <span className="relative z-10">Deploy Agent</span>
               </button>
@@ -737,18 +737,18 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           callStatus === 'ended' && callData ? (
             // Call Results View
             <div key="results-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
-              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border-2 border-emerald-500/50 overflow-hidden flex flex-col" style={{ transform: 'translateZ(0)' }}>
+              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-emerald-500/50 overflow-hidden flex flex-col" style={{ transform: 'translateZ(0)' }}>
                 {/* Header */}
-                <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-emerald-600/20 to-cyan-600/20 flex-shrink-0">
+                <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-emerald-600/20 to-emerald-500/10 flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
                         <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
                       <div>
-                        <h2 className="text-xl font-black text-white">Call Completed</h2>
+                        <h2 className="text-xl font-bold text-white">Call Completed</h2>
                         <p className="text-xs text-emerald-400">Duration: {formatDuration(callDuration)}</p>
                       </div>
                     </div>
@@ -782,8 +782,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       {/* Call Recording */}
                       {(callData.recording_url || callData.recording || callData.concatenated_recording) && (
                         <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                          <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
-                            <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414 1.414m2.828-9.9a9 9 0 012.828 2.828" />
                             </svg>
                             Call Recording
@@ -799,7 +799,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       {/* Transcript */}
                       {callData.transcripts && (
                         <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                          <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
                             <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                             </svg>
@@ -810,7 +810,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                               const isAgent = t.user === 'assistant' || t.user === 'agent';
                               return (
                                 <div key={i} className={`flex gap-2 ${isAgent ? 'justify-start' : 'justify-end'}`}>
-                                  <div className={`max-w-[80%] rounded-lg p-3 ${isAgent ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-cyan-600/20 border border-cyan-500/30'}`}>
+                                  <div className={`max-w-[80%] rounded-lg p-3 ${isAgent ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20'}`}>
                                     <p className="text-xs font-bold text-slate-300 mb-1">{isAgent ? agentName || agent.name : 'Customer'}</p>
                                     <p className="text-sm text-white">{t.text}</p>
                                   </div>
@@ -826,7 +826,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     <div className="space-y-4">
                       {/* Call Summary */}
                       <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                        <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
                           <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                           </svg>
@@ -850,8 +850,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                       {/* Demo Data Used */}
                       <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                        <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
-                          <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                           </svg>
                           Demo Data Used
@@ -869,7 +869,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       {/* AI Analysis */}
                       {analyzingCall ? (
                         <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                          <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
                             <svg className="w-4 h-4 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
@@ -881,21 +881,21 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         <>
                           {/* Call Outcome */}
                           {callAnalysis.outcome && (
-                            <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 rounded-lg p-4 border border-indigo-500/30">
-                              <h3 className="text-sm font-black text-white uppercase mb-2 flex items-center gap-2">
-                                <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="bg-[var(--color-primary)]/5 rounded-lg p-4 border border-[var(--color-primary)]/20">
+                              <h3 className="text-sm font-bold text-white uppercase mb-2 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 Call Outcome
                               </h3>
-                              <p className="text-sm text-indigo-200 font-medium">{callAnalysis.outcome}</p>
+                              <p className="text-sm text-slate-200 font-medium">{callAnalysis.outcome}</p>
                             </div>
                           )}
 
                           {/* Extracted Data Table */}
                           {callAnalysis.extractedData && Object.keys(callAnalysis.extractedData).length > 0 && (
                             <div className="bg-slate-800/50 rounded-lg p-4 border border-emerald-500/30">
-                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                              <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
                                 <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
@@ -924,9 +924,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                           {/* Validated Fields Table */}
                           {callAnalysis.validatedFields && Object.keys(callAnalysis.validatedFields).length > 0 && (
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-cyan-500/30">
-                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
-                                <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="bg-slate-800/50 rounded-lg p-4 border border-[var(--color-primary)]/20">
+                              <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 Validated Fields
@@ -966,7 +966,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           {/* New Information Table */}
                           {callAnalysis.newInformation && Object.keys(callAnalysis.newInformation).length > 0 && (
                             <div className="bg-slate-800/50 rounded-lg p-4 border border-purple-500/30">
-                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                              <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
                                 <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
@@ -996,7 +996,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           {/* Next Actions */}
                           {callAnalysis.nextActions && callAnalysis.nextActions.length > 0 && (
                             <div className="bg-slate-800/50 rounded-lg p-4 border border-yellow-500/30">
-                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                              <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
                                 <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                                 </svg>
@@ -1018,7 +1018,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           {/* Call Quality */}
                           {callAnalysis.callQuality && (
                             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                              <h3 className="text-sm font-black text-white uppercase mb-3 flex items-center gap-2">
+                              <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
                                 <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
@@ -1028,11 +1028,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="flex-1 h-3 bg-slate-700 rounded-full overflow-hidden">
                                   <div
-                                    className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full transition-all"
+                                    className="h-full gradient-bg rounded-full transition-all"
                                     style={{ width: `${(callAnalysis.callQuality.rating || 0) * 10}%` }}
                                   ></div>
                                 </div>
-                                <span className="text-lg font-black text-emerald-400">{callAnalysis.callQuality.rating}/10</span>
+                                <span className="text-lg font-bold text-emerald-400">{callAnalysis.callQuality.rating}/10</span>
                               </div>
                               {callAnalysis.callQuality.reason && (
                                 <p className="text-xs text-slate-400 italic">{callAnalysis.callQuality.reason}</p>
@@ -1060,7 +1060,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         pollingIntervalRef.current = null;
                       }
                     }}
-                    className="w-full px-5 py-3 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all"
+                    className="w-full px-5 py-3 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all"
                   >
                     Close Results
                   </button>
@@ -1070,7 +1070,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           ) : (
             // Active call interface (dialing, ringing, connected)
             <div key="active-call-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
-              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-700/50 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
                 <div className="grid md:grid-cols-2">
                   {/* Left: Call Status */}
                   <div className="p-8 text-center border-r border-slate-700/50">
@@ -1092,18 +1092,18 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </div>
 
                     {/* Agent Name */}
-                    <h2 className="text-2xl font-black text-white mb-2">{agentName || agent.name}</h2>
+                    <h2 className="text-2xl font-bold text-white mb-2">{agentName || agent.name}</h2>
 
                     {/* Call Status Text */}
                     <div className="mb-6">
                       {callStatus === 'dialing' && (
                         <div className="flex items-center justify-center gap-2">
                           <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse"></div>
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                           </div>
-                          <p className="text-lg font-bold text-cyan-400">Dialing...</p>
+                          <p className="text-lg font-bold text-[var(--color-primary)]">Dialing...</p>
                         </div>
                       )}
                       {callStatus === 'ringing' && (
@@ -1118,7 +1118,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         <div>
                           <p className="text-lg font-bold text-emerald-400 mb-2">Connected</p>
                           {/* Call Duration Timer */}
-                          <div className="text-5xl font-black text-white tabular-nums tracking-tight">
+                          <div className="text-5xl font-bold text-white tabular-nums tracking-tight">
                             {formatDuration(callDuration)}
                           </div>
                           <p className="text-sm text-slate-400 mt-2">Demo call in progress</p>
@@ -1149,8 +1149,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                   {/* Right: Demo Data */}
                   <div className="p-6 bg-slate-800/30">
-                    <h3 className="text-sm font-black text-white uppercase mb-4 flex items-center gap-2">
-                      <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <h3 className="text-sm font-bold text-white uppercase mb-4 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                       </svg>
                       Demo Data Being Used
@@ -1179,7 +1179,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         ) : (
           // Initial modal to enter phone number and start test
           <div key="setup-view" className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
-            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border-2 border-purple-500/50 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border border-slate-700/50 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
               {/* Header */}
               <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/20 to-pink-600/20">
                 <div className="flex items-center justify-between">
@@ -1189,7 +1189,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
                     </div>
-                    <h2 className="text-xl font-black text-white">Test Agent</h2>
+                    <h2 className="text-xl font-bold text-white">Test Agent</h2>
                   </div>
                   <button
                     onClick={() => {
@@ -1220,7 +1220,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     <div>
                       <p className="text-sm font-bold text-purple-300 mb-1">Test with Demo Data</p>
                       <p className="text-xs text-purple-200/80">
-                        <span className="text-cyan-400 font-bold">{agentName || agent.name}</span> will call you using the demo data. You'll experience a real conversation.
+                        <span className="text-[var(--color-primary)] font-bold">{agentName || agent.name}</span> will call you using the demo data. You'll experience a real conversation.
                       </p>
                     </div>
                   </div>
@@ -1270,7 +1270,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     placeholder="+1 (555) 123-4567"
                     value={testPhoneNumber}
                     onChange={(e) => setTestPhoneNumber(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-900/50 border-2 border-purple-500/50 rounded-lg text-white text-base focus:ring-2 focus:ring-purple-500 outline-none placeholder-slate-500 mb-3"
+                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-base focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-500 mb-3"
                   />
                   <button
                     onClick={async () => {
@@ -1325,7 +1325,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       handleTestAgent();
                     }}
                     disabled={!testPhoneNumber.trim() || testingAgent}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-3 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {testingAgent ? (
                       <>
@@ -1357,7 +1357,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   if (step === 'contacts') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -1370,7 +1370,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
           {/* Header */}
           <div className="p-6 border-b border-slate-700/50">
-            <h2 className="text-2xl font-black text-white uppercase tracking-tight">Campaign Configuration</h2>
+            <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Campaign Configuration</h2>
             <p className="text-sm text-slate-400 mt-1">Configure deployment settings for {agentName || agent.name}</p>
           </div>
 
@@ -1390,11 +1390,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-black text-white">{agentName || agent.name}</p>
+                  <p className="text-sm font-bold text-white">{agentName || agent.name}</p>
                   <p className="text-xs text-slate-400">{agentTitle}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-slate-500">Voice:</span>
-                    <span className="text-xs font-bold text-cyan-400 capitalize">{settings.voice}</span>
+                    <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{settings.voice}</span>
                   </div>
                 </div>
               </div>
@@ -1434,11 +1434,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 {/* Contact Lists Selector */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-black text-white uppercase">Select Contact Lists</h3>
+                    <h3 className="text-sm font-bold text-white uppercase">Select Contact Lists</h3>
                     <a
                       href="/dashboard/contacts"
                       target="_blank"
-                      className="text-xs text-cyan-400 hover:text-cyan-300 font-bold transition-colors"
+                      className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary)] font-bold transition-colors"
                     >
                       Manage Lists →
                     </a>
@@ -1450,7 +1450,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       <a
                         href="/dashboard/contacts"
                         target="_blank"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-bold text-sm transition-all"
+                        className="inline-flex items-center gap-2 px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90 font-bold text-sm transition-all"
                       >
                         Create First List
                       </a>
@@ -1463,7 +1463,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           onClick={() => toggleListSelection(list.id)}
                           className={`w-full p-3 rounded-lg border-2 transition-all duration-300 text-left ${
                             selectedLists.includes(list.id)
-                              ? 'bg-cyan-600/20 border-cyan-500 shadow-lg shadow-cyan-500/20'
+                              ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)] shadow-lg'
                               : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
                           }`}
                         >
@@ -1472,7 +1472,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                               <div
                                 className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
                                   selectedLists.includes(list.id)
-                                    ? 'bg-cyan-500 border-cyan-500'
+                                    ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
                                     : 'border-slate-600'
                                 }`}
                               >
@@ -1514,12 +1514,12 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       <p className="text-xs font-bold text-slate-400 uppercase mb-1">
                         Target Contacts
                         {selectedLists.length > 0 && (
-                          <span className="ml-2 text-cyan-400">(from selected lists)</span>
+                          <span className="ml-2 text-[var(--color-primary)]">(from selected lists)</span>
                         )}
                       </p>
-                      <p className="text-3xl font-black text-white">{contactCount}</p>
+                      <p className="text-3xl font-bold text-white">{contactCount}</p>
                     </div>
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-xl gradient-bg flex items-center justify-center">
                       <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
@@ -1529,7 +1529,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                 {/* Company Info (Editable) */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
-                  <h3 className="text-sm font-black text-white uppercase mb-4">Company Information</h3>
+                  <h3 className="text-sm font-bold text-white uppercase mb-4">Company Information</h3>
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Company Name</label>
@@ -1537,7 +1537,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         type="text"
                         value={settings.companyInfo.name}
                         onChange={(e) => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, name: e.target.value } })}
-                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                       />
                     </div>
                     <div>
@@ -1545,7 +1545,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       <textarea
                         value={settings.companyInfo.description}
                         onChange={(e) => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, description: e.target.value } })}
-                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none resize-none"
+                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none"
                         rows={3}
                       />
                     </div>
@@ -1554,12 +1554,12 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                 {/* Custom Task Instructions */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
-                  <h3 className="text-sm font-black text-white uppercase mb-4">Custom Instructions</h3>
+                  <h3 className="text-sm font-bold text-white uppercase mb-4">Custom Instructions</h3>
                   <textarea
                     placeholder="Add specific instructions or context for this campaign..."
                     value={settings.customTask}
                     onChange={(e) => setSettings({ ...settings, customTask: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none resize-none placeholder-slate-500"
+                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none placeholder-slate-500"
                     rows={3}
                   />
                 </div>
@@ -1567,7 +1567,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 <div className="grid md:grid-cols-2 gap-4">
                   {/* Voice & Call Settings */}
                   <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
-                    <h3 className="text-sm font-black text-white uppercase mb-4">Call Settings</h3>
+                    <h3 className="text-sm font-bold text-white uppercase mb-4">Call Settings</h3>
                     <div className="space-y-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Voice</label>
@@ -1585,7 +1585,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           max="15"
                           value={settings.maxDuration}
                           onChange={(e) => setSettings({ ...settings, maxDuration: parseInt(e.target.value) })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                       </div>
                       <div>
@@ -1596,7 +1596,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           max="60"
                           value={settings.intervalMinutes}
                           onChange={(e) => setSettings({ ...settings, intervalMinutes: parseInt(e.target.value) })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                       </div>
                     </div>
@@ -1604,7 +1604,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                   {/* Schedule & Limits */}
                   <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
-                    <h3 className="text-sm font-black text-white uppercase mb-4">Schedule & Limits</h3>
+                    <h3 className="text-sm font-bold text-white uppercase mb-4">Schedule & Limits</h3>
                     <div className="space-y-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Max Calls/Day</label>
@@ -1614,7 +1614,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           max="1000"
                           value={settings.maxCallsPerDay}
                           onChange={(e) => setSettings({ ...settings, maxCallsPerDay: parseInt(e.target.value) })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                       </div>
                       <div>
@@ -1622,7 +1622,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         <select
                           value={settings.timezone}
                           onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         >
                           <option value="America/New_York">Eastern Time (ET)</option>
                           <option value="America/Chicago">Central Time (CT)</option>
@@ -1643,7 +1643,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           type="time"
                           value={settings.workingHoursStart}
                           onChange={(e) => setSettings({ ...settings, workingHoursStart: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                       </div>
                       <div>
@@ -1652,7 +1652,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           type="time"
                           value={settings.workingHoursEnd}
                           onChange={(e) => setSettings({ ...settings, workingHoursEnd: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                       </div>
                     </div>
@@ -1672,7 +1672,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 </button>
                 <button
                   onClick={() => setStep('confirm')}
-                  className={`flex-1 px-5 py-2.5 bg-gradient-to-r ${gradientColor} text-white rounded-lg hover:shadow-xl font-black text-sm transition-all duration-300`}
+                  className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all duration-300`}
                 >
                   Review & Launch
                 </button>
@@ -1687,7 +1687,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   if (step === 'confirm') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border-2 border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -1700,7 +1700,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
           {/* Header */}
           <div className="p-6 border-b border-slate-700/50">
-            <h2 className="text-2xl font-black text-white uppercase tracking-tight">Launch Campaign</h2>
+            <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Launch Campaign</h2>
             <p className="text-sm text-slate-400 mt-1">Final review before deployment</p>
           </div>
 
@@ -1711,7 +1711,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             {/* Agent Summary Card */}
             <div className="mb-6 bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
               <div className="flex items-start gap-4">
-                <div className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-cyan-500/50">
+                <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-[var(--color-primary)]/30">
                   <Image
                     src={avatarImage}
                     alt={agentName || agent.name}
@@ -1720,12 +1720,12 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-black text-white mb-1">{agentName || agent.name}</h3>
+                  <h3 className="text-lg font-bold text-white mb-1">{agentName || agent.name}</h3>
                   <p className="text-sm text-slate-400 mb-2">{agentTitle}</p>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-500">Voice:</span>
-                      <span className="text-xs font-bold text-cyan-400 capitalize">{settings.voice}</span>
+                      <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{settings.voice}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-500">Contacts:</span>
@@ -1739,7 +1739,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             {/* Configuration Summary */}
             <div className="grid md:grid-cols-2 gap-4 mb-6">
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
-                <h4 className="text-xs font-black text-white uppercase mb-3">Call Configuration</h4>
+                <h4 className="text-xs font-bold text-white uppercase mb-3">Call Configuration</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-xs text-slate-400">Max Duration</span>
@@ -1757,7 +1757,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               </div>
 
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
-                <h4 className="text-xs font-black text-white uppercase mb-3">Schedule</h4>
+                <h4 className="text-xs font-bold text-white uppercase mb-3">Schedule</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-xs text-slate-400">Working Hours</span>
@@ -1782,7 +1782,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               <button
                 onClick={handleStartCampaign}
                 disabled={loading}
-                className={`flex-1 px-5 py-3 bg-gradient-to-r ${gradientColor} text-white rounded-lg hover:shadow-2xl font-black text-sm transition-all duration-300 disabled:opacity-50 relative overflow-hidden`}
+                className={`flex-1 px-5 py-3 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all duration-300 disabled:opacity-50 relative overflow-hidden`}
               >
                 <span className="relative z-10">{loading ? 'Launching...' : '🚀 Launch Campaign'}</span>
                 {!loading && (

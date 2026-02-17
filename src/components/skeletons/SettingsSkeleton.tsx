@@ -20,7 +20,7 @@ export default function SettingsSkeleton() {
 
         <div className="p-6 space-y-6">
           {/* Hero Section */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 rounded-2xl p-8">
+          <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8">
             <div className="relative z-10 flex items-center gap-6">
               <Skeleton className="w-24 h-24 rounded-2xl" />
               <div className="flex-1 space-y-3">

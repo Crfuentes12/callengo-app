@@ -66,7 +66,7 @@ export function SkeletonTable({ rows = 5 }: { rows?: number }) {
 
 export function SkeletonStat() {
   return (
-    <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-xl p-6 border-2 border-indigo-200">
+    <div className="gradient-bg-subtle rounded-xl p-6 border border-[var(--color-primary)]/20">
       <div className="flex items-center justify-between mb-3">
         <Skeleton className="h-5 w-32" />
         <Skeleton variant="circular" className="w-10 h-10" />

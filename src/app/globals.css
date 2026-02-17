@@ -1,22 +1,34 @@
-/* globals.css - Professional Design System */
+/* globals.css - Callengo Professional Design System */
 @import "tailwindcss";
 
 /* ============================================
-   DESIGN TOKENS - Professional Color Palette
+   DESIGN TOKENS - Brand Color Palette
+   Aligned with landing page design system
    ============================================ */
 :root {
-  /* Primary Brand Colors - Modern Indigo */
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-300: #a5b4fc;
-  --color-primary-400: #818cf8;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
-  --color-primary-950: #1e1b4b;
+  /* Brand Colors - Deep Blue to Purple Gradient */
+  --color-primary: #2e3a76;
+  --color-primary-dark: #173657;
+  --color-primary-light: #4a54a0;
+  --color-accent: #8938b0;
+
+  /* Gradient System */
+  --color-gradient-start: #173657;
+  --color-gradient-mid: #2e3a76;
+  --color-gradient-end: #8938b0;
+
+  /* Primary Shades */
+  --color-primary-50: #f0f1f8;
+  --color-primary-100: #dfe2f0;
+  --color-primary-200: #c0c5e0;
+  --color-primary-300: #9aa1cc;
+  --color-primary-400: #6b74b0;
+  --color-primary-500: #2e3a76;
+  --color-primary-600: #263168;
+  --color-primary-700: #1e2754;
+  --color-primary-800: #173657;
+  --color-primary-900: #101d3a;
+  --color-primary-950: #0a1225;
 
   /* Neutral Colors - Refined Slate */
   --color-neutral-50: #f8fafc;
@@ -110,6 +122,89 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   line-height: 1.5;
+}
+
+/* ============================================
+   BRAND UTILITY CLASSES
+   Matching landing page design system
+   ============================================ */
+
+/* Gradient text effect */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-mid), var(--color-gradient-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient background */
+.gradient-bg {
+  background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-mid), var(--color-gradient-end));
+}
+
+/* Subtle gradient background */
+.gradient-bg-subtle {
+  background: linear-gradient(135deg, rgba(23, 54, 87, 0.05), rgba(46, 58, 118, 0.08), rgba(137, 56, 176, 0.05));
+}
+
+/* Gradient border effect */
+.gradient-border {
+  position: relative;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  margin: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-mid), var(--color-gradient-end));
+}
+
+/* Primary button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-mid), var(--color-gradient-end));
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 200ms ease;
+  box-shadow: 0 2px 8px rgba(46, 58, 118, 0.25);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 4px 16px rgba(46, 58, 118, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Secondary button */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: white;
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-primary-200);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.btn-secondary:hover {
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-300);
 }
 
 /* ============================================
@@ -271,17 +366,6 @@ textarea:focus-visible {
 /* ============================================
    FADE ANIMATION FOR FILTERING
    ============================================ */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out forwards;
 }

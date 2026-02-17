@@ -30,24 +30,17 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
+    <div className="min-h-screen gradient-bg-subtle flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 mb-6 shadow-2xl shadow-blue-500/50 transform hover:scale-105 transition-transform">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-bg mb-6 shadow-md">
             <img src="/callengo-logo-white.svg" alt="Callengo" className="w-10 h-10" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">Welcome back</h1>
-          <p className="text-blue-200 text-lg">Sign in to continue to Callengo</p>
+          <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">Welcome back</h1>
+          <p className="text-slate-500 text-lg">Sign in to continue to Callengo</p>
         </div>
 
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-white rounded-3xl shadow-md p-8 border border-slate-200">
           {(error || searchParams.get('error')) && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start gap-3">
               <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,7 +74,7 @@ function LoginForm() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
+                  className="w-full pl-12 pr-4 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
                   placeholder="you@example.com"
                   required
                   disabled={loading}
@@ -94,9 +87,9 @@ function LoginForm() {
                 <label className="block text-sm font-semibold text-slate-700">
                   Password
                 </label>
-                <Link 
-                  href="/auth/forgot-password" 
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-sm text-[var(--color-primary)] hover:opacity-80 font-medium transition-colors"
                 >
                   Forgot password?
                 </Link>
@@ -111,7 +104,7 @@ function LoginForm() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
+                  className="w-full pl-12 pr-12 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
                   placeholder="••••••••"
                   required
                   disabled={loading}
@@ -139,7 +132,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:via-blue-800 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transform hover:-translate-y-0.5"
+              className="w-full py-4 gradient-bg hover:opacity-90 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -158,35 +151,17 @@ function LoginForm() {
           <div className="mt-8 pt-6 border-t border-slate-200">
             <p className="text-center text-sm text-slate-600">
               Don't have an account?{' '}
-              <Link href="/auth/signup" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+              <Link href="/auth/signup" className="text-[var(--color-primary)] font-semibold hover:opacity-80 transition-colors">
                 Sign up for free
               </Link>
             </p>
           </div>
         </div>
 
-        <p className="text-center text-blue-200 text-sm mt-8">
+        <p className="text-center text-slate-500 text-sm mt-8">
           Protected by enterprise-grade security
         </p>
       </div>
-
-      <style jsx>{`
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
     </div>
   );
 }
@@ -194,8 +169,8 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      <div className="min-h-screen gradient-bg-subtle flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--color-primary)]"></div>
       </div>
     }>
       <LoginForm />

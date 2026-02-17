@@ -16,7 +16,7 @@ function VerifyEmailForm() {
 
   const handleResend = async () => {
     if (!email) return;
-    
+
     setResending(true);
     setError('');
     setResent(false);
@@ -33,17 +33,10 @@ function VerifyEmailForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
+    <div className="min-h-screen gradient-bg-subtle flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 mb-6 shadow-2xl shadow-blue-500/50 relative">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-bg mb-6 shadow-md relative">
             <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
@@ -53,18 +46,18 @@ function VerifyEmailForm() {
               </svg>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">Check your email</h1>
-          <p className="text-blue-200">We've sent a verification link to</p>
+          <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">Check your email</h1>
+          <p className="text-slate-500">We've sent a verification link to</p>
           {email && (
-            <p className="text-white font-semibold text-lg mt-2">{email}</p>
+            <p className="text-slate-900 font-semibold text-lg mt-2">{email}</p>
           )}
         </div>
 
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-white rounded-3xl shadow-md p-8 border border-slate-200">
           <div className="text-center space-y-6">
-            <div className="flex items-start text-left space-x-4 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
+            <div className="flex items-start text-left space-x-4 p-5 gradient-bg-subtle rounded-2xl border border-slate-200">
               <div className="shrink-0">
-                <svg className="w-6 h-6 text-blue-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-6 h-6 text-[var(--color-primary)] mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -72,15 +65,15 @@ function VerifyEmailForm() {
                 <p className="font-semibold mb-3 text-base">Next steps:</p>
                 <ol className="space-y-2">
                   <li className="flex items-start gap-2">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold shrink-0">1</span>
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full gradient-bg text-white text-xs font-bold shrink-0">1</span>
                     <span>Open the email we sent you</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold shrink-0">2</span>
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full gradient-bg text-white text-xs font-bold shrink-0">2</span>
                     <span>Click the verification link</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold shrink-0">3</span>
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full gradient-bg text-white text-xs font-bold shrink-0">3</span>
                     <span>Complete your company setup</span>
                   </li>
                 </ol>
@@ -109,7 +102,7 @@ function VerifyEmailForm() {
               <button
                 onClick={handleResend}
                 disabled={resending || !email}
-                className="w-full py-3.5 text-blue-600 font-semibold hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 hover:bg-blue-50 rounded-xl"
+                className="w-full py-3.5 text-[var(--color-primary)] font-semibold hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 hover:bg-[var(--color-primary)]/5 rounded-xl"
               >
                 {resending ? (
                   <>
@@ -132,28 +125,10 @@ function VerifyEmailForm() {
           </div>
         </div>
 
-        <p className="text-center text-blue-200 text-sm mt-8">
+        <p className="text-center text-slate-500 text-sm mt-8">
           Check your spam folder if you don't see the email
         </p>
       </div>
-
-      <style jsx>{`
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
     </div>
   );
 }
@@ -161,8 +136,8 @@ function VerifyEmailForm() {
 export default function VerifyEmailPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      <div className="min-h-screen gradient-bg-subtle flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--color-primary)]"></div>
       </div>
     }>
       <VerifyEmailForm />

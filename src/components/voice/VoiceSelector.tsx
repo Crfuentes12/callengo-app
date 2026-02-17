@@ -45,7 +45,7 @@ export default function VoiceSelector({ selectedVoiceId, onVoiceSelect, classNam
 
   const buttonStyles = variant === 'dark'
     ? 'border-slate-700 bg-slate-900/50 hover:border-purple-500 focus:border-purple-500 focus:ring-purple-500/20'
-    : 'border-slate-200 bg-white hover:border-indigo-500 focus:border-indigo-500 focus:ring-indigo-500/20';
+    : 'border-slate-200 bg-white hover:border-[var(--color-primary)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20';
 
   const textStyles = variant === 'dark'
     ? { primary: selectedVoice ? 'text-white' : 'text-slate-400', secondary: selectedVoice ? 'text-slate-400' : 'text-slate-500' }
@@ -60,7 +60,7 @@ export default function VoiceSelector({ selectedVoiceId, onVoiceSelect, classNam
       <button
         type="button"
         onClick={() => setIsModalOpen(true)}
-        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 outline-none transition-all text-left ${buttonStyles} ${className}`}
+        className={`w-full px-4 py-3 border rounded-xl focus:ring-2 outline-none transition-all text-left ${buttonStyles} ${className}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex-1">

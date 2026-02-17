@@ -251,8 +251,8 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
             {(['upload', 'list-select', 'mapping', 'preview', 'complete'] as const).map((s, idx) => (
               <div key={s} className="flex items-center flex-1">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-                  step === s ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' :
-                  ['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-indigo-100 text-indigo-600' :
+                  step === s ? 'gradient-bg text-white shadow-md' :
+                  ['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]' :
                   'bg-slate-100 text-slate-400'
                 }`}>
                   {['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? (
@@ -263,7 +263,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                 </div>
                 {idx < 4 && (
                   <div className={`flex-1 h-1 mx-2 rounded-full transition-all ${
-                    ['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-indigo-600' : 'bg-slate-200'
+                    ['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'gradient-bg' : 'bg-slate-200'
                   }`}></div>
                 )}
               </div>
@@ -307,7 +307,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   <button
                     onClick={handleGoogleSheetImport}
                     disabled={!googleSheetUrl.trim() || loading}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full px-6 py-3 gradient-bg text-white rounded-xl hover:opacity-90 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {loading ? (
                       <>
@@ -330,7 +330,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
               ) : (
                 // File Upload Interface
                 <div
-                  className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center hover:border-indigo-400 hover:bg-indigo-50/50 cursor-pointer transition-all group"
+                  className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5 cursor-pointer transition-all group"
                   onClick={() => document.getElementById('csv-upload')?.click()}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
@@ -351,13 +351,13 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   />
                   {loading ? (
                     <div className="flex items-center justify-center gap-3">
-                      <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-6 h-6 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
                       <span className="text-slate-600 font-medium">Processing...</span>
                     </div>
                   ) : (
                     <>
-                      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
-                        <svg className="w-7 h-7 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-100 group-hover:bg-[var(--color-primary)]/10 flex items-center justify-center transition-colors">
+                        <svg className="w-7 h-7 text-slate-400 group-hover:text-[var(--color-primary)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                       </div>
@@ -380,9 +380,9 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
               <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
                 <button
                   onClick={() => setSelectedListId('')}
-                  className={`w-full p-3 rounded-lg border-2 transition-all duration-300 text-left ${
+                  className={`w-full p-3 rounded-lg border transition-all duration-300 text-left ${
                     selectedListId === ''
-                      ? 'bg-indigo-50 border-indigo-500 shadow-md'
+                      ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)] shadow-md'
                       : 'bg-white border-slate-200 hover:border-slate-300'
                   }`}
                 >
@@ -390,7 +390,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                     <div
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                         selectedListId === ''
-                          ? 'bg-indigo-600 border-indigo-600'
+                          ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
                           : 'border-slate-300'
                       }`}
                     >
@@ -409,9 +409,9 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   <button
                     key={list.id}
                     onClick={() => setSelectedListId(list.id)}
-                    className={`w-full p-3 rounded-lg border-2 transition-all duration-300 text-left ${
+                    className={`w-full p-3 rounded-lg border transition-all duration-300 text-left ${
                       selectedListId === list.id
-                        ? 'bg-indigo-50 border-indigo-500 shadow-md'
+                        ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)] shadow-md'
                         : 'bg-white border-slate-200 hover:border-slate-300'
                     }`}
                   >
@@ -420,7 +420,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                         <div
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                             selectedListId === list.id
-                              ? 'bg-indigo-600 border-indigo-600'
+                              ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
                               : 'border-slate-300'
                           }`}
                         >
@@ -449,7 +449,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
               {!showCreateList ? (
                 <button
                   onClick={() => setShowCreateList(true)}
-                  className="w-full p-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all flex items-center justify-center gap-2 font-medium"
+                  className="w-full p-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 transition-all flex items-center justify-center gap-2 font-medium"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -457,7 +457,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   Create New List
                 </button>
               ) : (
-                <div className="border-2 border-indigo-200 rounded-lg p-4 bg-indigo-50/50">
+                <div className="border border-[var(--color-primary)]/20 rounded-lg p-4 bg-[var(--color-primary)]/5">
                   <div className="space-y-3">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">List Name</label>
@@ -466,7 +466,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                         value={newListName}
                         onChange={(e) => setNewListName(e.target.value)}
                         placeholder="e.g., Summer Campaign 2025"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none"
                       />
                     </div>
                     <div>
@@ -476,7 +476,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                         value={newListDescription}
                         onChange={(e) => setNewListDescription(e.target.value)}
                         placeholder="Brief description..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none"
                       />
                     </div>
                     <div className="flex gap-2">
@@ -489,7 +489,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                       <button
                         onClick={handleCreateList}
                         disabled={!newListName.trim() || loading}
-                        className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
+                        className="flex-1 px-3 py-2 gradient-bg text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
                       >
                         {loading ? 'Creating...' : 'Create'}
                       </button>
@@ -507,7 +507,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                 </button>
                 <button
                   onClick={() => setStep('mapping')}
-                  className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium"
+                  className="flex-1 px-4 py-2.5 gradient-bg text-white rounded-xl hover:opacity-90 transition-all font-medium"
                 >
                   Continue
                 </button>
@@ -538,7 +538,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                     <select
                       value={mapping[field as keyof ColumnMapping] || ''}
                       onChange={(e) => setMapping({ ...mapping, [field]: e.target.value || null })}
-                      className="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white transition-all cursor-pointer"
+                      className="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white transition-all cursor-pointer"
                     >
                       <option value="">-- Select Column --</option>
                       {headers.map((header) => (
@@ -558,7 +558,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                 <button
                   onClick={() => setStep('preview')}
                   disabled={!mapping.phoneNumber}
-                  className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+                  className="flex-1 px-4 py-2.5 gradient-bg text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
                 >
                   Preview
                 </button>
@@ -623,7 +623,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
               </p>
               <button
                 onClick={onComplete}
-                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium shadow-sm"
+                className="px-6 py-2.5 gradient-bg text-white rounded-xl hover:opacity-90 transition-all font-medium shadow-sm"
               >
                 View Contacts
               </button>

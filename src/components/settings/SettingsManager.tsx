@@ -255,7 +255,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-all ${
                   activeTab === tab.id
-                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
+                    ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-50)]'
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
@@ -271,15 +271,11 @@ export default function SettingsManager({ company: initialCompany, settings: ini
           {activeTab === 'company' && (
             <div className="space-y-6">
               {/* Hero Section with Logo */}
-              <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 rounded-2xl p-8 shadow-xl">
-                {/* Animated background effects */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent"></div>
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent"></div>
-
+              <div className="relative overflow-hidden gradient-bg-subtle rounded-2xl p-8 shadow-md">
                 <div className="relative z-10 flex items-center gap-6">
                   {/* Logo Upload */}
                   <div className="relative group">
-                    <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl">
+                    <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20 shadow-md">
                       {company.favicon_url ? (
                         <img
                           key={`${company.favicon_url}-${faviconTimestamp}`}
@@ -288,8 +284,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-600 to-purple-600">
-                          <span className="text-4xl font-black text-white">
+                        <div className="w-full h-full flex items-center justify-center gradient-bg">
+                          <span className="text-4xl font-bold text-white">
                             {company.name.charAt(0).toUpperCase()}
                           </span>
                         </div>
@@ -303,7 +299,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                     >
                       <div className="text-center">
                         {uploadingLogo ? (
-                          <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
+                          <div className="w-6 h-6 border border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
                         ) : (
                           <>
                             <svg className="w-6 h-6 text-white mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -322,15 +318,11 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       className="hidden"
                       disabled={uploadingLogo}
                     />
-
-                    {/* Corner accents */}
-                    <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-cyan-400"></div>
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-cyan-400"></div>
                   </div>
 
                   {/* Company Info Header */}
                   <div className="flex-1">
-                    <h2 className="text-3xl font-black text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-purple-200">
+                    <h2 className="text-3xl font-bold text-white mb-2">
                       {company.name || 'Your Company'}
                     </h2>
                     <p className="text-slate-300 font-medium mb-3">
@@ -339,40 +331,37 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                        <span className="text-xs text-slate-400 font-bold">Active</span>
+                        <span className="text-xs text-slate-400 font-semibold">Active</span>
                       </div>
                       <div className="h-4 w-px bg-slate-700"></div>
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
-                        <span className="text-xs text-slate-400 font-bold">Connected</span>
+                        <span className="text-xs text-slate-400 font-semibold">Connected</span>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Decorative glowing orbs */}
-                <div className="absolute right-0 top-0 w-64 h-64 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
               </div>
 
               {/* Company Form */}
               <form onSubmit={handleUpdateCompany} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">🏢</span>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-md bg-[var(--color-primary-50)] text-[var(--color-primary)] flex items-center justify-center text-xs">🏢</span>
                       Company Name
                     </label>
                     <input
                       type="text"
                       value={company.name}
                       onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all bg-white hover:border-slate-300"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all bg-white hover:border-slate-300"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                       <span className="w-6 h-6 rounded-md bg-purple-100 text-purple-600 flex items-center justify-center text-xs">🏭</span>
                       Industry
                     </label>
@@ -381,13 +370,13 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       value={company.industry}
                       onChange={(e) => setCompany({ ...company, industry: e.target.value })}
                       placeholder="e.g., Technology, Healthcare, Retail"
-                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all bg-white hover:border-slate-300"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all bg-white hover:border-slate-300"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                     <span className="w-6 h-6 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center text-xs">🌐</span>
                     Website
                   </label>
@@ -403,13 +392,13 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                         }
                       }}
                       placeholder="example.com"
-                      className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all bg-white hover:border-slate-300"
+                      className="flex-1 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all bg-white hover:border-slate-300"
                     />
                     <button
                       type="button"
                       onClick={handleScrapeWebsite}
                       disabled={!websiteInput || loading}
-                      className="px-5 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl hover:from-violet-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-bold transition-all shadow-lg shadow-violet-500/30 hover:shadow-xl"
+                      className="btn-primary px-5 py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-semibold transition-all"
                     >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -418,7 +407,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                     </button>
                   </div>
                   <p className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     We'll extract company info from your website to improve AI conversations
@@ -426,7 +415,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                     <span className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs">📝</span>
                     Description
                   </label>
@@ -435,18 +424,18 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                     onChange={(e) => setCompany({ ...company, description: e.target.value })}
                     rows={5}
                     placeholder="Brief description of your company and what you do..."
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none bg-white hover:border-slate-300"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all resize-none bg-white hover:border-slate-300"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-500/30 hover:shadow-xl text-lg"
+                  className="btn-primary w-full py-4 font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-3">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
                       Saving...
                     </span>
                   ) : (
@@ -473,7 +462,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
           {activeTab === 'billing' && (
             <Suspense fallback={
               <div className="flex items-center justify-center py-12">
-                <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border border-[var(--color-primary-200)] border-t-[var(--color-primary)] rounded-full animate-spin"></div>
               </div>
             }>
               <BillingSettings companyId={initialCompany.id} />

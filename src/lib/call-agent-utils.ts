@@ -418,7 +418,7 @@ export function getStatusColor(status: ContactStatus): string {
     'Wrong Number': 'bg-red-100 text-red-700 border-red-200',
     'Number Disconnected': 'bg-red-100 text-red-700 border-red-200',
     'Withheld & Hung Up': 'bg-rose-100 text-rose-700 border-rose-200',
-    'Voicemail Left': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    'Voicemail Left': 'bg-violet-100 text-violet-700 border-violet-200',
   };
   return colors[status] || 'bg-slate-100 text-slate-700 border-slate-200';
 }
