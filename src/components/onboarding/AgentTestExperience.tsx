@@ -44,7 +44,7 @@ const AGENT_CONFIG: Record<string, any> = {
   'lead-qualification': {
     name: 'Lead Qualification Agent',
     icon: '🎯',
-    color: 'from-purple-500 to-pink-600',
+    color: 'from-[var(--color-primary)] to-[var(--color-accent)]',
     demoData: {
       companyName: 'Sales Pro Inc',
       contactName: 'Alex Martinez',
@@ -209,7 +209,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
       case 'dialing': return 'from-yellow-500 to-orange-500';
       case 'ringing': return 'from-blue-500 to-blue-700';
       case 'connected': return 'from-emerald-500 to-green-500';
-      case 'ended': return 'from-purple-500 to-pink-500';
+      case 'ended': return 'from-[var(--color-primary)] to-[var(--color-accent)]';
       default: return 'from-slate-500 to-slate-600';
     }
   };

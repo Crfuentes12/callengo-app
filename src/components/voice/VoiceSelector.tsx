@@ -44,7 +44,7 @@ export default function VoiceSelector({ selectedVoiceId, onVoiceSelect, classNam
   const display = getVoiceDisplay();
 
   const buttonStyles = variant === 'dark'
-    ? 'border-slate-700 bg-slate-900/50 hover:border-purple-500 focus:border-purple-500 focus:ring-purple-500/20'
+    ? 'border-slate-700 bg-slate-900/50 hover:border-[var(--color-primary)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20'
     : 'border-slate-200 bg-white hover:border-[var(--color-primary)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20';
 
   const textStyles = variant === 'dark'

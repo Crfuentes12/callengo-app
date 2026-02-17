@@ -129,17 +129,17 @@ export default function AdminFinances() {
         </div>
 
         {/* Active Companies */}
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6">
+        <div className="gradient-bg-subtle border border-[var(--color-primary)]/20 rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-purple-700 uppercase tracking-wide">Active Companies</span>
-            <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span className="text-xs font-bold text-[var(--color-primary)] uppercase tracking-wide">Active Companies</span>
+            <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <p className="text-3xl font-bold text-purple-900">
+          <p className="text-3xl font-bold text-slate-900">
             {currentFinance.total_companies_active || 0}
           </p>
-          <p className="mt-3 text-sm text-purple-700">
+          <p className="mt-3 text-sm text-[var(--color-primary)]">
             ${currentFinance.avg_revenue_per_company?.toFixed(2) || '0.00'} ARPC
           </p>
         </div>

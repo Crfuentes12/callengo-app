@@ -37,7 +37,7 @@ export default function ContactsSkeleton() {
           <Skeleton className="h-4 w-32 mb-3" />
           <Skeleton className="h-8 w-20" />
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border border-purple-200">
+        <div className="gradient-bg-subtle rounded-xl p-5 border border-[var(--color-primary)]/20">
           <Skeleton className="h-4 w-32 mb-3" />
           <Skeleton className="h-8 w-20" />
         </div>

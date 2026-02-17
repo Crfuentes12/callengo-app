@@ -335,7 +335,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       </div>
                       <div className="h-4 w-px bg-slate-700"></div>
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
                         <span className="text-xs text-slate-400 font-semibold">Connected</span>
                       </div>
                     </div>
