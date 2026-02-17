@@ -54,7 +54,7 @@ export default function FinancesSkeleton() {
         </div>
 
         {/* Active Companies */}
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6">
+        <div className="gradient-bg-subtle border border-[var(--color-primary)]/20 rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
             <Skeleton className="h-3 w-32" />
             <Skeleton className="w-5 h-5 rounded" />

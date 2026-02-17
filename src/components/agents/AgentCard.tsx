@@ -52,7 +52,7 @@ export default function AgentCard({ agent, onSelect }: AgentCardProps) {
             src={avatarImage}
             alt={agent.name}
             fill
-            className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
+            className="object-cover object-top transition-transform duration-500"
             priority
           />
         </div>

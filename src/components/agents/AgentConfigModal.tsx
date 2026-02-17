@@ -151,9 +151,9 @@ const getAgentStats = (agent: AgentTemplate) => {
 const getCategoryColor = (category: string | null) => {
   const colors = {
     'sales': 'from-emerald-400 via-emerald-500 to-teal-600',
-    'support': 'from-blue-400 via-blue-500 to-cyan-600',
-    'verification': 'from-purple-400 via-purple-500 to-pink-600',
-    'appointment': 'from-blue-400 via-blue-500 to-cyan-600',
+    'support': 'from-blue-400 via-blue-500 to-blue-600',
+    'verification': 'from-[var(--color-primary)] via-[var(--color-primary-light)] to-[var(--color-accent)]',
+    'appointment': 'from-blue-400 via-blue-500 to-blue-600',
     'survey': 'from-blue-400 via-blue-500 to-violet-600',
   };
 
@@ -1135,7 +1135,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         {[...Array(20)].map((_, i) => (
                           <div
                             key={i}
-                            className="w-1 bg-gradient-to-t from-purple-500 to-pink-500 rounded-full"
+                            className="w-1 bg-gradient-to-t from-[var(--color-primary)] to-[var(--color-accent)] rounded-full"
                             style={{
                               height: `${Math.random() * 100}%`,
                               animation: `wave 0.${5 + Math.random() * 10}s ease-in-out infinite`,
@@ -1163,8 +1163,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         </div>
                       ))}
                     </div>
-                    <div className="mt-6 bg-purple-900/20 border border-purple-500/30 rounded-lg p-3">
-                      <p className="text-xs text-purple-300">
+                    <div className="mt-6 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-lg p-3">
+                      <p className="text-xs text-slate-300">
                         <svg className="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -1181,10 +1181,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           <div key="setup-view" className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
             <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border border-slate-700/50 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
               {/* Header */}
-              <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/20 to-pink-600/20">
+              <div className="p-6 border-b border-slate-700/50 gradient-bg-subtle">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg gradient-bg flex items-center justify-center">
                       <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>

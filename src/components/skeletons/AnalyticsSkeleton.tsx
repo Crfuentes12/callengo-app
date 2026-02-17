@@ -74,7 +74,7 @@ export default function AnalyticsSkeleton() {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Agent Performance */}
         <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-cyan-50 to-white">
+          <div className="p-6 border-b border-slate-100 gradient-bg-subtle">
             <div className="flex items-center gap-3">
               <Skeleton className="w-10 h-10 rounded-xl" />
               <div>
@@ -113,7 +113,7 @@ export default function AnalyticsSkeleton() {
 
         {/* Contact Status */}
         <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white">
+          <div className="p-6 border-b border-slate-100 gradient-bg-subtle">
             <div className="flex items-center gap-3">
               <Skeleton className="w-10 h-10 rounded-xl" />
               <div>

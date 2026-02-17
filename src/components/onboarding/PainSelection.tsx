@@ -45,8 +45,8 @@ const PAINS: Pain[] = [
     title: 'Qualify leads before sales touches them',
     description: 'Your sales team wastes time on junk leads. Filter automatically and save their energy.',
     emoji: '🎯',
-    color: 'from-purple-500 to-pink-600',
-    gradient: 'from-purple-500/20 to-pink-600/20',
+    color: 'from-[var(--color-primary)] to-[var(--color-accent)]',
+    gradient: 'from-[var(--color-primary)]/20 to-[var(--color-accent)]/20',
     value: 'Junk leads • Burned out SDRs • Useless conversations',
     agentSlug: 'lead-qualification'
   },
@@ -112,7 +112,7 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
                 <div className={`
                   inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4
                   bg-gradient-to-br ${pain.color} shadow-lg
-                  group-hover:scale-110 transition-transform duration-300
+                  transition-transform duration-300
                 `}>
                   <span className="text-3xl">{pain.emoji}</span>
                 </div>
