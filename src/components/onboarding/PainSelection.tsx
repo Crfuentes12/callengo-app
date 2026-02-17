@@ -35,8 +35,8 @@ const PAINS: Pain[] = [
     title: 'Stop losing money from no-shows',
     description: 'Every missed appointment is money lost. Confirm automatically and reduce no-shows immediately.',
     emoji: '💰',
-    color: 'from-blue-500 to-indigo-600',
-    gradient: 'from-blue-500/20 to-indigo-600/20',
+    color: 'from-blue-500 to-blue-700',
+    gradient: 'from-blue-500/20 to-blue-700/20',
     value: 'Empty agendas • Wasted time • Teams waiting for people who never arrive',
     agentSlug: 'appointment-confirmation'
   },
@@ -66,19 +66,15 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-      {/* Animated background effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-500/10 to-pink-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
+      {/* Background */}
 
       <div className="relative z-10 max-w-6xl w-full">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 mb-6 shadow-2xl">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl gradient-bg mb-6 shadow-md">
             <span className="text-4xl">⚡</span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-black text-white mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-purple-200">
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
             What do you want to fix first?
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto">
@@ -97,9 +93,9 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
               className={`
                 group relative overflow-hidden rounded-2xl p-8 text-left
                 transition-all duration-300 ease-out
-                ${selectedId === pain.id ? 'scale-105' : 'scale-100'}
-                ${hoveredId === pain.id ? 'scale-105 shadow-2xl' : 'shadow-xl'}
-                border-2 border-slate-800 hover:border-slate-700
+                ${selectedId === pain.id ? 'ring-2 ring-[var(--color-primary)]' : ''}
+                ${hoveredId === pain.id ? 'shadow-2xl' : 'shadow-xl'}
+                border border-slate-800 hover:border-slate-700
                 bg-gradient-to-br from-slate-900/90 to-slate-800/90
                 backdrop-blur-sm
               `}
@@ -122,7 +118,7 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
                 </div>
 
                 {/* Title */}
-                <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-cyan-200 transition-all duration-300">
+                <h3 className="text-2xl font-bold text-white mb-3 transition-all duration-300">
                   {pain.title}
                 </h3>
 
@@ -153,9 +149,6 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
                 )}
               </div>
 
-              {/* Corner accents */}
-              <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-slate-700 group-hover:border-slate-600 transition-colors rounded-tl-2xl"></div>
-              <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-slate-700 group-hover:border-slate-600 transition-colors rounded-br-2xl"></div>
             </button>
           ))}
         </div>

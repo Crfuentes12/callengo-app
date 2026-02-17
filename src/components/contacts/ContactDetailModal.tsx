@@ -23,7 +23,7 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200/50">
         {/* Header */}
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 px-6 py-5">
+        <div className="gradient-bg px-6 py-5">
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-xl font-bold text-white">{contact.company_name}</h2>

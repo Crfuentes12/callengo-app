@@ -32,7 +32,7 @@ const AGENT_CONFIG: Record<string, any> = {
   'appointment-confirmation': {
     name: 'Appointment Confirmation Agent',
     icon: '📅',
-    color: 'from-blue-500 to-indigo-600',
+    color: 'from-blue-500 to-blue-700',
     demoData: {
       companyName: 'Healthcare Clinic',
       contactName: 'Robert Taylor',
@@ -207,7 +207,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
   const getStatusColor = () => {
     switch (callStatus) {
       case 'dialing': return 'from-yellow-500 to-orange-500';
-      case 'ringing': return 'from-blue-500 to-indigo-500';
+      case 'ringing': return 'from-blue-500 to-blue-700';
       case 'connected': return 'from-emerald-500 to-green-500';
       case 'ended': return 'from-purple-500 to-pink-500';
       default: return 'from-slate-500 to-slate-600';
@@ -226,22 +226,18 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-      {/* Animated background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-500/10 to-pink-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
+      {/* Background */}
 
       <div className="relative z-10 max-w-2xl w-full">
         {/* Setup Step */}
         {step === 'setup' && (
-          <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border-2 border-slate-800">
+          <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-slate-800">
             {/* Header */}
             <div className="text-center mb-8">
               <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${agent.color} mb-4 shadow-lg`}>
                 <span className="text-3xl">{agent.icon}</span>
               </div>
-              <h2 className="text-3xl font-black text-white mb-2">Test Your {agentTitle}</h2>
+              <h2 className="text-3xl font-bold text-white mb-2">Test Your {agentTitle}</h2>
               <p className="text-slate-400">
                 Experience how {agentName} will interact with your contacts
               </p>
@@ -258,7 +254,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                   type="text"
                   value={agentName}
                   onChange={(e) => setAgentName(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                   placeholder="e.g., Sarah, Mike, Alex"
                 />
               </div>
@@ -272,7 +268,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                   placeholder="+1 (555) 123-4567"
                 />
                 <p className="text-xs text-slate-500 mt-2">
@@ -313,7 +309,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                   className={`
                     flex-1 px-6 py-4 bg-gradient-to-r ${agent.color} text-white rounded-lg font-bold
                     transition-all duration-300 flex items-center justify-center gap-2
-                    ${!phoneNumber || !selectedVoice || loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:scale-105'}
+                    ${!phoneNumber || !selectedVoice || loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}
                   `}
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -334,7 +330,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
         {/* Calling Step */}
         {step === 'calling' && (
-          <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-3xl p-12 shadow-2xl border-2 border-slate-800 text-center">
+          <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-3xl p-12 shadow-2xl border border-slate-800 text-center">
             {/* Status Indicator */}
             <div className={`inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br ${getStatusColor()} mb-6 shadow-2xl animate-pulse`}>
               <svg className="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -342,11 +338,11 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
               </svg>
             </div>
 
-            <h2 className="text-4xl font-black text-white mb-2">{getStatusText()}</h2>
+            <h2 className="text-4xl font-bold text-white mb-2">{getStatusText()}</h2>
             <p className="text-xl text-slate-400 mb-6">{agentName} is calling you...</p>
 
             {callStatus === 'connected' && (
-              <div className="text-6xl font-black text-white tabular-nums">
+              <div className="text-6xl font-bold text-white tabular-nums">
                 {formatDuration(callDuration)}
               </div>
             )}
@@ -368,7 +364,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
         {/* Analysis Step */}
         {step === 'analysis' && (
-          <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border-2 border-slate-800">
+          <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-slate-800">
             {/* Header */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 mb-4 shadow-lg">
@@ -376,7 +372,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-3xl font-black text-white mb-2">Call Complete!</h2>
+              <h2 className="text-3xl font-bold text-white mb-2">Call Complete!</h2>
               <p className="text-slate-400">
                 Here's how {agentName} performed
               </p>
@@ -385,15 +381,15 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
             {/* Call Stats */}
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-black text-white mb-1">{formatDuration(callDuration)}</div>
+                <div className="text-2xl font-bold text-white mb-1">{formatDuration(callDuration)}</div>
                 <div className="text-xs text-slate-400">Duration</div>
               </div>
               <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-black text-emerald-400 mb-1">Demo</div>
+                <div className="text-2xl font-bold text-emerald-400 mb-1">Demo</div>
                 <div className="text-xs text-slate-400">Call Type</div>
               </div>
               <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-black text-white mb-1">✓</div>
+                <div className="text-2xl font-bold text-white mb-1">✓</div>
                 <div className="text-xs text-slate-400">Completed</div>
               </div>
             </div>
@@ -423,7 +419,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
               onClick={() => onComplete(callData)}
               className={`
                 w-full px-6 py-4 bg-gradient-to-r ${agent.color} text-white rounded-lg font-bold text-lg
-                hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2
+                hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2
               `}
             >
               Continue to Dashboard

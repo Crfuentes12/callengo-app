@@ -317,7 +317,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mx-auto mb-3"></div>
+          <div className="w-8 h-8 border-2 border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-3"></div>
           <p className="text-sm text-slate-500">Loading billing information...</p>
         </div>
       </div>
@@ -363,7 +363,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         {/* ── Your Subscription Card ── */}
         <div>
           <h3 className="text-lg font-bold text-slate-900 mb-4">Your Subscription</h3>
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-xl p-6">
+          <div className="gradient-bg-subtle border border-slate-200 rounded-xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -375,7 +375,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <p className="text-sm text-slate-600">{currentPlan.description}</p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-black text-slate-900">
+                <div className="text-3xl font-bold text-slate-900">
                   {formatPrice(subscription.billing_cycle === 'monthly' ? currentPlan.price_monthly : currentPlan.price_annual)}
                 </div>
                 <div className="text-sm text-slate-500">/{subscription.billing_cycle === 'monthly' ? 'month' : 'year'}</div>
@@ -389,14 +389,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   <span className="font-bold text-slate-900">{usage.minutes_used.toLocaleString()} / {usage.minutes_included.toLocaleString()} min</span>
                 </div>
                 <div className="h-2 bg-white/80 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500" style={{ width: `${usagePercent}%` }} />
+                  <div className="h-full gradient-bg transition-all duration-500" style={{ width: `${usagePercent}%` }} />
                 </div>
                 <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} calls made · ~{getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining</p>
               </div>
             )}
 
             {subscription.current_period_end && (
-              <div className="mt-4 pt-4 border-t border-indigo-100">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 <p className="text-xs text-slate-600">Renews on <span className="font-semibold text-slate-900">{formatDate(subscription.current_period_end)}</span></p>
               </div>
             )}
@@ -695,7 +695,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <div className="flex gap-3">
                 <button
                   onClick={handleCloseCancelFlow}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all"
                 >
                   Keep My Plan
                 </button>
@@ -726,9 +726,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 {CANCELLATION_REASONS.map((reason) => (
                   <label
                     key={reason.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
                       cancelReason === reason.id
-                        ? 'border-indigo-500 bg-indigo-50'
+                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
                         : 'border-slate-200 hover:border-slate-300 bg-white'
                     }`}
                   >
@@ -738,7 +738,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       value={reason.id}
                       checked={cancelReason === reason.id}
                       onChange={() => setCancelReason(reason.id)}
-                      className="w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                      className="w-4 h-4 text-[var(--color-primary)] border-slate-300 focus:ring-[var(--color-primary)]"
                     />
                     <span className="text-sm text-slate-700">{reason.label}</span>
                   </label>
@@ -753,7 +753,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   value={cancelDetails}
                   onChange={(e) => setCancelDetails(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none"
                   placeholder="Share any additional details..."
                 />
               </div>
@@ -761,7 +761,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <div className="flex gap-3">
                 <button
                   onClick={handleCloseCancelFlow}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all"
                 >
                   Keep My Plan
                 </button>
@@ -842,7 +842,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   </div>
                   <button
                     onClick={handleCloseCancelFlow}
-                    className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all"
                   >
                     Back to Settings
                   </button>
@@ -879,7 +879,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <div className="flex gap-3">
                 <button
                   onClick={handleCloseCancelFlow}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all"
                 >
                   I Changed My Mind
                 </button>
@@ -906,7 +906,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   <label className="block text-sm font-semibold text-slate-900 mb-2">Monthly Overage Budget</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                    <input type="number" min="0" step="50" value={overageBudget} onChange={(e) => setOverageBudget(Number(e.target.value))} className="w-full pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="100" />
+                    <input type="number" min="0" step="50" value={overageBudget} onChange={(e) => setOverageBudget(Number(e.target.value))} className="w-full pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" placeholder="100" />
                   </div>
                 </div>
               )}
@@ -940,7 +940,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       {currentPlan && usage && (
         <div>
           <h3 className="text-lg font-bold text-slate-900 mb-4">Current Plan</h3>
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-xl p-6">
+          <div className="gradient-bg-subtle border border-slate-200 rounded-xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -950,7 +950,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <p className="text-sm text-slate-600">{currentPlan.description}</p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-black text-slate-900">$0</div>
+                <div className="text-3xl font-bold text-slate-900">$0</div>
                 <div className="text-sm text-slate-500">/forever</div>
               </div>
             </div>
@@ -960,7 +960,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <span className="font-bold text-slate-900">{usage.minutes_used.toLocaleString()} / {usage.minutes_included.toLocaleString()} min</span>
               </div>
               <div className="h-2 bg-white/80 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500" style={{ width: `${usagePercent}%` }} />
+                <div className="h-full gradient-bg transition-all duration-500" style={{ width: `${usagePercent}%` }} />
               </div>
               <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} calls made · ~{getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining</p>
             </div>
@@ -1027,7 +1027,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <label className="block text-sm font-semibold text-slate-900 mb-2">Overage Budget (Max $20)</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                  <input type="number" min="0" max={20} step="5" value={overageBudget} onChange={(e) => setOverageBudget(Math.min(Number(e.target.value), 20))} className="w-full pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="10" />
+                  <input type="number" min="0" max={20} step="5" value={overageBudget} onChange={(e) => setOverageBudget(Math.min(Number(e.target.value), 20))} className="w-full pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" placeholder="10" />
                 </div>
                 <p className="text-xs text-slate-500 mt-2">Free plan has a maximum overage budget of $20.</p>
               </div>
@@ -1076,10 +1076,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <div key={plan.id} className="relative flex pt-6">
                   {isPopular && (
                     <div className="absolute -top-0 left-1/2 -translate-x-1/2 z-10">
-                      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">BEST VALUE</div>
+                      <div className="gradient-bg text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">BEST VALUE</div>
                     </div>
                   )}
-                  <div className={`rounded-xl p-4 transition-all flex flex-col h-full w-full ${isPopular ? 'border-2 border-indigo-500 bg-white shadow-xl shadow-indigo-500/10 scale-105' : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'}`}>
+                  <div className={`rounded-xl p-4 transition-all flex flex-col h-full w-full ${isPopular ? 'border-2 border-[var(--color-primary)] bg-white shadow-xl shadow-[var(--color-primary)]/10 scale-105' : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'}`}>
                     <div className="mb-3">
                       <h4 className="text-base font-bold text-slate-900 mb-2">{plan.name}</h4>
                       <p className="text-[11px] text-slate-600 leading-tight">{plan.description}</p>
@@ -1087,7 +1087,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     <div className="mb-3 pb-3 border-b border-slate-100">
                       <div className="flex items-baseline gap-1">
                         {isEnterprise && <span className="text-xs text-slate-500 font-medium">From</span>}
-                        <span className="text-2xl font-black text-slate-900">{formatPrice(monthlyPrice)}</span>
+                        <span className="text-2xl font-bold text-slate-900">{formatPrice(monthlyPrice)}</span>
                         {!isEnterprise && <span className="text-xs text-slate-500">/mo</span>}
                       </div>
                       {!isEnterprise && billingCycle === 'annual' && <div className="text-[10px] text-slate-500 mt-1">{formatPrice(yearlyTotal)}/year</div>}
@@ -1109,7 +1109,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         ))}
                       </div>
                     </div>
-                    <button onClick={() => handleChangePlan(plan.id)} disabled={changing} className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto ${isPopular ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-md' : 'bg-slate-800 text-white hover:bg-slate-900'}`}>
+                    <button onClick={() => handleChangePlan(plan.id)} disabled={changing} className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto ${isPopular ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-slate-800 text-white hover:bg-slate-900'}`}>
                       {changing ? 'Processing...' : isEnterprise ? 'Contact Sales' : 'Get Started'}
                     </button>
                   </div>

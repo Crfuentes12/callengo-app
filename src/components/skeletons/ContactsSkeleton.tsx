@@ -29,7 +29,7 @@ export default function ContactsSkeleton() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
+        <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl p-5 border border-blue-200">
           <Skeleton className="h-4 w-32 mb-3" />
           <Skeleton className="h-8 w-20" />
         </div>

@@ -37,7 +37,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
   const typeColors = {
     danger: 'bg-red-600 hover:bg-red-700',
     warning: 'bg-amber-600 hover:bg-amber-700',
-    info: 'bg-indigo-600 hover:bg-indigo-700',
+    info: 'gradient-bg',
   };
 
   const typeIcons = {
@@ -52,7 +52,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
       </svg>
     ),
     info: (
-      <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className="w-6 h-6 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
@@ -62,14 +62,14 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border-2 border-slate-100 animate-slideUp">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-md border border-slate-100 animate-slideUp">
         <div className="p-6">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
               {typeIcons[type]}
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-bold text-slate-900 mb-2">{dialog.title}</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">{dialog.title}</h3>
               <p className="text-sm text-slate-600 leading-relaxed">{dialog.message}</p>
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
       .select('*')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
-    
+
     if (data) setContacts(data as ContactType[]);
   };
 
@@ -295,9 +295,9 @@ export default function ContactsManager({ initialContacts, initialContactLists =
             <span className="text-sm font-semibold text-slate-600">Quick Filters:</span>
             <button
               onClick={() => setSelectedListFilter('all')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg border-2 transition-all ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
                 selectedListFilter === 'all'
-                  ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-md scale-105'
+                  ? 'bg-[var(--color-primary-50)] border-[var(--color-primary)] text-[var(--color-primary)] shadow-md'
                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
               }`}
             >
@@ -305,9 +305,9 @@ export default function ContactsManager({ initialContacts, initialContactLists =
             </button>
             <button
               onClick={() => setSelectedListFilter('none')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg border-2 transition-all ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
                 selectedListFilter === 'none'
-                  ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-md scale-105'
+                  ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-md'
                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
               }`}
             >
@@ -320,10 +320,10 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                 <button
                   key={list.id}
                   onClick={() => handleQuickFilterClick(list.id)}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border-2 transition-all ${
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
                     selectedListFilter === list.id
-                      ? 'shadow-md scale-105'
-                      : 'hover:scale-105 hover:shadow-md'
+                      ? 'shadow-md'
+                      : 'hover:shadow-md'
                   }`}
                   style={{
                     backgroundColor: selectedListFilter === list.id ? `${listColor}25` : `${listColor}10`,
@@ -333,7 +333,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                 >
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: listColor }}></div>
                   {list.name}
-                  <span className="ml-1 px-1.5 py-0.5 bg-white/50 rounded text-xs font-bold">
+                  <span className="ml-1 px-1.5 py-0.5 bg-white/50 rounded text-xs font-semibold">
                     {listContactCount}
                   </span>
                 </button>
@@ -342,7 +342,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
             {/* Add New List Button */}
             <button
               onClick={() => setShowListManager(true)}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 border-dashed border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-dashed border-slate-300 text-slate-400 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-slate-50 transition-all"
               title="Create new list"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -355,14 +355,14 @@ export default function ContactsManager({ initialContacts, initialContactLists =
 
       {/* Batch Actions Bar */}
       {selectedContactIds.length > 0 && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between animate-slideDown relative z-50">
+        <div className="bg-[var(--color-primary-50)] border border-[var(--color-primary-200)] rounded-xl p-4 flex items-center justify-between animate-slideDown relative z-50">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-indigo-900">
+            <span className="text-sm font-semibold text-slate-900">
               {selectedContactIds.length} contact{selectedContactIds.length > 1 ? 's' : ''} selected
             </span>
             <button
               onClick={() => setSelectedContactIds([])}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+              className="text-xs text-[var(--color-primary)] hover:opacity-80 font-medium"
             >
               Clear selection
             </button>
@@ -371,7 +371,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
             <div className="relative z-[100]">
               <button
                 onClick={() => setShowBatchActions(!showBatchActions)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-2 text-sm font-medium"
+                className="btn-primary px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -383,7 +383,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                   <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">Add to List</div>
                   <button
                     onClick={() => setShowListManager(true)}
-                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-indigo-50 transition-colors flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -438,7 +438,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
               placeholder="Search contacts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-900 placeholder-slate-400"
+              className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-900 placeholder-slate-400"
             />
           </div>
         </div>
@@ -447,7 +447,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
           <select
             value={selectedListFilter}
             onChange={(e) => setSelectedListFilter(e.target.value)}
-            className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 cursor-pointer"
+            className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer"
           >
             <option value="all">All Lists</option>
             <option value="none">No List</option>
@@ -459,7 +459,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 cursor-pointer"
+            className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer"
           >
             <option value="all">All Statuses</option>
             <option value="Pending">Pending</option>
@@ -492,7 +492,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
           <div className="relative add-contacts-dropdown">
             <button
               onClick={() => setShowAddContactsDropdown(!showAddContactsDropdown)}
-              className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+              className="btn-primary px-4 py-2.5 rounded-xl flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -503,13 +503,13 @@ export default function ContactsManager({ initialContacts, initialContactLists =
               </svg>
             </button>
             {showAddContactsDropdown && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border-2 border-indigo-100 py-2 z-50 animate-fadeIn">
-                <div className="px-3 py-2 text-xs font-black text-indigo-600 uppercase tracking-wider border-b border-slate-100">
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn">
+                <div className="px-3 py-2 text-xs font-bold text-[var(--color-primary)] uppercase tracking-wider border-b border-slate-100">
                   Add Method
                 </div>
                 <button
                   onClick={handleManualAdd}
-                  className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-indigo-50 transition-colors flex items-center gap-3 group"
+                  className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 group"
                 >
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -522,7 +522,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                   </div>
                 </button>
                 <div className="border-t border-slate-100 my-2"></div>
-                <div className="px-3 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">
+                <div className="px-3 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Import From File
                 </div>
                 <button
@@ -635,7 +635,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border-2 backdrop-blur-sm animate-slideUp ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-sm animate-slideUp ${
               toast.type === 'success'
                 ? 'bg-green-50/95 border-green-400 text-green-800'
                 : toast.type === 'error'
@@ -798,10 +798,10 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-200/50 flex flex-col">
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-md border border-slate-200/50 flex flex-col">
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">Manage Contact Lists</h2>
+            <h2 className="text-xl font-semibold text-slate-900">Manage Contact Lists</h2>
             <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -815,7 +815,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
           {!showCreateForm ? (
             <button
               onClick={() => setShowCreateForm(true)}
-              className="w-full p-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-600 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all flex items-center justify-center gap-2 font-medium mb-6"
+              className="w-full p-4 border border-dashed border-slate-300 rounded-xl text-slate-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-slate-50 transition-all flex items-center justify-center gap-2 font-medium mb-6"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -823,8 +823,8 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
               Create New List
             </button>
           ) : (
-            <div className="border-2 border-indigo-200 rounded-xl p-5 bg-indigo-50/50 mb-6">
-              <h3 className="text-sm font-bold text-slate-900 mb-4">Create New List</h3>
+            <div className="border border-[var(--color-primary-200)] rounded-xl p-5 gradient-bg-subtle mb-6">
+              <h3 className="text-sm font-semibold text-slate-900 mb-4">Create New List</h3>
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">List Name</label>
@@ -833,7 +833,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                     value={newListName}
                     onChange={(e) => setNewListName(e.target.value)}
                     placeholder="e.g., Summer Campaign 2025"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   />
                 </div>
                 <div>
@@ -843,7 +843,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                     value={newListDescription}
                     onChange={(e) => setNewListDescription(e.target.value)}
                     placeholder="Brief description..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   />
                 </div>
                 <div>
@@ -874,7 +874,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                   <button
                     onClick={handleCreateList}
                     disabled={!newListName.trim() || loading}
-                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
+                    className="flex-1 px-4 py-2 gradient-bg text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
                   >
                     {loading ? 'Creating...' : 'Create List'}
                   </button>
@@ -885,7 +885,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
 
           {/* Existing Lists */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-900 mb-3">Existing Lists ({lists.length})</h3>
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">Existing Lists ({lists.length})</h3>
             {lists.length === 0 ? (
               <div className="text-center py-12 text-slate-500">
                 <p className="text-sm">No lists created yet</p>
@@ -899,14 +899,14 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                         type="text"
                         value={editingList.name}
                         onChange={(e) => setEditingList({ ...editingList, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-semibold"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none font-semibold"
                       />
                       <input
                         type="text"
                         value={editingList.description || ''}
                         onChange={(e) => setEditingList({ ...editingList, description: e.target.value })}
                         placeholder="Description..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-sm"
                       />
                       <div className="flex gap-2">
                         {colorOptions.map((color) => (
@@ -928,7 +928,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                         <button
                           onClick={() => handleUpdateList(editingList)}
                           disabled={loading}
-                          className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all text-sm font-medium"
+                          className="flex-1 px-3 py-2 gradient-bg text-white rounded-lg disabled:opacity-50 transition-all text-sm font-medium"
                         >
                           {loading ? 'Saving...' : 'Save'}
                         </button>
@@ -948,7 +948,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                       <div className="flex gap-2">
                         <button
                           onClick={() => setEditingList(list)}
-                          className="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-all"
+                          className="px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary-50)] rounded-lg hover:opacity-80 transition-all"
                         >
                           Edit
                         </button>
@@ -1135,9 +1135,9 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
 
   return (
     <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl border-2 border-indigo-100 flex flex-col">
+      <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-md border border-slate-200 flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+        <div className="p-6 border-b border-slate-200 gradient-bg-subtle">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
@@ -1146,7 +1146,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                 </svg>
               </div>
               <div>
-                <h2 className="text-2xl font-black text-slate-900">Add Contacts Manually</h2>
+                <h2 className="text-2xl font-bold text-slate-900">Add Contacts Manually</h2>
                 <p className="text-sm text-slate-600 mt-0.5">Create custom fields and add multiple contacts</p>
               </div>
             </div>
@@ -1166,10 +1166,10 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
           {/* Field Management */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900">Custom Fields</h3>
+              <h3 className="text-lg font-semibold text-slate-900">Custom Fields</h3>
               <button
                 onClick={() => setShowAddField(!showAddField)}
-                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-2 text-sm font-medium"
+                className="btn-primary px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1179,20 +1179,20 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
             </div>
 
             {showAddField && (
-              <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4 mb-4 animate-fadeIn">
+              <div className="gradient-bg-subtle border border-[var(--color-primary-200)] rounded-xl p-4 mb-4 animate-fadeIn">
                 <div className="flex gap-3">
                   <input
                     type="text"
                     value={newFieldName}
                     onChange={(e) => setNewFieldName(e.target.value)}
                     placeholder="Field name (e.g., Company, Address)"
-                    className="flex-1 px-3 py-2 border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                     onKeyPress={(e) => e.key === 'Enter' && addField()}
                   />
                   <select
                     value={newFieldType}
                     onChange={(e) => setNewFieldType(e.target.value as any)}
-                    className="px-3 py-2 border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   >
                     <option value="text">Text</option>
                     <option value="email">Email</option>
@@ -1203,7 +1203,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                   <button
                     onClick={addField}
                     disabled={!newFieldName.trim()}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all font-medium"
+                    className="px-4 py-2 gradient-bg text-white rounded-lg disabled:opacity-50 transition-all font-medium"
                   >
                     Add
                   </button>
@@ -1247,20 +1247,20 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
           </div>
 
           {/* Contacts Table */}
-          <div className="border-2 border-slate-200 rounded-xl overflow-hidden">
+          <div className="border border-slate-200 rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-100">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-black text-slate-700 uppercase tracking-wider w-12">
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-12">
                       #
                     </th>
                     {fields.map((field) => (
-                      <th key={field.id} className="px-4 py-3 text-left text-xs font-black text-slate-700 uppercase tracking-wider">
+                      <th key={field.id} className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                         {field.name}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-right text-xs font-black text-slate-700 uppercase tracking-wider w-24">
+                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase tracking-wider w-24">
                       Actions
                     </th>
                   </tr>
@@ -1278,7 +1278,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                             value={row.data[field.name] || ''}
                             onChange={(e) => updateRowData(row.id, field.name, e.target.value)}
                             placeholder={`Enter ${field.name.toLowerCase()}`}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-sm"
                           />
                         </td>
                       ))}
@@ -1304,7 +1304,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
 
           <button
             onClick={addRow}
-            className="mt-4 w-full px-4 py-3 border-2 border-dashed border-indigo-300 text-indigo-600 rounded-xl hover:bg-indigo-50 hover:border-indigo-400 transition-all flex items-center justify-center gap-2 font-semibold"
+            className="mt-4 w-full px-4 py-3 border border-dashed border-[var(--color-primary)] text-[var(--color-primary)] rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2 font-semibold"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1318,14 +1318,14 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-6 py-2.5 bg-white border-2 border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-semibold disabled:opacity-50"
+            className="btn-secondary px-6 py-2.5 rounded-xl font-semibold disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={loading}
-            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-xl transition-all font-semibold disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2.5 gradient-bg text-white rounded-xl hover:shadow-md transition-all font-semibold disabled:opacity-50 flex items-center gap-2"
           >
             {loading ? (
               <>

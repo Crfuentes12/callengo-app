@@ -75,7 +75,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" style={{ isolation: 'isolate', willChange: 'transform' }}>
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border-2 border-slate-700/50 overflow-hidden flex flex-col" style={{ transform: 'translateZ(0)' }}>
+      <div className="relative w-full max-w-4xl max-h-[90vh] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col" style={{ transform: 'translateZ(0)' }}>
         {/* Close button */}
         <button
           onClick={onClose}
@@ -94,7 +94,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
 
           {/* Header */}
           <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-black text-white mb-2 uppercase tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-purple-200">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
               What do you want to do today?
             </h2>
             <p className="text-sm text-slate-400">
@@ -110,7 +110,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
                 onChange={(e) => setUserInput(e.target.value)}
                 placeholder="Example: I need to clean up my contact database with outdated phone numbers..."
                 maxLength={500}
-                className="w-full h-32 px-6 py-4 bg-slate-900/50 border-2 border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all resize-none"
+                className="w-full h-32 px-6 py-4 bg-slate-900/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-[var(--color-primary)] transition-all resize-none"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.ctrlKey) {
                     handleAnalyzeInput();
@@ -124,7 +124,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
               <button
                 onClick={handleAnalyzeInput}
                 disabled={!userInput.trim() || isAnalyzing}
-                className="absolute bottom-4 right-4 px-6 py-2 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="absolute bottom-4 right-4 px-6 py-2 gradient-bg text-white font-semibold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isAnalyzing ? (
                   <>
@@ -148,15 +148,15 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
 
           {/* AI Recommendation */}
           {recommendedAgent && (
-            <div className="mb-8 p-6 bg-gradient-to-r from-cyan-900/30 via-blue-900/30 to-purple-900/30 border-2 border-cyan-500/50 rounded-2xl animate-pulse-subtle">
+            <div className="mb-8 p-6 bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/20 rounded-2xl">
               <div className="flex items-center gap-3 mb-3">
-                <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-6 h-6 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
                 <h3 className="text-xl font-bold text-white">AI Recommendation</h3>
               </div>
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 border-cyan-400/50">
+                <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border border-[var(--color-primary)]/30">
                   <Image
                     src={`/agent-avatars/${recommendedAgent.slug}.png`}
                     alt={recommendedAgent.name}
@@ -186,15 +186,15 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
               <button
                 key={agent.id}
                 onClick={() => handleSelectAgent(agent)}
-                className={`group relative p-4 rounded-2xl border-2 transition-all text-left ${
+                className={`group relative p-4 rounded-2xl border transition-all text-left ${
                   selectedAgentId === agent.id
-                    ? 'bg-gradient-to-br from-cyan-900/40 to-purple-900/40 border-cyan-500 shadow-lg shadow-cyan-500/25'
+                    ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)] shadow-lg'
                     : 'bg-slate-900/30 border-slate-700 hover:border-slate-600 hover:bg-slate-900/50'
                 }`}
               >
                 {/* Selected indicator */}
                 {selectedAgentId === agent.id && (
-                  <div className="absolute top-3 right-3 w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center">
+                  <div className="absolute top-3 right-3 w-6 h-6 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
@@ -203,7 +203,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
 
                 {/* Avatar and title side by side */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border-2 border-slate-700 group-hover:border-cyan-500/50 transition-all">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-slate-700 group-hover:border-[var(--color-primary)]/50 transition-all">
                     <Image
                       src={`/agent-avatars/${agent.slug}.png`}
                       alt={agent.name}
@@ -212,7 +212,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <h3 className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors flex-1">
+                  <h3 className="text-base font-bold text-white group-hover:text-[var(--color-primary)] transition-colors flex-1">
                     {agent.name}
                   </h3>
                 </div>
@@ -234,7 +234,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
             <button
               onClick={handleContinue}
               disabled={!selectedAgentId && !recommendedAgent}
-              className="px-8 py-2.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-8 py-2.5 gradient-bg text-white font-semibold rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               Continue
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

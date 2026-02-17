@@ -219,7 +219,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
       >
         <BellIcon className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full ring-2 ring-white"></span>
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[var(--color-primary)] rounded-full ring-2 ring-white"></span>
         )}
       </button>
 
@@ -231,7 +231,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+                className="text-xs font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors"
               >
                 Mark all as read
               </button>
@@ -242,7 +242,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
           <div className="overflow-y-auto flex-1">
             {loading ? (
               <div className="p-8 text-center text-slate-400">
-                <div className="inline-block w-8 h-8 border-2 border-slate-300 border-t-indigo-600 rounded-full animate-spin"></div>
+                <div className="inline-block w-8 h-8 border-2 border-slate-300 border-t-[var(--color-primary)] rounded-full animate-spin"></div>
               </div>
             ) : notifications.length === 0 ? (
               <div className="p-8 text-center">
@@ -259,7 +259,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
                   return (
                     <div
                       key={notification.id}
-                      className={`p-4 hover:bg-slate-50 transition-colors ${!notification.read ? 'bg-indigo-50/30' : ''}`}
+                      className={`p-4 hover:bg-slate-50 transition-colors ${!notification.read ? 'bg-[var(--color-primary)]/5' : ''}`}
                     >
                       <div className="flex gap-3">
                         <div className={`w-10 h-10 rounded-lg ${style.bgColor} ${style.textColor} flex items-center justify-center flex-shrink-0 border ${style.borderColor}`}>
@@ -283,7 +283,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
                             {!notification.read && (
                               <button
                                 onClick={() => markAsRead(notification.id)}
-                                className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+                                className="text-xs font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors"
                               >
                                 Mark as read
                               </button>

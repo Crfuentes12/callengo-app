@@ -76,7 +76,7 @@ export default function ContactsTable({
                         if (input) input.indeterminate = someSelected;
                       }}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-indigo-600 bg-white border-slate-300 rounded focus:ring-indigo-500 focus:ring-2 cursor-pointer"
+                      className="w-4 h-4 text-[var(--color-primary)] bg-white border-slate-300 rounded focus:ring-[var(--color-primary)] focus:ring-2 cursor-pointer"
                     />
                   </th>
                 )}
@@ -130,7 +130,7 @@ export default function ContactsTable({
                         >
                           <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
                             visibleColumns[key as keyof typeof visibleColumns]
-                              ? 'bg-indigo-600 border-indigo-600'
+                              ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
                               : 'border-slate-300'
                           }`}>
                             {visibleColumns[key as keyof typeof visibleColumns] && (
@@ -149,14 +149,14 @@ export default function ContactsTable({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {contacts.map((contact) => (
-                <tr key={contact.id} className={`hover:bg-slate-50/50 transition-colors ${selectedContactIds.includes(contact.id) ? 'bg-indigo-50/30' : ''}`}>
+                <tr key={contact.id} className={`hover:bg-slate-50/50 transition-colors ${selectedContactIds.includes(contact.id) ? 'bg-[var(--color-primary)]/5' : ''}`}>
                   {onSelectionChange && (
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedContactIds.includes(contact.id)}
                         onChange={(e) => handleSelectOne(contact.id, e.target.checked)}
-                        className="w-4 h-4 text-indigo-600 bg-white border-slate-300 rounded focus:ring-indigo-500 focus:ring-2 cursor-pointer"
+                        className="w-4 h-4 text-[var(--color-primary)] bg-white border-slate-300 rounded focus:ring-[var(--color-primary)] focus:ring-2 cursor-pointer"
                       />
                     </td>
                   )}
@@ -195,7 +195,7 @@ export default function ContactsTable({
                       return list ? (
                         <button
                           onClick={() => onListClick && onListClick(list.id)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border-2 transition-all hover:scale-105 hover:shadow-md"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border transition-all hover:shadow-md"
                           style={{
                             backgroundColor: `${list.color}15`,
                             borderColor: list.color,
@@ -245,7 +245,7 @@ export default function ContactsTable({
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => setSelectedContact(contact)}
-                      className="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-all border border-indigo-100 hover:border-indigo-200"
+                      className="px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/5 rounded-lg hover:bg-[var(--color-primary)]/10 transition-all border border-[var(--color-primary)]/10 hover:border-[var(--color-primary)]/20"
                     >
                       View Details
                     </button>
