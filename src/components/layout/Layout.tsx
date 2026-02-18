@@ -110,6 +110,8 @@ export default function Layout({
           onMenuClick={() => setIsSidebarOpen(true)}
           onLogout={handleLogout}
           companyId={company.id}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onExpandSidebar={() => setIsSidebarCollapsed(false)}
         />
         <Main>{children}</Main>
       </div>

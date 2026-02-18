@@ -19,6 +19,8 @@ interface HeaderProps {
   onMenuClick: () => void;
   onLogout?: () => void;
   companyId?: string;
+  isSidebarCollapsed?: boolean;
+  onExpandSidebar?: () => void;
 }
 
 function BellIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -37,7 +39,15 @@ function MenuIcon({ className = "w-6 h-6" }: { className?: string }) {
   );
 }
 
-export default function Header({ user, title, subtitle, actions, onMenuClick, onLogout, companyId }: HeaderProps) {
+function ExpandSidebarIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    </svg>
+  );
+}
+
+export default function Header({ user, title, subtitle, actions, onMenuClick, onLogout, companyId, isSidebarCollapsed, onExpandSidebar }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +78,7 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
   return (
     <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 h-14 sm:h-16 flex items-center">
       <div className="flex items-center justify-between w-full gap-3">
-        {/* Left: Menu Button (Mobile) + Title */}
+        {/* Left: Menu Button (Mobile) + Expand Sidebar (Desktop) + Title */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {/* Hamburger Menu - Only visible on mobile */}
           <button
@@ -77,6 +87,17 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
           >
             <MenuIcon className="w-6 h-6" />
           </button>
+
+          {/* Expand Sidebar - Only visible on desktop when sidebar is collapsed */}
+          {isSidebarCollapsed && onExpandSidebar && (
+            <button
+              onClick={onExpandSidebar}
+              className="hidden lg:flex p-2 -ml-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              title="Expand sidebar"
+            >
+              <ExpandSidebarIcon className="w-5 h-5" />
+            </button>
+          )}
 
           {/* Title */}
           <div className="min-w-0 flex-1">
