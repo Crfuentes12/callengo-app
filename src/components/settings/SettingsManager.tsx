@@ -1,8 +1,8 @@
 // components/settings/SettingsManager.tsx
 'use client';
 
-import { useState, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@/types/supabase';
 import BillingSettings from './BillingSettings';
@@ -29,7 +29,16 @@ interface SettingsManagerProps {
 export default function SettingsManager({ company: initialCompany, settings: initialSettings, user }: SettingsManagerProps) {
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing' | 'notifications'>('company');
+
+  // Handle URL query params for deep linking (e.g., from Integrations → Twilio)
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'calling' || tab === 'billing' || tab === 'notifications' || tab === 'company') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [success, setSuccess] = useState('');
@@ -455,6 +464,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
               loading={loading}
               success={success}
               companyId={initialCompany.id}
+              initialSection={searchParams.get('section') || undefined}
             />
           )}
 
