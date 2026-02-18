@@ -7,7 +7,7 @@ export default function DashboardSkeleton() {
   return (
     <div className="space-y-6">
       {/* Hero Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-3xl p-10 shadow-2xl border border-slate-800">
+      <div className="relative overflow-hidden gradient-bg-subtle rounded-2xl p-8 border border-[var(--color-primary)]/10">
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-6">
             <Skeleton className="w-20 h-20 rounded-2xl" />
@@ -20,7 +20,7 @@ export default function DashboardSkeleton() {
           {/* Quick Stats in Banner */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+              <div key={i} className="bg-white/60 rounded-xl p-4 border border-slate-200/60">
                 <Skeleton className="h-3 w-24 mb-2" />
                 <Skeleton className="h-8 w-16" />
               </div>
@@ -32,7 +32,7 @@ export default function DashboardSkeleton() {
       {/* Main Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-6 border border-slate-200 shadow-sm">
+          <div key={i} className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <Skeleton className="h-5 w-32 mb-2" />

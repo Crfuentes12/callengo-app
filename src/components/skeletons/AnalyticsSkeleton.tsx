@@ -6,24 +6,24 @@ import { Skeleton } from './SkeletonBase';
 export default function AnalyticsSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-3xl p-10 shadow-2xl border border-slate-800">
+      {/* Hero Banner - Light Style */}
+      <div className="relative overflow-hidden gradient-bg-subtle rounded-2xl p-8 border border-[var(--color-primary)]/10">
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-6">
-            <Skeleton className="w-20 h-20 rounded-2xl bg-white/10" />
+            <Skeleton className="w-20 h-20 rounded-2xl" />
             <div className="flex-1">
-              <Skeleton className="h-12 w-80 mb-2 bg-white/10" />
-              <Skeleton className="h-5 w-96 bg-white/10" />
+              <Skeleton className="h-12 w-80 mb-2" />
+              <Skeleton className="h-5 w-96" />
             </div>
           </div>
 
           {/* Quick Stats in Banner */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="p-4 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800">
-                <Skeleton className="h-3 w-24 mb-2 bg-white/10" />
-                <Skeleton className="h-8 w-16 bg-white/10" />
-                <Skeleton className="h-3 w-20 mt-1 bg-white/10" />
+              <div key={i} className="p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200/60">
+                <Skeleton className="h-3 w-24 mb-2" />
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-3 w-20 mt-1" />
               </div>
             ))}
           </div>
