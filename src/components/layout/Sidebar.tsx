@@ -202,7 +202,7 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
       {/* Logo, Collapse Toggle & Close Button */}
       <div className="h-16 flex items-center justify-between px-3 overflow-hidden">
         <div className="flex items-center gap-3 px-2">
-          <div className="w-9 h-9 rounded-lg bg-white/25 backdrop-blur-sm flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-white backdrop-blur-sm flex items-center justify-center shrink-0">
             <img src="/callengo-logo.svg" alt="Callengo" className="w-5 h-5" />
           </div>
           <span className={`font-semibold text-[16px] text-white whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:w-0 lg:opacity-0' : 'opacity-100'}`}>
