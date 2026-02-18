@@ -10,7 +10,7 @@ export default function SettingsSkeleton() {
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="border-b border-slate-100">
           <div className="flex">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex-1 px-6 py-4">
                 <Skeleton className="h-6 w-32 mx-auto" />
               </div>

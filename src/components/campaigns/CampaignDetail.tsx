@@ -1,8 +1,10 @@
 // components/campaigns/CampaignDetail.tsx
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import CallDetailModal from '@/components/calls/CallDetailModal';
+import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 interface CallLog {
   id: string;
@@ -85,6 +87,8 @@ export default function CampaignDetail({
   followUps,
   voicemailLogs,
 }: CampaignDetailProps) {
+  const [selectedCallLog, setSelectedCallLog] = useState<CallLog | null>(null);
+
   // Computed stats
   const stats = useMemo(() => {
     const progress = campaign.total_contacts > 0
@@ -319,18 +323,14 @@ export default function CampaignDetail({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Campaigns', href: '/campaigns' },
+        { label: campaign.name },
+      ]} />
+
       {/* Header Section */}
       <div className="gradient-bg-subtle rounded-2xl p-6 border border-[var(--color-primary-200)]">
-        {/* Back Button */}
-        <Link
-          href="/campaigns"
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors mb-4"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
-          Back to Campaigns
-        </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex-1">
@@ -543,7 +543,7 @@ export default function CampaignDetail({
                 </thead>
                 <tbody>
                   {callLogs.map((log) => (
-                    <tr key={log.id} className="border-b border-slate-100">
+                    <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => setSelectedCallLog(log)}>
                       <td className="py-3 px-6">
                         <div className="font-medium text-sm text-slate-900">
                           {log.contacts?.contact_name || log.contacts?.company_name || 'Unknown'}
@@ -615,6 +615,35 @@ export default function CampaignDetail({
           )}
         </div>
       </div>
+
+      {/* Call Detail Modal */}
+      {selectedCallLog && (
+        <CallDetailModal
+          call={{
+            id: selectedCallLog.id,
+            call_id: selectedCallLog.id,
+            status: selectedCallLog.status,
+            completed: selectedCallLog.completed,
+            call_length: selectedCallLog.call_length,
+            answered_by: selectedCallLog.answered_by,
+            recording_url: selectedCallLog.recording_url,
+            transcript: null,
+            summary: null,
+            analysis: null,
+            error_message: null,
+            metadata: null,
+            created_at: selectedCallLog.created_at,
+            voicemail_detected: selectedCallLog.voicemail_detected,
+            voicemail_left: selectedCallLog.voicemail_left,
+            contacts: selectedCallLog.contacts ? {
+              company_name: selectedCallLog.contacts.company_name,
+              contact_name: selectedCallLog.contacts.contact_name,
+              phone_number: selectedCallLog.contacts.phone_number,
+            } : null,
+          }}
+          onClose={() => setSelectedCallLog(null)}
+        />
+      )}
     </div>
   );
 }

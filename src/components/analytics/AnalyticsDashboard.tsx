@@ -1,7 +1,7 @@
 // components/analytics/AnalyticsDashboard.tsx
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Database } from '@/types/supabase';
 import { formatDuration } from '@/lib/call-agent-utils';
 
@@ -169,6 +169,8 @@ export default function AnalyticsDashboard({
 
   const maxDailyCalls = Math.max(...dailyCallTrends.map(d => d.count), 1);
   const maxHourlyCalls = Math.max(...hourlyDistribution.map(h => h.count), 1);
+
+  const [hoveredPoint, setHoveredPoint] = useState<{ index: number; chart: 'daily' | 'hourly' } | null>(null);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -340,8 +342,9 @@ export default function AnalyticsDashboard({
           const xS = data.length > 1 ? w / (data.length - 1) : w;
           const tX = (i: number) => pL + i * xS;
           const tY = (v: number) => pT + h - (v / mx) * h;
+          const yMin = pT, yMax = pT + h;
 
-          // Generate smooth monotone cubic bezier path
+          // Clamped smooth monotone cubic bezier path (prevents overshooting below x-axis)
           const smoothPath = (points: { x: number; y: number }[]) => {
             if (points.length < 2) return '';
             let d = `M${points[0].x},${points[0].y}`;
@@ -351,9 +354,9 @@ export default function AnalyticsDashboard({
               const p2 = points[i + 1];
               const p3 = points[Math.min(points.length - 1, i + 2)];
               const cp1x = p1.x + (p2.x - p0.x) / 6;
-              const cp1y = p1.y + (p2.y - p0.y) / 6;
+              const cp1y = Math.min(Math.max(p1.y + (p2.y - p0.y) / 6, yMin), yMax);
               const cp2x = p2.x - (p3.x - p1.x) / 6;
-              const cp2y = p2.y - (p3.y - p1.y) / 6;
+              const cp2y = Math.min(Math.max(p2.y - (p3.y - p1.y) / 6, yMin), yMax);
               d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
             }
             return d;
@@ -366,8 +369,9 @@ export default function AnalyticsDashboard({
           const bse = `L${tX(data.length - 1)},${tY(0)} L${tX(0)},${tY(0)}`;
           const sA = `${sL} ${bse} Z`;
           const fA = `${fL} ${bse} Z`;
+          const hp = hoveredPoint?.chart === 'daily' ? hoveredPoint.index : null;
           return (
-            <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+            <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet" onMouseLeave={() => setHoveredPoint(null)}>
               <defs>
                 <linearGradient id="aSuccStr" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor="#173657" /><stop offset="50%" stopColor="#2e3a76" /><stop offset="100%" stopColor="#8938b0" />
@@ -389,7 +393,37 @@ export default function AnalyticsDashboard({
               <path d={fL} fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinejoin="round" />
               <path d={sA} fill="url(#aSuccFill)" />
               <path d={sL} fill="none" stroke="url(#aSuccStr)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-              {data.map((d, i) => d.successful > 0 ? <circle key={i} cx={tX(i)} cy={tY(d.successful)} r="3" fill="#2e3a76" stroke="white" strokeWidth="1.5" opacity="0.9" /> : null)}
+              {/* Hover hit areas */}
+              {data.map((d, i) => (
+                <rect key={`hit${i}`} x={tX(i) - xS / 2} y={pT} width={xS} height={h} fill="transparent" onMouseEnter={() => setHoveredPoint({ index: i, chart: 'daily' })} />
+              ))}
+              {/* Hover guide line */}
+              {hp !== null && (
+                <line x1={tX(hp)} y1={pT} x2={tX(hp)} y2={pT + h} stroke="#2e3a76" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />
+              )}
+              {/* Data points */}
+              {data.map((d, i) => d.successful > 0 || hp === i ? (
+                <circle key={i} cx={tX(i)} cy={tY(d.successful)} r={hp === i ? 5 : 3} fill="#2e3a76" stroke="white" strokeWidth={hp === i ? 2.5 : 1.5} opacity={hp === i ? 1 : 0.9} className="transition-all duration-150" />
+              ) : null)}
+              {/* Tooltip */}
+              {hp !== null && (() => {
+                const d = data[hp];
+                const tx = tX(hp);
+                const ty = tY(d.successful) - 14;
+                const dateLabel = new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const boxW = 130, boxH = 58;
+                const bx = Math.min(Math.max(tx - boxW / 2, pL), pL + w - boxW);
+                const by = Math.max(ty - boxH, pT - 5);
+                return (
+                  <g>
+                    <rect x={bx} y={by} width={boxW} height={boxH} rx="8" fill="white" stroke="#e2e8f0" strokeWidth="1" filter="url(#shadow)" />
+                    <text x={bx + boxW / 2} y={by + 16} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">{dateLabel}</text>
+                    <text x={bx + 10} y={by + 32} fontSize="9" fill="#64748b">Successful: <tspan fontWeight="700" fill="#2e3a76">{d.successful}</tspan></text>
+                    <text x={bx + 10} y={by + 47} fontSize="9" fill="#64748b">Total: <tspan fontWeight="700" fill="#475569">{d.count}</tspan> · Failed: <tspan fontWeight="700" fill="#ef4444">{d.failed}</tspan></text>
+                  </g>
+                );
+              })()}
+              {/* X-axis labels */}
               {data.map((d, i) => (i % 5 === 0 || i === data.length - 1) ? <text key={`l${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">{new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</text> : null)}
             </svg>
           );
@@ -536,7 +570,9 @@ export default function AnalyticsDashboard({
           const tX = (i: number) => pL + i * xS;
           const tY = (v: number) => pT + h - (v / mx) * h;
 
-          // Generate smooth monotone cubic bezier path
+          const yMin = pT, yMax = pT + h;
+
+          // Clamped smooth monotone cubic bezier path
           const smoothPath = (points: { x: number; y: number }[]) => {
             if (points.length < 2) return '';
             let d = `M${points[0].x},${points[0].y}`;
@@ -546,9 +582,9 @@ export default function AnalyticsDashboard({
               const p2 = points[i + 1];
               const p3 = points[Math.min(points.length - 1, i + 2)];
               const cp1x = p1.x + (p2.x - p0.x) / 6;
-              const cp1y = p1.y + (p2.y - p0.y) / 6;
+              const cp1y = Math.min(Math.max(p1.y + (p2.y - p0.y) / 6, yMin), yMax);
               const cp2x = p2.x - (p3.x - p1.x) / 6;
-              const cp2y = p2.y - (p3.y - p1.y) / 6;
+              const cp2y = Math.min(Math.max(p2.y - (p3.y - p1.y) / 6, yMin), yMax);
               d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
             }
             return d;
@@ -557,9 +593,10 @@ export default function AnalyticsDashboard({
           const pts = data.map((d, i) => ({ x: tX(i), y: tY(d.count) }));
           const linePath = smoothPath(pts);
           const areaPath = `${linePath} L${tX(data.length - 1)},${tY(0)} L${tX(0)},${tY(0)} Z`;
+          const hhp = hoveredPoint?.chart === 'hourly' ? hoveredPoint.index : null;
 
           return (
-            <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+            <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet" onMouseLeave={() => setHoveredPoint(null)}>
               <defs>
                 <linearGradient id="hourStroke" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#f59e0b" /><stop offset="100%" stopColor="#ea580c" />
@@ -576,7 +613,26 @@ export default function AnalyticsDashboard({
               ))}
               <path d={areaPath} fill="url(#hourFill)" />
               <path d={linePath} fill="none" stroke="url(#hourStroke)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-              {data.map((d, i) => d.count > 0 ? <circle key={i} cx={tX(i)} cy={tY(d.count)} r="3" fill="#f59e0b" stroke="white" strokeWidth="1.5" /> : null)}
+              {/* Hover hit areas */}
+              {data.map((d, i) => (
+                <rect key={`hit${i}`} x={tX(i) - xS / 2} y={pT} width={xS} height={h} fill="transparent" onMouseEnter={() => setHoveredPoint({ index: i, chart: 'hourly' })} />
+              ))}
+              {hhp !== null && <line x1={tX(hhp)} y1={pT} x2={tX(hhp)} y2={pT + h} stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />}
+              {data.map((d, i) => d.count > 0 || hhp === i ? <circle key={i} cx={tX(i)} cy={tY(d.count)} r={hhp === i ? 5 : 3} fill="#f59e0b" stroke="white" strokeWidth={hhp === i ? 2.5 : 1.5} className="transition-all duration-150" /> : null)}
+              {hhp !== null && (() => {
+                const d = data[hhp];
+                const tx = tX(hhp);
+                const boxW = 100, boxH = 40;
+                const bx = Math.min(Math.max(tx - boxW / 2, pL), pL + w - boxW);
+                const by = Math.max(tY(d.count) - boxH - 14, pT - 5);
+                return (
+                  <g>
+                    <rect x={bx} y={by} width={boxW} height={boxH} rx="8" fill="white" stroke="#e2e8f0" strokeWidth="1" />
+                    <text x={bx + boxW / 2} y={by + 16} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">{d.label}</text>
+                    <text x={bx + boxW / 2} y={by + 32} textAnchor="middle" fontSize="10" fill="#64748b">Calls: <tspan fontWeight="700" fill="#f59e0b">{d.count}</tspan></text>
+                  </g>
+                );
+              })()}
               {data.map((d, i) => (
                 <text key={`h${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">{d.hour}</text>
               ))}

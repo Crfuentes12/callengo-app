@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import CallDetailModal from '@/components/calls/CallDetailModal';
+import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 interface FollowUp {
   id: string;
@@ -41,6 +43,7 @@ const statusStyles: Record<string, string> = {
 export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'scheduled' | 'completed'>('all');
   const [search, setSearch] = useState('');
+  const [selectedFollowUp, setSelectedFollowUp] = useState<FollowUp | null>(null);
 
   const filtered = useMemo(() => {
     let result = followUps;
@@ -81,6 +84,8 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Follow-ups' }]} />
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Follow-ups</h1>
@@ -186,7 +191,7 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
             <tbody>
               {filtered.length > 0 ? (
                 filtered.map(fu => (
-                  <tr key={fu.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <tr key={fu.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setSelectedFollowUp(fu)}>
                     <td className="py-3 px-6">
                       <div>
                         <span className="text-sm font-medium text-slate-900">
@@ -242,6 +247,38 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
           </table>
         </div>
       </div>
+
+      {/* Call Detail Modal (mapped from follow-up data) */}
+      {selectedFollowUp && (
+        <CallDetailModal
+          call={{
+            id: selectedFollowUp.id,
+            call_id: selectedFollowUp.original_call_id || selectedFollowUp.id,
+            status: selectedFollowUp.status === 'completed' ? 'completed' : selectedFollowUp.status === 'failed' ? 'failed' : 'pending',
+            completed: selectedFollowUp.status === 'completed',
+            call_length: null,
+            answered_by: null,
+            recording_url: null,
+            transcript: null,
+            summary: selectedFollowUp.status === 'pending' || selectedFollowUp.status === 'scheduled'
+              ? `Follow-up call scheduled. Attempt ${selectedFollowUp.attempt_number} of ${selectedFollowUp.max_attempts}. Next attempt: ${new Date(selectedFollowUp.next_attempt_at).toLocaleString()}.`
+              : selectedFollowUp.status === 'completed'
+              ? `Follow-up completed after ${selectedFollowUp.attempt_number} attempt(s).`
+              : `Follow-up ${selectedFollowUp.status}. Reason: ${selectedFollowUp.reason || 'No reason provided'}.`,
+            analysis: null,
+            error_message: null,
+            metadata: null,
+            created_at: selectedFollowUp.created_at,
+            contacts: selectedFollowUp.contacts ? {
+              company_name: selectedFollowUp.contacts.company_name || 'Unknown',
+              contact_name: selectedFollowUp.contacts.contact_name,
+              phone_number: selectedFollowUp.contacts.phone_number,
+            } : null,
+            agent_runs: selectedFollowUp.agent_runs,
+          }}
+          onClose={() => setSelectedFollowUp(null)}
+        />
+      )}
     </div>
   );
 }

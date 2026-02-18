@@ -8,6 +8,7 @@ import { Contact } from '@/types/call-agent';
 import { formatDuration } from '@/lib/call-agent-utils';
 import AgentSelectionModal from '@/components/agents/AgentSelectionModal';
 import AgentConfigModal from '@/components/agents/AgentConfigModal';
+import CallDetailModal from '@/components/calls/CallDetailModal';
 
 interface CallLog {
   id: string;
@@ -93,6 +94,7 @@ export default function DashboardOverview({
   const [showAgentSelection, setShowAgentSelection] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentTemplate | null>(null);
+  const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
 
   const handleAgentSelect = (agent: AgentTemplate) => {
     setSelectedAgent(agent);
@@ -395,9 +397,10 @@ export default function DashboardOverview({
                 const successRate = run.completed_calls > 0 ? (run.successful_calls / run.completed_calls) * 100 : 0;
 
                 return (
-                  <div
+                  <a
                     key={run.id}
-                    className="p-5 bg-slate-50 rounded-xl border border-slate-200 hover:shadow-sm transition-all"
+                    href={`/campaigns/${run.id}`}
+                    className="block p-5 bg-slate-50 rounded-xl border border-slate-200 hover:shadow-sm hover:border-[var(--color-primary-200)] transition-all"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
@@ -442,7 +445,7 @@ export default function DashboardOverview({
                         </p>
                       )}
                     </div>
-                  </div>
+                  </a>
                 );
               })}
             </div>
@@ -550,7 +553,7 @@ export default function DashboardOverview({
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {recentCalls.slice(0, 8).map((call) => (
-                  <tr key={call.id} className="hover:bg-slate-50 transition-colors">
+                  <tr key={call.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setSelectedCall(call)}>
                     <td className="py-4 px-6">
                       <p className="text-sm font-medium text-slate-900 font-mono">
                         {call.call_id.substring(0, 12)}...
@@ -697,6 +700,11 @@ export default function DashboardOverview({
             setSelectedAgent(null);
           }}
         />
+      )}
+
+      {/* Call Detail Modal */}
+      {selectedCall && (
+        <CallDetailModal call={selectedCall} onClose={() => setSelectedCall(null)} />
       )}
     </div>
   );

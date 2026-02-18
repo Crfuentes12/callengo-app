@@ -235,8 +235,25 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
             const xS = sliced.length > 1 ? w / (sliced.length - 1) : w;
             const tX = (i: number) => pL + i * xS;
             const tY = (v: number) => pT + h - (v / mx) * h;
-            const pts = sliced.map((d, i) => `${tX(i)},${tY(d.calls)}`);
-            const linePath = `M${pts.join(' L')}`;
+            // Generate smooth monotone cubic bezier path
+            const smoothPath = (points: { x: number; y: number }[]) => {
+              if (points.length < 2) return '';
+              let d = `M${points[0].x},${points[0].y}`;
+              for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[Math.max(0, i - 1)];
+                const p1 = points[i];
+                const p2 = points[i + 1];
+                const p3 = points[Math.min(points.length - 1, i + 2)];
+                const cp1x = p1.x + (p2.x - p0.x) / 6;
+                const cp1y = Math.min(Math.max(p1.y + (p2.y - p0.y) / 6, pT), pT + h);
+                const cp2x = p2.x - (p3.x - p1.x) / 6;
+                const cp2y = Math.min(Math.max(p2.y - (p3.y - p1.y) / 6, pT), pT + h);
+                d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+              }
+              return d;
+            };
+            const pts = sliced.map((d, i) => ({ x: tX(i), y: tY(d.calls) }));
+            const linePath = smoothPath(pts);
             const areaPath = `${linePath} L${tX(sliced.length - 1)},${tY(0)} L${tX(0)},${tY(0)} Z`;
             return (
               <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
