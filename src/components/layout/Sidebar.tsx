@@ -112,6 +112,30 @@ function IntegrationsIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+function VoicemailIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+function FollowUpIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+  );
+}
+
+function BillingIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+  );
+}
+
 export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
@@ -119,11 +143,14 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Campaigns', href: '/campaigns', icon: CampaignsIcon },
     { name: 'Call History', href: '/calls', icon: PhoneIcon },
+    { name: 'Voicemails', href: '/voicemails', icon: VoicemailIcon },
+    { name: 'Follow-ups', href: '/follow-ups', icon: FollowUpIcon },
     { name: 'Analytics', href: '/analytics', icon: ChartIcon },
     { name: 'Contacts', href: '/contacts', icon: UsersIcon },
     { name: 'Agents', href: '/agents', icon: BotIcon },
     { name: 'Reports', href: '/reports', icon: ReportsIcon },
     { name: 'Integrations', href: '/integrations', icon: IntegrationsIcon },
+    { name: 'Billing', href: '/billing', icon: BillingIcon },
     { name: 'Settings', href: '/settings', icon: CogIcon },
   ];
 

@@ -27,7 +27,7 @@ export default async function Reports() {
   // Fetch call stats
   const { data: callStats } = await supabase
     .from('call_logs')
-    .select('status, duration, created_at')
+    .select('status, call_length, created_at')
     .eq('company_id', userData!.company_id);
 
   // Fetch contact stats

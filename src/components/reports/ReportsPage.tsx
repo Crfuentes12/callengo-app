@@ -18,8 +18,8 @@ interface Campaign {
 }
 
 interface CallStat {
-  status: string;
-  duration: number | null;
+  status: string | null;
+  call_length: number | null;
   created_at: string;
 }
 
@@ -49,7 +49,7 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
 
     const totalCalls = filteredCalls.length;
     const successfulCalls = filteredCalls.filter(c => c.status === 'completed' || c.status === 'answered').length;
-    const avgDuration = filteredCalls.reduce((sum, c) => sum + (c.duration || 0), 0) / (totalCalls || 1);
+    const avgDuration = filteredCalls.reduce((sum, c) => sum + (c.call_length || 0), 0) / (totalCalls || 1);
     const successRate = totalCalls > 0 ? (successfulCalls / totalCalls) * 100 : 0;
 
     return {
