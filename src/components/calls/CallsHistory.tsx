@@ -3,7 +3,6 @@
 
 import { useState, useMemo } from 'react';
 import { formatDuration } from '@/lib/call-agent-utils';
-import Link from 'next/link';
 
 interface CallLogWithContact {
   id: string;
@@ -108,19 +107,6 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
   return (
     <div className="space-y-6">
-      {/* Back to Dashboard Button */}
-      <div>
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-sm transition-all duration-200"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
-          Back to Dashboard
-        </Link>
-      </div>
-
       {/* Section Header */}
       <div className="gradient-bg-subtle rounded-2xl p-10 shadow-sm border border-slate-200">
         <div className="flex items-center gap-4 mb-6">

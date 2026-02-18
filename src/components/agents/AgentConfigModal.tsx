@@ -749,7 +749,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       </div>
                       <div>
                         <h2 className="text-xl font-bold text-slate-900">Call Completed</h2>
-                        <p className="text-xs text-emerald-400">Duration: {formatDuration(callDuration)}</p>
+                        <p className="text-xs text-emerald-600">Duration: {formatDuration(callDuration)}</p>
                       </div>
                     </div>
                     <button
@@ -827,7 +827,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       {/* Call Summary */}
                       <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                         <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
-                          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                           </svg>
                           Call Summary
@@ -835,7 +835,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-slate-600">Status:</span>
-                            <span className="text-emerald-400 font-bold capitalize">{callData.status}</span>
+                            <span className="text-emerald-600 font-bold capitalize">{callData.status}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600">Duration:</span>
@@ -870,7 +870,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       {analyzingCall ? (
                         <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                           <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
-                            <svg className="w-4 h-4 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 text-amber-600 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             Analyzing Call...
@@ -882,21 +882,21 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           {/* Call Outcome */}
                           {callAnalysis.outcome && (
                             <div className="bg-[var(--color-primary)]/5 rounded-lg p-4 border border-[var(--color-primary)]/20">
-                              <h3 className="text-sm font-bold text-white uppercase mb-2 flex items-center gap-2">
+                              <h3 className="text-sm font-bold text-slate-900 uppercase mb-2 flex items-center gap-2">
                                 <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 Call Outcome
                               </h3>
-                              <p className="text-sm text-slate-200 font-medium">{callAnalysis.outcome}</p>
+                              <p className="text-sm text-slate-600 font-medium">{callAnalysis.outcome}</p>
                             </div>
                           )}
 
                           {/* Extracted Data Table */}
                           {callAnalysis.extractedData && Object.keys(callAnalysis.extractedData).length > 0 && (
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-emerald-500/30">
-                              <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
-                                <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="bg-slate-50 rounded-lg p-4 border border-emerald-200">
+                              <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
                                 Extracted Data
@@ -904,16 +904,16 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                               <div className="overflow-x-auto">
                                 <table className="w-full text-xs">
                                   <thead>
-                                    <tr className="border-b border-slate-700">
-                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Field</th>
-                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Value</th>
+                                    <tr className="border-b border-slate-200">
+                                      <th className="text-left py-2 px-2 text-slate-500 font-bold">Field</th>
+                                      <th className="text-left py-2 px-2 text-slate-500 font-bold">Value</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {Object.entries(callAnalysis.extractedData).map(([key, value]) => (
-                                      <tr key={key} className="border-b border-slate-700/50 hover:bg-slate-700/20">
-                                        <td className="py-2 px-2 text-slate-300 capitalize font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
-                                        <td className="py-2 px-2 text-emerald-400 font-mono">{String(value)}</td>
+                                      <tr key={key} className="border-b border-slate-200 hover:bg-slate-100">
+                                        <td className="py-2 px-2 text-slate-600 capitalize font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
+                                        <td className="py-2 px-2 text-emerald-600 font-mono">{String(value)}</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -924,8 +924,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                           {/* Validated Fields Table */}
                           {callAnalysis.validatedFields && Object.keys(callAnalysis.validatedFields).length > 0 && (
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-[var(--color-primary)]/20">
-                              <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
+                            <div className="bg-slate-50 rounded-lg p-4 border border-[var(--color-primary)]/20">
+                              <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                                 <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -934,25 +934,25 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                               <div className="overflow-x-auto">
                                 <table className="w-full text-xs">
                                   <thead>
-                                    <tr className="border-b border-slate-700">
-                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Field</th>
-                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Status</th>
+                                    <tr className="border-b border-slate-200">
+                                      <th className="text-left py-2 px-2 text-slate-500 font-bold">Field</th>
+                                      <th className="text-left py-2 px-2 text-slate-500 font-bold">Status</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {Object.entries(callAnalysis.validatedFields).map(([key, value]) => (
-                                      <tr key={key} className="border-b border-slate-700/50 hover:bg-slate-700/20">
-                                        <td className="py-2 px-2 text-slate-300 capitalize font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
+                                      <tr key={key} className="border-b border-slate-200 hover:bg-slate-100">
+                                        <td className="py-2 px-2 text-slate-600 capitalize font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
                                         <td className="py-2 px-2">
                                           {String(value).toLowerCase().includes('confirmed') ? (
-                                            <span className="text-green-400 flex items-center gap-1">
+                                            <span className="text-emerald-600 flex items-center gap-1">
                                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                               </svg>
                                               {String(value)}
                                             </span>
                                           ) : (
-                                            <span className="text-yellow-400">{String(value)}</span>
+                                            <span className="text-amber-600">{String(value)}</span>
                                           )}
                                         </td>
                                       </tr>
@@ -965,9 +965,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                           {/* New Information Table */}
                           {callAnalysis.newInformation && Object.keys(callAnalysis.newInformation).length > 0 && (
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-purple-500/30">
-                              <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
-                                <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="bg-slate-50 rounded-lg p-4 border border-[var(--color-primary)]/20">
+                              <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
                                 New Information Collected
@@ -975,16 +975,16 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                               <div className="overflow-x-auto">
                                 <table className="w-full text-xs">
                                   <thead>
-                                    <tr className="border-b border-slate-700">
-                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Field</th>
-                                      <th className="text-left py-2 px-2 text-slate-400 font-bold">Value</th>
+                                    <tr className="border-b border-slate-200">
+                                      <th className="text-left py-2 px-2 text-slate-500 font-bold">Field</th>
+                                      <th className="text-left py-2 px-2 text-slate-500 font-bold">Value</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {Object.entries(callAnalysis.newInformation).map(([key, value]) => (
-                                      <tr key={key} className="border-b border-slate-700/50 hover:bg-slate-700/20">
-                                        <td className="py-2 px-2 text-slate-300 capitalize font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
-                                        <td className="py-2 px-2 text-purple-400 font-mono">{String(value)}</td>
+                                      <tr key={key} className="border-b border-slate-200 hover:bg-slate-100">
+                                        <td className="py-2 px-2 text-slate-600 capitalize font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
+                                        <td className="py-2 px-2 text-[var(--color-primary)] font-mono">{String(value)}</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -995,9 +995,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                           {/* Next Actions */}
                           {callAnalysis.nextActions && callAnalysis.nextActions.length > 0 && (
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-yellow-500/30">
-                              <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
-                                <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="bg-slate-50 rounded-lg p-4 border border-amber-200">
+                              <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                                 </svg>
                                 Next Actions
@@ -1005,10 +1005,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                               <ul className="space-y-2">
                                 {callAnalysis.nextActions.map((action: string, idx: number) => (
                                   <li key={idx} className="flex items-start gap-2 text-xs">
-                                    <div className="w-5 h-5 rounded-full bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                      <span className="text-yellow-400 font-bold text-[10px]">{idx + 1}</span>
+                                    <div className="w-5 h-5 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                      <span className="text-amber-600 font-bold text-[10px]">{idx + 1}</span>
                                     </div>
-                                    <span className="text-slate-200 flex-1">{action}</span>
+                                    <span className="text-slate-600 flex-1">{action}</span>
                                   </li>
                                 ))}
                               </ul>
@@ -1017,25 +1017,25 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                           {/* Call Quality */}
                           {callAnalysis.callQuality && (
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                              <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
-                                <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                              <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
                                 </svg>
                                 Call Quality
                               </h3>
                               <div className="flex items-center gap-3 mb-2">
-                                <div className="flex-1 h-3 bg-slate-700 rounded-full overflow-hidden">
+                                <div className="flex-1 h-3 bg-slate-200 rounded-full overflow-hidden">
                                   <div
                                     className="h-full gradient-bg rounded-full transition-all"
                                     style={{ width: `${(callAnalysis.callQuality.rating || 0) * 10}%` }}
                                   ></div>
                                 </div>
-                                <span className="text-lg font-bold text-emerald-400">{callAnalysis.callQuality.rating}/10</span>
+                                <span className="text-lg font-bold text-emerald-600">{callAnalysis.callQuality.rating}/10</span>
                               </div>
                               {callAnalysis.callQuality.reason && (
-                                <p className="text-xs text-slate-400 italic">{callAnalysis.callQuality.reason}</p>
+                                <p className="text-xs text-slate-500 italic">{callAnalysis.callQuality.reason}</p>
                               )}
                             </div>
                           )}
@@ -1046,7 +1046,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-6 border-t border-slate-700/50 flex-shrink-0">
+                <div className="p-6 border-t border-slate-200 flex-shrink-0">
                   <button
                     onClick={() => {
                       setShowTestModal(false);
@@ -1070,12 +1070,12 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           ) : (
             // Active call interface (dialing, ringing, connected)
             <div key="active-call-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
-              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-700/50 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+              <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
                 <div className="grid md:grid-cols-2">
                   {/* Left: Call Status */}
-                  <div className="p-8 text-center border-r border-slate-700/50">
+                  <div className="p-8 text-center border-r border-slate-200">
                     {/* Agent Avatar */}
-                    <div className="relative w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-purple-500/50 shadow-2xl">
+                    <div className="relative w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-[var(--color-primary)]/30 shadow-2xl">
                       <Image
                         src={avatarImage}
                         alt={agentName || agent.name}
@@ -1092,7 +1092,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </div>
 
                     {/* Agent Name */}
-                    <h2 className="text-2xl font-bold text-white mb-2">{agentName || agent.name}</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">{agentName || agent.name}</h2>
 
                     {/* Call Status Text */}
                     <div className="mb-6">
@@ -1118,16 +1118,16 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         <div>
                           <p className="text-lg font-bold text-emerald-400 mb-2">Connected</p>
                           {/* Call Duration Timer */}
-                          <div className="text-5xl font-bold text-white tabular-nums tracking-tight">
+                          <div className="text-5xl font-bold text-slate-900 tabular-nums tracking-tight">
                             {formatDuration(callDuration)}
                           </div>
-                          <p className="text-sm text-slate-400 mt-2">Demo call in progress</p>
+                          <p className="text-sm text-slate-500 mt-2">Demo call in progress</p>
                         </div>
                       )}
                     </div>
 
                     {/* Phone Number */}
-                    <p className="text-sm text-slate-400 mb-6">{testPhoneNumber}</p>
+                    <p className="text-sm text-slate-500 mb-6">{testPhoneNumber}</p>
 
                     {/* Waveform Animation when connected */}
                     {callStatus === 'connected' && (
@@ -1148,8 +1148,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </div>
 
                   {/* Right: Demo Data */}
-                  <div className="p-6 bg-slate-800/30">
-                    <h3 className="text-sm font-bold text-white uppercase mb-4 flex items-center gap-2">
+                  <div className="p-6 bg-slate-50">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase mb-4 flex items-center gap-2">
                       <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                       </svg>
@@ -1157,14 +1157,14 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </h3>
                     <div className="space-y-3">
                       {Object.entries(agentInfo.demoData).map(([key, value]) => (
-                        <div key={key} className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                          <p className="text-xs font-bold text-slate-400 uppercase mb-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                          <p className="text-sm text-white font-medium">{value}</p>
+                        <div key={key} className="bg-white rounded-lg p-3 border border-slate-200">
+                          <p className="text-xs font-bold text-slate-500 uppercase mb-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                          <p className="text-sm text-slate-900 font-medium">{value}</p>
                         </div>
                       ))}
                     </div>
                     <div className="mt-6 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-lg p-3">
-                      <p className="text-xs text-slate-300">
+                      <p className="text-xs text-slate-600">
                         <svg className="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -1179,9 +1179,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         ) : (
           // Initial modal to enter phone number and start test
           <div key="setup-view" className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
-            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-md w-full shadow-2xl border border-slate-700/50 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+            <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
               {/* Header */}
-              <div className="p-6 border-b border-slate-700/50 gradient-bg-subtle">
+              <div className="p-6 border-b border-slate-200 gradient-bg-subtle">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg gradient-bg flex items-center justify-center">
@@ -1189,7 +1189,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
                     </div>
-                    <h2 className="text-xl font-bold text-white">Test Agent</h2>
+                    <h2 className="text-xl font-bold text-slate-900">Test Agent</h2>
                   </div>
                   <button
                     onClick={() => {
@@ -1201,7 +1201,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         pollingIntervalRef.current = null;
                       }
                     }}
-                    className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                    className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1212,14 +1212,14 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
               {/* Content */}
               <div className="p-6">
-                <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3 mb-4">
+                <div className="bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/20 rounded-lg p-3 mb-4">
                   <div className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-5 h-5 text-[var(--color-primary)] mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="text-sm font-bold text-purple-300 mb-1">Test with Demo Data</p>
-                      <p className="text-xs text-purple-200/80">
+                      <p className="text-sm font-bold text-[var(--color-primary)] mb-1">Test with Demo Data</p>
+                      <p className="text-xs text-slate-600">
                         <span className="text-[var(--color-primary)] font-bold">{agentName || agent.name}</span> will call you using the demo data. You'll experience a real conversation.
                       </p>
                     </div>
@@ -1227,9 +1227,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 </div>
 
                 {/* Agent Info Summary */}
-                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 mb-4">
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 mb-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-purple-500/50">
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-[var(--color-primary)]/30">
                       <Image
                         src={avatarImage}
                         alt={agentName || agent.name}
@@ -1238,8 +1238,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">{agentName || agent.name}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm font-bold text-slate-900">{agentName || agent.name}</p>
+                      <p className="text-xs text-slate-500">
                         Voice: {(() => {
                           const voice = BLAND_VOICES.find(v => v.id === settings.voice);
                           if (!voice) return settings.voice;
@@ -1250,27 +1250,27 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs font-bold text-purple-400 uppercase">Demo Data</p>
+                    <p className="text-xs font-bold text-[var(--color-primary)] uppercase">Demo Data</p>
                     {Object.entries(agentInfo.demoData).slice(0, 3).map(([key, value]) => (
                       <div key={key} className="flex justify-between text-xs">
-                        <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                        <span className="text-white">{value}</span>
+                        <span className="text-slate-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                        <span className="text-slate-900">{value}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Phone Number Input */}
-                <div className="mb-6 bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                  <label className="block text-xs font-bold text-slate-300 uppercase mb-3">
-                    Phone Number <span className="text-emerald-400">*</span>
+                <div className="mb-6 bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-3">
+                    Phone Number <span className="text-emerald-500">*</span>
                   </label>
                   <input
                     type="tel"
                     placeholder="+1 (555) 123-4567"
                     value={testPhoneNumber}
                     onChange={(e) => setTestPhoneNumber(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-base focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-500 mb-3"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 text-base focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-400 mb-3"
                   />
                   <button
                     onClick={async () => {
@@ -1290,14 +1290,14 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       }
                     }}
                     disabled={!testPhoneNumber.trim()}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-600 font-medium text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full px-3 py-2 bg-slate-100 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-200 font-medium text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     Set as Default
                   </button>
-                  <p className="text-xs text-slate-400 mt-2">
+                  <p className="text-xs text-slate-500 mt-2">
                     You'll receive a demo call at this number
                   </p>
                 </div>
@@ -1315,7 +1315,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       }
                     }}
                     disabled={testingAgent}
-                    className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 font-bold text-sm transition-all disabled:opacity-50"
+                    className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 font-bold text-sm transition-all disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -1357,11 +1357,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   if (step === 'contacts') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
+        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-100 backdrop-blur-sm border border-slate-200 text-slate-500 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
             <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1369,9 +1369,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           </button>
 
           {/* Header */}
-          <div className="p-6 border-b border-slate-700/50">
-            <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Campaign Configuration</h2>
-            <p className="text-sm text-slate-400 mt-1">Configure deployment settings for {agentName || agent.name}</p>
+          <div className="p-6 border-b border-slate-200">
+            <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">Campaign Configuration</h2>
+            <p className="text-sm text-slate-500 mt-1">Configure deployment settings for {agentName || agent.name}</p>
           </div>
 
           {/* Scrolleable content */}
@@ -1379,9 +1379,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             <StepIndicator currentStep={getStepNumber()} />
 
             {/* Agent summary from step 1 */}
-            <div className="mb-6 bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
+            <div className="mb-6 bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
               <div className="flex items-center gap-4">
-                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-600">
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-300">
                   <Image
                     src={avatarImage}
                     alt={agentName || agent.name}
@@ -1390,8 +1390,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-white">{agentName || agent.name}</p>
-                  <p className="text-xs text-slate-400">{agentTitle}</p>
+                  <p className="text-sm font-bold text-slate-900">{agentName || agent.name}</p>
+                  <p className="text-xs text-slate-500">{agentTitle}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-slate-500">Voice:</span>
                     <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{settings.voice}</span>
@@ -1403,25 +1403,25 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             {loadingContacts ? (
               <div className="space-y-6">
                 {/* Loading skeleton */}
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50 animate-pulse">
-                  <div className="h-4 bg-slate-700 rounded w-1/3 mb-4"></div>
+                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200 animate-pulse">
+                  <div className="h-4 bg-slate-200 rounded w-1/3 mb-4"></div>
                   <div className="space-y-3">
-                    <div className="h-16 bg-slate-700 rounded"></div>
-                    <div className="h-16 bg-slate-700 rounded"></div>
-                    <div className="h-16 bg-slate-700 rounded"></div>
+                    <div className="h-16 bg-slate-200 rounded"></div>
+                    <div className="h-16 bg-slate-200 rounded"></div>
+                    <div className="h-16 bg-slate-200 rounded"></div>
                   </div>
                 </div>
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50 animate-pulse">
-                  <div className="h-24 bg-slate-700 rounded"></div>
+                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200 animate-pulse">
+                  <div className="h-24 bg-slate-200 rounded"></div>
                 </div>
               </div>
             ) : contactCount === 0 ? (
-              <div className="text-center py-12 bg-amber-900/20 rounded-xl border border-amber-500/30">
+              <div className="text-center py-12 bg-amber-50 rounded-xl border border-amber-200">
                 <svg className="w-16 h-16 text-amber-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                <p className="text-amber-400 font-bold mb-2 text-lg">No Contacts Available</p>
-                <p className="text-sm text-amber-300/80 mb-6">Import contacts first to start calling</p>
+                <p className="text-amber-600 font-bold mb-2 text-lg">No Contacts Available</p>
+                <p className="text-sm text-amber-500 mb-6">Import contacts first to start calling</p>
                 <a
                   href="/dashboard/contacts"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-bold transition-all"
@@ -1432,9 +1432,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             ) : (
               <div className="space-y-6">
                 {/* Contact Lists Selector */}
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-white uppercase">Select Contact Lists</h3>
+                    <h3 className="text-sm font-bold text-slate-900 uppercase">Select Contact Lists</h3>
                     <a
                       href="/dashboard/contacts"
                       target="_blank"
@@ -1445,8 +1445,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </div>
 
                   {contactLists.length === 0 ? (
-                    <div className="text-center py-6 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                      <p className="text-sm text-slate-400 mb-3">No contact lists found</p>
+                    <div className="text-center py-6 bg-white rounded-lg border border-slate-200">
+                      <p className="text-sm text-slate-500 mb-3">No contact lists found</p>
                       <a
                         href="/dashboard/contacts"
                         target="_blank"
@@ -1464,7 +1464,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           className={`w-full p-3 rounded-lg border-2 transition-all duration-300 text-left ${
                             selectedLists.includes(list.id)
                               ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)] shadow-lg'
-                              : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
+                              : 'bg-white border-slate-200 hover:border-slate-300'
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -1473,7 +1473,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                                 className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
                                   selectedLists.includes(list.id)
                                     ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
-                                    : 'border-slate-600'
+                                    : 'border-slate-300'
                                 }`}
                               >
                                 {selectedLists.includes(list.id) && (
@@ -1483,9 +1483,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                                 )}
                               </div>
                               <div>
-                                <p className="text-sm font-bold text-white">{list.name}</p>
+                                <p className="text-sm font-bold text-slate-900">{list.name}</p>
                                 {list.description && (
-                                  <p className="text-xs text-slate-400 mt-0.5">{list.description}</p>
+                                  <p className="text-xs text-slate-500 mt-0.5">{list.description}</p>
                                 )}
                               </div>
                             </div>
@@ -1501,23 +1501,23 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </div>
                   )}
                   {selectedLists.length > 0 && (
-                    <p className="text-xs text-slate-400 mt-3">
+                    <p className="text-xs text-slate-500 mt-3">
                       {selectedLists.length} list{selectedLists.length > 1 ? 's' : ''} selected
                     </p>
                   )}
                 </div>
 
                 {/* Contacts Info */}
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase mb-1">
+                      <p className="text-xs font-bold text-slate-500 uppercase mb-1">
                         Target Contacts
                         {selectedLists.length > 0 && (
                           <span className="ml-2 text-[var(--color-primary)]">(from selected lists)</span>
                         )}
                       </p>
-                      <p className="text-3xl font-bold text-white">{contactCount}</p>
+                      <p className="text-3xl font-bold text-slate-900">{contactCount}</p>
                     </div>
                     <div className="w-14 h-14 rounded-xl gradient-bg flex items-center justify-center">
                       <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1528,24 +1528,24 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 </div>
 
                 {/* Company Info (Editable) */}
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
-                  <h3 className="text-sm font-bold text-white uppercase mb-4">Company Information</h3>
+                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Company Information</h3>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Company Name</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Company Name</label>
                       <input
                         type="text"
                         value={settings.companyInfo.name}
                         onChange={(e) => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, name: e.target.value } })}
-                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Description</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Description</label>
                       <textarea
                         value={settings.companyInfo.description}
                         onChange={(e) => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, description: e.target.value } })}
-                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none"
                         rows={3}
                       />
                     </div>
@@ -1553,76 +1553,76 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 </div>
 
                 {/* Custom Task Instructions */}
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
-                  <h3 className="text-sm font-bold text-white uppercase mb-4">Custom Instructions</h3>
+                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Custom Instructions</h3>
                   <textarea
                     placeholder="Add specific instructions or context for this campaign..."
                     value={settings.customTask}
                     onChange={(e) => setSettings({ ...settings, customTask: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none placeholder-slate-500"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none placeholder-slate-400"
                     rows={3}
                   />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   {/* Voice & Call Settings */}
-                  <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
-                    <h3 className="text-sm font-bold text-white uppercase mb-4">Call Settings</h3>
+                  <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Call Settings</h3>
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Voice</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Voice</label>
                         <VoiceSelector
                           selectedVoiceId={settings.voice}
                           onVoiceSelect={(voiceId) => setSettings({ ...settings, voice: voiceId })}
-                          variant="dark"
+                          variant="light"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Max Duration (min)</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Max Duration (min)</label>
                         <input
                           type="number"
                           min="1"
                           max="15"
                           value={settings.maxDuration}
                           onChange={(e) => setSettings({ ...settings, maxDuration: parseInt(e.target.value) })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Call Interval (min)</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Call Interval (min)</label>
                         <input
                           type="number"
                           min="1"
                           max="60"
                           value={settings.intervalMinutes}
                           onChange={(e) => setSettings({ ...settings, intervalMinutes: parseInt(e.target.value) })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Schedule & Limits */}
-                  <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
-                    <h3 className="text-sm font-bold text-white uppercase mb-4">Schedule & Limits</h3>
+                  <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Schedule & Limits</h3>
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Max Calls/Day</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Max Calls/Day</label>
                         <input
                           type="number"
                           min="1"
                           max="1000"
                           value={settings.maxCallsPerDay}
                           onChange={(e) => setSettings({ ...settings, maxCallsPerDay: parseInt(e.target.value) })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Timezone</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Timezone</label>
                         <select
                           value={settings.timezone}
                           onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         >
                           <option value="America/New_York">Eastern Time (ET)</option>
                           <option value="America/Chicago">Central Time (CT)</option>
@@ -1638,21 +1638,21 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Start Time</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Start Time</label>
                         <input
                           type="time"
                           value={settings.workingHoursStart}
                           onChange={(e) => setSettings({ ...settings, workingHoursStart: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">End Time</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">End Time</label>
                         <input
                           type="time"
                           value={settings.workingHoursEnd}
                           onChange={(e) => setSettings({ ...settings, workingHoursEnd: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                       </div>
                     </div>
@@ -1663,10 +1663,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
             {/* Action buttons */}
             {!loadingContacts && contactCount > 0 && (
-              <div className="flex gap-3 mt-6 pt-6 border-t border-slate-700/50">
+              <div className="flex gap-3 mt-6 pt-6 border-t border-slate-200">
                 <button
                   onClick={() => setStep('preview')}
-                  className="flex-1 px-5 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 hover:border-slate-600 font-bold text-sm transition-all duration-300"
+                  className="flex-1 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 font-bold text-sm transition-all duration-300"
                 >
                   Back
                 </button>
@@ -1687,11 +1687,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   if (step === 'confirm') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
+        <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-100 backdrop-blur-sm border border-slate-200 text-slate-500 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
             <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1699,9 +1699,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           </button>
 
           {/* Header */}
-          <div className="p-6 border-b border-slate-700/50">
-            <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Launch Campaign</h2>
-            <p className="text-sm text-slate-400 mt-1">Final review before deployment</p>
+          <div className="p-6 border-b border-slate-200">
+            <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">Launch Campaign</h2>
+            <p className="text-sm text-slate-500 mt-1">Final review before deployment</p>
           </div>
 
           {/* Scrolleable content */}
@@ -1709,7 +1709,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             <StepIndicator currentStep={getStepNumber()} />
 
             {/* Agent Summary Card */}
-            <div className="mb-6 bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+            <div className="mb-6 bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
               <div className="flex items-start gap-4">
                 <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-[var(--color-primary)]/30">
                   <Image
@@ -1720,16 +1720,16 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-bold text-white mb-1">{agentName || agent.name}</h3>
-                  <p className="text-sm text-slate-400 mb-2">{agentTitle}</p>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">{agentName || agent.name}</h3>
+                  <p className="text-sm text-slate-500 mb-2">{agentTitle}</p>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">Voice:</span>
+                      <span className="text-xs text-slate-400">Voice:</span>
                       <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{settings.voice}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">Contacts:</span>
-                      <span className="text-xs font-bold text-emerald-400">{contactCount}</span>
+                      <span className="text-xs text-slate-400">Contacts:</span>
+                      <span className="text-xs font-bold text-emerald-600">{contactCount}</span>
                     </div>
                   </div>
                 </div>
@@ -1738,34 +1738,34 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
             {/* Configuration Summary */}
             <div className="grid md:grid-cols-2 gap-4 mb-6">
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
-                <h4 className="text-xs font-bold text-white uppercase mb-3">Call Configuration</h4>
+              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
+                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Call Configuration</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-xs text-slate-400">Max Duration</span>
-                    <span className="text-sm font-bold text-white">{settings.maxDuration} min</span>
+                    <span className="text-xs text-slate-500">Max Duration</span>
+                    <span className="text-sm font-bold text-slate-900">{settings.maxDuration} min</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-xs text-slate-400">Call Interval</span>
-                    <span className="text-sm font-bold text-white">{settings.intervalMinutes} min</span>
+                    <span className="text-xs text-slate-500">Call Interval</span>
+                    <span className="text-sm font-bold text-slate-900">{settings.intervalMinutes} min</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-xs text-slate-400">Max Calls/Day</span>
-                    <span className="text-sm font-bold text-white">{settings.maxCallsPerDay}</span>
+                    <span className="text-xs text-slate-500">Max Calls/Day</span>
+                    <span className="text-sm font-bold text-slate-900">{settings.maxCallsPerDay}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
-                <h4 className="text-xs font-bold text-white uppercase mb-3">Schedule</h4>
+              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
+                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Schedule</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-xs text-slate-400">Working Hours</span>
-                    <span className="text-sm font-bold text-white">{settings.workingHoursStart} - {settings.workingHoursEnd}</span>
+                    <span className="text-xs text-slate-500">Working Hours</span>
+                    <span className="text-sm font-bold text-slate-900">{settings.workingHoursStart} - {settings.workingHoursEnd}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-xs text-slate-400">Timezone</span>
-                    <span className="text-sm font-bold text-white">{settings.timezone}</span>
+                    <span className="text-xs text-slate-500">Timezone</span>
+                    <span className="text-sm font-bold text-slate-900">{settings.timezone}</span>
                   </div>
                 </div>
               </div>
@@ -1775,7 +1775,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             <div className="flex gap-3">
               <button
                 onClick={() => setStep('contacts')}
-                className="flex-1 px-5 py-3 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 hover:border-slate-600 font-bold text-sm transition-all duration-300"
+                className="flex-1 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 font-bold text-sm transition-all duration-300"
               >
                 Back
               </button>

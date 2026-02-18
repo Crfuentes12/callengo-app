@@ -150,7 +150,6 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
     { name: 'Agents', href: '/agents', icon: BotIcon },
     { name: 'Reports', href: '/reports', icon: ReportsIcon },
     { name: 'Integrations', href: '/integrations', icon: IntegrationsIcon },
-    { name: 'Billing', href: '/billing', icon: BillingIcon },
     { name: 'Settings', href: '/settings', icon: CogIcon },
   ];
 

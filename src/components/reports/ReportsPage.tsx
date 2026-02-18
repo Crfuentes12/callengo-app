@@ -214,7 +214,7 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Call Volume Chart */}
+        {/* Call Volume Chart (Area) */}
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-lg gradient-bg-subtle flex items-center justify-center">
@@ -227,25 +227,40 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
               <p className="text-xs text-slate-500">Daily call activity</p>
             </div>
           </div>
-          <div className="flex items-end gap-px h-48">
-            {dailyData.slice(-30).map((day, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center group relative">
-                <div className="w-full flex flex-col items-stretch justify-end h-40">
-                  <div
-                    className="w-full gradient-bg rounded-t opacity-80 hover:opacity-100 transition-opacity min-h-[2px]"
-                    style={{ height: `${(day.calls / maxCalls) * 100}%` }}
-                  />
-                </div>
-                {i % 5 === 0 && (
-                  <span className="text-[9px] text-slate-400 mt-1 whitespace-nowrap">{day.date}</span>
-                )}
-                {/* Tooltip */}
-                <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
-                  {day.date}: {day.calls} calls
-                </div>
-              </div>
-            ))}
-          </div>
+          {(() => {
+            const sliced = dailyData.slice(-30);
+            const cW = 500, cH = 200, pL = 36, pR = 8, pT = 12, pB = 24;
+            const w = cW - pL - pR, h = cH - pT - pB;
+            const mx = Math.max(maxCalls, 1);
+            const xS = sliced.length > 1 ? w / (sliced.length - 1) : w;
+            const tX = (i: number) => pL + i * xS;
+            const tY = (v: number) => pT + h - (v / mx) * h;
+            const pts = sliced.map((d, i) => `${tX(i)},${tY(d.calls)}`);
+            const linePath = `M${pts.join(' L')}`;
+            const areaPath = `${linePath} L${tX(sliced.length - 1)},${tY(0)} L${tX(0)},${tY(0)} Z`;
+            return (
+              <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <linearGradient id="rStroke" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#173657" /><stop offset="50%" stopColor="#2e3a76" /><stop offset="100%" stopColor="#8938b0" />
+                  </linearGradient>
+                  <linearGradient id="rFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2e3a76" stopOpacity="0.25" /><stop offset="50%" stopColor="#8938b0" stopOpacity="0.08" /><stop offset="100%" stopColor="#8938b0" stopOpacity="0.01" />
+                  </linearGradient>
+                </defs>
+                {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
+                  <g key={i}>
+                    <line x1={pL} y1={tY(mx * p)} x2={pL + w} y2={tY(mx * p)} stroke="#e2e8f0" strokeWidth="1" strokeDasharray={p > 0 ? "4,4" : "0"} />
+                    <text x={pL - 4} y={tY(mx * p) + 3} textAnchor="end" fontSize="9" fill="#94a3b8">{Math.round(mx * p)}</text>
+                  </g>
+                ))}
+                <path d={areaPath} fill="url(#rFill)" />
+                <path d={linePath} fill="none" stroke="url(#rStroke)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+                {sliced.map((d, i) => d.calls > 0 ? <circle key={i} cx={tX(i)} cy={tY(d.calls)} r="2.5" fill="#2e3a76" stroke="white" strokeWidth="1" /> : null)}
+                {sliced.map((d, i) => (i % 5 === 0 || i === sliced.length - 1) ? <text key={`l${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="8" fill="#94a3b8">{d.date}</text> : null)}
+              </svg>
+            );
+          })()}
         </div>
 
         {/* Top Campaigns */}

@@ -248,23 +248,23 @@ export default function VoiceSelectionModal({
     : 'w-full max-w-5xl max-h-[70vh] rounded-2xl';
 
   const wrapperClass = fullscreen
-    ? 'fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4'
-    : 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md';
+    ? 'fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4'
+    : 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md';
 
   const modalContent = (
     <div className={wrapperClass} style={{ isolation: 'isolate', willChange: 'transform' }}>
-      <div className={`relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col ${containerSize}`} style={{ transform: 'translateZ(0)' }}>
+      <div className={`relative bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${containerSize}`} style={{ transform: 'translateZ(0)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-white">Select Voice</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h2 className="text-xl font-bold text-slate-900">Select Voice</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
               Choose the perfect voice for your AI agent
             </p>
           </div>
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-100 backdrop-blur-sm border border-slate-200 text-slate-500 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
             <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -273,13 +273,13 @@ export default function VoiceSelectionModal({
         </div>
 
         {/* View Mode Tabs */}
-        <div className="flex gap-2 p-3 border-b border-slate-700/50 bg-slate-900/50">
+        <div className="flex gap-2 p-3 border-b border-slate-200 bg-slate-50">
           <button
             onClick={() => setViewMode('recommended')}
             className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${
               viewMode === 'recommended'
                 ? 'gradient-bg text-white shadow-lg'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-100'
             }`}
           >
             ⭐ Recommended
@@ -289,7 +289,7 @@ export default function VoiceSelectionModal({
             className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${
               viewMode === 'explore'
                 ? 'gradient-bg text-white shadow-lg'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-100'
             }`}
           >
             🔍 Explore All Voices
@@ -315,9 +315,9 @@ export default function VoiceSelectionModal({
           ) : (
             <>
               {/* Filters */}
-              <div className="mb-4 p-3 bg-slate-900/50 rounded-xl border border-slate-700/50">
+              <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-bold text-white uppercase">Filters</h3>
+                  <h3 className="text-xs font-bold text-slate-900 uppercase">Filters</h3>
                   <button
                     onClick={resetFilters}
                     className="text-xs font-bold text-[var(--color-primary-light)] hover:text-[var(--color-primary)]"
@@ -422,7 +422,7 @@ function RecommendedVoices({
             <h3 className="text-lg font-bold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
               Your Favorites
             </h3>
-            <span className="text-xs text-slate-500">({favorites.size})</span>
+            <span className="text-xs text-slate-400">({favorites.size})</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {favoriteVoices.map(voice => (
@@ -507,7 +507,7 @@ function AllVoicesGrid({
   if (voices.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-slate-400">No voices found matching your filters</p>
+        <p className="text-slate-500">No voices found matching your filters</p>
       </div>
     );
   }
@@ -563,15 +563,15 @@ function VoiceCard({
       className={`p-3 rounded-xl border transition-all cursor-pointer hover:shadow-lg ${
         isSelected
           ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-md'
-          : 'border-slate-700 bg-slate-900/30 hover:border-slate-600'
+          : 'bg-white border-slate-200 hover:border-slate-300'
       }`}
       onClick={onSelect}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 flex items-start gap-2">
           <div className="flex-1">
-            <h4 className="font-bold text-white text-sm">{voice.name}</h4>
-            <p className="text-xs text-slate-400 mt-0.5">{category.accent} {category.language}</p>
+            <h4 className="font-bold text-slate-900 text-sm">{voice.name}</h4>
+            <p className="text-xs text-slate-500 mt-0.5">{category.accent} {category.language}</p>
           </div>
           {/* Star Icon for Recommended/Favorite */}
           <button
@@ -579,7 +579,7 @@ function VoiceCard({
               e.stopPropagation();
               onToggleFavorite();
             }}
-            className="p-1 hover:bg-slate-700 rounded transition-colors"
+            className="p-1 hover:bg-slate-100 rounded transition-colors"
             title={isFavorite || isRecommended ? "Remove from favorites" : "Add to favorites"}
           >
             {isFavorite || isRecommended ? (
@@ -587,7 +587,7 @@ function VoiceCard({
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             ) : (
-              <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             )}
@@ -598,8 +598,8 @@ function VoiceCard({
           <span
             className={`px-1.5 py-0.5 rounded text-xs font-bold ${
               gender === 'female'
-                ? 'bg-pink-500/20 text-pink-400'
-                : 'bg-blue-500/20 text-blue-400'
+                ? 'bg-pink-50 text-pink-600'
+                : 'bg-blue-50 text-blue-600'
             }`}
           >
             {gender === 'female' ? '♀' : '♂'}
@@ -620,7 +620,7 @@ function VoiceCard({
         {characteristics.slice(0, 3).map(char => (
           <span
             key={char}
-            className="px-1.5 py-0.5 bg-slate-800/50 text-slate-300 rounded text-xs font-medium"
+            className="px-1.5 py-0.5 bg-slate-50 text-slate-600 rounded text-xs font-medium"
           >
             {char}
           </span>
@@ -679,11 +679,11 @@ function FilterSelect({
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-slate-300 mb-1">{label}</label>
+      <label className="block text-xs font-bold text-slate-600 mb-1">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-2 py-1.5 border border-slate-700 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-slate-800 text-white outline-none transition-all text-xs"
+        className="w-full px-2 py-1.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white text-slate-900 outline-none transition-all text-xs"
       >
         <option value="all">All {label}s</option>
         {options.map(option => (
