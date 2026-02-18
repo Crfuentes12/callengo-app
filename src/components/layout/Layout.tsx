@@ -36,6 +36,7 @@ export default function Layout({
   const router = useRouter();
   const supabase = createClient();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [userRole, setUserRole] = useState<string>('user');
   const [company, setCompany] = useState<Company>(initialCompany);
 
@@ -97,6 +98,8 @@ export default function Layout({
         onLogout={handleLogout}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
