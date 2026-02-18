@@ -497,7 +497,7 @@ export default function DashboardOverview({
             </div>
           </div>
           <a
-            href="/dashboard/calls"
+            href="/calls"
             className="text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors flex items-center gap-1"
           >
             View all

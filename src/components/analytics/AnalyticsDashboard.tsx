@@ -340,13 +340,32 @@ export default function AnalyticsDashboard({
           const xS = data.length > 1 ? w / (data.length - 1) : w;
           const tX = (i: number) => pL + i * xS;
           const tY = (v: number) => pT + h - (v / mx) * h;
-          const sP = data.map((d, i) => `${tX(i)},${tY(d.successful)}`);
-          const fP = data.map((d, i) => `${tX(i)},${tY(d.count)}`);
-          const sL = `M${sP.join(' L')}`;
-          const fL = `M${fP.join(' L')}`;
-          const bse = `${tX(data.length - 1)},${tY(0)} L${tX(0)},${tY(0)}`;
-          const sA = `${sL} L${bse} Z`;
-          const fA = `${fL} L${bse} Z`;
+
+          // Generate smooth monotone cubic bezier path
+          const smoothPath = (points: { x: number; y: number }[]) => {
+            if (points.length < 2) return '';
+            let d = `M${points[0].x},${points[0].y}`;
+            for (let i = 0; i < points.length - 1; i++) {
+              const p0 = points[Math.max(0, i - 1)];
+              const p1 = points[i];
+              const p2 = points[i + 1];
+              const p3 = points[Math.min(points.length - 1, i + 2)];
+              const cp1x = p1.x + (p2.x - p0.x) / 6;
+              const cp1y = p1.y + (p2.y - p0.y) / 6;
+              const cp2x = p2.x - (p3.x - p1.x) / 6;
+              const cp2y = p2.y - (p3.y - p1.y) / 6;
+              d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+            }
+            return d;
+          };
+
+          const sPts = data.map((d, i) => ({ x: tX(i), y: tY(d.successful) }));
+          const fPts = data.map((d, i) => ({ x: tX(i), y: tY(d.count) }));
+          const sL = smoothPath(sPts);
+          const fL = smoothPath(fPts);
+          const bse = `L${tX(data.length - 1)},${tY(0)} L${tX(0)},${tY(0)}`;
+          const sA = `${sL} ${bse} Z`;
+          const fA = `${fL} ${bse} Z`;
           return (
             <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
               <defs>
@@ -517,8 +536,26 @@ export default function AnalyticsDashboard({
           const tX = (i: number) => pL + i * xS;
           const tY = (v: number) => pT + h - (v / mx) * h;
 
-          const pts = data.map((d, i) => `${tX(i)},${tY(d.count)}`);
-          const linePath = `M${pts.join(' L')}`;
+          // Generate smooth monotone cubic bezier path
+          const smoothPath = (points: { x: number; y: number }[]) => {
+            if (points.length < 2) return '';
+            let d = `M${points[0].x},${points[0].y}`;
+            for (let i = 0; i < points.length - 1; i++) {
+              const p0 = points[Math.max(0, i - 1)];
+              const p1 = points[i];
+              const p2 = points[i + 1];
+              const p3 = points[Math.min(points.length - 1, i + 2)];
+              const cp1x = p1.x + (p2.x - p0.x) / 6;
+              const cp1y = p1.y + (p2.y - p0.y) / 6;
+              const cp2x = p2.x - (p3.x - p1.x) / 6;
+              const cp2y = p2.y - (p3.y - p1.y) / 6;
+              d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+            }
+            return d;
+          };
+
+          const pts = data.map((d, i) => ({ x: tX(i), y: tY(d.count) }));
+          const linePath = smoothPath(pts);
           const areaPath = `${linePath} L${tX(data.length - 1)},${tY(0)} L${tX(0)},${tY(0)} Z`;
 
           return (
