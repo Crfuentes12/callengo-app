@@ -309,7 +309,7 @@ export default function AnalyticsDashboard({
         </div>
       </div>
 
-      {/* Call Trends - Last 30 Days */}
+      {/* Call Trends - Last 30 Days (Area Chart) */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -323,49 +323,58 @@ export default function AnalyticsDashboard({
           </div>
           <div className="flex items-center gap-4 text-xs font-semibold">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+              <div className="w-3 h-3 rounded-full gradient-bg"></div>
               <span className="text-slate-600">Successful</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-slate-300"></div>
               <span className="text-slate-600">Failed</span>
             </div>
           </div>
         </div>
-        <div className="space-y-2">
-          {dailyCallTrends.map((day, idx) => {
-            const barHeight = day.count > 0 ? (day.count / maxDailyCalls) * 100 : 1;
-            return (
-              <div key={idx} className="flex items-center gap-3 group">
-                <div className="w-20 text-xs text-slate-500 font-semibold">
-                  {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </div>
-                <div className="flex-1 flex gap-1 h-10 items-end">
-                  <div className="relative flex-1 bg-slate-100 rounded-lg overflow-hidden h-full">
-                    {day.count > 0 && (
-                      <>
-                        <div
-                          className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-emerald-500 to-emerald-400 transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500"
-                          style={{ height: `${(day.successful / maxDailyCalls) * 100}%` }}
-                        ></div>
-                        <div
-                          className="absolute w-full bg-gradient-to-t from-red-500 to-red-400 transition-all duration-500 group-hover:from-red-600 group-hover:to-red-500"
-                          style={{
-                            bottom: `${(day.successful / maxDailyCalls) * 100}%`,
-                            height: `${(day.failed / maxDailyCalls) * 100}%`
-                          }}
-                        ></div>
-                      </>
-                    )}
-                  </div>
-                  <div className="w-14 text-sm font-bold text-slate-900 text-right">
-                    {day.count}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {(() => {
+          const cW = 800, cH = 280, pL = 42, pR = 10, pT = 20, pB = 30;
+          const w = cW - pL - pR, h = cH - pT - pB;
+          const data = dailyCallTrends;
+          const mx = Math.max(maxDailyCalls, 1);
+          const xS = data.length > 1 ? w / (data.length - 1) : w;
+          const tX = (i: number) => pL + i * xS;
+          const tY = (v: number) => pT + h - (v / mx) * h;
+          const sP = data.map((d, i) => `${tX(i)},${tY(d.successful)}`);
+          const fP = data.map((d, i) => `${tX(i)},${tY(d.count)}`);
+          const sL = `M${sP.join(' L')}`;
+          const fL = `M${fP.join(' L')}`;
+          const bse = `${tX(data.length - 1)},${tY(0)} L${tX(0)},${tY(0)}`;
+          const sA = `${sL} L${bse} Z`;
+          const fA = `${fL} L${bse} Z`;
+          return (
+            <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <linearGradient id="aSuccStr" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#173657" /><stop offset="50%" stopColor="#2e3a76" /><stop offset="100%" stopColor="#8938b0" />
+                </linearGradient>
+                <linearGradient id="aSuccFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#2e3a76" stopOpacity="0.25" /><stop offset="50%" stopColor="#8938b0" stopOpacity="0.08" /><stop offset="100%" stopColor="#8938b0" stopOpacity="0.01" />
+                </linearGradient>
+                <linearGradient id="aFailFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#94a3b8" stopOpacity="0.12" /><stop offset="100%" stopColor="#94a3b8" stopOpacity="0.01" />
+                </linearGradient>
+              </defs>
+              {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
+                <g key={i}>
+                  <line x1={pL} y1={tY(mx * p)} x2={pL + w} y2={tY(mx * p)} stroke="#e2e8f0" strokeWidth="1" strokeDasharray={p > 0 ? "4,4" : "0"} />
+                  <text x={pL - 6} y={tY(mx * p) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(mx * p)}</text>
+                </g>
+              ))}
+              <path d={fA} fill="url(#aFailFill)" />
+              <path d={fL} fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d={sA} fill="url(#aSuccFill)" />
+              <path d={sL} fill="none" stroke="url(#aSuccStr)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+              {data.map((d, i) => d.successful > 0 ? <circle key={i} cx={tX(i)} cy={tY(d.successful)} r="3" fill="#2e3a76" stroke="white" strokeWidth="1.5" opacity="0.9" /> : null)}
+              {data.map((d, i) => (i % 5 === 0 || i === data.length - 1) ? <text key={`l${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">{new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</text> : null)}
+            </svg>
+          );
+        })()}
       </div>
 
       {/* Agent Performance & Contact Status */}
@@ -486,7 +495,7 @@ export default function AnalyticsDashboard({
         </div>
       </div>
 
-      {/* Hourly Distribution */}
+      {/* Hourly Distribution (Area Chart) */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
@@ -499,23 +508,44 @@ export default function AnalyticsDashboard({
             <p className="text-sm text-slate-500">24-hour distribution pattern</p>
           </div>
         </div>
-        <div className="grid grid-cols-12 gap-2">
-          {hourlyDistribution.map((hour) => {
-            const height = hour.count > 0 ? (hour.count / maxHourlyCalls) * 100 : 2;
-            return (
-              <div key={hour.hour} className="flex flex-col items-center group">
-                <div className="w-full h-32 flex items-end">
-                  <div
-                    className="w-full bg-gradient-to-t from-[var(--color-primary)] to-[var(--color-primary-200)] rounded-t-lg transition-all duration-500 group-hover:opacity-80"
-                    style={{ height: `${height}%` }}
-                    title={`${hour.label}: ${hour.count} calls`}
-                  ></div>
-                </div>
-                <div className="text-xs text-slate-500 font-semibold mt-2">{hour.hour}</div>
-              </div>
-            );
-          })}
-        </div>
+        {(() => {
+          const cW = 800, cH = 220, pL = 42, pR = 10, pT = 15, pB = 28;
+          const w = cW - pL - pR, h = cH - pT - pB;
+          const data = hourlyDistribution;
+          const mx = Math.max(maxHourlyCalls, 1);
+          const xS = w / (data.length - 1);
+          const tX = (i: number) => pL + i * xS;
+          const tY = (v: number) => pT + h - (v / mx) * h;
+
+          const pts = data.map((d, i) => `${tX(i)},${tY(d.count)}`);
+          const linePath = `M${pts.join(' L')}`;
+          const areaPath = `${linePath} L${tX(data.length - 1)},${tY(0)} L${tX(0)},${tY(0)} Z`;
+
+          return (
+            <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <linearGradient id="hourStroke" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#f59e0b" /><stop offset="100%" stopColor="#ea580c" />
+                </linearGradient>
+                <linearGradient id="hourFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.2" /><stop offset="100%" stopColor="#f59e0b" stopOpacity="0.01" />
+                </linearGradient>
+              </defs>
+              {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
+                <g key={i}>
+                  <line x1={pL} y1={tY(mx * p)} x2={pL + w} y2={tY(mx * p)} stroke="#e2e8f0" strokeWidth="1" strokeDasharray={p > 0 ? "4,4" : "0"} />
+                  <text x={pL - 6} y={tY(mx * p) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(mx * p)}</text>
+                </g>
+              ))}
+              <path d={areaPath} fill="url(#hourFill)" />
+              <path d={linePath} fill="none" stroke="url(#hourStroke)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+              {data.map((d, i) => d.count > 0 ? <circle key={i} cx={tX(i)} cy={tY(d.count)} r="3" fill="#f59e0b" stroke="white" strokeWidth="1.5" /> : null)}
+              {data.map((d, i) => (
+                <text key={`h${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">{d.hour}</text>
+              ))}
+            </svg>
+          );
+        })()}
       </div>
 
       {/* Active Campaigns */}
