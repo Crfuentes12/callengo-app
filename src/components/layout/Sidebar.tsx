@@ -189,16 +189,27 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
         w-[260px]
       `}
     >
-      {/* Logo & Close Button */}
-      <div className={`h-16 flex items-center px-5 ${isCollapsed ? 'lg:justify-center lg:px-0' : 'justify-between'}`}>
-        <div className={`flex items-center gap-3 ${isCollapsed ? 'lg:gap-0' : ''}`}>
+      {/* Logo, Collapse Toggle & Close Button */}
+      <div className="h-16 flex items-center justify-between px-3 overflow-hidden">
+        <div className="flex items-center gap-3 px-2">
           <div className="w-9 h-9 rounded-lg bg-white/25 backdrop-blur-sm flex items-center justify-center shrink-0">
             <img src="/callengo-logo.svg" alt="Callengo" className="w-5 h-5" />
           </div>
-          <span className={`font-semibold text-[16px] text-white whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'lg:w-0 lg:opacity-0 lg:overflow-hidden' : 'opacity-100'}`}>
+          <span className={`font-semibold text-[16px] text-white whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:w-0 lg:opacity-0' : 'opacity-100'}`}>
             Callengo
           </span>
         </div>
+        {/* Collapse toggle - Desktop only */}
+        <button
+          onClick={onToggleCollapse}
+          className="hidden lg:flex items-center justify-center p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all duration-200 shrink-0"
+        >
+          {isCollapsed ? (
+            <ExpandIcon className="w-4 h-4" />
+          ) : (
+            <CollapseIcon className="w-4 h-4" />
+          )}
+        </button>
         {/* Close button - Only visible on mobile */}
         <button
           onClick={onClose}
@@ -211,7 +222,7 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
       </div>
 
       {/* Navigation */}
-      <nav className={`flex-1 py-4 overflow-y-auto overflow-x-hidden transition-all duration-300 ${isCollapsed ? 'lg:px-2' : 'px-3'}`}>
+      <nav className="flex-1 px-3 py-4 overflow-y-auto overflow-x-hidden">
         <div className="space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href ||
@@ -223,12 +234,8 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
                 onClick={() => onClose()}
                 title={isCollapsed ? item.name : undefined}
                 className={`
-                  group relative flex items-center rounded-lg text-[14px] font-medium
+                  group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
                   transition-all duration-200
-                  ${isCollapsed
-                    ? 'lg:justify-center lg:px-0 lg:py-2.5 gap-3 px-3 py-2.5'
-                    : 'gap-3 px-3 py-2.5'
-                  }
                   ${isActive
                     ? 'bg-white/20 text-white shadow-sm'
                     : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -236,7 +243,7 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
                 `}
               >
                 <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-white/50'}`} />
-                <span className={`whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'lg:w-0 lg:opacity-0 lg:overflow-hidden' : 'opacity-100'}`}>
+                <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
                   {item.name}
                 </span>
                 {/* Tooltip on hover when collapsed - desktop only */}
@@ -263,13 +270,11 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
         {/* Admin Section - Only visible to admins */}
         {isAdmin && (
           <>
-            <div className={`pt-6 pb-2 ${isCollapsed ? 'lg:px-0 lg:flex lg:justify-center' : 'px-3'}`}>
-              <p className={`text-xs font-semibold text-white/40 uppercase tracking-wider transition-all duration-300 ${isCollapsed ? 'lg:w-0 lg:opacity-0 lg:overflow-hidden lg:hidden' : ''}`}>
+            <div className="px-3 pt-6 pb-2">
+              <p className={`text-xs font-semibold text-white/40 uppercase tracking-wider transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:h-0 lg:py-0' : ''}`}>
                 Admin
               </p>
-              {isCollapsed && (
-                <div className="hidden lg:block w-8 border-t border-white/20" />
-              )}
+              <div className={`border-t border-white/20 transition-all duration-300 ${isCollapsed ? 'lg:block' : 'hidden'}`} />
             </div>
             <div className="space-y-1">
               {adminNavigation.map((item) => {
@@ -281,12 +286,8 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
                     onClick={() => onClose()}
                     title={isCollapsed ? item.name : undefined}
                     className={`
-                      group relative flex items-center rounded-lg text-[14px] font-medium
+                      group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
                       transition-all duration-200
-                      ${isCollapsed
-                        ? 'lg:justify-center lg:px-0 lg:py-2.5 gap-3 px-3 py-2.5'
-                        : 'gap-3 px-3 py-2.5'
-                      }
                       ${isActive
                         ? 'bg-white/20 text-white shadow-sm'
                         : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -294,7 +295,7 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
                     `}
                   >
                     <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-white/50'}`} />
-                    <span className={`whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'lg:w-0 lg:opacity-0 lg:overflow-hidden' : 'opacity-100'}`}>
+                    <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
                       {item.name}
                     </span>
                     {/* Tooltip on hover when collapsed - desktop only */}
@@ -322,21 +323,17 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
       </nav>
 
       {/* Logout Button */}
-      <div className={`border-t border-white/10 transition-all duration-300 ${isCollapsed ? 'lg:p-2' : 'p-3'}`}>
+      <div className="p-3 border-t border-white/10">
         <button
           onClick={onLogout}
           title={isCollapsed ? 'Sign out' : undefined}
-          className={`
-            group relative w-full flex items-center rounded-lg text-[14px] font-medium
+          className="
+            group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
             text-white/70 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200
-            ${isCollapsed
-              ? 'lg:justify-center lg:px-0 lg:py-2.5 gap-3 px-3 py-2.5'
-              : 'gap-3 px-3 py-2.5'
-            }
-          `}
+          "
         >
           <LogoutIcon className="w-5 h-5 shrink-0" />
-          <span className={`whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'lg:w-0 lg:opacity-0 lg:overflow-hidden' : 'opacity-100'}`}>
+          <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
             Sign out
           </span>
           {/* Tooltip on hover when collapsed - desktop only */}
@@ -354,27 +351,6 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
             ">
               Sign out
             </span>
-          )}
-        </button>
-      </div>
-
-      {/* Collapse Toggle Button - Desktop only */}
-      <div className={`hidden lg:block border-t border-white/10 transition-all duration-300 ${isCollapsed ? 'p-2' : 'p-3'}`}>
-        <button
-          onClick={onToggleCollapse}
-          className={`
-            w-full flex items-center rounded-lg py-2 text-[13px] font-medium
-            text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200
-            ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'}
-          `}
-        >
-          {isCollapsed ? (
-            <ExpandIcon className="w-4 h-4 shrink-0" />
-          ) : (
-            <>
-              <CollapseIcon className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Collapse</span>
-            </>
           )}
         </button>
       </div>
