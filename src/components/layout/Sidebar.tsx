@@ -172,8 +172,8 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose }
       {/* Logo & Close Button */}
       <div className="h-16 flex items-center justify-between px-5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
-            <img src="/callengo-logo-white.svg" alt="Callengo" className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-lg bg-white/25 backdrop-blur-sm flex items-center justify-center">
+            <img src="/callengo-logo.svg" alt="Callengo" className="w-5 h-5" />
           </div>
           <span className="font-semibold text-[16px] text-white">Callengo</span>
         </div>

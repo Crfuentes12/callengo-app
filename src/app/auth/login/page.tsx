@@ -33,8 +33,8 @@ function LoginForm() {
     <div className="min-h-screen gradient-bg-subtle flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-bg mb-6 shadow-md">
-            <img src="/callengo-logo-white.svg" alt="Callengo" className="w-10 h-10" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/15 backdrop-blur-sm mb-6 shadow-md">
+            <img src="/callengo-logo.svg" alt="Callengo" className="w-12 h-12" />
           </div>
           <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">Welcome back</h1>
           <p className="text-slate-500 text-lg">Sign in to continue to Callengo</p>

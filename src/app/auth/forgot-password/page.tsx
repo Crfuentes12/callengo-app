@@ -33,11 +33,9 @@ export default function ForgotPasswordPage() {
       <div className="min-h-screen gradient-bg-subtle flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 mb-6 shadow-md">
-              <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/15 backdrop-blur-sm mb-6 shadow-md">
+            <img src="/callengo-logo.svg" alt="Callengo" className="w-12 h-12" />
+          </div>
             <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">Check your email</h1>
             <p className="text-slate-500">We've sent a password reset link to</p>
             <p className="text-slate-900 font-semibold text-lg mt-2">{email}</p>
@@ -90,10 +88,8 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen gradient-bg-subtle flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 mb-6 shadow-md">
-            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/15 backdrop-blur-sm mb-6 shadow-md">
+            <img src="/callengo-logo.svg" alt="Callengo" className="w-12 h-12" />
           </div>
           <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">Forgot password?</h1>
           <p className="text-slate-500 text-lg">No worries, we'll send you reset instructions</p>
