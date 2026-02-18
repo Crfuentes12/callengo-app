@@ -1,9 +1,11 @@
 // app/api/bland/phone-numbers/purchase/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/service';
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -19,8 +21,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the company's Bland AI API key and verify plan
-    const { data: userData } = await supabase
+    // Get company_id from user (using admin to bypass RLS)
+    const { data: userData } = await supabaseAdmin
       .from('users')
       .select('company_id')
       .eq('id', user.id)
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check plan allows phone number purchase
-    const { data: subscription } = await supabase
+    const { data: subscription } = await supabaseAdmin
       .from('company_subscriptions')
       .select('subscription_plans(slug)')
       .eq('company_id', userData.company_id)
@@ -46,7 +48,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: companySettings } = await supabase
+    // Get company-specific API key or use default
+    const { data: companySettings } = await supabaseAdmin
       .from('company_settings')
       .select('bland_api_key')
       .eq('company_id', userData.company_id)
@@ -56,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'Bland AI API key not configured' },
+        { error: 'Bland AI API key not configured. Please add BLAND_API_KEY to your environment variables.' },
         { status: 500 }
       );
     }
@@ -92,7 +95,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Phone number purchase error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
