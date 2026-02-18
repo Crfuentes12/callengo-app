@@ -165,10 +165,10 @@ const getCategoryColor = (category: string | null) => {
 const StatBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
   <div className="space-y-1.5">
     <div className="flex items-center justify-between">
-      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">{label}</span>
-      <span className="text-sm font-bold text-white">{value}</span>
+      <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">{label}</span>
+      <span className="text-sm font-bold text-slate-900">{value}</span>
     </div>
-    <div className="h-3 bg-slate-800/50 rounded-full overflow-hidden border border-slate-700/50 relative">
+    <div className="h-3 bg-slate-200 rounded-full overflow-hidden border border-slate-200 relative">
       <div
         className={`h-full bg-gradient-to-r ${color} rounded-full transition-all duration-1000 ease-out relative overflow-hidden`}
         style={{ width: `${value}%` }}
@@ -540,13 +540,13 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               ? `bg-gradient-to-r ${gradientColor} border-white shadow-lg scale-110`
               : stepNum < currentStep
               ? 'bg-emerald-600 border-emerald-400'
-              : 'bg-slate-800 border-slate-600'
+              : 'bg-slate-200 border-slate-300'
           }`}>
-            <span className="text-white font-bold text-sm">{stepNum}</span>
+            <span className={`font-bold text-sm ${stepNum === currentStep || stepNum < currentStep ? 'text-white' : 'text-slate-500'}`}>{stepNum}</span>
           </div>
           {stepNum < 3 && (
             <div className={`w-12 h-0.5 mx-1 transition-all duration-300 ${
-              stepNum < currentStep ? 'bg-emerald-400' : 'bg-slate-700'
+              stepNum < currentStep ? 'bg-emerald-400' : 'bg-slate-200'
             }`}></div>
           )}
         </div>
@@ -565,11 +565,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
     return (
       <>
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-700/50 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-slate-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-100 backdrop-blur-sm border border-slate-200 text-slate-500 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
             <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -586,7 +586,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Left: Agent avatar */}
                 <div className="flex flex-col">
-                  <div className={`relative w-full aspect-square rounded-xl overflow-hidden border ${settings.voice ? `border-[var(--color-primary)]/30` : 'border-slate-700'} shadow-2xl transition-all duration-300`}>
+                  <div className={`relative w-full aspect-square rounded-xl overflow-hidden border ${settings.voice ? `border-[var(--color-primary)]/30` : 'border-slate-200'} shadow-2xl transition-all duration-300`}>
                     {/* Current image (base layer) */}
                     <div className="absolute inset-0 z-10">
                       <Image
@@ -652,29 +652,29 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 {/* Right: About this agent */}
                 <div className="flex flex-col space-y-4">
                   <div>
-                    <h3 className="text-lg font-bold text-white uppercase mb-3 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                       <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       About this agent
                     </h3>
-                    <p className="text-sm text-slate-300 leading-relaxed">
+                    <p className="text-sm text-slate-600 leading-relaxed">
                       {agentInfo.description}
                     </p>
                   </div>
 
                   {/* Voice & Identity Configuration */}
-                  <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 space-y-3">
-                    <h3 className="text-xs font-bold text-white uppercase mb-3">Agent Identity</h3>
+                  <div className="bg-slate-50 backdrop-blur-sm rounded-lg p-4 border border-slate-200 space-y-3">
+                    <h3 className="text-xs font-bold text-slate-900 uppercase mb-3">Agent Identity</h3>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
                         Voice <span className="text-red-400">*</span>
                       </label>
                       <VoiceSelector
                         selectedVoiceId={settings.voice}
                         onVoiceSelect={(voiceId) => handleVoiceChange(voiceId)}
-                        variant="dark"
+                        variant="light"
                       />
                       {!settings.voice && (
                         <p className="text-xs text-red-400 mt-2">Please select a voice to continue</p>
@@ -682,24 +682,24 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Agent Name</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Agent Name</label>
                       <input
                         type="text"
                         placeholder={agent.name}
                         value={agentName}
                         onChange={(e) => setAgentName(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-500"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none placeholder-slate-400"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Agent Title</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Agent Title</label>
                       <input
                         type="text"
                         placeholder="AI Sales Agent"
                         value={agentTitle}
                         onChange={(e) => setAgentTitle(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-500"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none placeholder-slate-400"
                       />
                     </div>
                   </div>
@@ -711,7 +711,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             <div className="flex gap-3 mt-6">
               <button
                 onClick={onClose}
-                className="flex-1 px-5 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 hover:border-slate-600 font-bold text-sm transition-all duration-300"
+                className="flex-1 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 font-bold text-sm transition-all duration-300"
               >
                 Cancel
               </button>
@@ -737,9 +737,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           callStatus === 'ended' && callData ? (
             // Call Results View
             <div key="results-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
-              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-emerald-500/50 overflow-hidden flex flex-col" style={{ transform: 'translateZ(0)' }}>
+              <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-emerald-500/50 overflow-hidden flex flex-col" style={{ transform: 'translateZ(0)' }}>
                 {/* Header */}
-                <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-emerald-600/20 to-emerald-500/10 flex-shrink-0">
+                <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-emerald-600/20 to-emerald-500/10 flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
@@ -748,7 +748,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         </svg>
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold text-white">Call Completed</h2>
+                        <h2 className="text-xl font-bold text-slate-900">Call Completed</h2>
                         <p className="text-xs text-emerald-400">Duration: {formatDuration(callDuration)}</p>
                       </div>
                     </div>
@@ -765,7 +765,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           pollingIntervalRef.current = null;
                         }
                       }}
-                      className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                      className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -781,8 +781,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     <div className="space-y-4">
                       {/* Call Recording */}
                       {(callData.recording_url || callData.recording || callData.concatenated_recording) && (
-                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                          <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
+                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                          <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                             <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414 1.414m2.828-9.9a9 9 0 012.828 2.828" />
                             </svg>
@@ -798,9 +798,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                       {/* Transcript */}
                       {callData.transcripts && (
-                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                          <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
-                            <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                          <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                             </svg>
                             Transcript
@@ -810,9 +810,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                               const isAgent = t.user === 'assistant' || t.user === 'agent';
                               return (
                                 <div key={i} className={`flex gap-2 ${isAgent ? 'justify-start' : 'justify-end'}`}>
-                                  <div className={`max-w-[80%] rounded-lg p-3 ${isAgent ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20'}`}>
-                                    <p className="text-xs font-bold text-slate-300 mb-1">{isAgent ? agentName || agent.name : 'Customer'}</p>
-                                    <p className="text-sm text-white">{t.text}</p>
+                                  <div className={`max-w-[80%] rounded-lg p-3 ${isAgent ? 'bg-[var(--color-primary-50)] border border-[var(--color-primary)]/20' : 'bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20'}`}>
+                                    <p className="text-xs font-bold text-slate-600 mb-1">{isAgent ? agentName || agent.name : 'Customer'}</p>
+                                    <p className="text-sm text-slate-900">{t.text}</p>
                                   </div>
                                 </div>
                               );
@@ -825,8 +825,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     {/* Right Column */}
                     <div className="space-y-4">
                       {/* Call Summary */}
-                      <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                        <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
+                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                           <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                           </svg>
@@ -834,23 +834,23 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         </h3>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-slate-400">Status:</span>
+                            <span className="text-slate-600">Status:</span>
                             <span className="text-emerald-400 font-bold capitalize">{callData.status}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-400">Duration:</span>
-                            <span className="text-white font-bold">{formatDuration(callDuration)}</span>
+                            <span className="text-slate-600">Duration:</span>
+                            <span className="text-slate-900 font-bold">{formatDuration(callDuration)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-400">Phone:</span>
-                            <span className="text-white font-mono text-xs">{testPhoneNumber}</span>
+                            <span className="text-slate-600">Phone:</span>
+                            <span className="text-slate-900 font-mono text-xs">{testPhoneNumber}</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Demo Data Used */}
-                      <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                        <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
+                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                           <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                           </svg>
@@ -859,8 +859,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         <div className="space-y-2">
                           {Object.entries(agentInfo.demoData).map(([key, value]) => (
                             <div key={key} className="flex justify-between text-xs">
-                              <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                              <span className="text-white font-medium">{value}</span>
+                              <span className="text-slate-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                              <span className="text-slate-900 font-medium">{value}</span>
                             </div>
                           ))}
                         </div>
@@ -868,14 +868,14 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                       {/* AI Analysis */}
                       {analyzingCall ? (
-                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                          <h3 className="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
+                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                          <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                             <svg className="w-4 h-4 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             Analyzing Call...
                           </h3>
-                          <p className="text-sm text-slate-400">Extracting and structuring data from conversation...</p>
+                          <p className="text-sm text-slate-600">Extracting and structuring data from conversation...</p>
                         </div>
                       ) : callAnalysis && (
                         <>

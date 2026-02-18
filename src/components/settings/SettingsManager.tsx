@@ -275,7 +275,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                 <div className="relative z-10 flex items-center gap-6">
                   {/* Logo Upload */}
                   <div className="relative group">
-                    <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20 shadow-md">
+                    <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200 shadow-md">
                       {company.favicon_url ? (
                         <img
                           key={`${company.favicon_url}-${faviconTimestamp}`}
@@ -322,21 +322,21 @@ export default function SettingsManager({ company: initialCompany, settings: ini
 
                   {/* Company Info Header */}
                   <div className="flex-1">
-                    <h2 className="text-3xl font-bold text-white mb-2">
+                    <h2 className="text-3xl font-bold text-slate-900 mb-2">
                       {company.name || 'Your Company'}
                     </h2>
-                    <p className="text-slate-300 font-medium mb-3">
+                    <p className="text-[var(--color-primary)] font-medium mb-3">
                       {company.industry || 'Set your industry'}
                     </p>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                        <span className="text-xs text-slate-400 font-semibold">Active</span>
+                        <span className="text-xs text-slate-600 font-semibold">Active</span>
                       </div>
-                      <div className="h-4 w-px bg-slate-700"></div>
+                      <div className="h-4 w-px bg-slate-300"></div>
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
-                        <span className="text-xs text-slate-400 font-semibold">Connected</span>
+                        <span className="text-xs text-slate-600 font-semibold">Connected</span>
                       </div>
                     </div>
                   </div>

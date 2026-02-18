@@ -6,8 +6,8 @@ import { Skeleton } from './SkeletonBase';
 export default function AgentsSkeleton() {
   return (
     <div className="space-y-8">
-      {/* Hero Banner - Agent Style */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-3xl p-10 shadow-2xl border border-slate-800">
+      {/* Hero Banner - Light Style */}
+      <div className="relative overflow-hidden gradient-bg-subtle rounded-2xl p-8 border border-[var(--color-primary)]/10">
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-4">
             <Skeleton className="w-16 h-16 rounded-2xl" />
@@ -25,7 +25,7 @@ export default function AgentsSkeleton() {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="group relative bg-gradient-to-br from-white to-slate-50 rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl transition-all duration-300"
+              className="group relative bg-white rounded-2xl border border-slate-200 p-6 shadow-sm"
             >
               {/* Agent Avatar */}
               <div className="flex items-start gap-4 mb-4">
