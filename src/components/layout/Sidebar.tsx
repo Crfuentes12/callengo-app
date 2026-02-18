@@ -157,18 +157,28 @@ function ExpandIcon({ className = "w-5 h-5" }: { className?: string }) {
 export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Campaigns', href: '/campaigns', icon: CampaignsIcon },
-    { name: 'Call History', href: '/calls', icon: PhoneIcon },
-    { name: 'Voicemails', href: '/voicemails', icon: VoicemailIcon },
-    { name: 'Follow-ups', href: '/follow-ups', icon: FollowUpIcon },
-    { name: 'Analytics', href: '/analytics', icon: ChartIcon },
-    { name: 'Contacts', href: '/contacts', icon: UsersIcon },
-    { name: 'Agents', href: '/agents', icon: BotIcon },
-    { name: 'Reports', href: '/reports', icon: ReportsIcon },
-    { name: 'Integrations', href: '/integrations', icon: IntegrationsIcon },
-    { name: 'Settings', href: '/settings', icon: CogIcon },
+  const navGroups = [
+    [
+      { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+    ],
+    [
+      { name: 'Contacts', href: '/contacts', icon: UsersIcon },
+      { name: 'Campaigns', href: '/campaigns', icon: CampaignsIcon },
+      { name: 'Agents', href: '/agents', icon: BotIcon },
+    ],
+    [
+      { name: 'Call History', href: '/calls', icon: PhoneIcon },
+      { name: 'Voicemails', href: '/voicemails', icon: VoicemailIcon },
+      { name: 'Follow-ups', href: '/follow-ups', icon: FollowUpIcon },
+    ],
+    [
+      { name: 'Analytics', href: '/analytics', icon: ChartIcon },
+      { name: 'Reports', href: '/reports', icon: ReportsIcon },
+    ],
+    [
+      { name: 'Integrations', href: '/integrations', icon: IntegrationsIcon },
+      { name: 'Settings', href: '/settings', icon: CogIcon },
+    ],
   ];
 
   const adminNavigation = [
@@ -223,58 +233,65 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto overflow-x-hidden">
-        <div className="space-y-1">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href ||
-              (item.href !== '/dashboard' && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => onClose()}
-                title={isCollapsed ? item.name : undefined}
-                className={`
-                  group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
-                  transition-all duration-200
-                  ${isActive
-                    ? 'bg-white/20 text-white shadow-sm'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                  }
-                `}
-              >
-                <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-white/50'}`} />
-                <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
-                  {item.name}
-                </span>
-                {/* Tooltip on hover when collapsed - desktop only */}
-                {isCollapsed && (
-                  <span className="
-                    hidden lg:block
-                    absolute left-full ml-3 px-2.5 py-1.5 rounded-lg
-                    bg-slate-900 text-white text-xs font-medium
-                    opacity-0 group-hover:opacity-100
-                    pointer-events-none
-                    transition-opacity duration-200
-                    shadow-lg
-                    whitespace-nowrap
-                    z-50
-                  ">
-                    {item.name}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+        {navGroups.map((group, groupIndex) => (
+          <div key={groupIndex}>
+            {/* Gradient separator between groups */}
+            {groupIndex > 0 && (
+              <div className="my-2 mx-2">
+                <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              </div>
+            )}
+            <div className="space-y-1">
+              {group.map((item) => {
+                const isActive = pathname === item.href ||
+                  (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => onClose()}
+                    title={isCollapsed ? item.name : undefined}
+                    className={`
+                      group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
+                      transition-all duration-200
+                      ${isActive
+                        ? 'bg-white/20 text-white shadow-sm'
+                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                      }
+                    `}
+                  >
+                    <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-white/50'}`} />
+                    <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
+                      {item.name}
+                    </span>
+                    {/* Tooltip on hover when collapsed - desktop only */}
+                    {isCollapsed && (
+                      <span className="
+                        hidden lg:block
+                        absolute left-full ml-3 px-2.5 py-1.5 rounded-lg
+                        bg-slate-900 text-white text-xs font-medium
+                        opacity-0 group-hover:opacity-100
+                        pointer-events-none
+                        transition-opacity duration-200
+                        shadow-lg
+                        whitespace-nowrap
+                        z-50
+                      ">
+                        {item.name}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
 
         {/* Admin Section - Only visible to admins */}
         {isAdmin && (
           <>
-            <div className="px-3 pt-6 pb-2">
-              <p className={`text-xs font-semibold text-white/40 uppercase tracking-wider transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:h-0 lg:py-0' : ''}`}>
-                Admin
-              </p>
-              <div className={`border-t border-white/20 transition-all duration-300 ${isCollapsed ? 'lg:block' : 'hidden'}`} />
+            <div className="my-2 mx-2">
+              <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </div>
             <div className="space-y-1">
               {adminNavigation.map((item) => {
