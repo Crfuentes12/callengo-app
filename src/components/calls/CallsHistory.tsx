@@ -3,6 +3,8 @@
 
 import { useState, useMemo } from 'react';
 import { formatDuration } from '@/lib/call-agent-utils';
+import CallDetailModal from './CallDetailModal';
+import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 interface CallLogWithContact {
   id: string;
@@ -44,6 +46,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
   const [agentFilter, setAgentFilter] = useState<string>('all');
   const [answeredByFilter, setAnsweredByFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedCall, setSelectedCall] = useState<CallLogWithContact | null>(null);
   const itemsPerPage = 25;
 
   // Filter calls
@@ -107,6 +110,8 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Call History' }]} />
+
       {/* Section Header */}
       <div className="gradient-bg-subtle rounded-2xl p-10 shadow-sm border border-slate-200">
         <div className="flex items-center gap-4 mb-6">
@@ -274,7 +279,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {paginatedCalls.map((call) => (
-                    <tr key={call.id} className="hover:bg-slate-50 transition-colors group">
+                    <tr key={call.id} className="hover:bg-slate-50 transition-colors group cursor-pointer" onClick={() => setSelectedCall(call)}>
                       <td className="py-4 px-6">
                         <p className="text-sm font-semibold text-slate-900 font-mono">
                           {call.call_id.substring(0, 16)}...
@@ -388,6 +393,11 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
           </>
         )}
       </div>
+
+      {/* Call Detail Modal */}
+      {selectedCall && (
+        <CallDetailModal call={selectedCall} onClose={() => setSelectedCall(null)} />
+      )}
     </div>
   );
 }

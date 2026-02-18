@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { AgentTemplate, Company } from '@/types/supabase';
 import AgentSelectionModal from '@/components/agents/AgentSelectionModal';
 import AgentConfigModal from '@/components/agents/AgentConfigModal';
+import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 interface Campaign {
   id: string;
@@ -148,6 +149,8 @@ export default function CampaignsOverview({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Campaigns' }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -301,9 +304,9 @@ export default function CampaignsOverview({
                   const campaignVoicemails = voicemailStats.filter(v => v.agent_run_id === campaign.id);
 
                   return (
-                    <tr key={campaign.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <tr key={campaign.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => window.location.href = `/campaigns/${campaign.id}`}>
                       <td className="py-4 px-6">
-                        <div className="font-semibold text-slate-900">{campaign.name}</div>
+                        <Link href={`/campaigns/${campaign.id}`} className="font-semibold text-slate-900 hover:text-[var(--color-primary)] transition-colors">{campaign.name}</Link>
                         <div className="text-xs text-slate-500 mt-1">
                           {campaign.total_contacts} contacts
                         </div>

@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import CallDetailModal from '@/components/calls/CallDetailModal';
+import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 interface VoicemailLog {
   id: string;
@@ -36,6 +38,7 @@ interface VoicemailsPageProps {
 export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
   const [filter, setFilter] = useState<'all' | 'left' | 'detected'>('all');
   const [search, setSearch] = useState('');
+  const [selectedVoicemail, setSelectedVoicemail] = useState<VoicemailLog | null>(null);
 
   const filtered = useMemo(() => {
     let result = voicemails;
@@ -64,6 +67,8 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Voicemails' }]} />
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Voicemails</h1>
@@ -169,7 +174,7 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
             <tbody>
               {filtered.length > 0 ? (
                 filtered.map(vm => (
-                  <tr key={vm.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <tr key={vm.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setSelectedVoicemail(vm)}>
                     <td className="py-3 px-6">
                       <div>
                         <span className="text-sm font-medium text-slate-900">
@@ -232,6 +237,40 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
           </table>
         </div>
       </div>
+
+      {/* Call Detail Modal (mapped from voicemail data) */}
+      {selectedVoicemail && (
+        <CallDetailModal
+          call={{
+            id: selectedVoicemail.id,
+            call_id: selectedVoicemail.call_id,
+            status: selectedVoicemail.message_left ? 'voicemail' : 'no_answer',
+            completed: true,
+            call_length: selectedVoicemail.message_duration,
+            answered_by: 'voicemail',
+            recording_url: null,
+            transcript: selectedVoicemail.message_text,
+            summary: selectedVoicemail.message_left
+              ? `Voicemail was left for ${selectedVoicemail.contacts?.contact_name || selectedVoicemail.contacts?.company_name || 'contact'}. Detection confidence: ${selectedVoicemail.confidence_score ? Math.round(selectedVoicemail.confidence_score * 100) + '%' : 'N/A'}.`
+              : `Voicemail was detected but no message was left. Detection method: ${selectedVoicemail.detection_method || 'Unknown'}.`,
+            analysis: null,
+            error_message: null,
+            metadata: null,
+            created_at: selectedVoicemail.detected_at,
+            voicemail_detected: true,
+            voicemail_left: selectedVoicemail.message_left,
+            voicemail_message_url: selectedVoicemail.message_audio_url,
+            voicemail_duration: selectedVoicemail.message_duration,
+            contacts: selectedVoicemail.contacts ? {
+              company_name: selectedVoicemail.contacts.company_name || 'Unknown',
+              contact_name: selectedVoicemail.contacts.contact_name,
+              phone_number: selectedVoicemail.contacts.phone_number,
+            } : null,
+            agent_runs: selectedVoicemail.agent_runs,
+          }}
+          onClose={() => setSelectedVoicemail(null)}
+        />
+      )}
     </div>
   );
 }

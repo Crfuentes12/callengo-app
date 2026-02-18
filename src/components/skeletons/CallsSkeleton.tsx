@@ -6,11 +6,6 @@ import { Skeleton } from './SkeletonBase';
 export default function CallsSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      <div>
-        <Skeleton className="h-10 w-48 rounded-xl" />
-      </div>
-
       {/* Hero Banner - Light Style */}
       <div className="relative overflow-hidden gradient-bg-subtle rounded-2xl p-8 border border-[var(--color-primary)]/10">
         <div className="relative z-10">
