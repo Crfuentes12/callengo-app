@@ -24,9 +24,12 @@ function LoginForm() {
 
     if (signInError) {
       setError(signInError.message || 'Failed to sign in. Please check your credentials.');
+      setLoading(false);
+      return;
     }
 
-    setLoading(false);
+    // Redirect to dashboard after successful sign in
+    window.location.href = '/dashboard';
   };
 
   return (

@@ -84,7 +84,7 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Follow-ups' }]} />
+      <Breadcrumbs items={[{ label: 'Follow-ups' }]} />
 
       {/* Header */}
       <div>

@@ -67,7 +67,7 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Voicemails' }]} />
+      <Breadcrumbs items={[{ label: 'Voicemails' }]} />
 
       {/* Header */}
       <div>
