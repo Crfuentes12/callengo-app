@@ -4,24 +4,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaSalesforce, FaHubspot, FaSlack } from 'react-icons/fa';
-import { SiZapier, SiTwilio, SiGooglecalendar, SiCalendly, SiGooglesheets, SiZoho } from 'react-icons/si';
+import { SiZapier, SiTwilio, SiGooglecalendar, SiCalendly, SiGooglesheets } from 'react-icons/si';
 import { MdOutlineWebhook } from 'react-icons/md';
 import { AiFillApi } from 'react-icons/ai';
 import { PiMicrosoftTeamsLogoFill } from 'react-icons/pi';
-
-// Inline SVG component for Pipedrive "P" mark
-function PipedriveIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M10.5 2C7.46 2 5 4.46 5 7.5C5 10.54 7.46 13 10.5 13H12V22h3V2h-4.5zM12 10h-1.5C8.57 10 7 8.43 7 6.5S8.57 3 10.5 3H12v7z" />
-    </svg>
-  );
-}
 
 type PlanTier = 'free' | 'starter' | 'business' | 'enterprise';
 
@@ -41,14 +27,14 @@ interface Integration {
 
 const planBadgeLabel: Record<PlanTier, string | null> = {
   free: null,
-  starter: 'Starter+',
+  starter: null,
   business: 'Business+',
   enterprise: 'Enterprise',
 };
 
 export default function IntegrationsPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState<'all' | 'crm' | 'communication' | 'telephony' | 'automation' | 'productivity' | 'developer'>('all');
+  const [filter, setFilter] = useState<'all' | 'crm' | 'communication' | 'telephony' | 'automation' | 'productivity'>('all');
 
   const integrations: Integration[] = [
     {
@@ -113,18 +99,6 @@ export default function IntegrationsPage() {
       action: () => router.push('/settings?tab=calling&section=phone-numbers'),
     },
     {
-      id: 'webhook',
-      name: 'Webhooks',
-      description: 'Send real-time event data to your own endpoints. Perfect for custom integrations and workflows.',
-      category: 'automation',
-      categoryLabel: 'Automation',
-      status: 'coming_soon',
-      color: 'bg-slate-50',
-      iconColor: 'text-slate-700',
-      icon: <MdOutlineWebhook className="w-7 h-7" />,
-      requiredPlan: 'free',
-    },
-    {
       id: 'google-calendar',
       name: 'Google Calendar',
       description: 'Sync your call schedules and campaign timelines directly with Google Calendar for seamless scheduling.',
@@ -147,18 +121,6 @@ export default function IntegrationsPage() {
       iconColor: 'text-[#006BFF]',
       icon: <SiCalendly className="w-6 h-6" />,
       requiredPlan: 'starter',
-    },
-    {
-      id: 'pipedrive',
-      name: 'Pipedrive',
-      description: 'Push call outcomes and contact data into your Pipedrive pipeline. Keep deals moving with automated updates.',
-      category: 'crm',
-      categoryLabel: 'CRM',
-      status: 'coming_soon',
-      color: 'bg-green-50',
-      iconColor: 'text-[#203232]',
-      icon: <PipedriveIcon className="w-6 h-6" />,
-      requiredPlan: 'business',
     },
     {
       id: 'microsoft-teams',
@@ -184,30 +146,6 @@ export default function IntegrationsPage() {
       icon: <SiGooglesheets className="w-6 h-6" />,
       requiredPlan: 'starter',
     },
-    {
-      id: 'zoho',
-      name: 'Zoho',
-      description: 'Integrate with Zoho CRM to sync contacts, log call activities, and automate your sales workflow.',
-      category: 'crm',
-      categoryLabel: 'CRM',
-      status: 'coming_soon',
-      color: 'bg-yellow-50',
-      iconColor: 'text-[#C8202B]',
-      icon: <SiZoho className="w-6 h-6" />,
-      requiredPlan: 'business',
-    },
-    {
-      id: 'api-access',
-      name: 'API Access',
-      description: 'Access your Callengo data programmatically. Create contacts, trigger campaigns, and retrieve call results through our REST API.',
-      category: 'developer',
-      categoryLabel: 'Developer',
-      status: 'coming_soon',
-      color: 'bg-violet-50',
-      iconColor: 'text-[var(--color-primary)]',
-      icon: <AiFillApi className="w-6 h-6" />,
-      requiredPlan: 'enterprise',
-    },
   ];
 
   const filteredIntegrations = filter === 'all'
@@ -221,7 +159,6 @@ export default function IntegrationsPage() {
     { id: 'telephony', label: 'Telephony' },
     { id: 'automation', label: 'Automation' },
     { id: 'productivity', label: 'Productivity' },
-    { id: 'developer', label: 'Developer' },
   ];
 
   return (
@@ -307,6 +244,59 @@ export default function IntegrationsPage() {
             </button>
           </div>
         ))}
+      </div>
+
+      {/* Developer Tools */}
+      <div>
+        <h2 className="text-lg font-bold text-slate-900 mb-4">Developer Tools</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Webhooks */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 text-slate-700 flex items-center justify-center shrink-0">
+                  <MdOutlineWebhook className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">Webhooks</h3>
+                  <span className="text-xs text-slate-500">Automation</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 mb-4 leading-relaxed flex-1">Send real-time event data to your own endpoints. Perfect for custom integrations and workflows.</p>
+            <button
+              disabled
+              className="w-full py-2.5 rounded-lg font-medium text-sm bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed"
+            >
+              Coming Soon
+            </button>
+          </div>
+
+          {/* API Access */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-violet-50 text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                  <AiFillApi className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">API Access</h3>
+                  <span className="text-xs text-slate-500">Developer</span>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wide whitespace-nowrap">
+                Enterprise
+              </span>
+            </div>
+            <p className="text-sm text-slate-600 mb-4 leading-relaxed flex-1">Access your Callengo data programmatically. Create contacts, trigger campaigns, and retrieve call results through our REST API.</p>
+            <button
+              disabled
+              className="w-full py-2.5 rounded-lg font-medium text-sm bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed"
+            >
+              Coming Soon
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

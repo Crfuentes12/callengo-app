@@ -20,31 +20,17 @@ export default function AnalyticsSkeleton() {
           {/* Quick Stats in Banner */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200/60">
-                <Skeleton className="h-3 w-24 mb-2" />
+              <div key={i} className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Skeleton className="w-2 h-2 rounded-full" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
                 <Skeleton className="h-8 w-16" />
                 <Skeleton className="h-3 w-20 mt-1" />
               </div>
             ))}
           </div>
         </div>
-      </div>
-
-      {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-white rounded-xl border border-slate-200/80 p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <Skeleton className="h-4 w-32 mb-3" />
-                <Skeleton className="h-10 w-24 mb-2" />
-                <Skeleton className="h-4 w-28" />
-              </div>
-              <Skeleton className="w-14 h-14 rounded-2xl" />
-            </div>
-            <Skeleton className="h-1 w-full rounded-full" />
-          </div>
-        ))}
       </div>
 
       {/* Call Trends - Last 30 Days */}
