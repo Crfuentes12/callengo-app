@@ -195,17 +195,17 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
         flex flex-col h-screen shadow-xl
         transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        ${isCollapsed ? 'lg:w-[72px]' : 'lg:w-[260px]'}
+        ${isCollapsed ? 'lg:w-[67px]' : 'lg:w-[260px]'}
         w-[260px]
       `}
     >
       {/* Logo, Collapse Toggle & Close Button */}
-      <div className="h-16 flex items-center justify-between px-3 overflow-hidden">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-9 h-9 rounded-lg bg-white backdrop-blur-sm flex items-center justify-center shrink-0">
-            <img src="/callengo-logo.svg" alt="Callengo" className="w-5 h-5" />
+      <div className="h-17 flex items-center justify-between p-2 overflow-hidden">
+        <div className="flex items-center gap-3 px-1">
+          <div className="w-10 h-10 rounded-lg bg-white backdrop-blur-sm flex items-center justify-center shrink-0">
+            <img src="/callengo-logo.svg" alt="Callengo" className="w-7 h-7" />
           </div>
-          <span className={`font-semibold text-[16px] text-white whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:w-0 lg:opacity-0' : 'opacity-100'}`}>
+          <span className={`font-semibold text-[20px] text-white whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:w-0 lg:opacity-0' : 'opacity-100'}`}>
             Callengo
           </span>
         </div>

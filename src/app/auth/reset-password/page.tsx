@@ -46,8 +46,8 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen gradient-bg-subtle flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/15 backdrop-blur-sm mb-6 shadow-md">
-            <img src="/callengo-logo.svg" alt="Callengo" className="w-12 h-12" />
+          <div>
+            <img src="/callengo-fill.svg" alt="Callengo" className="inline-flex items-center justify-center w-20 h-20 rounded-3xl mb-6 shadow-md" />
           </div>
           <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">Set new password</h1>
           <p className="text-slate-500 text-lg">Choose a strong password for your account</p>
