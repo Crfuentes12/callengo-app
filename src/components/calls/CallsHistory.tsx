@@ -110,7 +110,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Call History' }]} />
+      <Breadcrumbs items={[{ label: 'Call History' }]} />
 
       {/* Section Header */}
       <div className="gradient-bg-subtle rounded-2xl p-10 shadow-sm border border-slate-200">

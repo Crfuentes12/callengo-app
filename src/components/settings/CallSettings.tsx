@@ -18,6 +18,11 @@ interface CallSettingsProps {
     max_calls_per_day: number;
     working_days?: string[];
     exclude_holidays?: boolean;
+    voicemail_enabled?: boolean;
+    followup_enabled?: boolean;
+    followup_max_attempts?: number;
+    followup_interval_hours?: number;
+    smart_followup_enabled?: boolean;
   };
   onSettingsChange: (settings: any) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -749,6 +754,98 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
           </div>
           <div><label className="block text-sm font-bold text-slate-700 mb-3">Working Days</label><div className="grid grid-cols-7 gap-2">{['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => { const dayLower = day.toLowerCase(); const isSelected = settings.working_days?.includes(dayLower) ?? true; return (<button key={day} type="button" onClick={() => { const currentDays = settings.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']; const newDays = isSelected ? currentDays.filter(d => d !== dayLower) : [...currentDays, dayLower]; onSettingsChange({ ...settings, working_days: newDays }); }} className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border ${isSelected ? 'gradient-bg text-white border-[var(--color-primary)] hover:opacity-90' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>{day.slice(0, 3)}</button>); })}</div><p className="text-xs text-slate-500 mt-2">Select which days of the week calls should be placed</p></div>
           <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-lg p-4"><input type="checkbox" id="exclude-holidays" checked={settings.exclude_holidays ?? false} onChange={(e) => onSettingsChange({ ...settings, exclude_holidays: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 cursor-pointer" /><div className="flex-1"><label htmlFor="exclude-holidays" className="text-sm font-bold text-slate-700 cursor-pointer block mb-1">Exclude US Federal Holidays</label><p className="text-xs text-slate-600">Automatically skip calls on major US federal holidays.</p></div></div>
+        </div>
+
+        {/* Voicemail & Follow-up Settings */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
+          <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+            <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            Voicemail & Follow-ups
+          </h4>
+          <p className="text-xs text-slate-500 -mt-4">Configure automatic voicemail detection and follow-up call behavior. Available from Starter plan and above.</p>
+
+          {isFreePlan ? (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              </div>
+              <p className="text-sm font-semibold text-slate-700">Upgrade to unlock Voicemail & Follow-ups</p>
+              <p className="text-xs text-slate-500 mt-1">Available on Starter plan and above</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Voicemail Toggle */}
+              <div className="flex items-start gap-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <label htmlFor="voicemail-enabled" className="text-sm font-bold text-slate-700 cursor-pointer">Voicemail Detection</label>
+                    {plan && plan.slug !== 'starter' && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">Custom Message</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">Automatically detect voicemail and leave a message. {plan && plan.slug === 'starter' ? 'Standard voicemail on Starter plan.' : 'Business+ plans can customize the voicemail message.'}</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer mt-1">
+                  <input type="checkbox" id="voicemail-enabled" checked={settings.voicemail_enabled ?? false} onChange={(e) => onSettingsChange({ ...settings, voicemail_enabled: e.target.checked })} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:ring-2 peer-focus:ring-[var(--color-primary)]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                </label>
+              </div>
+
+              {/* Follow-up Toggle */}
+              <div className="flex items-start gap-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <label htmlFor="followup-enabled" className="text-sm font-bold text-slate-700 cursor-pointer">Automatic Follow-ups</label>
+                    {plan && plan.slug === 'starter' && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">Max 1</span>
+                    )}
+                    {plan && plan.slug !== 'starter' && plan.slug !== 'free' && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Unlimited</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">Automatically schedule follow-up calls for contacts that didn&apos;t answer or requested a callback.</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer mt-1">
+                  <input type="checkbox" id="followup-enabled" checked={settings.followup_enabled ?? false} onChange={(e) => onSettingsChange({ ...settings, followup_enabled: e.target.checked })} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:ring-2 peer-focus:ring-[var(--color-primary)]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                </label>
+              </div>
+
+              {settings.followup_enabled && (
+                <div className="ml-4 pl-4 border-l-2 border-[var(--color-primary)]/20 space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Max Follow-up Attempts</label>
+                      <input type="number" min="1" max={plan && plan.slug === 'starter' ? 1 : 10} value={settings.followup_max_attempts ?? 1} onChange={(e) => onSettingsChange({ ...settings, followup_max_attempts: parseInt(e.target.value) })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" />
+                      {plan && plan.slug === 'starter' && <p className="text-xs text-slate-400 mt-1">Starter plan limited to 1 follow-up</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Follow-up Interval (hours)</label>
+                      <input type="number" min="1" max="168" value={settings.followup_interval_hours ?? 24} onChange={(e) => onSettingsChange({ ...settings, followup_interval_hours: parseInt(e.target.value) })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" />
+                      <p className="text-xs text-slate-400 mt-1">Time between follow-up attempts</p>
+                    </div>
+                  </div>
+
+                  {/* Smart Follow-up - Business+ only */}
+                  {plan && plan.slug !== 'starter' && plan.slug !== 'free' && (
+                    <div className="flex items-start gap-4 bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <label htmlFor="smart-followup" className="text-sm font-bold text-slate-700 cursor-pointer">Smart Follow-up</label>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">Business+</span>
+                        </div>
+                        <p className="text-xs text-slate-500">When a contact requests a callback at a specific time (e.g., &quot;call me Friday at 5 PM&quot;), Callengo will automatically schedule the follow-up for that exact time instead of using the default interval.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer mt-1">
+                        <input type="checkbox" id="smart-followup" checked={settings.smart_followup_enabled ?? false} onChange={(e) => onSettingsChange({ ...settings, smart_followup_enabled: e.target.checked })} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:ring-2 peer-focus:ring-purple-400/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Test Phone */}

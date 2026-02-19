@@ -1,6 +1,7 @@
 // components/layout/Sidebar.tsx
 'use client';
 
+import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Database } from '@/types/supabase';
@@ -41,18 +42,10 @@ function CampaignsIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-function BotIcon({ className = "w-5 h-5" }: { className?: string }) {
+function AgentsIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <rect x="6" y="7" width="12" height="12" rx="3" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="12" y1="4" x2="12" y2="7" strokeLinecap="round" />
-      <circle cx="12" cy="3" r="1" fill="currentColor" />
-      <rect x="8.5" y="10.5" width="2" height="3" rx="0.5" fill="currentColor" />
-      <rect x="13.5" y="10.5" width="2" height="3" rx="0.5" fill="currentColor" />
-      <path d="M9 15.5 h6" strokeLinecap="round" />
-      <path d="M9.5 17 h5" strokeLinecap="round" />
-      <path d="M5.5 10 Q5 11.5 5 13 Q5 14.5 5.5 16" strokeLinecap="round" />
-      <path d="M18.5 10 Q19 11.5 19 13 Q19 14.5 18.5 16" strokeLinecap="round" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
     </svg>
   );
 }
@@ -154,8 +147,25 @@ function ExpandIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+interface TooltipState {
+  text: string;
+  top: number;
+}
+
 export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+
+  const showTooltip = useCallback((e: React.MouseEvent, text: string) => {
+    if (!isCollapsed) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setTooltip({ text, top: rect.top + rect.height / 2 });
+  }, [isCollapsed]);
+
+  const hideTooltip = useCallback(() => {
+    setTooltip(null);
+  }, []);
 
   const navGroups = [
     [
@@ -164,7 +174,7 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
     [
       { name: 'Contacts', href: '/contacts', icon: UsersIcon },
       { name: 'Campaigns', href: '/campaigns', icon: CampaignsIcon },
-      { name: 'Agents', href: '/agents', icon: BotIcon },
+      { name: 'Agents', href: '/agents', icon: AgentsIcon },
     ],
     [
       { name: 'Call History', href: '/calls', icon: PhoneIcon },
@@ -186,9 +196,11 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
   ];
 
   const isAdmin = userRole === 'admin';
+  const sidebarWidth = isCollapsed ? 67 : 260;
 
   return (
     <aside
+      ref={sidebarRef}
       className={`
         fixed lg:static inset-y-0 left-0 z-50
         gradient-bg
@@ -199,6 +211,20 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
         w-[260px]
       `}
     >
+      {/* Fixed tooltip rendered at sidebar level - escapes all overflow containers */}
+      {isCollapsed && tooltip && (
+        <div
+          className="hidden lg:flex fixed items-center px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-lg whitespace-nowrap z-[100] pointer-events-none"
+          style={{
+            left: `${sidebarWidth + 12}px`,
+            top: `${tooltip.top}px`,
+            transform: 'translateY(-50%)',
+          }}
+        >
+          {tooltip.text}
+        </div>
+      )}
+
       {/* Logo, Collapse Toggle & Close Button */}
       <div className="h-17 flex items-center justify-between p-2 overflow-hidden">
         <div className="flex items-center gap-3 px-1">
@@ -250,9 +276,10 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
                     key={item.name}
                     href={item.href}
                     onClick={() => onClose()}
-                    title={isCollapsed ? item.name : undefined}
+                    onMouseEnter={(e) => showTooltip(e, item.name)}
+                    onMouseLeave={hideTooltip}
                     className={`
-                      group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
+                      flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
                       transition-all duration-200
                       ${isActive
                         ? 'bg-white/20 text-white shadow-sm'
@@ -264,22 +291,6 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
                     <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
                       {item.name}
                     </span>
-                    {/* Tooltip on hover when collapsed - desktop only */}
-                    {isCollapsed && (
-                      <span className="
-                        hidden lg:block
-                        absolute left-full ml-3 px-2.5 py-1.5 rounded-lg
-                        bg-slate-900 text-white text-xs font-medium
-                        opacity-0 group-hover:opacity-100
-                        pointer-events-none
-                        transition-opacity duration-200
-                        shadow-lg
-                        whitespace-nowrap
-                        z-50
-                      ">
-                        {item.name}
-                      </span>
-                    )}
                   </Link>
                 );
               })}
@@ -301,9 +312,10 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
                     key={item.name}
                     href={item.href}
                     onClick={() => onClose()}
-                    title={isCollapsed ? item.name : undefined}
+                    onMouseEnter={(e) => showTooltip(e, item.name)}
+                    onMouseLeave={hideTooltip}
                     className={`
-                      group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
+                      flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
                       transition-all duration-200
                       ${isActive
                         ? 'bg-white/20 text-white shadow-sm'
@@ -315,22 +327,6 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
                     <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
                       {item.name}
                     </span>
-                    {/* Tooltip on hover when collapsed - desktop only */}
-                    {isCollapsed && (
-                      <span className="
-                        hidden lg:block
-                        absolute left-full ml-3 px-2.5 py-1.5 rounded-lg
-                        bg-slate-900 text-white text-xs font-medium
-                        opacity-0 group-hover:opacity-100
-                        pointer-events-none
-                        transition-opacity duration-200
-                        shadow-lg
-                        whitespace-nowrap
-                        z-50
-                      ">
-                        {item.name}
-                      </span>
-                    )}
                   </Link>
                 );
               })}
@@ -343,9 +339,10 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
       <div className="p-3 border-t border-white/10">
         <button
           onClick={onLogout}
-          title={isCollapsed ? 'Sign out' : undefined}
+          onMouseEnter={(e) => showTooltip(e, 'Sign out')}
+          onMouseLeave={hideTooltip}
           className="
-            group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
+            w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
             text-white/70 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200
           "
         >
@@ -353,22 +350,6 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
           <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
             Sign out
           </span>
-          {/* Tooltip on hover when collapsed - desktop only */}
-          {isCollapsed && (
-            <span className="
-              hidden lg:block
-              absolute left-full ml-3 px-2.5 py-1.5 rounded-lg
-              bg-slate-900 text-white text-xs font-medium
-              opacity-0 group-hover:opacity-100
-              pointer-events-none
-              transition-opacity duration-200
-              shadow-lg
-              whitespace-nowrap
-              z-50
-            ">
-              Sign out
-            </span>
-          )}
         </button>
       </div>
     </aside>

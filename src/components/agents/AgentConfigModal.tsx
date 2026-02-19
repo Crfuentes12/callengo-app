@@ -218,7 +218,12 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     timezone: 'America/New_York',
     customTask: '',
     selectedLists: [] as string[],
-    testPhoneNumber: companySettings?.test_phone_number || '', // Pre-fill with saved test phone number
+    testPhoneNumber: companySettings?.test_phone_number || '',
+    voicemailEnabled: false,
+    followUpEnabled: false,
+    followUpMaxAttempts: 1,
+    followUpIntervalHours: 24,
+    smartFollowUp: false,
     companyInfo: {
       name: company.name,
       description: company.description || '',
@@ -1656,6 +1661,55 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         />
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Voicemail & Follow-up Options */}
+                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Voicemail & Follow-ups</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">Voicemail Detection</p>
+                        <p className="text-xs text-slate-500">Leave a message when voicemail is detected</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={settings.voicemailEnabled} onChange={(e) => setSettings({ ...settings, voicemailEnabled: e.target.checked })} className="sr-only peer" />
+                        <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                      </label>
+                    </div>
+                    <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">Automatic Follow-ups</p>
+                        <p className="text-xs text-slate-500">Retry contacts that didn&apos;t answer</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={settings.followUpEnabled} onChange={(e) => setSettings({ ...settings, followUpEnabled: e.target.checked })} className="sr-only peer" />
+                        <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                      </label>
+                    </div>
+                    {settings.followUpEnabled && (
+                      <div className="grid grid-cols-2 gap-3 pl-2 border-l-2 border-[var(--color-primary)]/20">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Max Attempts</label>
+                          <input type="number" min="1" max="10" value={settings.followUpMaxAttempts} onChange={(e) => setSettings({ ...settings, followUpMaxAttempts: parseInt(e.target.value) })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Interval (hours)</label>
+                          <input type="number" min="1" max="168" value={settings.followUpIntervalHours} onChange={(e) => setSettings({ ...settings, followUpIntervalHours: parseInt(e.target.value) })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
+                        </div>
+                        <div className="col-span-2 flex items-center justify-between bg-purple-50 rounded-lg px-4 py-3 border border-purple-200">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-700">Smart Follow-up</p>
+                            <p className="text-xs text-slate-500">Schedule callbacks at times requested by contacts</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked={settings.smartFollowUp} onChange={(e) => setSettings({ ...settings, smartFollowUp: e.target.checked })} className="sr-only peer" />
+                            <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                          </label>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

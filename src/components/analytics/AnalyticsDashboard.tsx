@@ -167,7 +167,9 @@ export default function AnalyticsDashboard({
     }));
   }, [callLogs]);
 
-  const maxDailyCalls = Math.max(...dailyCallTrends.map(d => d.count), 1);
+  const maxDailySuccessful = Math.max(...dailyCallTrends.map(d => d.successful), 1);
+  const maxDailyFailed = Math.max(...dailyCallTrends.map(d => d.failed), 1);
+  const maxDailyCalls = Math.max(maxDailySuccessful, maxDailyFailed, 1);
   const maxHourlyCalls = Math.max(...hourlyDistribution.map(h => h.count), 1);
 
   const [hoveredPoint, setHoveredPoint] = useState<{ index: number; chart: 'daily' | 'hourly' } | null>(null);
@@ -222,15 +224,15 @@ export default function AnalyticsDashboard({
                 <span className="text-xs text-slate-500 font-semibold">Success Rate</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{kpis.successRate.toFixed(0)}%</span>
-              <p className="text-xs text-slate-500 mt-1">{kpis.completedCalls} completed</p>
+              <p className="text-xs text-slate-500 mt-1">{kpis.failedCalls} failed</p>
             </div>
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse"></div>
-                <span className="text-xs text-slate-500 font-semibold">Campaigns</span>
+                <span className="text-xs text-slate-500 font-semibold">Total Contacts</span>
               </div>
-              <span className="text-3xl text-slate-900 font-bold">{kpis.activeCampaigns}</span>
-              <p className="text-xs text-slate-500 mt-1">{kpis.completedCampaigns} completed</p>
+              <span className="text-3xl text-slate-900 font-bold">{kpis.totalContacts.toLocaleString()}</span>
+              <p className="text-xs text-slate-500 mt-1">{kpis.verifiedContacts} verified</p>
             </div>
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
@@ -238,76 +240,9 @@ export default function AnalyticsDashboard({
                 <span className="text-xs text-slate-500 font-semibold">Avg Duration</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{formatDuration(kpis.avgDuration)}</span>
-              <p className="text-xs text-slate-500 mt-1">per call</p>
+              <p className="text-xs text-slate-500 mt-1">{formatDuration(kpis.totalDuration)} total</p>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="group bg-white rounded-xl border border-slate-200/80 p-6 hover:shadow-md hover:border-[var(--color-primary-200)] transition-all duration-300">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">Total Contacts</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">{kpis.totalContacts.toLocaleString()}</p>
-              <p className="text-sm text-emerald-600 mt-2 font-semibold">{kpis.verifiedContacts} verified</p>
-            </div>
-            <div className="w-14 h-14 rounded-2xl gradient-bg flex items-center justify-center shadow-sm transition-all">
-              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-              </svg>
-            </div>
-          </div>
-          <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] rounded-full transition-all duration-500 mt-4"></div>
-        </div>
-
-        <div className="group bg-white rounded-xl border border-slate-200/80 p-6 hover:shadow-md hover:border-emerald-300 transition-all duration-300">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">Successful Calls</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">{kpis.successfulCalls.toLocaleString()}</p>
-              <p className="text-sm text-emerald-600 mt-2 font-semibold">{kpis.successRate.toFixed(1)}% rate</p>
-            </div>
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm transition-all">
-              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500 mt-4"></div>
-        </div>
-
-        <div className="group bg-white rounded-xl border border-slate-200/80 p-6 hover:shadow-md hover:border-red-300 transition-all duration-300">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">Failed Calls</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">{kpis.failedCalls.toLocaleString()}</p>
-              <p className="text-sm text-slate-500 mt-2 font-medium">{kpis.totalCalls > 0 ? ((kpis.failedCalls / kpis.totalCalls) * 100).toFixed(1) : 0}% of total</p>
-            </div>
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-sm transition-all">
-              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-red-500 to-rose-500 rounded-full transition-all duration-500 mt-4"></div>
-        </div>
-
-        <div className="group bg-white rounded-xl border border-slate-200/80 p-6 hover:shadow-md hover:border-[var(--color-primary-200)] transition-all duration-300">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">Total Duration</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">{formatDuration(kpis.totalDuration)}</p>
-              <p className="text-sm text-slate-500 mt-2 font-medium">cumulative time</p>
-            </div>
-            <div className="w-14 h-14 rounded-2xl gradient-bg flex items-center justify-center shadow-sm transition-all">
-              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <div className="h-1 w-0 group-hover:w-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] rounded-full transition-all duration-500 mt-4"></div>
         </div>
       </div>
 
@@ -329,7 +264,7 @@ export default function AnalyticsDashboard({
               <span className="text-slate-600">Successful</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-slate-300"></div>
+              <div className="w-3 h-3 rounded-full bg-red-400"></div>
               <span className="text-slate-600">Failed</span>
             </div>
           </div>
@@ -363,7 +298,7 @@ export default function AnalyticsDashboard({
           };
 
           const sPts = data.map((d, i) => ({ x: tX(i), y: tY(d.successful) }));
-          const fPts = data.map((d, i) => ({ x: tX(i), y: tY(d.count) }));
+          const fPts = data.map((d, i) => ({ x: tX(i), y: tY(d.failed) }));
           const sL = smoothPath(sPts);
           const fL = smoothPath(fPts);
           const bse = `L${tX(data.length - 1)},${tY(0)} L${tX(0)},${tY(0)}`;
@@ -380,7 +315,7 @@ export default function AnalyticsDashboard({
                   <stop offset="0%" stopColor="#2e3a76" stopOpacity="0.25" /><stop offset="50%" stopColor="#8938b0" stopOpacity="0.08" /><stop offset="100%" stopColor="#8938b0" stopOpacity="0.01" />
                 </linearGradient>
                 <linearGradient id="aFailFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#94a3b8" stopOpacity="0.12" /><stop offset="100%" stopColor="#94a3b8" stopOpacity="0.01" />
+                  <stop offset="0%" stopColor="#ef4444" stopOpacity="0.12" /><stop offset="100%" stopColor="#ef4444" stopOpacity="0.01" />
                 </linearGradient>
               </defs>
               {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
@@ -389,8 +324,10 @@ export default function AnalyticsDashboard({
                   <text x={pL - 6} y={tY(mx * p) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(mx * p)}</text>
                 </g>
               ))}
+              {/* Failed calls area and line */}
               <path d={fA} fill="url(#aFailFill)" />
-              <path d={fL} fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d={fL} fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinejoin="round" opacity="0.6" />
+              {/* Successful calls area and line */}
               <path d={sA} fill="url(#aSuccFill)" />
               <path d={sL} fill="none" stroke="url(#aSuccStr)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
               {/* Hover hit areas */}
@@ -401,15 +338,19 @@ export default function AnalyticsDashboard({
               {hp !== null && (
                 <line x1={tX(hp)} y1={pT} x2={tX(hp)} y2={pT + h} stroke="#2e3a76" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />
               )}
-              {/* Data points */}
+              {/* Successful data points */}
               {data.map((d, i) => d.successful > 0 || hp === i ? (
-                <circle key={i} cx={tX(i)} cy={tY(d.successful)} r={hp === i ? 5 : 3} fill="#2e3a76" stroke="white" strokeWidth={hp === i ? 2.5 : 1.5} opacity={hp === i ? 1 : 0.9} className="transition-all duration-150" />
+                <circle key={`s${i}`} cx={tX(i)} cy={tY(d.successful)} r={hp === i ? 5 : 3} fill="#2e3a76" stroke="white" strokeWidth={hp === i ? 2.5 : 1.5} opacity={hp === i ? 1 : 0.9} className="transition-all duration-150" />
+              ) : null)}
+              {/* Failed data points */}
+              {data.map((d, i) => d.failed > 0 || hp === i ? (
+                <circle key={`f${i}`} cx={tX(i)} cy={tY(d.failed)} r={hp === i ? 5 : 3} fill="#ef4444" stroke="white" strokeWidth={hp === i ? 2.5 : 1.5} opacity={hp === i ? 1 : 0.7} className="transition-all duration-150" />
               ) : null)}
               {/* Tooltip */}
               {hp !== null && (() => {
                 const d = data[hp];
                 const tx = tX(hp);
-                const ty = tY(d.successful) - 14;
+                const ty = Math.min(tY(d.successful), tY(d.failed)) - 14;
                 const dateLabel = new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 const boxW = 130, boxH = 58;
                 const bx = Math.min(Math.max(tx - boxW / 2, pL), pL + w - boxW);
@@ -419,7 +360,7 @@ export default function AnalyticsDashboard({
                     <rect x={bx} y={by} width={boxW} height={boxH} rx="8" fill="white" stroke="#e2e8f0" strokeWidth="1" filter="url(#shadow)" />
                     <text x={bx + boxW / 2} y={by + 16} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">{dateLabel}</text>
                     <text x={bx + 10} y={by + 32} fontSize="9" fill="#64748b">Successful: <tspan fontWeight="700" fill="#2e3a76">{d.successful}</tspan></text>
-                    <text x={bx + 10} y={by + 47} fontSize="9" fill="#64748b">Total: <tspan fontWeight="700" fill="#475569">{d.count}</tspan> · Failed: <tspan fontWeight="700" fill="#ef4444">{d.failed}</tspan></text>
+                    <text x={bx + 10} y={by + 47} fontSize="9" fill="#64748b">Failed: <tspan fontWeight="700" fill="#ef4444">{d.failed}</tspan></text>
                   </g>
                 );
               })()}

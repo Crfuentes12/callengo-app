@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
   const verificationRoutes = ['/auth/verify-email'];
 
   // Protected routes that require authentication AND email verification
-  const protectedRoutes = ['/dashboard', '/onboarding'];
+  const protectedRoutes = ['/dashboard', '/onboarding', '/contacts', '/campaigns', '/agents', '/calls', '/voicemails', '/follow-ups', '/analytics', '/reports', '/integrations', '/settings', '/billing', '/admin', '/subscription'];
 
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   const isVerificationRoute = verificationRoutes.some(route => pathname.startsWith(route));
