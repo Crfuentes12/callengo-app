@@ -497,6 +497,10 @@ export type Database = {
           voicemail_detection_enabled: boolean
           voicemail_message: string | null
           voicemail_action: string
+          voicemails_detected: number
+          voicemails_left: number
+          follow_ups_scheduled: number
+          follow_ups_completed: number
           created_at: string
           updated_at: string
         }
@@ -522,6 +526,10 @@ export type Database = {
           voicemail_detection_enabled?: boolean
           voicemail_message?: string | null
           voicemail_action?: string
+          voicemails_detected?: number
+          voicemails_left?: number
+          follow_ups_scheduled?: number
+          follow_ups_completed?: number
           created_at?: string
           updated_at?: string
         }
@@ -547,6 +555,10 @@ export type Database = {
           voicemail_detection_enabled?: boolean
           voicemail_message?: string | null
           voicemail_action?: string
+          voicemails_detected?: number
+          voicemails_left?: number
+          follow_ups_scheduled?: number
+          follow_ups_completed?: number
           created_at?: string
           updated_at?: string
         }
