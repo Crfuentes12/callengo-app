@@ -64,7 +64,7 @@
   /* Layout */
   --sidebar-width: 280px;
   --sidebar-collapsed-width: 80px;
-  --header-height: 72px;
+  --header-height: 48px;
 
   /* Shadows - Refined & Subtle */
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);

@@ -1,8 +1,11 @@
 // components/layout/Header.tsx
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import NotificationsDropdown from '@/components/notifications/NotificationsDropdown';
+import CommandCenter from './CommandCenter';
 
 type User = {
   id: string;
@@ -23,14 +26,6 @@ interface HeaderProps {
   onExpandSidebar?: () => void;
 }
 
-function BellIcon({ className = "w-5 h-5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-    </svg>
-  );
-}
-
 function MenuIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -47,8 +42,26 @@ function ExpandSidebarIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+interface PlanInfo {
+  name: string;
+  slug: string;
+  minutesUsed: number;
+  minutesIncluded: number;
+}
+
+interface TeamMember {
+  id: string;
+  full_name: string | null;
+  email: string;
+  role: string;
+}
+
 export default function Header({ user, title, subtitle, actions, onMenuClick, onLogout, companyId, isSidebarCollapsed, onExpandSidebar }: HeaderProps) {
+  const router = useRouter();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showCommandCenter, setShowCommandCenter] = useState(false);
+  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const initials = (user.full_name || user.email)
@@ -57,6 +70,71 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
     .slice(0, 2)
     .join('')
     .toUpperCase();
+
+  // Fetch plan info and team members
+  useEffect(() => {
+    if (!companyId) return;
+    const supabase = createClient();
+
+    const fetchData = async () => {
+      // Get subscription info
+      const { data: subscription } = await supabase
+        .from('company_subscriptions')
+        .select('*, subscription_plans(*)')
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+        .single();
+
+      // Get usage info
+      const { data: usage } = await supabase
+        .from('usage_tracking')
+        .select('minutes_used, minutes_included')
+        .eq('company_id', companyId)
+        .order('period_start', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (subscription?.subscription_plans) {
+        const plan = subscription.subscription_plans as any;
+        setPlanInfo({
+          name: plan.name || 'Free',
+          slug: plan.slug || 'free',
+          minutesUsed: usage?.minutes_used || 0,
+          minutesIncluded: plan.minutes_included || usage?.minutes_included || 0,
+        });
+      } else {
+        setPlanInfo({
+          name: 'Free',
+          slug: 'free',
+          minutesUsed: usage?.minutes_used || 0,
+          minutesIncluded: usage?.minutes_included || 15,
+        });
+      }
+
+      // Get team members
+      const { data: members } = await supabase
+        .from('users')
+        .select('id, full_name, email, role')
+        .eq('company_id', companyId)
+        .limit(10);
+
+      if (members) setTeamMembers(members);
+    };
+
+    fetchData();
+  }, [companyId]);
+
+  // Cmd+K listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandCenter(prev => !prev);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -75,156 +153,277 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
     };
   }, [showUserMenu]);
 
+  const usagePercent = planInfo
+    ? Math.min(100, Math.round((planInfo.minutesUsed / Math.max(planInfo.minutesIncluded, 1)) * 100))
+    : 0;
+
+  const usageColor = usagePercent >= 90 ? 'from-red-500 to-red-600' : usagePercent >= 70 ? 'from-amber-500 to-orange-500' : 'from-emerald-500 to-teal-500';
+
+  const planBadgeColor: Record<string, string> = {
+    free: 'bg-slate-100 text-slate-700 border-slate-200',
+    starter: 'bg-blue-50 text-blue-700 border-blue-200',
+    business: 'bg-purple-50 text-purple-700 border-purple-200',
+    teams: 'bg-amber-50 text-amber-700 border-amber-200',
+    enterprise: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  };
+
   return (
-    <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 h-14 sm:h-16 flex items-center">
-      <div className="flex items-center justify-between w-full gap-3">
-        {/* Left: Menu Button (Mobile) + Expand Sidebar (Desktop) + Title */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          {/* Hamburger Menu - Only visible on mobile */}
+    <>
+      <header className="gradient-bg px-4 sm:px-5 h-12 flex items-center relative z-30">
+        <div className="flex items-center justify-between w-full gap-3">
+          {/* Left: Menu Button (Mobile) + Expand Sidebar (Desktop) */}
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Hamburger Menu - Only visible on mobile */}
+            <button
+              onClick={onMenuClick}
+              className="lg:hidden p-1.5 -ml-1 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <MenuIcon className="w-5 h-5" />
+            </button>
+
+            {/* Expand Sidebar - Only visible on desktop when sidebar is collapsed */}
+            {isSidebarCollapsed && onExpandSidebar && (
+              <button
+                onClick={onExpandSidebar}
+                className="hidden lg:flex p-1.5 -ml-1 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                title="Expand sidebar"
+              >
+                <ExpandSidebarIcon className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Breadcrumb / Page Title - Compact */}
+            {title && (
+              <div className="hidden sm:flex items-center gap-2 text-white/60 text-sm">
+                <span className="text-white/40">/</span>
+                <span className="font-medium text-white/80 truncate max-w-[200px]">{title}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Center: Search Bar */}
           <button
-            onClick={onMenuClick}
-            className="lg:hidden p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            onClick={() => setShowCommandCenter(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all text-white/60 hover:text-white/80 flex-1 max-w-md mx-4"
           >
-            <MenuIcon className="w-6 h-6" />
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            <span className="text-xs font-medium truncate">Search...</span>
+            <kbd className="hidden md:inline-flex items-center gap-0.5 ml-auto px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/10 border border-white/10 rounded shrink-0">
+              <span className="text-[10px]">&#8984;</span>K
+            </kbd>
           </button>
 
-          {/* Expand Sidebar - Only visible on desktop when sidebar is collapsed */}
-          {isSidebarCollapsed && onExpandSidebar && (
-            <button
-              onClick={onExpandSidebar}
-              className="hidden lg:flex p-2 -ml-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-              title="Expand sidebar"
-            >
-              <ExpandSidebarIcon className="w-5 h-5" />
-            </button>
-          )}
+          {/* Right: Actions, Notifications & User */}
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            {/* Custom Actions */}
+            {actions && <div className="flex items-center gap-1.5 mr-1">{actions}</div>}
 
-          {/* Title */}
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg sm:text-xl font-semibold text-slate-900 tracking-tight truncate">
-              {title}
-            </h1>
-            {subtitle && (
-              <p className="hidden sm:block text-sm text-slate-500 mt-0.5 truncate">{subtitle}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Actions & User */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          {/* Custom Actions */}
-          {actions && <div className="flex items-center gap-2 mr-2">{actions}</div>}
-
-          {/* Notifications */}
-          {companyId && (
-            <NotificationsDropdown companyId={companyId} userId={user.id} />
-          )}
-
-          {/* Divider */}
-          <div className="hidden sm:block w-px h-8 bg-slate-200 mx-1 sm:mx-2"></div>
-
-          {/* User Menu */}
-          <div className="relative" ref={userMenuRef}>
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 sm:gap-3 p-1 sm:p-1.5 sm:pr-3 rounded-lg hover:bg-slate-50 transition-colors group"
-            >
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg gradient-bg flex items-center justify-center text-white font-medium text-xs sm:text-sm shadow-sm">
-                {initials}
-              </div>
-              <div className="text-left hidden md:block">
-                <p className="text-sm font-medium text-slate-900 group-hover:text-[var(--color-primary)] transition-colors truncate max-w-[100px] lg:max-w-[140px]">
-                  {user.full_name || 'User'}
-                </p>
-                <p className="text-xs text-slate-500 truncate max-w-[100px] lg:max-w-[140px]">
-                  {user.email}
-                </p>
-              </div>
-              <svg className={`w-4 h-4 text-slate-400 hidden md:block transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </button>
-
-            {/* Dropdown Menu */}
-            {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-slideDown">
-                {/* User Info */}
-                <div className="px-4 py-3 border-b border-slate-100">
-                  <p className="text-sm font-semibold text-slate-900 truncate">
-                    {user.full_name || 'User'}
-                  </p>
-                  <p className="text-xs text-slate-500 truncate mt-0.5">
-                    {user.email}
-                  </p>
-                </div>
-
-                {/* Menu Items */}
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      window.location.href = '/settings';
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                  >
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Account Settings
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      window.location.href = '/settings';
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                  >
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
-                    Billing & Plans
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      window.location.href = '/help';
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                  >
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Help & Support
-                  </button>
-                </div>
-
-                {/* Divider */}
-                <div className="border-t border-slate-100 my-1"></div>
-
-                {/* Sign Out */}
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      if (onLogout) {
-                        onLogout();
-                      }
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3 font-medium"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-                    </svg>
-                    Sign Out
-                  </button>
-                </div>
+            {/* Notifications */}
+            {companyId && (
+              <div className="[&_button]:text-white/60 [&_button]:hover:text-white [&_button]:hover:bg-white/10 [&_button]:rounded-lg [&_button]:transition-colors">
+                <NotificationsDropdown companyId={companyId} userId={user.id} />
               </div>
             )}
+
+            {/* User Menu */}
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 p-1 sm:p-1 sm:pr-2 rounded-lg hover:bg-white/10 transition-colors group"
+              >
+                <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center text-white font-medium text-[11px] shadow-sm">
+                  {initials}
+                </div>
+                <svg className={`w-3.5 h-3.5 text-white/40 hidden sm:block transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+
+              {/* Enhanced Dropdown Menu */}
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 animate-slideDown overflow-hidden">
+                  {/* User Info + Plan */}
+                  <div className="p-4 gradient-bg-subtle border-b border-slate-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-11 h-11 rounded-xl gradient-bg flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {user.full_name || 'User'}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Current Plan */}
+                    {planInfo && (
+                      <div className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${planBadgeColor[planInfo.slug] || planBadgeColor.free}`}>
+                              {planInfo.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">Plan</span>
+                          </div>
+                          <button
+                            onClick={() => { setShowUserMenu(false); router.push('/billing'); }}
+                            className="text-[11px] font-semibold text-[var(--color-primary)] hover:underline flex items-center gap-1"
+                          >
+                            Upgrade
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
+                            </svg>
+                          </button>
+                        </div>
+                        {/* Usage Progress Bar */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-500 font-medium">Minutes used</span>
+                            <span className="font-bold text-slate-900">
+                              {planInfo.minutesUsed.toFixed(1)} / {planInfo.minutesIncluded} min
+                            </span>
+                          </div>
+                          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full bg-gradient-to-r ${usageColor} rounded-full transition-all duration-500`}
+                              style={{ width: `${usagePercent}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className={`font-medium ${usagePercent >= 90 ? 'text-red-600' : usagePercent >= 70 ? 'text-amber-600' : 'text-slate-400'}`}>
+                              {usagePercent}% used
+                            </span>
+                            <span className="text-slate-400">
+                              {Math.max(0, planInfo.minutesIncluded - planInfo.minutesUsed).toFixed(1)} min remaining
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Team Members */}
+                  {teamMembers.length > 1 && (
+                    <div className="px-4 py-3 border-b border-slate-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team</span>
+                        <button
+                          onClick={() => { setShowUserMenu(false); router.push('/settings?tab=team'); }}
+                          className="text-[10px] text-[var(--color-primary)] font-semibold hover:underline"
+                        >
+                          Manage
+                        </button>
+                      </div>
+                      <div className="flex items-center -space-x-2">
+                        {teamMembers.slice(0, 5).map(member => {
+                          const memberInitials = (member.full_name || member.email)
+                            .split(' ')
+                            .map(n => n[0])
+                            .slice(0, 2)
+                            .join('')
+                            .toUpperCase();
+                          return (
+                            <div
+                              key={member.id}
+                              title={member.full_name || member.email}
+                              className="w-7 h-7 rounded-full gradient-bg flex items-center justify-center text-white text-[10px] font-bold border-2 border-white"
+                            >
+                              {memberInitials}
+                            </div>
+                          );
+                        })}
+                        {teamMembers.length > 5 && (
+                          <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-[10px] font-bold border-2 border-white">
+                            +{teamMembers.length - 5}
+                          </div>
+                        )}
+                        <span className="text-xs text-slate-500 ml-3 font-medium">
+                          {teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Menu Items */}
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        router.push('/settings');
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
+                    >
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                      </svg>
+                      Settings
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        router.push('/billing');
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
+                    >
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      Billing & Plans
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        router.push('/help');
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
+                    >
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Help & Support
+                    </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-slate-100 my-0.5"></div>
+
+                  {/* Sign Out */}
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        if (onLogout) {
+                          onLogout();
+                        }
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3 font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                      </svg>
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Command Center Modal */}
+      <CommandCenter
+        isOpen={showCommandCenter}
+        onClose={() => setShowCommandCenter(false)}
+        companyId={companyId}
+      />
+    </>
   );
 }

@@ -34,7 +34,9 @@ const planBadgeLabel: Record<PlanTier, string | null> = {
 
 export default function IntegrationsPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState<'all' | 'crm' | 'communication' | 'telephony' | 'automation' | 'productivity'>('all');
+  const [filter, setFilter] = useState<'all' | 'crm' | 'communication' | 'telephony' | 'automation' | 'productivity' | 'calendar'>('all');
+  const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
+  const [calendlyConnected, setCalendlyConnected] = useState(false);
 
   const integrations: Integration[] = [
     {
@@ -101,26 +103,42 @@ export default function IntegrationsPage() {
     {
       id: 'google-calendar',
       name: 'Google Calendar',
-      description: 'Sync your call schedules and campaign timelines directly with Google Calendar for seamless scheduling.',
-      category: 'productivity',
-      categoryLabel: 'Productivity',
-      status: 'coming_soon',
+      description: 'Sync your call schedules, appointments, and no-show retries directly with Google Calendar. Manage everything from the Calendar page.',
+      category: 'calendar',
+      categoryLabel: 'Calendar',
+      status: googleCalendarConnected ? 'connected' : 'available',
       color: 'bg-blue-50',
       iconColor: 'text-[#4285F4]',
       icon: <SiGooglecalendar className="w-6 h-6" />,
       requiredPlan: 'starter',
+      action: () => {
+        if (!googleCalendarConnected) {
+          // In production: redirect to Google OAuth flow
+          setGoogleCalendarConnected(true);
+        } else {
+          router.push('/calendar');
+        }
+      },
     },
     {
       id: 'calendly',
       name: 'Calendly',
-      description: 'Automatically schedule follow-up meetings based on call outcomes. Let prospects book directly from call results.',
-      category: 'productivity',
-      categoryLabel: 'Productivity',
-      status: 'coming_soon',
+      description: 'Automatically schedule follow-up meetings based on call outcomes. Let prospects book directly from call results. Manage from Calendar page.',
+      category: 'calendar',
+      categoryLabel: 'Calendar',
+      status: calendlyConnected ? 'connected' : 'available',
       color: 'bg-blue-50',
       iconColor: 'text-[#006BFF]',
       icon: <SiCalendly className="w-6 h-6" />,
       requiredPlan: 'starter',
+      action: () => {
+        if (!calendlyConnected) {
+          // In production: redirect to Calendly OAuth flow
+          setCalendlyConnected(true);
+        } else {
+          router.push('/calendar');
+        }
+      },
     },
     {
       id: 'microsoft-teams',
@@ -154,6 +172,7 @@ export default function IntegrationsPage() {
 
   const categories = [
     { id: 'all', label: 'All' },
+    { id: 'calendar', label: 'Calendar' },
     { id: 'crm', label: 'CRM' },
     { id: 'communication', label: 'Communication' },
     { id: 'telephony', label: 'Telephony' },
@@ -235,11 +254,15 @@ export default function IntegrationsPage() {
               }`}
             >
               {integration.status === 'connected'
-                ? 'Connected'
+                ? (integration.id === 'google-calendar' || integration.id === 'calendly' ? 'Connected - Go to Calendar' : 'Connected')
                 : integration.status === 'coming_soon'
                 ? 'Coming Soon'
                 : integration.id === 'twilio'
                 ? 'Configure Phone Numbers'
+                : integration.id === 'google-calendar'
+                ? 'Connect Google Calendar'
+                : integration.id === 'calendly'
+                ? 'Connect Calendly'
                 : 'Connect'}
             </button>
           </div>
