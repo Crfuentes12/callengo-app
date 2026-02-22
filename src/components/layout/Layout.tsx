@@ -1,6 +1,5 @@
 // components/layout/Layout.tsx
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -8,14 +7,12 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import Main from './Main';
 import { Database } from '@/types/supabase';
-
 type Company = Database['public']['Tables']['companies']['Row'];
 type User = {
   id: string;
   email: string;
   full_name: string | null;
 };
-
 interface LayoutProps {
   children: React.ReactNode;
   user: User;
@@ -24,7 +21,6 @@ interface LayoutProps {
   headerSubtitle?: string;
   headerActions?: React.ReactNode;
 }
-
 export default function Layout({
   children,
   user,
@@ -58,7 +54,6 @@ export default function Layout({
         }
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
@@ -72,7 +67,6 @@ export default function Layout({
           .select('role')
           .eq('id', user.id)
           .single();
-
         if (data?.role) {
           setUserRole(data.role);
         }
@@ -80,7 +74,6 @@ export default function Layout({
         console.error('Error fetching user role:', error);
       }
     };
-
     fetchUserRole();
   }, [user.id, supabase]);
 
@@ -89,8 +82,14 @@ export default function Layout({
     window.location.href = '/auth/login';
   };
 
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed(prev => !prev);
+  };
+
   return (
-    <div className="flex h-screen overflow-hidden">
+    // gradient-bg on the outermost container creates the single continuous gradient
+    // that shows through the transparent sidebar and header on desktop
+    <div className="flex h-screen overflow-hidden gradient-bg-shell">
       <Sidebar
         company={company}
         userRole={userRole}
@@ -98,9 +97,9 @@ export default function Layout({
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onToggleCollapse={handleToggleSidebar}
       />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header
           user={user}
           title={headerTitle}
@@ -110,11 +109,10 @@ export default function Layout({
           onLogout={handleLogout}
           companyId={company.id}
           isSidebarCollapsed={isSidebarCollapsed}
-          onExpandSidebar={() => setIsSidebarCollapsed(false)}
+          onToggleSidebar={handleToggleSidebar}
         />
         <Main>{children}</Main>
       </div>
-
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div

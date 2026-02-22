@@ -404,3 +404,15 @@ tbody tr {
     height: 100%;
   }
 }
+
+
+/* Shell gradient — vertical (top→bottom) so sidebar-top and header
+   share the same horizontal color band and look perfectly unified */
+.gradient-bg-shell {
+  background: linear-gradient(
+    180deg,
+    var(--color-gradient-start) 0%,
+    var(--color-gradient-mid) 55%,
+    var(--color-gradient-end) 100%
+  );
+}

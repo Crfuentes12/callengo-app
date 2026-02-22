@@ -1,7 +1,7 @@
 // components/layout/Header.tsx
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import NotificationsDropdown from '@/components/notifications/NotificationsDropdown';
@@ -23,10 +23,10 @@ interface HeaderProps {
   onLogout?: () => void;
   companyId?: string;
   isSidebarCollapsed?: boolean;
-  onExpandSidebar?: () => void;
+  onToggleSidebar?: () => void;
 }
 
-function MenuIcon({ className = "w-6 h-6" }: { className?: string }) {
+function MenuIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -34,10 +34,10 @@ function MenuIcon({ className = "w-6 h-6" }: { className?: string }) {
   );
 }
 
-function ExpandSidebarIcon({ className = "w-5 h-5" }: { className?: string }) {
+function ChevronLeftIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
     </svg>
   );
 }
@@ -56,13 +56,25 @@ interface TeamMember {
   role: string;
 }
 
-export default function Header({ user, title, subtitle, actions, onMenuClick, onLogout, companyId, isSidebarCollapsed, onExpandSidebar }: HeaderProps) {
+export default function Header({
+  user,
+  title,
+  subtitle,
+  actions,
+  onMenuClick,
+  onLogout,
+  companyId,
+  isSidebarCollapsed,
+  onToggleSidebar,
+}: HeaderProps) {
   const router = useRouter();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCommandCenter, setShowCommandCenter] = useState(false);
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  // Ref for the search bar wrapper — CommandCenter uses this to anchor the dropdown
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
 
   const initials = (user.full_name || user.email)
     .split(' ')
@@ -71,13 +83,10 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
     .join('')
     .toUpperCase();
 
-  // Fetch plan info and team members
   useEffect(() => {
     if (!companyId) return;
     const supabase = createClient();
-
     const fetchData = async () => {
-      // Get subscription info
       const { data: subscription } = await supabase
         .from('company_subscriptions')
         .select('*, subscription_plans(*)')
@@ -85,7 +94,6 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
         .eq('status', 'active')
         .single();
 
-      // Get usage info
       const { data: usage } = await supabase
         .from('usage_tracking')
         .select('minutes_used, minutes_included')
@@ -111,7 +119,6 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
         });
       }
 
-      // Get team members
       const { data: members } = await supabase
         .from('users')
         .select('id, full_name, email, role')
@@ -120,7 +127,6 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
 
       if (members) setTeamMembers(members);
     };
-
     fetchData();
   }, [companyId]);
 
@@ -136,28 +142,29 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Close dropdown when clicking outside
+  // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
       }
     };
-
     if (showUserMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showUserMenu]);
 
   const usagePercent = planInfo
     ? Math.min(100, Math.round((planInfo.minutesUsed / Math.max(planInfo.minutesIncluded, 1)) * 100))
     : 0;
 
-  const usageColor = usagePercent >= 90 ? 'from-red-500 to-red-600' : usagePercent >= 70 ? 'from-amber-500 to-orange-500' : 'from-emerald-500 to-teal-500';
+  const usageColor =
+    usagePercent >= 90
+      ? 'from-red-500 to-red-600'
+      : usagePercent >= 70
+      ? 'from-amber-500 to-orange-500'
+      : 'from-emerald-500 to-teal-500';
 
   const planBadgeColor: Record<string, string> = {
     free: 'bg-slate-100 text-slate-700 border-slate-200',
@@ -169,30 +176,35 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
 
   return (
     <>
-      <header className="gradient-bg px-4 sm:px-5 h-12 flex items-center relative z-30">
+      <header className="bg-transparent px-4 sm:px-5 h-12 flex items-center relative z-30 shrink-0">
         <div className="flex items-center justify-between w-full gap-3">
-          {/* Left: Menu Button (Mobile) + Expand Sidebar (Desktop) */}
+
+          {/* LEFT */}
           <div className="flex items-center gap-2 min-w-0">
-            {/* Hamburger Menu - Only visible on mobile */}
+            {/* Mobile hamburger */}
             <button
               onClick={onMenuClick}
               className="lg:hidden p-1.5 -ml-1 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Open navigation"
             >
               <MenuIcon className="w-5 h-5" />
             </button>
 
-            {/* Expand Sidebar - Only visible on desktop when sidebar is collapsed */}
-            {isSidebarCollapsed && onExpandSidebar && (
+            {/* Desktop sidebar toggle */}
+            {onToggleSidebar && (
               <button
-                onClick={onExpandSidebar}
-                className="hidden lg:flex p-1.5 -ml-1 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-                title="Expand sidebar"
+                onClick={onToggleSidebar}
+                className="hidden lg:flex p-1.5 -ml-1 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                <ExpandSidebarIcon className="w-4 h-4" />
+                {isSidebarCollapsed ? (
+                  <MenuIcon className="w-5 h-5" />
+                ) : (
+                  <ChevronLeftIcon className="w-5 h-5" />
+                )}
               </button>
             )}
 
-            {/* Breadcrumb / Page Title - Compact */}
             {title && (
               <div className="hidden sm:flex items-center gap-2 text-white/60 text-sm">
                 <span className="text-white/40">/</span>
@@ -201,26 +213,33 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
             )}
           </div>
 
-          {/* Center: Search Bar */}
-          <button
-            onClick={() => setShowCommandCenter(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all text-white/60 hover:text-white/80 flex-1 max-w-md mx-4"
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-            <span className="text-xs font-medium truncate">Search...</span>
-            <kbd className="hidden md:inline-flex items-center gap-0.5 ml-auto px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/10 border border-white/10 rounded shrink-0">
-              <span className="text-[10px]">&#8984;</span>K
-            </kbd>
-          </button>
+          {/* CENTER — search wrapper is `relative` so the dropdown anchors to it */}
+          <div ref={searchWrapperRef} className="flex-1 max-w-md mx-4 relative">
+            <button
+              onClick={() => setShowCommandCenter(true)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all text-white/60 hover:text-white/80"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              <span className="text-xs font-medium truncate">Search...</span>
+              <kbd className="hidden md:inline-flex items-center gap-0.5 ml-auto px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/10 border border-white/10 rounded shrink-0">
+                <span className="text-[10px]">⌘</span>K
+              </kbd>
+            </button>
 
-          {/* Right: Actions, Notifications & User */}
+            {/* Dropdown anchored right below the search bar */}
+            <CommandCenter
+              isOpen={showCommandCenter}
+              onClose={() => setShowCommandCenter(false)}
+              companyId={companyId}
+            />
+          </div>
+
+          {/* RIGHT */}
           <div className="flex items-center gap-1 sm:gap-1.5">
-            {/* Custom Actions */}
             {actions && <div className="flex items-center gap-1.5 mr-1">{actions}</div>}
 
-            {/* Notifications */}
             {companyId && (
               <div className="[&_button]:text-white/60 [&_button]:hover:text-white [&_button]:hover:bg-white/10 [&_button]:rounded-lg [&_button]:transition-colors">
                 <NotificationsDropdown companyId={companyId} userId={user.id} />
@@ -231,36 +250,32 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 p-1 sm:p-1 sm:pr-2 rounded-lg hover:bg-white/10 transition-colors group"
+                className="flex items-center gap-2 p-1 sm:p-1 sm:pr-2 rounded-lg hover:bg-white/10 transition-colors"
               >
                 <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center text-white font-medium text-[11px] shadow-sm">
                   {initials}
                 </div>
-                <svg className={`w-3.5 h-3.5 text-white/40 hidden sm:block transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  className={`w-3.5 h-3.5 text-white/40 hidden sm:block transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                 </svg>
               </button>
 
-              {/* Enhanced Dropdown Menu */}
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 animate-slideDown overflow-hidden">
-                  {/* User Info + Plan */}
                   <div className="p-4 gradient-bg-subtle border-b border-slate-100">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-11 h-11 rounded-xl gradient-bg flex items-center justify-center text-white font-bold text-sm shadow-sm">
                         {initials}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">
-                          {user.full_name || 'User'}
-                        </p>
-                        <p className="text-xs text-slate-500 truncate">
-                          {user.email}
-                        </p>
+                        <p className="text-sm font-semibold text-slate-900 truncate">{user.full_name || 'User'}</p>
+                        <p className="text-xs text-slate-500 truncate">{user.email}</p>
                       </div>
                     </div>
 
-                    {/* Current Plan */}
                     {planInfo && (
                       <div className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
                         <div className="flex items-center justify-between mb-2">
@@ -280,7 +295,6 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
                             </svg>
                           </button>
                         </div>
-                        {/* Usage Progress Bar */}
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-[11px]">
                             <span className="text-slate-500 font-medium">Minutes used</span>
@@ -292,7 +306,7 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
                             <div
                               className={`h-full bg-gradient-to-r ${usageColor} rounded-full transition-all duration-500`}
                               style={{ width: `${usagePercent}%` }}
-                            ></div>
+                            />
                           </div>
                           <div className="flex items-center justify-between text-[10px]">
                             <span className={`font-medium ${usagePercent >= 90 ? 'text-red-600' : usagePercent >= 70 ? 'text-amber-600' : 'text-slate-400'}`}>
@@ -307,7 +321,6 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
                     )}
                   </div>
 
-                  {/* Team Members */}
                   {teamMembers.length > 1 && (
                     <div className="px-4 py-3 border-b border-slate-100">
                       <div className="flex items-center justify-between mb-2">
@@ -321,19 +334,11 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
                       </div>
                       <div className="flex items-center -space-x-2">
                         {teamMembers.slice(0, 5).map(member => {
-                          const memberInitials = (member.full_name || member.email)
-                            .split(' ')
-                            .map(n => n[0])
-                            .slice(0, 2)
-                            .join('')
-                            .toUpperCase();
+                          const mi = (member.full_name || member.email).split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
                           return (
-                            <div
-                              key={member.id}
-                              title={member.full_name || member.email}
-                              className="w-7 h-7 rounded-full gradient-bg flex items-center justify-center text-white text-[10px] font-bold border-2 border-white"
-                            >
-                              {memberInitials}
+                            <div key={member.id} title={member.full_name || member.email}
+                              className="w-7 h-7 rounded-full gradient-bg flex items-center justify-center text-white text-[10px] font-bold border-2 border-white">
+                              {mi}
                             </div>
                           );
                         })}
@@ -349,41 +354,23 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
                     </div>
                   )}
 
-                  {/* Menu Items */}
                   <div className="py-1">
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        router.push('/settings');
-                      }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                    >
+                    <button onClick={() => { setShowUserMenu(false); router.push('/settings'); }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3">
                       <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
                       </svg>
                       Settings
                     </button>
-
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        router.push('/billing');
-                      }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                    >
+                    <button onClick={() => { setShowUserMenu(false); router.push('/billing'); }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3">
                       <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                       </svg>
                       Billing & Plans
                     </button>
-
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        router.push('/help');
-                      }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                    >
+                    <button onClick={() => { setShowUserMenu(false); router.push('/help'); }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3">
                       <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -391,18 +378,11 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
                     </button>
                   </div>
 
-                  {/* Divider */}
-                  <div className="border-t border-slate-100 my-0.5"></div>
+                  <div className="border-t border-slate-100 my-0.5" />
 
-                  {/* Sign Out */}
                   <div className="py-1">
                     <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        if (onLogout) {
-                          onLogout();
-                        }
-                      }}
+                      onClick={() => { setShowUserMenu(false); if (onLogout) onLogout(); }}
                       className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3 font-medium"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -415,15 +395,9 @@ export default function Header({ user, title, subtitle, actions, onMenuClick, on
               )}
             </div>
           </div>
+
         </div>
       </header>
-
-      {/* Command Center Modal */}
-      <CommandCenter
-        isOpen={showCommandCenter}
-        onClose={() => setShowCommandCenter(false)}
-        companyId={companyId}
-      />
     </>
   );
 }

@@ -1,13 +1,10 @@
 // components/layout/Sidebar.tsx
 'use client';
-
 import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Database } from '@/types/supabase';
-
 type Company = Database['public']['Tables']['companies']['Row'];
-
 interface SidebarProps {
   company: Company;
   userRole: string;
@@ -17,7 +14,6 @@ interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 }
-
 function HomeIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -25,7 +21,6 @@ function HomeIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function UsersIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -33,7 +28,6 @@ function UsersIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function CampaignsIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -41,7 +35,6 @@ function CampaignsIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function AgentsIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -49,7 +42,6 @@ function AgentsIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function ChartIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -57,7 +49,6 @@ function ChartIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function LogoutIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -65,7 +56,6 @@ function LogoutIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function ShieldIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -73,7 +63,6 @@ function ShieldIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function PhoneIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -81,7 +70,6 @@ function PhoneIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function IntegrationsIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -89,7 +77,6 @@ function IntegrationsIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function VoicemailIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -97,7 +84,6 @@ function VoicemailIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function FollowUpIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -105,7 +91,6 @@ function FollowUpIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function CalendarIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -113,27 +98,10 @@ function CalendarIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
-
 function TeamIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-    </svg>
-  );
-}
-
-function CollapseIcon({ className = "w-5 h-5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-    </svg>
-  );
-}
-
-function ExpandIcon({ className = "w-5 h-5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
     </svg>
   );
 }
@@ -143,7 +111,15 @@ interface TooltipState {
   top: number;
 }
 
-export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
+export default function Sidebar({
+  company,
+  userRole,
+  onLogout,
+  isOpen,
+  onClose,
+  isCollapsed,
+  onToggleCollapse,
+}: SidebarProps) {
   const pathname = usePathname();
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -161,27 +137,21 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
   const isAdmin = userRole === 'admin';
   const isOwnerOrAdmin = userRole === 'admin' || userRole === 'owner';
 
-  // New sidebar order:
-  // Admin options (if applicable) | Dashboard, Contacts, Campaigns, Agents | Call History, Calendar, Voicemails, Follow-ups | Analytics, Integrations, Users (if applicable)
   const navGroups = [
-    // Group 1: Dashboard
     [
       { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     ],
-    // Group 2: Core operations
     [
       { name: 'Contacts', href: '/contacts', icon: UsersIcon },
       { name: 'Campaigns', href: '/campaigns', icon: CampaignsIcon },
       { name: 'Agents', href: '/agents', icon: AgentsIcon },
     ],
-    // Group 3: Activity & Scheduling
     [
       { name: 'Call History', href: '/calls', icon: PhoneIcon },
       { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
       { name: 'Voicemails', href: '/voicemails', icon: VoicemailIcon },
       { name: 'Follow-ups', href: '/follow-ups', icon: FollowUpIcon },
     ],
-    // Group 4: Analytics, Integrations, Users
     [
       { name: 'Analytics', href: '/analytics', icon: ChartIcon },
       { name: 'Integrations', href: '/integrations', icon: IntegrationsIcon },
@@ -193,22 +163,23 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
     { name: 'Admin Finances', href: '/admin/finances', icon: ShieldIcon },
   ];
 
-  const sidebarWidth = isCollapsed ? 67 : 260;
+  const sidebarWidth = isCollapsed ? 67 : 200;
 
   return (
     <aside
       ref={sidebarRef}
       className={`
         fixed lg:static inset-y-0 left-0 z-50
-        gradient-bg
-        flex flex-col h-screen shadow-xl
+        flex flex-col h-screen
         transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        ${isCollapsed ? 'lg:w-[67px]' : 'lg:w-[260px]'}
-        w-[260px]
+        ${isCollapsed ? 'lg:w-[67px]' : 'lg:w-[200px]'}
+        w-[200px]
+        gradient-bg-shell lg:bg-transparent
+        shadow-xl lg:shadow-none
       `}
     >
-      {/* Fixed tooltip rendered at sidebar level - escapes all overflow containers */}
+      {/* Tooltip rendered at sidebar level — escapes overflow containers */}
       {isCollapsed && tooltip && (
         <div
           className="hidden lg:flex fixed items-center px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-lg whitespace-nowrap z-[100] pointer-events-none"
@@ -222,31 +193,32 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
         </div>
       )}
 
-      {/* Logo, Collapse Toggle & Close Button */}
-      <div className="h-17 flex items-center justify-between p-2 overflow-hidden">
-        <div className="flex items-center gap-3 px-1">
-          <div className="w-10 h-10 rounded-lg bg-white backdrop-blur-sm flex items-center justify-center shrink-0">
-            <img src="/callengo-logo.svg" alt="Callengo" className="w-7 h-7" />
+      {/*
+        Logo area — height matches the header (h-12 = 48px) so logo and
+        header content sit on the same optical baseline.
+        The collapse toggle has been removed from here and moved into the Header.
+      */}
+      <div className="h-12 flex items-center px-3 overflow-hidden shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-sm flex items-center justify-center shrink-0">
+            <img src="/callengo-logo.svg" alt="Callengo" className="w-5 h-5" />
           </div>
-          <span className={`font-semibold text-[20px] text-white whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:w-0 lg:opacity-0' : 'opacity-100'}`}>
+          <span
+            className={`
+              font-semibold text-[18px] text-white whitespace-nowrap
+              transition-all duration-300 overflow-hidden
+              ${isCollapsed ? 'lg:w-0 lg:opacity-0' : 'opacity-100'}
+            `}
+          >
             Callengo
           </span>
         </div>
-        {/* Collapse toggle - Desktop only */}
-        <button
-          onClick={onToggleCollapse}
-          className="hidden lg:flex items-center justify-center p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all duration-200 shrink-0"
-        >
-          {isCollapsed ? (
-            <ExpandIcon className="w-4 h-4" />
-          ) : (
-            <CollapseIcon className="w-4 h-4" />
-          )}
-        </button>
-        {/* Close button - Only visible on mobile */}
+
+        {/* Close button — mobile only, keeps the mobile menu functional */}
         <button
           onClick={onClose}
-          className="lg:hidden p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+          className="lg:hidden ml-auto p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+          aria-label="Close navigation"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -256,7 +228,7 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto overflow-x-hidden">
-        {/* Admin Section - Only visible to admins - At top */}
+        {/* Admin Section */}
         {isAdmin && (
           <>
             <div className="space-y-1">
@@ -279,7 +251,9 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
                     `}
                   >
                     <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-white/50'}`} />
-                    <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
+                    <span
+                      className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}
+                    >
                       {item.name}
                     </span>
                   </Link>
@@ -294,7 +268,6 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
 
         {navGroups.map((group, groupIndex) => (
           <div key={groupIndex}>
-            {/* Gradient separator between groups */}
             {groupIndex > 0 && (
               <div className="my-2 mx-2">
                 <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -302,8 +275,11 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
             )}
             <div className="space-y-1">
               {group.map((item) => {
-                const isActive = pathname === item.href ||
-                  (item.href !== '/dashboard' && !item.href.includes('?') && pathname.startsWith(item.href));
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== '/dashboard' &&
+                    !item.href.includes('?') &&
+                    pathname.startsWith(item.href));
                 return (
                   <Link
                     key={item.name}
@@ -321,7 +297,9 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
                     `}
                   >
                     <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-white/50'}`} />
-                    <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
+                    <span
+                      className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}
+                    >
                       {item.name}
                     </span>
                   </Link>
@@ -332,8 +310,8 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
         ))}
       </nav>
 
-      {/* Logout Button */}
-      <div className="p-3 border-t border-white/10">
+      {/* Logout */}
+      <div className="p-3 border-t border-white/10 shrink-0">
         <button
           onClick={onLogout}
           onMouseEnter={(e) => showTooltip(e, 'Sign out')}
@@ -344,7 +322,9 @@ export default function Sidebar({ company, userRole, onLogout, isOpen, onClose, 
           "
         >
           <LogoutIcon className="w-5 h-5 shrink-0" />
-          <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
+          <span
+            className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}
+          >
             Sign out
           </span>
         </button>
