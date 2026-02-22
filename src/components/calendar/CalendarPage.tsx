@@ -39,9 +39,8 @@ interface CallLog {
 
 interface Contact {
   id: string;
-  first_name: string;
-  last_name: string;
-  phone: string;
+  contact_name: string | null;
+  phone_number: string;
   email: string | null;
   status: string;
   company_id: string;
@@ -120,11 +119,11 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
         scheduledDate.setDate(scheduledDate.getDate() + 1);
         scheduledDate.setHours(10, 0, 0, 0);
 
-        const contact = contacts.find(c => c.phone === log.contact_phone);
+        const contact = contacts.find(c => c.phone_number === log.contact_phone);
         items.push({
           id: `retry-${log.id}`,
-          title: `No-Show Retry: ${contact ? `${contact.first_name} ${contact.last_name}` : log.contact_phone}`,
-          contact_name: contact ? `${contact.first_name} ${contact.last_name}` : 'Unknown',
+          title: `No-Show Retry: ${contact ? (contact.contact_name || 'Unknown') : log.contact_phone}`,
+          contact_name: contact ? (contact.contact_name || 'Unknown') : 'Unknown',
           contact_phone: log.contact_phone,
           scheduled_at: scheduledDate.toISOString(),
           duration_minutes: 5,
@@ -137,11 +136,11 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
 
       // Add completed calls
       if (log.completed) {
-        const contact = contacts.find(c => c.phone === log.contact_phone);
+        const contact = contacts.find(c => c.phone_number === log.contact_phone);
         items.push({
           id: `call-${log.id}`,
-          title: `Call: ${contact ? `${contact.first_name} ${contact.last_name}` : log.contact_phone}`,
-          contact_name: contact ? `${contact.first_name} ${contact.last_name}` : 'Unknown',
+          title: `Call: ${contact ? (contact.contact_name || 'Unknown') : log.contact_phone}`,
+          contact_name: contact ? (contact.contact_name || 'Unknown') : 'Unknown',
           contact_phone: log.contact_phone,
           scheduled_at: log.created_at,
           duration_minutes: Math.round((log.call_length || 0) / 60),
@@ -162,9 +161,9 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
         date.setHours(9 + (i % 8), (i % 4) * 15, 0, 0);
         items.push({
           id: `followup-${contact.id}`,
-          title: `Follow-up: ${contact.first_name} ${contact.last_name}`,
-          contact_name: `${contact.first_name} ${contact.last_name}`,
-          contact_phone: contact.phone,
+          title: `Follow-up: ${contact.contact_name || 'Unknown'}`,
+          contact_name: (contact.contact_name || 'Unknown'),
+          contact_phone: contact.phone_number,
           scheduled_at: date.toISOString(),
           duration_minutes: 10,
           type: 'follow_up',
@@ -832,7 +831,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                 <select className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none">
                   <option value="">Select a contact...</option>
                   {contacts.slice(0, 20).map(c => (
-                    <option key={c.id} value={c.id}>{c.first_name} {c.last_name} - {c.phone}</option>
+                    <option key={c.id} value={c.id}>{c.contact_name || 'Unknown'} - {c.phone_number}</option>
                   ))}
                 </select>
               </div>
