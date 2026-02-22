@@ -26,7 +26,7 @@ function buildSystemPrompt(context: {
   minutesUsed: number;
   minutesIncluded: number;
 }) {
-  return `You are Callengo AI, the intelligent internal assistant for the Callengo platform. You have complete knowledge of the software and the user's specific data.
+  return `You are Cali, the Callengo AI Assistant. You have complete knowledge of the software and the user's specific data. Always refer to yourself as "Cali" — never "Callengo AI".
 
 ## ABOUT CALLENGO
 Callengo is an AI-powered voice calling platform that helps businesses automate outbound calls using AI agents. Key features include:
