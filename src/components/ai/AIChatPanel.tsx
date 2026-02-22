@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { createClient } from '@/lib/supabase/client';
 
 interface Message {
@@ -369,7 +370,13 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
                   ? 'bg-gradient-to-br from-[var(--color-primary)] to-purple-600 text-white rounded-tr-md shadow-sm'
                   : 'bg-slate-100 text-slate-800 rounded-tl-md'
               }`}>
-                <div className="whitespace-pre-wrap">{msg.content}</div>
+                {msg.role === 'assistant' ? (
+                  <div className="cali-markdown prose prose-sm prose-slate max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_pre]:bg-slate-200 [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:text-xs [&_code]:bg-slate-200 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:text-slate-700 [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-1 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_strong]:font-semibold [&_a]:text-[var(--color-primary)] [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_blockquote]:text-slate-600 [&_hr]:my-2">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                )}
               </div>
               <p className={`text-[10px] text-slate-400 mt-1 ${msg.role === 'user' ? 'text-right' : ''}`}>
                 {formatTime(msg.created_at)}
