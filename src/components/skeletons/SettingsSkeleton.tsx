@@ -7,11 +7,11 @@ export default function SettingsSkeleton() {
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm animate-skeleton-slide">
         <div className="border-b border-slate-100">
           <div className="flex">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex-1 px-6 py-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={`flex-1 px-6 py-4 animate-skeleton-slide [animation-delay:${50 + i * 40}ms]`}>
                 <Skeleton className="h-6 w-32 mx-auto" />
               </div>
             ))}
@@ -20,7 +20,7 @@ export default function SettingsSkeleton() {
 
         <div className="p-6 space-y-6">
           {/* Hero Section */}
-          <div className="relative overflow-hidden gradient-bg-subtle rounded-2xl p-8">
+          <div className="relative overflow-hidden gradient-bg-subtle rounded-2xl p-8 animate-skeleton-slide [animation-delay:200ms]">
             <div className="relative z-10 flex items-center gap-6">
               <Skeleton className="w-24 h-24 rounded-2xl" />
               <div className="flex-1 space-y-3">
@@ -35,7 +35,7 @@ export default function SettingsSkeleton() {
           </div>
 
           {/* Form Fields */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-6 animate-skeleton-slide [animation-delay:300ms]">
             <div>
               <Skeleton className="h-5 w-32 mb-2" />
               <Skeleton className="h-12 w-full" />
@@ -46,17 +46,17 @@ export default function SettingsSkeleton() {
             </div>
           </div>
 
-          <div>
+          <div className="animate-skeleton-slide [animation-delay:370ms]">
             <Skeleton className="h-5 w-32 mb-2" />
             <Skeleton className="h-12 w-full" />
           </div>
 
-          <div>
+          <div className="animate-skeleton-slide [animation-delay:440ms]">
             <Skeleton className="h-5 w-32 mb-2" />
             <Skeleton className="h-32 w-full" />
           </div>
 
-          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full animate-skeleton-slide [animation-delay:510ms]" />
         </div>
       </div>
     </div>

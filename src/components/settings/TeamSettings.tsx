@@ -253,7 +253,7 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
                 ? `All seats are used. Additional seats cost $${planConfig.extraCost}/month each.`
                 : 'Upgrade your plan to add more team members.'}
             </p>
-            <a href="/settings?tab=billing" className="text-xs font-semibold text-amber-800 hover:text-amber-900 mt-1 inline-block">
+            <a href="/billing" className="text-xs font-semibold text-amber-800 hover:text-amber-900 mt-1 inline-block">
               Upgrade Plan &rarr;
             </a>
           </div>

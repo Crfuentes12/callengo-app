@@ -155,7 +155,7 @@ export default function Sidebar({
     [
       { name: 'Analytics', href: '/analytics', icon: ChartIcon },
       { name: 'Integrations', href: '/integrations', icon: IntegrationsIcon },
-      ...(isOwnerOrAdmin ? [{ name: 'Users', href: '/settings?tab=team', icon: TeamIcon }] : []),
+      ...(isOwnerOrAdmin ? [{ name: 'Team', href: '/team', icon: TeamIcon }] : []),
     ],
   ];
 
