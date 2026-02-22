@@ -43,12 +43,24 @@ export default async function AnalyticsPage() {
     .eq('company_id', userData!.company_id)
     .order('created_at', { ascending: false });
 
+  // Fetch campaigns with agent template names for reports/exports
+  const { data: campaigns } = await supabase
+    .from('agent_runs')
+    .select(`
+      id, name, status, total_contacts, completed_calls, successful_calls, failed_calls,
+      created_at, started_at, completed_at,
+      agent_templates (name)
+    `)
+    .eq('company_id', userData!.company_id)
+    .order('created_at', { ascending: false });
+
   return (
     <AnalyticsDashboard
       callLogs={callLogs || []}
       contacts={contacts || []}
       agentTemplates={agentTemplates || []}
       agentRuns={agentRuns || []}
+      campaigns={campaigns || []}
     />
   );
 }

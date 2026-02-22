@@ -1,7 +1,7 @@
 // components/analytics/AnalyticsDashboard.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { Database } from '@/types/supabase';
 import { formatDuration } from '@/lib/call-agent-utils';
 
@@ -10,11 +10,26 @@ type Contact = Database['public']['Tables']['contacts']['Row'];
 type AgentTemplate = Database['public']['Tables']['agent_templates']['Row'];
 type AgentRun = Database['public']['Tables']['agent_runs']['Row'];
 
+interface Campaign {
+  id: string;
+  name: string;
+  status: string;
+  total_contacts: number;
+  completed_calls: number;
+  successful_calls: number;
+  failed_calls: number;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  agent_templates: { name: string } | null;
+}
+
 interface AnalyticsDashboardProps {
   callLogs: CallLog[];
   contacts: Contact[];
   agentTemplates: AgentTemplate[];
   agentRuns: AgentRun[];
+  campaigns?: Campaign[];
 }
 
 interface DailyCallData {
@@ -36,8 +51,10 @@ export default function AnalyticsDashboard({
   callLogs,
   contacts,
   agentTemplates,
-  agentRuns
+  agentRuns,
+  campaigns = [],
 }: AnalyticsDashboardProps) {
+  const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
   // Calculate comprehensive KPIs
   const kpis = useMemo(() => {
     const totalCalls = callLogs.length;
@@ -173,6 +190,112 @@ export default function AnalyticsDashboard({
   const maxHourlyCalls = Math.max(...hourlyDistribution.map(h => h.count), 1);
 
   const [hoveredPoint, setHoveredPoint] = useState<{ index: number; chart: 'daily' | 'hourly' } | null>(null);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
+
+  // Export handlers
+  const handleExportCalls = useCallback(() => {
+    const headers = ['Date', 'Contact', 'Phone', 'Status', 'Duration (s)', 'Completed', 'Agent'];
+    const rows = callLogs.map(log => [
+      new Date(log.created_at).toLocaleDateString(),
+      (log as any).contact_name || log.contact_id || 'Unknown',
+      (log as any).contact_phone || '',
+      log.status || '',
+      log.call_length || 0,
+      log.completed ? 'Yes' : 'No',
+      log.agent_template_id || '',
+    ]);
+
+    if (exportFormat === 'csv') {
+      const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `callengo-calls-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const jsonData = callLogs.map(log => ({
+        date: new Date(log.created_at).toLocaleDateString(),
+        contact: (log as any).contact_name || log.contact_id || 'Unknown',
+        phone: (log as any).contact_phone || '',
+        status: log.status || '',
+        duration_seconds: log.call_length || 0,
+        completed: log.completed,
+      }));
+      const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `callengo-calls-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }, [callLogs, exportFormat]);
+
+  const handleExportCampaigns = useCallback(() => {
+    const data = campaigns.length > 0 ? campaigns : agentRuns;
+    const headers = ['Campaign', 'Status', 'Total Contacts', 'Completed', 'Successful', 'Failed', 'Success Rate', 'Created'];
+    const rows = data.map(c => [
+      c.name,
+      c.status,
+      c.total_contacts,
+      c.completed_calls,
+      c.successful_calls,
+      (c as any).failed_calls || (c.completed_calls - c.successful_calls),
+      c.completed_calls > 0 ? ((c.successful_calls / c.completed_calls) * 100).toFixed(1) + '%' : '0%',
+      new Date(c.created_at).toLocaleDateString(),
+    ]);
+
+    if (exportFormat === 'csv') {
+      const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `callengo-campaigns-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `callengo-campaigns-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }, [campaigns, agentRuns, exportFormat]);
+
+  const handleExportContacts = useCallback(() => {
+    const headers = ['Name', 'Status', 'Phone', 'Email', 'Created'];
+    const rows = contacts.map(c => [
+      `${(c as any).first_name || ''} ${(c as any).last_name || ''}`.trim() || 'Unknown',
+      c.status || '',
+      (c as any).phone || '',
+      (c as any).email || '',
+      new Date(c.created_at).toLocaleDateString(),
+    ]);
+
+    if (exportFormat === 'csv') {
+      const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `callengo-contacts-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const blob = new Blob([JSON.stringify(contacts, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `callengo-contacts-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }, [contacts, exportFormat]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -204,8 +327,56 @@ export default function AnalyticsDashboard({
                 Analytics Dashboard
               </h2>
               <p className="text-lg text-slate-500 font-medium">
-                Deep insights and performance metrics across all operations
+                Deep insights, performance metrics, and exportable reports
               </p>
+            </div>
+          </div>
+
+          {/* Period Selector & Export */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex bg-white/60 backdrop-blur-sm rounded-lg p-1 border border-slate-200">
+              {(['7d', '30d', '90d', 'all'] as const).map(period => (
+                <button
+                  key={period}
+                  onClick={() => setSelectedPeriod(period)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                    selectedPeriod === period
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {period === 'all' ? 'All Time' : period === '7d' ? '7 Days' : period === '30d' ? '30 Days' : '90 Days'}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={exportFormat}
+                onChange={(e) => setExportFormat(e.target.value as 'csv' | 'json')}
+                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white/60 backdrop-blur-sm text-slate-700 font-medium"
+              >
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+              </select>
+              <div className="relative group">
+                <button className="btn-secondary flex items-center gap-2 text-sm">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export Report
+                </button>
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50 hidden group-hover:block">
+                  <button onClick={handleExportCalls} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                    Export Calls
+                  </button>
+                  <button onClick={handleExportCampaigns} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                    Export Campaigns
+                  </button>
+                  <button onClick={handleExportContacts} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                    Export Contacts
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -581,6 +752,97 @@ export default function AnalyticsDashboard({
           );
         })()}
       </div>
+
+      {/* Campaign Summary Table (from Reports) */}
+      {(campaigns.length > 0 || agentRuns.length > 0) && (
+        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-slate-100 bg-white flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Campaign Reports</h3>
+                <p className="text-sm text-slate-500">Detailed breakdown of all campaigns</p>
+              </div>
+            </div>
+            <button onClick={handleExportCampaigns} className="btn-secondary text-sm flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Campaign</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Status</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Calls</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Success</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Progress</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(campaigns.length > 0 ? campaigns : agentRuns).map(campaign => {
+                  const rate = campaign.completed_calls > 0
+                    ? (campaign.successful_calls / campaign.completed_calls) * 100
+                    : 0;
+                  const progress = campaign.total_contacts > 0
+                    ? (campaign.completed_calls / campaign.total_contacts) * 100
+                    : 0;
+                  return (
+                    <tr key={campaign.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-6">
+                        <span className="text-sm font-medium text-slate-900">{campaign.name}</span>
+                      </td>
+                      <td className="py-3 px-6">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                          campaign.status === 'running' || campaign.status === 'active'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            : campaign.status === 'completed'
+                            ? 'bg-blue-50 border-blue-200 text-blue-700'
+                            : 'bg-slate-50 border-slate-200 text-slate-700'
+                        }`}>
+                          {campaign.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-6">
+                        <span className="text-sm text-slate-900">{campaign.completed_calls}/{campaign.total_contacts}</span>
+                      </td>
+                      <td className="py-3 px-6">
+                        <span className={`text-sm font-medium ${rate >= 70 ? 'text-emerald-600' : rate >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                          {rate.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="py-3 px-6">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden max-w-[100px]">
+                            <div
+                              className="h-full gradient-bg rounded-full transition-all"
+                              style={{ width: `${progress}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs text-slate-500 font-medium">{progress.toFixed(0)}%</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-6">
+                        <span className="text-xs text-slate-500">
+                          {new Date(campaign.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Active Campaigns */}
       {agentRuns.length > 0 && (
