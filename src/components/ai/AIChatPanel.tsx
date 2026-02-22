@@ -34,9 +34,9 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,10 +48,10 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
 
   // Focus input when panel opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isMinimized) {
       setTimeout(() => inputRef.current?.focus(), 300);
     }
-  }, [isOpen]);
+  }, [isOpen, isMinimized]);
 
   // Close on escape
   useEffect(() => {
@@ -60,20 +60,6 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
-
-  // Close on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node) && isOpen) {
-        onClose();
-      }
-    };
-    if (isOpen) {
-      // Delay to avoid the click that opened the panel
-      setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 100);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, onClose]);
 
   // Load conversations list
@@ -173,7 +159,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
         setActiveConversationId(data.conversationId);
         loadConversations();
       }
-    } catch (error: any) {
+    } catch {
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'assistant',
@@ -209,209 +195,241 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[60]" style={{ pointerEvents: 'none' }}>
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-[2px]" style={{ pointerEvents: 'auto' }} onClick={onClose} />
-
-      {/* Panel */}
-      <div
-        ref={panelRef}
-        className="absolute top-14 right-4 w-[420px] max-h-[calc(100vh-80px)] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-slideDown"
-        style={{ pointerEvents: 'auto' }}
+  // Minimized floating tab
+  if (isMinimized) {
+    return (
+      <button
+        onClick={() => setIsMinimized(false)}
+        className="fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 px-4 py-3 bg-white rounded-2xl shadow-xl border border-slate-200 hover:shadow-2xl hover:scale-[1.02] transition-all group"
       >
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-[var(--color-primary-50)] to-white shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-purple-600 flex items-center justify-center shadow-sm">
+          <svg className="w-4.5 h-4.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
+        </div>
+        <span className="text-sm font-semibold text-slate-700 group-hover:text-[var(--color-primary)] transition-colors">Cali</span>
+        {messages.length > 0 && (
+          <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className="fixed top-0 right-0 bottom-0 z-[60] w-[400px] max-w-[calc(100vw-48px)] flex flex-col bg-white border-l border-slate-200 shadow-2xl"
+      style={{ animation: 'slideInFromRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}
+    >
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-[var(--color-primary-50)] via-white to-purple-50/30 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-purple-600 flex items-center justify-center shadow-md">
                 <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
                 </svg>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">Callengo AI</h3>
-                <p className="text-[10px] text-slate-500 font-medium">Your intelligent assistant</p>
-              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white" />
             </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                title="Chat history"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
-              <button
-                onClick={startNewConversation}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                title="New conversation"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-              </button>
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Cali</h3>
+              <p className="text-[10px] text-slate-400 font-medium">AI Assistant &middot; Online</p>
             </div>
           </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className={`p-1.5 rounded-lg transition-colors ${showHistory ? 'text-[var(--color-primary)] bg-[var(--color-primary-50)]' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+              title="Chat history"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+            <button
+              onClick={startNewConversation}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              title="New conversation"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setIsMinimized(true)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              title="Minimize"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
+              </svg>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+              title="Close"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* History sidebar */}
-        {showHistory && (
-          <div className="border-b border-slate-100 max-h-48 overflow-y-auto bg-slate-50 animate-slideDown">
-            <div className="p-3">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">Recent Conversations</p>
-              {conversations.length === 0 ? (
-                <p className="text-xs text-slate-400 px-1 py-2">No conversations yet</p>
-              ) : (
-                <div className="space-y-0.5">
-                  {conversations.map(conv => (
-                    <button
-                      key={conv.id}
-                      onClick={() => {
-                        setActiveConversationId(conv.id);
-                        setShowHistory(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
-                        activeConversationId === conv.id
-                          ? 'bg-[var(--color-primary-50)] text-[var(--color-primary)] font-semibold'
-                          : 'text-slate-700 hover:bg-white'
-                      }`}
-                    >
-                      <p className="truncate font-medium">{conv.title || 'New conversation'}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{formatDate(conv.updated_at)}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
+      {/* History panel */}
+      {showHistory && (
+        <div className="border-b border-slate-100 max-h-52 overflow-y-auto bg-slate-50/80 animate-slideDown shrink-0">
+          <div className="p-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">Recent Conversations</p>
+            {conversations.length === 0 ? (
+              <p className="text-xs text-slate-400 px-1 py-2">No conversations yet</p>
+            ) : (
+              <div className="space-y-0.5">
+                {conversations.map(conv => (
+                  <button
+                    key={conv.id}
+                    onClick={() => {
+                      setActiveConversationId(conv.id);
+                      setShowHistory(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
+                      activeConversationId === conv.id
+                        ? 'bg-[var(--color-primary-50)] text-[var(--color-primary)] font-semibold'
+                        : 'text-slate-600 hover:bg-white'
+                    }`}
+                  >
+                    <p className="truncate font-medium">{conv.title || 'New conversation'}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{formatDate(conv.updated_at)}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full py-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-primary-50)] to-purple-50 flex items-center justify-center mb-4 border border-[var(--color-primary)]/10 shadow-sm">
+              <svg className="w-8 h-8 text-[var(--color-primary)]" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+              </svg>
+            </div>
+            <h4 className="text-base font-bold text-slate-900 mb-1">Hey {userName.split(' ')[0] || 'there'}!</h4>
+            <p className="text-xs text-slate-500 max-w-[280px] leading-relaxed mb-1">
+              I&apos;m <span className="font-semibold text-[var(--color-primary)]">Cali</span>, your AI assistant.
+            </p>
+            <p className="text-xs text-slate-400 max-w-[280px] leading-relaxed">
+              Ask me anything about your campaigns, calls, contacts, or how to use any feature.
+            </p>
+            <div className="grid grid-cols-2 gap-2 mt-5 w-full max-w-[320px]">
+              {[
+                { text: 'How are my campaigns?', icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z' },
+                { text: 'Show call analytics', icon: 'M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z' },
+                { text: 'Create a new agent', icon: 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z' },
+                { text: 'What integrations exist?', icon: 'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244' },
+              ].map((suggestion) => (
+                <button
+                  key={suggestion.text}
+                  onClick={() => {
+                    setInput(suggestion.text);
+                    setTimeout(() => handleSend(), 0);
+                  }}
+                  className="flex items-center gap-2.5 text-left px-3 py-2.5 text-[11px] text-slate-600 bg-slate-50 hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary)] border border-slate-200 hover:border-[var(--color-primary-200)] rounded-xl transition-all leading-snug group"
+                >
+                  <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-[var(--color-primary)] transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={suggestion.icon} />
+                  </svg>
+                  {suggestion.text}
+                </button>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[300px] max-h-[400px]">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--color-primary-50)] to-purple-50 flex items-center justify-center mb-4 border border-[var(--color-primary)]/10">
-                <svg className="w-7 h-7 text-[var(--color-primary)]" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
-                </svg>
-              </div>
-              <h4 className="text-sm font-bold text-slate-900 mb-1">Hi {userName.split(' ')[0] || 'there'}!</h4>
-              <p className="text-xs text-slate-500 max-w-[280px] leading-relaxed">
-                I'm your Callengo AI assistant. Ask me anything about your campaigns, calls, contacts, team, analytics, or how to use any feature.
-              </p>
-              <div className="grid grid-cols-2 gap-2 mt-4 w-full max-w-[300px]">
-                {[
-                  'How are my campaigns performing?',
-                  'Show me call analytics summary',
-                  'How do I create a new agent?',
-                  'What integrations are available?',
-                ].map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => {
-                      setInput(suggestion);
-                      setTimeout(() => handleSend(), 0);
-                    }}
-                    className="text-left px-3 py-2 text-[11px] text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors leading-snug"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] ${msg.role === 'user' ? 'order-2' : 'order-1'}`}>
-                {msg.role === 'assistant' && (
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <div className="w-5 h-5 rounded-md bg-gradient-to-br from-[var(--color-primary)] to-purple-600 flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                      </svg>
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-medium">Callengo AI</span>
-                  </div>
-                )}
-                <div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                  msg.role === 'user'
-                    ? 'bg-gradient-to-br from-[var(--color-primary)] to-purple-600 text-white rounded-tr-md'
-                    : 'bg-slate-100 text-slate-800 rounded-tl-md'
-                }`}>
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-                </div>
-                <p className={`text-[10px] text-slate-400 mt-1 ${msg.role === 'user' ? 'text-right' : ''}`}>
-                  {formatTime(msg.created_at)}
-                </p>
-              </div>
-            </div>
-          ))}
-
-          {isLoading && (
-            <div className="flex justify-start">
-              <div>
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] ${msg.role === 'user' ? 'order-2' : 'order-1'}`}>
+              {msg.role === 'assistant' && (
                 <div className="flex items-center gap-1.5 mb-1">
                   <div className="w-5 h-5 rounded-md bg-gradient-to-br from-[var(--color-primary)] to-purple-600 flex items-center justify-center">
                     <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                     </svg>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-medium">Callengo AI</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Cali</span>
                 </div>
-                <div className="bg-slate-100 rounded-2xl rounded-tl-md px-4 py-3">
-                  <div className="flex gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]"></div>
-                    <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]"></div>
-                    <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]"></div>
-                  </div>
+              )}
+              <div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                msg.role === 'user'
+                  ? 'bg-gradient-to-br from-[var(--color-primary)] to-purple-600 text-white rounded-tr-md shadow-sm'
+                  : 'bg-slate-100 text-slate-800 rounded-tl-md'
+              }`}>
+                <div className="whitespace-pre-wrap">{msg.content}</div>
+              </div>
+              <p className={`text-[10px] text-slate-400 mt-1 ${msg.role === 'user' ? 'text-right' : ''}`}>
+                {formatTime(msg.created_at)}
+              </p>
+            </div>
+          </div>
+        ))}
+
+        {isLoading && (
+          <div className="flex justify-start">
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-[var(--color-primary)] to-purple-600 flex items-center justify-center">
+                  <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                  </svg>
+                </div>
+                <span className="text-[10px] text-slate-400 font-medium">Cali is thinking...</span>
+              </div>
+              <div className="bg-slate-100 rounded-2xl rounded-tl-md px-4 py-3">
+                <div className="flex gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]"></div>
                 </div>
               </div>
             </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        <div className="p-3 border-t border-slate-100 bg-white shrink-0">
-          <div className="flex items-end gap-2">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask anything about Callengo..."
-              rows={1}
-              className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all max-h-24 overflow-y-auto"
-              style={{ minHeight: '40px' }}
-              disabled={isLoading}
-            />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              className="p-2.5 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-purple-600 text-white shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-              </svg>
-            </button>
           </div>
-          <p className="text-[10px] text-slate-400 mt-1.5 text-center">
-            Powered by AI &middot; Knows your Callengo data in real-time
-          </p>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="p-3 border-t border-slate-100 bg-white shrink-0">
+        <div className="flex items-end gap-2">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask Cali anything..."
+            rows={1}
+            className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all max-h-24 overflow-y-auto"
+            style={{ minHeight: '40px' }}
+            disabled={isLoading}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
+            className="p-2.5 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-purple-600 text-white shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+            </svg>
+          </button>
         </div>
+        <p className="text-[10px] text-slate-400 mt-1.5 text-center">
+          Powered by AI &middot; Knows your Callengo data
+        </p>
       </div>
     </div>
   );
