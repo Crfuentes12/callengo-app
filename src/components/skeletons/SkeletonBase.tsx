@@ -22,11 +22,9 @@ export function Skeleton({ className = '', variant = 'default', width, height }:
 
   return (
     <div
-      className={`relative overflow-hidden bg-slate-200 ${variantClasses[variant]} ${className}`}
+      className={`bg-slate-200 skeleton-shimmer ${variantClasses[variant]} ${className}`}
       style={style}
-    >
-      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-    </div>
+    />
   );
 }
 

@@ -284,6 +284,15 @@ textarea:focus-visible {
   }
 }
 
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 @keyframes scaleIn {
   from {
     opacity: 0;
@@ -296,11 +305,11 @@ textarea:focus-visible {
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
+  0%, 100% {
+    opacity: 1;
   }
-  100% {
-    background-position: 200% 0;
+  50% {
+    opacity: 0.5;
   }
 }
 
@@ -326,9 +335,7 @@ textarea:focus-visible {
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 1.2s ease-in-out infinite;
 }
 
 .animate-spin-slow {
@@ -337,12 +344,12 @@ textarea:focus-visible {
 
 /* ============================================
    LOADING SKELETON
+   Global skeleton shimmer: a fast, subtle glow
+   effect. Edit the keyframes & duration here to
+   control all skeletons app-wide.
    ============================================ */
-.skeleton {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 6px;
+.skeleton-shimmer {
+  animation: shimmer 1.2s ease-in-out infinite;
 }
 
 /* ============================================

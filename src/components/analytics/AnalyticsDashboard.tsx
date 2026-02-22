@@ -383,7 +383,7 @@ export default function AnalyticsDashboard({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
                 <span className="text-xs text-slate-500 font-semibold">Total Calls</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{kpis.totalCalls.toLocaleString()}</span>
@@ -391,7 +391,7 @@ export default function AnalyticsDashboard({
             </div>
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                 <span className="text-xs text-slate-500 font-semibold">Success Rate</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{kpis.successRate.toFixed(0)}%</span>
@@ -399,7 +399,7 @@ export default function AnalyticsDashboard({
             </div>
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
                 <span className="text-xs text-slate-500 font-semibold">Total Contacts</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{kpis.totalContacts.toLocaleString()}</span>
@@ -407,7 +407,7 @@ export default function AnalyticsDashboard({
             </div>
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
                 <span className="text-xs text-slate-500 font-semibold">Avg Duration</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{formatDuration(kpis.avgDuration)}</span>

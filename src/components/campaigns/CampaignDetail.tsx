@@ -195,7 +195,7 @@ export default function CampaignDetail({
     return (
       <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${config.bgColor} ${config.color}`}>
         {(status === 'running' || status === 'active') && (
-          <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
+          <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>
         )}
         {config.text}
       </span>

@@ -216,6 +216,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         className="relative p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        title="Notifications"
       >
         <BellIcon className="w-5 h-5" />
         {unreadCount > 0 && (

@@ -387,7 +387,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span className="text-xs text-slate-500 font-semibold">Today</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{stats.todayCount}</span>
@@ -395,7 +395,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
             </div>
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                 <span className="text-xs text-slate-500 font-semibold">Upcoming</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{stats.upcomingCount}</span>
@@ -403,7 +403,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
             </div>
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
                 <span className="text-xs text-slate-500 font-semibold">No-Show Retries</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{stats.noShowRetries}</span>
@@ -411,7 +411,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
             </div>
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
                 <span className="text-xs text-slate-500 font-semibold">Total Scheduled</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{stats.scheduledCount}</span>

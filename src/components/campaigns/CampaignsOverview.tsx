@@ -170,7 +170,7 @@ export default function CampaignsOverview({
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-slate-500">Active</span>
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
           </div>
           <div className="text-2xl font-bold text-slate-900">{stats.active}</div>
           <div className="text-xs text-slate-500 mt-1">Running campaigns</div>
