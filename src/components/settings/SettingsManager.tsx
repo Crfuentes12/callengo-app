@@ -8,7 +8,6 @@ import { Database } from '@/types/supabase';
 import BillingSettings from './BillingSettings';
 import CallSettings from './CallSettings';
 import NotificationSettings from './NotificationSettings';
-import TeamSettings from './TeamSettings';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 
 type Company = Database['public']['Tables']['companies']['Row'];
@@ -31,12 +30,12 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing' | 'notifications' | 'team'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing' | 'notifications'>('company');
 
   // Handle URL query params for deep linking (e.g., from Integrations → Twilio)
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'calling' || tab === 'billing' || tab === 'notifications' || tab === 'company' || tab === 'team') {
+    if (tab === 'calling' || tab === 'billing' || tab === 'notifications' || tab === 'company') {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -258,7 +257,6 @@ export default function SettingsManager({ company: initialCompany, settings: ini
               { id: 'company', label: 'Company Info', icon: '🏢' },
               { id: 'calling', label: 'Call Settings', icon: '📞' },
               { id: 'billing', label: 'Billing & Plans', icon: '💳' },
-              { id: 'team', label: 'Team', icon: '👥' },
               { id: 'notifications', label: 'Notifications', icon: '🔔' },
             ].map((tab) => (
               <button
@@ -479,11 +477,6 @@ export default function SettingsManager({ company: initialCompany, settings: ini
             }>
               <BillingSettings companyId={initialCompany.id} />
             </Suspense>
-          )}
-
-          {/* Team Tab */}
-          {activeTab === 'team' && (
-            <TeamSettings companyId={initialCompany.id} currentUser={user} />
           )}
 
           {/* Notifications Tab */}

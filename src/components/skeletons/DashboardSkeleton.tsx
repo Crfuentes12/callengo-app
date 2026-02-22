@@ -10,17 +10,17 @@ export default function DashboardSkeleton() {
       <div className="relative overflow-hidden gradient-bg-subtle rounded-2xl p-8 border border-[var(--color-primary)]/10">
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-6">
-            <Skeleton className="w-20 h-20 rounded-2xl" />
+            <Skeleton className="w-20 h-20 rounded-2xl animate-skeleton-slide" />
             <div className="flex-1">
-              <Skeleton className="h-9 w-72 mb-3" />
-              <Skeleton className="h-5 w-96" />
+              <Skeleton className="h-9 w-72 mb-3 animate-skeleton-slide [animation-delay:50ms]" />
+              <Skeleton className="h-5 w-96 animate-skeleton-slide [animation-delay:100ms]" />
             </div>
           </div>
 
           {/* Quick Stats in Banner */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white/60 rounded-xl p-4 border border-slate-200/60">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={`bg-white/60 rounded-xl p-4 border border-slate-200/60 animate-skeleton-slide [animation-delay:${150 + i * 50}ms]`}>
                 <Skeleton className="h-3 w-24 mb-2" />
                 <Skeleton className="h-8 w-16" />
               </div>
@@ -31,8 +31,8 @@ export default function DashboardSkeleton() {
 
       {/* Main Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className={`bg-white rounded-xl p-6 border border-slate-200 shadow-sm animate-skeleton-slide [animation-delay:${350 + i * 60}ms]`}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <Skeleton className="h-5 w-32 mb-2" />
@@ -48,7 +48,7 @@ export default function DashboardSkeleton() {
       {/* Usage & Campaigns Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Usage Card */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm animate-skeleton-slide [animation-delay:550ms]">
           <Skeleton className="h-6 w-48 mb-4" />
           <div className="space-y-4">
             <div>
@@ -69,20 +69,20 @@ export default function DashboardSkeleton() {
         </div>
 
         {/* Campaigns List */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm animate-skeleton-slide [animation-delay:600ms]">
           <div className="flex items-center justify-between mb-4">
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-9 w-32 rounded-lg" />
           </div>
           <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={`p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200 animate-skeleton-slide [animation-delay:${650 + i * 60}ms]`}>
                 <div className="flex items-start justify-between mb-3">
                   <Skeleton className="h-5 w-40" />
                   <Skeleton className="h-6 w-24 rounded-lg" />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
-                  {[...Array(3)].map((_, j) => (
+                  {[0, 1, 2].map((j) => (
                     <div key={j}>
                       <Skeleton className="h-3 w-20 mb-1" />
                       <Skeleton className="h-6 w-12" />
@@ -96,17 +96,17 @@ export default function DashboardSkeleton() {
       </div>
 
       {/* Recent Calls Table */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm animate-skeleton-slide [animation-delay:850ms]">
         <Skeleton className="h-6 w-48 mb-4" />
         <div className="space-y-3">
           <div className="grid grid-cols-5 gap-4 pb-3 border-b border-slate-200">
-            {[...Array(5)].map((_, i) => (
+            {[0, 1, 2, 3, 4].map((i) => (
               <Skeleton key={i} className="h-4 w-20" />
             ))}
           </div>
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="grid grid-cols-5 gap-4 py-3">
-              {[...Array(5)].map((_, j) => (
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className={`grid grid-cols-5 gap-4 py-3 animate-skeleton-slide [animation-delay:${900 + i * 40}ms]`}>
+              {[0, 1, 2, 3, 4].map((j) => (
                 <Skeleton key={j} className="h-4 w-full" />
               ))}
             </div>

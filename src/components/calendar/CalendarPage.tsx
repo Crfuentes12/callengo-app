@@ -1,7 +1,7 @@
 // components/calendar/CalendarPage.tsx
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { SiGooglecalendar, SiCalendly } from 'react-icons/si';
 
@@ -101,6 +101,15 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
   const [showIntegrationPanel, setShowIntegrationPanel] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'call' | 'follow_up' | 'no_show_retry' | 'meeting'>('all');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every minute for the day view time indicator
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
 
   // Calendar integrations state
   const [integrations, setIntegrations] = useState<CalendarIntegration[]>([
@@ -523,7 +532,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
 
       {/* Calendar Controls */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <button onClick={() => navigateMonth(-1)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
@@ -540,9 +549,9 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
               {viewMode === 'week' ? weekLabel : viewMode === 'day' ? currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : monthYearLabel}
             </h3>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Filter */}
-            <div className="flex bg-slate-100 rounded-lg p-0.5">
+          <div className="flex items-center gap-3 flex-nowrap shrink-0">
+            {/* Filter - single line with nowrap */}
+            <div className="flex bg-slate-100 rounded-lg p-0.5 flex-nowrap shrink-0">
               {[
                 { id: 'all', label: 'All' },
                 { id: 'call', label: 'Calls' },
@@ -553,7 +562,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                 <button
                   key={f.id}
                   onClick={() => setFilterType(f.id as typeof filterType)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
                     filterType === f.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -561,13 +570,13 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                 </button>
               ))}
             </div>
-            {/* View Mode */}
-            <div className="flex bg-slate-100 rounded-lg p-0.5">
+            {/* View Mode - single line with nowrap */}
+            <div className="flex bg-slate-100 rounded-lg p-0.5 flex-nowrap shrink-0">
               {(['month', 'week', 'day', 'agenda'] as ViewMode[]).map(mode => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all capitalize ${
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all capitalize whitespace-nowrap ${
                     viewMode === mode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -653,68 +662,100 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
         {/* Day View */}
         {viewMode === 'day' && (
           <div className="p-4">
-            <div className="space-y-2">
-              {Array.from({ length: 12 }, (_, i) => i + 8).map(hour => {
-                const hourEvents = filteredAppointments.filter(a => {
-                  const aDate = new Date(a.scheduled_at);
-                  return aDate.toDateString() === currentDate.toDateString() && aDate.getHours() === hour;
-                });
-
+            <div className="relative">
+              {/* Current time indicator */}
+              {(() => {
+                const isViewingToday = currentDate.toDateString() === currentTime.toDateString();
+                if (!isViewingToday) return null;
+                const currentHour = currentTime.getHours();
+                const currentMinute = currentTime.getMinutes();
+                // Only show if current time is within the displayed range (8AM-8PM)
+                if (currentHour < 8 || currentHour >= 20) return null;
+                // Calculate position: each hour block is ~68px (60px min-h + 8px gap)
+                const hourOffset = currentHour - 8;
+                const minuteOffset = currentMinute / 60;
+                const topPosition = (hourOffset + minuteOffset) * 68;
                 return (
-                  <div key={hour} className="flex gap-4">
-                    <div className="w-16 text-right text-xs text-slate-400 font-medium py-3 shrink-0">
-                      {hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
+                  <div
+                    className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
+                    style={{ top: `${topPosition}px` }}
+                  >
+                    <div className="w-16 shrink-0 flex justify-end pr-2">
+                      <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200">
+                        {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      </span>
                     </div>
-                    <div className={`flex-1 min-h-[60px] border-t border-slate-100 py-2 ${hourEvents.length > 0 ? '' : ''}`}>
-                      {hourEvents.length > 0 ? (
-                        <div className="space-y-2">
-                          {hourEvents.map(event => {
-                            const style = EVENT_TYPE_STYLES[event.type] || EVENT_TYPE_STYLES.call;
-                            const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
-                            return (
-                              <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group`}>
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
-                                  <div className="min-w-0">
-                                    <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
-                                    <div className="text-xs text-slate-500">
-                                      {new Date(event.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {event.duration_minutes}min
-                                      {event.source !== 'manual' && <span className="ml-2 opacity-60">via {event.source.replace('_', ' ')}</span>}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                  {event.status === 'scheduled' && (
-                                    <>
-                                      <button
-                                        onClick={() => handleMarkNoShow(event.id)}
-                                        className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                                      >
-                                        No-Show
-                                      </button>
-                                      <button
-                                        onClick={() => handleReschedule(event.id)}
-                                        className="px-2.5 py-1 text-xs font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] rounded-lg transition-colors"
-                                      >
-                                        Reschedule
-                                      </button>
-                                    </>
-                                  )}
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>
-                                    {event.status.replace('_', ' ')}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="h-full"></div>
-                      )}
+                    <div className="flex-1 flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-gradient-to-r from-red-500 to-rose-500 shadow-md shadow-red-200 shrink-0 -ml-1.5" />
+                      <div className="flex-1 h-[2px] bg-gradient-to-r from-red-500 via-rose-400 to-transparent" />
                     </div>
                   </div>
                 );
-              })}
+              })()}
+
+              <div className="space-y-2">
+                {Array.from({ length: 12 }, (_, i) => i + 8).map(hour => {
+                  const hourEvents = filteredAppointments.filter(a => {
+                    const aDate = new Date(a.scheduled_at);
+                    return aDate.toDateString() === currentDate.toDateString() && aDate.getHours() === hour;
+                  });
+
+                  return (
+                    <div key={hour} className="flex gap-4">
+                      <div className="w-16 text-right text-xs text-slate-400 font-medium py-3 shrink-0">
+                        {hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
+                      </div>
+                      <div className="flex-1 min-h-[60px] border-t border-slate-100 py-2">
+                        {hourEvents.length > 0 ? (
+                          <div className="space-y-2">
+                            {hourEvents.map(event => {
+                              const style = EVENT_TYPE_STYLES[event.type] || EVENT_TYPE_STYLES.call;
+                              const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
+                              return (
+                                <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group`}>
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
+                                    <div className="min-w-0">
+                                      <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
+                                      <div className="text-xs text-slate-500">
+                                        {new Date(event.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {event.duration_minutes}min
+                                        {event.source !== 'manual' && <span className="ml-2 opacity-60">via {event.source.replace('_', ' ')}</span>}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                    {event.status === 'scheduled' && (
+                                      <>
+                                        <button
+                                          onClick={() => handleMarkNoShow(event.id)}
+                                          className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                        >
+                                          No-Show
+                                        </button>
+                                        <button
+                                          onClick={() => handleReschedule(event.id)}
+                                          className="px-2.5 py-1 text-xs font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] rounded-lg transition-colors"
+                                        >
+                                          Reschedule
+                                        </button>
+                                      </>
+                                    )}
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>
+                                      {event.status.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="h-full"></div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
