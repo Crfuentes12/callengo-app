@@ -80,17 +80,17 @@ export default function CommandCenter({ isOpen, onClose, companyId }: CommandCen
         // Search contacts
         const { data: contacts } = await supabase
           .from('contacts')
-          .select('id, first_name, last_name, phone, email')
+          .select('id, contact_name, phone_number, email')
           .eq('company_id', companyId)
-          .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,phone.ilike.%${query}%,email.ilike.%${query}%`)
+          .or(`contact_name.ilike.%${query}%,phone_number.ilike.%${query}%,email.ilike.%${query}%`)
           .limit(5);
 
         contacts?.forEach(c => {
           results.push({
             id: `c-${c.id}`,
             type: 'contact',
-            title: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
-            subtitle: c.phone || c.email || '',
+            title: c.contact_name || 'Unknown',
+            subtitle: c.phone_number || c.email || '',
             href: '/contacts',
             icon: '👤',
           });
