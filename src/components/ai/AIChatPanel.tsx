@@ -2,8 +2,37 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { createClient } from '@/lib/supabase/client';
+
+const PAGE_ROUTES: Record<string, string> = {
+  'Dashboard': '/dashboard',
+  'Contacts': '/contacts',
+  'Campaigns': '/campaigns',
+  'Agents': '/agents',
+  'Call History': '/calls',
+  'Calls': '/calls',
+  'Calendar': '/calendar',
+  'Voicemails': '/voicemails',
+  'Follow-ups': '/follow-ups',
+  'Follow-Ups': '/follow-ups',
+  'Analytics': '/analytics',
+  'Integrations': '/integrations',
+  'Settings': '/settings',
+  'Billing': '/billing',
+};
+
+// Convert bold page names like **Campaigns** into markdown links if the AI didn't already
+function linkifyPageNames(content: string): string {
+  let result = content;
+  for (const [name, route] of Object.entries(PAGE_ROUTES)) {
+    // Match **PageName** that isn't already inside a markdown link
+    const boldPattern = new RegExp(`\\*\\*${name}\\*\\*(?!\\])`, 'g');
+    result = result.replace(boldPattern, `[**${name}**](${route})`);
+  }
+  return result;
+}
 
 interface Message {
   id: string;
@@ -28,6 +57,7 @@ interface AIChatPanelProps {
 }
 
 export default function AIChatPanel({ isOpen, onClose, userId, companyId, userName }: AIChatPanelProps) {
+  const router = useRouter();
   const supabase = createClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -371,8 +401,31 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
                   : 'bg-slate-100 text-slate-800 rounded-tl-md'
               }`}>
                 {msg.role === 'assistant' ? (
-                  <div className="cali-markdown prose prose-sm prose-slate max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_pre]:bg-slate-200 [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:text-xs [&_code]:bg-slate-200 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:text-slate-700 [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-1 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_strong]:font-semibold [&_a]:text-[var(--color-primary)] [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_blockquote]:text-slate-600 [&_hr]:my-2">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <div className="cali-markdown prose prose-sm prose-slate max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_pre]:bg-slate-200 [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:text-xs [&_code]:bg-slate-200 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:text-slate-700 [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-1 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_strong]:font-semibold [&_a]:text-[var(--color-primary)] [&_a]:underline [&_a]:cursor-pointer [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_blockquote]:text-slate-600 [&_hr]:my-2">
+                    <ReactMarkdown
+                      components={{
+                        a: ({ href, children }) => {
+                          const isInternal = href?.startsWith('/');
+                          if (isInternal) {
+                            return (
+                              <a
+                                href={href}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  router.push(href!);
+                                  onClose();
+                                }}
+                              >
+                                {children}
+                              </a>
+                            );
+                          }
+                          return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+                        },
+                      }}
+                    >
+                      {linkifyPageNames(msg.content)}
+                    </ReactMarkdown>
                   </div>
                 ) : (
                   <div className="whitespace-pre-wrap">{msg.content}</div>
