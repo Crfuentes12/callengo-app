@@ -1,8 +1,9 @@
 // components/integrations/IntegrationsPage.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { createBrowserClient } from '@supabase/ssr';
 import { FaSalesforce, FaHubspot, FaSlack } from 'react-icons/fa';
 import { SiZapier, SiTwilio, SiGooglecalendar, SiCalendly, SiGooglesheets } from 'react-icons/si';
 import { MdOutlineWebhook } from 'react-icons/md';
@@ -37,11 +38,20 @@ export default function IntegrationsPage() {
   const [filter, setFilter] = useState<'all' | 'crm' | 'communication' | 'telephony' | 'automation' | 'productivity' | 'calendar'>('all');
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
   const [calendlyConnected, setCalendlyConnected] = useState(false);
+  const [twilioConnected, setTwilioConnected] = useState(false);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  }, []);
 
   // Fetch real integration status on mount
   useEffect(() => {
     async function fetchStatus() {
       try {
+        // Fetch calendar integrations status
         const res = await fetch('/api/integrations/status');
         if (res.ok) {
           const data = await res.json();
@@ -50,12 +60,73 @@ export default function IntegrationsPage() {
           if (googleStatus?.connected) setGoogleCalendarConnected(true);
           if (calendlyStatus?.connected) setCalendlyConnected(true);
         }
+
+        // Fetch Twilio status from company_settings
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('company_id')
+            .eq('id', user.id)
+            .single();
+
+          if (userData?.company_id) {
+            const { data: companySettings } = await supabase
+              .from('company_settings')
+              .select('settings')
+              .eq('company_id', userData.company_id)
+              .single();
+
+            const settings = companySettings?.settings as Record<string, unknown> | null;
+            if (settings?.twilio_encrypted_key) {
+              setTwilioConnected(true);
+            }
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch integration status:', error);
       }
     }
     fetchStatus();
   }, []);
+
+  const handleDisconnectGoogle = useCallback(async () => {
+    setDisconnecting('google-calendar');
+    try {
+      const res = await fetch('/api/integrations/google-calendar/disconnect', { method: 'POST' });
+      if (res.ok) {
+        setGoogleCalendarConnected(false);
+        showToast('Google Calendar disconnected', 'success');
+      } else {
+        showToast('Failed to disconnect Google Calendar', 'error');
+      }
+    } catch {
+      showToast('Failed to disconnect Google Calendar', 'error');
+    } finally {
+      setDisconnecting(null);
+    }
+  }, [showToast]);
+
+  const handleDisconnectCalendly = useCallback(async () => {
+    setDisconnecting('calendly');
+    try {
+      const res = await fetch('/api/integrations/calendly/disconnect', { method: 'POST' });
+      if (res.ok) {
+        setCalendlyConnected(false);
+        showToast('Calendly disconnected', 'success');
+      } else {
+        showToast('Failed to disconnect Calendly', 'error');
+      }
+    } catch {
+      showToast('Failed to disconnect Calendly', 'error');
+    } finally {
+      setDisconnecting(null);
+    }
+  }, [showToast]);
 
   const integrations: Integration[] = [
     {
@@ -112,7 +183,7 @@ export default function IntegrationsPage() {
       description: 'Bring your own Twilio phone number for outbound and inbound calls. Full BYOP integration with number management.',
       category: 'telephony',
       categoryLabel: 'Telephony',
-      status: 'available',
+      status: twilioConnected ? 'connected' : 'available',
       color: 'bg-red-50',
       iconColor: 'text-[#F22F46]',
       icon: <SiTwilio className="w-6 h-6" />,
@@ -133,8 +204,6 @@ export default function IntegrationsPage() {
       action: () => {
         if (!googleCalendarConnected) {
           window.location.href = '/api/integrations/google-calendar/connect';
-        } else {
-          router.push('/calendar');
         }
       },
     },
@@ -152,8 +221,6 @@ export default function IntegrationsPage() {
       action: () => {
         if (!calendlyConnected) {
           window.location.href = '/api/integrations/calendly/connect';
-        } else {
-          router.push('/calendar');
         }
       },
     },
@@ -197,8 +264,40 @@ export default function IntegrationsPage() {
     { id: 'productivity', label: 'Productivity' },
   ];
 
+  const handleDisconnect = (integrationId: string) => {
+    if (integrationId === 'google-calendar') handleDisconnectGoogle();
+    else if (integrationId === 'calendly') handleDisconnectCalendly();
+    else if (integrationId === 'twilio') router.push('/settings?tab=calling&section=phone-numbers');
+  };
+
+  const getButtonLabel = (integration: Integration): string => {
+    if (integration.status === 'connected') {
+      if (integration.id === 'twilio') return 'Configured';
+      return 'Connected';
+    }
+    if (integration.status === 'coming_soon') return 'Coming Soon';
+    if (integration.id === 'twilio') return 'Configure Phone Numbers';
+    if (integration.id === 'google-calendar') return 'Connect Google Calendar';
+    if (integration.id === 'calendly') return 'Connect Calendly';
+    return 'Connect';
+  };
+
+  const getDisconnectLabel = (integrationId: string): string => {
+    if (integrationId === 'twilio') return 'Manage';
+    return 'Disconnect';
+  };
+
   return (
     <div className="space-y-6">
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg border text-sm font-medium animate-slideDown ${
+          toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Integrations</h1>
@@ -228,7 +327,9 @@ export default function IntegrationsPage() {
           <div
             key={integration.id}
             className={`bg-white rounded-xl border p-6 hover:shadow-md transition-shadow flex flex-col ${
-              integration.status === 'available'
+              integration.status === 'connected'
+                ? 'border-emerald-200'
+                : integration.status === 'available'
                 ? 'border-[var(--color-primary)]/30 shadow-sm'
                 : 'border-slate-200'
             }`}
@@ -244,6 +345,11 @@ export default function IntegrationsPage() {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
+                {integration.status === 'connected' && (
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide">
+                    {integration.id === 'twilio' ? 'Configured' : 'Connected'}
+                  </span>
+                )}
                 {integration.status === 'available' && (
                   <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide">
                     Available
@@ -259,29 +365,38 @@ export default function IntegrationsPage() {
 
             <p className="text-sm text-slate-600 mb-4 leading-relaxed flex-1">{integration.description}</p>
 
-            <button
-              disabled={integration.status === 'coming_soon'}
-              onClick={integration.action}
-              className={`w-full py-2.5 rounded-lg font-medium text-sm transition-all ${
-                integration.status === 'connected'
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : integration.status === 'coming_soon'
-                  ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
-                  : 'btn-primary w-full justify-center'
-              }`}
-            >
-              {integration.status === 'connected'
-                ? (integration.id === 'google-calendar' || integration.id === 'calendly' ? 'Connected - Go to Calendar' : 'Connected')
-                : integration.status === 'coming_soon'
-                ? 'Coming Soon'
-                : integration.id === 'twilio'
-                ? 'Configure Phone Numbers'
-                : integration.id === 'google-calendar'
-                ? 'Connect Google Calendar'
-                : integration.id === 'calendly'
-                ? 'Connect Calendly'
-                : 'Connect'}
-            </button>
+            {integration.status === 'connected' ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 py-2.5 rounded-lg font-medium text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 text-center flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  {getButtonLabel(integration)}
+                </div>
+                <button
+                  onClick={() => handleDisconnect(integration.id)}
+                  disabled={disconnecting === integration.id}
+                  className="px-3 py-2.5 rounded-lg font-medium text-sm text-red-600 hover:bg-red-50 border border-red-200 transition-all disabled:opacity-50"
+                >
+                  {disconnecting === integration.id ? (
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : getDisconnectLabel(integration.id)}
+                </button>
+              </div>
+            ) : (
+              <button
+                disabled={integration.status === 'coming_soon'}
+                onClick={integration.action}
+                className={`w-full py-2.5 rounded-lg font-medium text-sm transition-all ${
+                  integration.status === 'coming_soon'
+                    ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
+                    : 'btn-primary w-full justify-center'
+                }`}
+              >
+                {getButtonLabel(integration)}
+              </button>
+            )}
           </div>
         ))}
       </div>
