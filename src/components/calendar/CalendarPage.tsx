@@ -1317,7 +1317,7 @@ export default function CalendarPage({
                       return (
                         <div
                           key={dayIdx}
-                          onClick={() => { if (isEmpty) openScheduleFromSlot(day.date, hour); }}
+                          onMouseDown={(e) => handleGridMouseDown(e, dayIdx, day.date, HOUR_HEIGHT_WEEK)}
                           className={`h-12 border-t border-l ${dayIdx === 6 ? 'border-r' : ''} ${
                             slotWorking
                               ? isToday(day.date) ? 'bg-[var(--color-primary-50)]/20 border-slate-200' : 'bg-white border-slate-200'
@@ -1339,15 +1339,16 @@ export default function CalendarPage({
                             const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
                             const startMin = getMinuteInTz(new Date(event.start_time));
                             const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
-                            const topOffset = (startMin / 60) * 48;
-                            const height = Math.max((durationMin / 60) * 48, 18);
+                            const isDragging = eventDrag?.eventId === event.id;
+                            const topOffset = isDragging ? (eventDrag.currentStartMinutes % 60) / 60 * 48 : (startMin / 60) * 48;
+                            const height = isDragging ? Math.max(((eventDrag.currentEndMinutes - eventDrag.currentStartMinutes) / 60) * 48, 18) : Math.max((durationMin / 60) * 48, 18);
                             return (
                               <div
                                 key={event.id}
-                                className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10`}
+                                className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-grab hover:shadow-sm transition-shadow z-10 ${isDragging ? 'opacity-70 shadow-lg' : ''}`}
                                 style={{ top: `${topOffset}px`, height: `${height}px` }}
                                 title={`${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`}
-                                onClick={e => e.stopPropagation()}
+                                onMouseDown={(e) => handleEventDragStart(e, event, 'move', HOUR_HEIGHT_WEEK)}
                               >
                                 <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
                                 {height >= 28 && (
@@ -1355,9 +1356,14 @@ export default function CalendarPage({
                                     {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })}
                                   </div>
                                 )}
+                                <div
+                                  className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-[var(--color-primary)]/20 rounded-b"
+                                  onMouseDown={(e) => { e.stopPropagation(); handleEventDragStart(e, event, 'resize', HOUR_HEIGHT_WEEK); }}
+                                />
                               </div>
                             );
                           })}
+                          <DragPreview hourHeight={HOUR_HEIGHT_WEEK} dayIdx={dayIdx} colCount={7} />
                         </div>
                       );
                     })}
@@ -1421,7 +1427,7 @@ export default function CalendarPage({
                 );
               })()}
 
-              <div>
+              <div data-time-grid onMouseMove={(e) => { handleGridMouseMove(e, HOUR_HEIGHT_DAY); handleEventDragMove(e, HOUR_HEIGHT_DAY); }} onMouseUp={handleGridMouseUp} style={{ userSelect: dragState?.active || eventDrag ? 'none' : undefined }}>
                 {Array.from({ length: 24 }, (_, i) => i).map(hour => {
                   const hourEvents = filteredEvents.filter(e => {
                     const eDate = new Date(e.start_time);
@@ -1442,7 +1448,7 @@ export default function CalendarPage({
                         {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                       </div>
                       <div
-                        onClick={() => { if (isEmpty) openScheduleFromSlot(currentDate, hour); }}
+                        onMouseDown={(e) => handleGridMouseDown(e, 0, currentDate, HOUR_HEIGHT_DAY)}
                         className={`flex-1 min-h-[52px] border-t relative ${
                           slotWorking ? 'bg-white border-slate-200' : !dayWorking ? 'border-slate-100' : 'bg-slate-50/60 border-slate-100'
                         } ${isFirstWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${isLastWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${
@@ -1461,8 +1467,13 @@ export default function CalendarPage({
                           const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
                           const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
                           const isLoading = actionLoading === event.id;
+                          const isDragging = eventDrag?.eventId === event.id;
                           return (
-                            <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1`} onClick={e => e.stopPropagation()}>
+                            <div
+                              key={event.id}
+                              className={`relative p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1 cursor-grab ${isDragging ? 'opacity-70 shadow-lg' : ''}`}
+                              onMouseDown={(e) => handleEventDragStart(e, event, 'move', HOUR_HEIGHT_DAY)}
+                            >
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
                                 <div className="min-w-0">
@@ -1514,9 +1525,14 @@ export default function CalendarPage({
                                   {event.status.replace(/_/g, ' ')}
                                 </span>
                               </div>
+                              <div
+                                className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-[var(--color-primary)]/20 rounded-b"
+                                onMouseDown={(e) => { e.stopPropagation(); handleEventDragStart(e, event, 'resize', HOUR_HEIGHT_DAY); }}
+                              />
                             </div>
                           );
                         })}
+                        <DragPreview hourHeight={HOUR_HEIGHT_DAY} dayIdx={0} colCount={1} />
                       </div>
                     </div>
                   );
