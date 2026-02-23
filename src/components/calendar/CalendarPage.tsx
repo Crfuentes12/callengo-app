@@ -3,10 +3,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SiGooglecalendar, SiGooglemeet } from 'react-icons/si';
-import { FaMicrosoft } from 'react-icons/fa';
-import { BsMicrosoftTeams } from 'react-icons/bs';
-import { BiLogoZoom } from 'react-icons/bi';
+import { GoogleCalendarLogo, MicrosoftLogo, MicrosoftTeamsLogo, GoogleMeetLogo, ZoomLogo } from '@/components/icons/IntegrationLogos';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
 
 // ============================================================================
@@ -190,6 +187,9 @@ export default function CalendarPage({
   const getDateStringInTz = (date: Date): string => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date); // returns YYYY-MM-DD
   };
+  const getMinuteInTz = (date: Date): number => {
+    return parseInt(new Intl.DateTimeFormat('en-US', { timeZone: tz, minute: 'numeric' }).format(date), 10);
+  };
 
   // Derived working hours from settings
   const workStart = parseInt(calSettings.working_hours_start.split(':')[0], 10);
@@ -215,6 +215,30 @@ export default function CalendarPage({
   const [settingsForm, setSettingsForm] = useState<CalendarSettings>({ ...calSettings });
   const [savingSettings, setSavingSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Drag-to-create state
+  const [dragState, setDragState] = useState<{
+    active: boolean;
+    dayIdx: number;
+    startHour: number;
+    startMinute: number;
+    currentHour: number;
+    currentMinute: number;
+    date: Date | null;
+  } | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Drag-to-move state
+  const [eventDrag, setEventDrag] = useState<{
+    eventId: string;
+    mode: 'move' | 'resize';
+    originalStart: string;
+    originalEnd: string;
+    offsetMinutes: number;
+    currentDate: Date | null;
+    currentStartMinutes: number;
+    currentEndMinutes: number;
+  } | null>(null);
 
   // Schedule form state
   const [scheduleForm, setScheduleForm] = useState({
@@ -489,6 +513,195 @@ export default function CalendarPage({
     setShowScheduleModal(true);
   }, [calSettings.working_days, isWorkingHour]);
 
+  // Drag-to-create handlers
+  const HOUR_HEIGHT_WEEK = 48;
+  const HOUR_HEIGHT_DAY = 52;
+
+  const getTimeFromY = (y: number, hourHeight: number) => {
+    const totalMinutes = Math.max(0, Math.min(24 * 60 - 1, (y / hourHeight) * 60));
+    const snapped = Math.round(totalMinutes / 15) * 15; // Snap to 15-min intervals
+    return { hour: Math.floor(snapped / 60), minute: snapped % 60 };
+  };
+
+  const handleGridMouseDown = (e: React.MouseEvent, dayIdx: number, date: Date, hourHeight: number) => {
+    if (e.button !== 0) return; // Only left click
+    const grid = e.currentTarget.closest('[data-time-grid]') as HTMLElement;
+    if (!grid) return;
+    const rect = grid.getBoundingClientRect();
+    const y = e.clientY - rect.top + grid.scrollTop;
+    const { hour, minute } = getTimeFromY(y, hourHeight);
+    setDragState({ active: true, dayIdx, startHour: hour, startMinute: minute, currentHour: hour, currentMinute: minute + 30, date });
+    e.preventDefault();
+  };
+
+  const handleGridMouseMove = useCallback((e: React.MouseEvent, hourHeight: number) => {
+    if (!dragState?.active) return;
+    const grid = e.currentTarget.closest('[data-time-grid]') as HTMLElement;
+    if (!grid) return;
+    const rect = grid.getBoundingClientRect();
+    const y = e.clientY - rect.top + grid.scrollTop;
+    const { hour, minute } = getTimeFromY(y, hourHeight);
+    setDragState(prev => prev ? { ...prev, currentHour: hour, currentMinute: minute } : null);
+  }, [dragState?.active]);
+
+  const handleGridMouseUp = useCallback(() => {
+    if (!dragState?.active || !dragState.date) { setDragState(null); return; }
+    const startTotal = dragState.startHour * 60 + dragState.startMinute;
+    const endTotal = dragState.currentHour * 60 + dragState.currentMinute;
+    const [actualStart, actualEnd] = startTotal <= endTotal ? [startTotal, endTotal] : [endTotal, startTotal];
+    const duration = Math.max(15, actualEnd - actualStart);
+    const startH = Math.floor(actualStart / 60);
+    const startM = actualStart % 60;
+
+    const dayName = ALL_DAYS[dragState.date.getDay()];
+    const working = isWorkingHour(startH) && calSettings.working_days.includes(dayName);
+    const warning = working ? null : 'This time slot is outside your working hours. Callengo agents will not operate during this time.';
+    setScheduleWarning(warning);
+    setScheduleForm(prev => ({
+      ...prev,
+      date: `${dragState.date!.getFullYear()}-${String(dragState.date!.getMonth() + 1).padStart(2, '0')}-${String(dragState.date!.getDate()).padStart(2, '0')}`,
+      time: `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`,
+      duration,
+    }));
+    setShowScheduleModal(true);
+    setDragState(null);
+  }, [dragState, calSettings.working_days, isWorkingHour]);
+
+  // Global mouseup listener to end drag if mouse leaves grid
+  useEffect(() => {
+    const handleGlobalMouseUp = () => { if (dragState?.active) handleGridMouseUp(); };
+    if (dragState?.active) {
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+      return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+    }
+  }, [dragState?.active, handleGridMouseUp]);
+
+  // Drag preview overlay
+  const DragPreview = ({ hourHeight, dayIdx, colCount }: { hourHeight: number; dayIdx: number; colCount: number }) => {
+    if (!dragState?.active) return null;
+    const startTotal = dragState.startHour * 60 + dragState.startMinute;
+    const endTotal = dragState.currentHour * 60 + dragState.currentMinute;
+    const [actualStart, actualEnd] = startTotal <= endTotal ? [startTotal, endTotal] : [endTotal, startTotal];
+    const topPx = (actualStart / 60) * hourHeight;
+    const heightPx = Math.max(((actualEnd - actualStart) / 60) * hourHeight, (15 / 60) * hourHeight);
+    const startH = Math.floor(actualStart / 60);
+    const startM = actualStart % 60;
+    const endH = Math.floor(actualEnd / 60);
+    const endM = actualEnd % 60;
+    const fmtT = (h: number, m: number) => `${h > 12 ? h - 12 : h === 0 ? 12 : h}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+
+    if (colCount > 1 && dayIdx !== dragState.dayIdx) return null;
+    if (colCount === 1 || dayIdx === dragState.dayIdx) {
+      return (
+        <div
+          className="absolute left-0.5 right-0.5 bg-[var(--color-primary)]/20 border-2 border-[var(--color-primary)] border-dashed rounded-lg z-30 pointer-events-none flex items-start p-1"
+          style={{ top: `${topPx}px`, height: `${heightPx}px` }}
+        >
+          <span className="text-[10px] font-bold text-[var(--color-primary)]">
+            {fmtT(startH, startM)} - {fmtT(endH, endM)}
+          </span>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Event drag-to-move handlers
+  const handleEventDragStart = (e: React.MouseEvent, event: CalendarEvent, mode: 'move' | 'resize', hourHeight: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const start = new Date(event.start_time);
+    const end = new Date(event.end_time);
+    const startMinutes = getHourInTz(start) * 60 + getMinuteInTz(start);
+    const endMinutes = getHourInTz(end) * 60 + getMinuteInTz(end);
+
+    const grid = (e.currentTarget.closest('[data-time-grid]')) as HTMLElement;
+    if (!grid) return;
+    const rect = grid.getBoundingClientRect();
+    const y = e.clientY - rect.top + grid.scrollTop;
+    const clickMinute = (y / hourHeight) * 60;
+
+    setEventDrag({
+      eventId: event.id,
+      mode,
+      originalStart: event.start_time,
+      originalEnd: event.end_time,
+      offsetMinutes: mode === 'move' ? clickMinute - startMinutes : 0,
+      currentDate: start,
+      currentStartMinutes: startMinutes,
+      currentEndMinutes: endMinutes,
+    });
+  };
+
+  const handleEventDragMove = useCallback((e: React.MouseEvent, hourHeight: number) => {
+    if (!eventDrag) return;
+    const grid = e.currentTarget.closest('[data-time-grid]') as HTMLElement;
+    if (!grid) return;
+    const rect = grid.getBoundingClientRect();
+    const y = e.clientY - rect.top + grid.scrollTop;
+    const rawMinute = (y / hourHeight) * 60;
+    const snapped = Math.round(rawMinute / 15) * 15;
+
+    if (eventDrag.mode === 'move') {
+      const newStart = Math.max(0, Math.min(24 * 60 - 15, snapped - eventDrag.offsetMinutes));
+      const duration = eventDrag.currentEndMinutes - eventDrag.currentStartMinutes;
+      setEventDrag(prev => prev ? { ...prev, currentStartMinutes: Math.round(newStart / 15) * 15, currentEndMinutes: Math.round(newStart / 15) * 15 + duration } : null);
+    } else {
+      // resize - only change end time
+      const newEnd = Math.max(eventDrag.currentStartMinutes + 15, snapped);
+      setEventDrag(prev => prev ? { ...prev, currentEndMinutes: Math.round(newEnd / 15) * 15 } : null);
+    }
+  }, [eventDrag]);
+
+  const handleEventDragEnd = useCallback(async () => {
+    if (!eventDrag) return;
+    const originalStart = new Date(eventDrag.originalStart);
+    const startH = Math.floor(eventDrag.currentStartMinutes / 60);
+    const startM = eventDrag.currentStartMinutes % 60;
+    const endH = Math.floor(eventDrag.currentEndMinutes / 60);
+    const endM = eventDrag.currentEndMinutes % 60;
+
+    // Build new dates in the configured timezone
+    const dateStr = `${originalStart.getFullYear()}-${String(originalStart.getMonth() + 1).padStart(2, '0')}-${String(originalStart.getDate()).padStart(2, '0')}`;
+    const newStartISO = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}:00`).toISOString();
+    const newEndISO = new Date(`${dateStr}T${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:00`).toISOString();
+
+    setEventDrag(null);
+
+    // Only update if times actually changed
+    if (newStartISO === eventDrag.originalStart && newEndISO === eventDrag.originalEnd) return;
+
+    try {
+      const res = await fetch('/api/calendar/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_id: eventDrag.eventId,
+          action: 'reschedule',
+          start_time: newStartISO,
+          end_time: newEndISO,
+        }),
+      });
+      if (res.ok) {
+        showToast('Event updated', 'success');
+        await refreshEvents();
+      } else {
+        showToast('Failed to update event', 'error');
+      }
+    } catch {
+      showToast('Failed to update event', 'error');
+    }
+  }, [eventDrag, showToast, refreshEvents]);
+
+  // Global mouseup for event drag
+  useEffect(() => {
+    const handler = () => { if (eventDrag) handleEventDragEnd(); };
+    if (eventDrag) {
+      window.addEventListener('mouseup', handler);
+      return () => window.removeEventListener('mouseup', handler);
+    }
+  }, [eventDrag, handleEventDragEnd]);
+
 
   // ============================================================================
   // COMPUTED DATA
@@ -626,6 +839,7 @@ export default function CalendarPage({
 
   const googleIntegration = integrations.find(i => i.provider === 'google_calendar');
   const microsoftIntegration = integrations.find(i => i.provider === 'microsoft_outlook');
+  const zoomIntegration = integrations.find(i => i.provider === 'zoom');
 
 
   // ============================================================================
@@ -633,10 +847,10 @@ export default function CalendarPage({
   // ============================================================================
   const SourceBadge = ({ source }: { source: string }) => {
     if (source === 'google_calendar') {
-      return <span className="inline-flex items-center gap-1 text-[10px] text-[#4285F4] font-medium"><SiGooglecalendar className="w-3 h-3" /> Google</span>;
+      return <span className="inline-flex items-center gap-1 text-[10px] font-medium"><GoogleCalendarLogo className="w-3 h-3" /> Google</span>;
     }
     if (source === 'microsoft_outlook') {
-      return <span className="inline-flex items-center gap-1 text-[10px] text-[#0078D4] font-medium"><FaMicrosoft className="w-3 h-3" /> Outlook</span>;
+      return <span className="inline-flex items-center gap-1 text-[10px] font-medium"><MicrosoftLogo className="w-3 h-3" /> Outlook</span>;
     }
     if (source === 'ai_agent') {
       return <span className="text-[10px] text-violet-600 font-medium">AI Agent</span>;
@@ -686,7 +900,7 @@ export default function CalendarPage({
               {/* Google Calendar badge */}
               {googleIntegration?.connected ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
-                  <SiGooglecalendar className="w-3.5 h-3.5 text-[#4285F4] shrink-0" />
+                  <GoogleCalendarLogo className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Google Calendar</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                   <button
@@ -705,7 +919,7 @@ export default function CalendarPage({
                   onClick={handleConnectGoogle}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
                 >
-                  <SiGooglecalendar className="w-3.5 h-3.5 text-[#4285F4] shrink-0" />
+                  <GoogleCalendarLogo className="w-3.5 h-3.5 shrink-0" />
                   <span className="whitespace-nowrap">Google Calendar</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
@@ -714,7 +928,7 @@ export default function CalendarPage({
               {/* Microsoft Outlook badge */}
               {microsoftIntegration?.connected ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
-                  <FaMicrosoft className="w-3.5 h-3.5 text-[#0078D4] shrink-0" />
+                  <MicrosoftLogo className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                   <button
@@ -733,7 +947,7 @@ export default function CalendarPage({
                   onClick={() => { window.location.href = '/api/integrations/microsoft-outlook/connect?return_to=/calendar'; }}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
                 >
-                  <FaMicrosoft className="w-3.5 h-3.5 text-[#0078D4] shrink-0" />
+                  <MicrosoftLogo className="w-3.5 h-3.5 shrink-0" />
                   <span className="whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
@@ -1053,13 +1267,13 @@ export default function CalendarPage({
               </div>
 
               {/* Time grid */}
-              <div className="relative">
+              <div className="relative" data-time-grid onMouseMove={(e) => { handleGridMouseMove(e, HOUR_HEIGHT_WEEK); handleEventDragMove(e, HOUR_HEIGHT_WEEK); }} onMouseUp={handleGridMouseUp} style={{ userSelect: dragState?.active || eventDrag ? 'none' : undefined }}>
                 {/* Current time indicator */}
                 {(() => {
                   const todayIdx = weekDays.findIndex(d => isToday(d.date));
                   if (todayIdx === -1) return null;
-                  const h = currentTime.getHours();
-                  const m = currentTime.getMinutes();
+                  const h = getHourInTz(currentTime);
+                  const m = getMinuteInTz(currentTime);
                   const topPx = (h + m / 60) * 48;
                   return (
                     <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPx}px` }}>
@@ -1096,7 +1310,7 @@ export default function CalendarPage({
                       {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                     </div>
                     {weekDays.map((day, dayIdx) => {
-                      const hourEvents = day.events.filter(e => new Date(e.start_time).getHours() === hour);
+                      const hourEvents = day.events.filter(e => getHourInTz(new Date(e.start_time)) === hour);
                       const dayWorking = isWorkingDay(day.date);
                       const slotWorking = working && dayWorking;
                       const isEmpty = hourEvents.length === 0;
@@ -1123,7 +1337,7 @@ export default function CalendarPage({
                           )}
                           {hourEvents.map(event => {
                             const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                            const startMin = new Date(event.start_time).getMinutes();
+                            const startMin = getMinuteInTz(new Date(event.start_time));
                             const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
                             const topOffset = (startMin / 60) * 48;
                             const height = Math.max((durationMin / 60) * 48, 18);
@@ -1187,10 +1401,10 @@ export default function CalendarPage({
             <div className="relative">
               {/* Current time indicator */}
               {(() => {
-                const isViewingToday = currentDate.toDateString() === currentTime.toDateString();
+                const isViewingToday = getDateStringInTz(currentDate) === getDateStringInTz(currentTime);
                 if (!isViewingToday) return null;
-                const currentHour = currentTime.getHours();
-                const currentMinute = currentTime.getMinutes();
+                const currentHour = getHourInTz(currentTime);
+                const currentMinute = getMinuteInTz(currentTime);
                 const topPosition = (currentHour + currentMinute / 60) * 52;
                 return (
                   <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top: `${topPosition}px` }}>
@@ -1211,7 +1425,7 @@ export default function CalendarPage({
                 {Array.from({ length: 24 }, (_, i) => i).map(hour => {
                   const hourEvents = filteredEvents.filter(e => {
                     const eDate = new Date(e.start_time);
-                    return eDate.toDateString() === currentDate.toDateString() && eDate.getHours() === hour;
+                    return getDateStringInTz(eDate) === getDateStringInTz(currentDate) && getHourInTz(eDate) === hour;
                   });
                   const working = isWorkingHour(hour);
                   const dayWorking = isWorkingDay(currentDate);
@@ -1507,9 +1721,9 @@ export default function CalendarPage({
                 <div className="flex gap-2">
                   {[
                     { value: '', label: 'None', icon: null, disabled: false },
-                    { value: 'google_meet', label: 'Meet', icon: <SiGooglemeet className="w-4 h-4 text-[#00897B]" />, disabled: !googleIntegration?.connected },
-                    { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: false },
-                    { value: 'microsoft_teams', label: 'Teams', icon: <BsMicrosoftTeams className="w-4 h-4 text-[#6264A7]" />, disabled: !microsoftIntegration?.connected },
+                    { value: 'google_meet', label: 'Meet', icon: <GoogleMeetLogo className="w-4 h-4" />, disabled: !googleIntegration?.connected },
+                    { value: 'zoom', label: 'Zoom', icon: <ZoomLogo className="w-4 h-4" />, disabled: !zoomIntegration?.connected },
+                    { value: 'microsoft_teams', label: 'Teams', icon: <MicrosoftTeamsLogo className="w-4 h-4" />, disabled: !microsoftIntegration?.connected },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -1553,7 +1767,7 @@ export default function CalendarPage({
                       onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))}
                       className="w-4 h-4 rounded text-[var(--color-primary)]"
                     />
-                    <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
+                    <GoogleCalendarLogo className="w-4 h-4" />
                     Sync to Google Calendar
                   </label>
                 )}
@@ -1565,7 +1779,7 @@ export default function CalendarPage({
                       onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_microsoft: e.target.checked }))}
                       className="w-4 h-4 rounded text-[var(--color-primary)]"
                     />
-                    <FaMicrosoft className="w-4 h-4 text-[#0078D4]" />
+                    <MicrosoftLogo className="w-4 h-4" />
                     Sync to Microsoft Outlook
                   </label>
                 )}

@@ -187,7 +187,7 @@ const StatBar = ({ label, value, color }: { label: string; value: number; color:
 export default function AgentConfigModal({ agent, companyId, company, companySettings, onClose }: AgentConfigModalProps) {
   const router = useRouter();
   const supabase = createClient();
-  const [step, setStep] = useState<'preview' | 'contacts' | 'confirm'>('preview');
+  const [step, setStep] = useState<'preview' | 'contacts' | 'calendar' | 'confirm'>('preview');
   const [loading, setLoading] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [contactCount, setContactCount] = useState(0);
@@ -219,11 +219,25 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     customTask: '',
     selectedLists: [] as string[],
     testPhoneNumber: companySettings?.test_phone_number || '',
-    voicemailEnabled: false,
-    followUpEnabled: false,
-    followUpMaxAttempts: 1,
-    followUpIntervalHours: 24,
-    smartFollowUp: false,
+    voicemailEnabled: companySettings?.voicemail_enabled ?? false,
+    followUpEnabled: companySettings?.followup_enabled ?? false,
+    followUpMaxAttempts: companySettings?.followup_max_attempts ?? 1,
+    followUpIntervalHours: companySettings?.followup_interval_hours ?? 24,
+    smartFollowUp: companySettings?.smart_followup_enabled ?? false,
+    // Calendar & Scheduling
+    calendarSyncEnabled: true,
+    preventOverbooking: true,
+    allowRescheduling: true,
+    bufferMinutes: 15,
+    maxDailyAppointments: 20,
+    // Slack notifications
+    slackEnabled: false,
+    slackChannel: '',
+    slackNotifyFollowUps: true,
+    slackNotifyCallbacks: true,
+    slackNotifyNoShows: true,
+    slackNotifyRescheduling: true,
+    slackNotifyNewBookings: true,
     companyInfo: {
       name: company.name,
       description: company.description || '',
@@ -538,7 +552,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   // Step indicator component
   const StepIndicator = ({ currentStep }: { currentStep: number }) => (
     <div className="flex items-center justify-center gap-3 mb-6">
-      {[1, 2, 3].map((stepNum) => (
+      {[1, 2, 3, 4].map((stepNum) => (
         <div key={stepNum} className="flex items-center">
           <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
             stepNum === currentStep
@@ -549,7 +563,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           }`}>
             <span className={`font-bold text-sm ${stepNum === currentStep || stepNum < currentStep ? 'text-white' : 'text-slate-500'}`}>{stepNum}</span>
           </div>
-          {stepNum < 3 && (
+          {stepNum < 4 && (
             <div className={`w-12 h-0.5 mx-1 transition-all duration-300 ${
               stepNum < currentStep ? 'bg-emerald-400' : 'bg-slate-200'
             }`}></div>
@@ -562,7 +576,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   const getStepNumber = () => {
     if (step === 'preview') return 1;
     if (step === 'contacts') return 2;
-    if (step === 'confirm') return 3;
+    if (step === 'calendar') return 3;
+    if (step === 'confirm') return 4;
     return 1;
   };
 
@@ -1664,54 +1679,6 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </div>
                 </div>
 
-                {/* Voicemail & Follow-up Options */}
-                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Voicemail & Follow-ups</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-700">Voicemail Detection</p>
-                        <p className="text-xs text-slate-500">Leave a message when voicemail is detected</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked={settings.voicemailEnabled} onChange={(e) => setSettings({ ...settings, voicemailEnabled: e.target.checked })} className="sr-only peer" />
-                        <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                      </label>
-                    </div>
-                    <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-700">Automatic Follow-ups</p>
-                        <p className="text-xs text-slate-500">Retry contacts that didn&apos;t answer</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked={settings.followUpEnabled} onChange={(e) => setSettings({ ...settings, followUpEnabled: e.target.checked })} className="sr-only peer" />
-                        <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                      </label>
-                    </div>
-                    {settings.followUpEnabled && (
-                      <div className="grid grid-cols-2 gap-3 pl-2 border-l-2 border-[var(--color-primary)]/20">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Max Attempts</label>
-                          <input type="number" min="1" max="10" value={settings.followUpMaxAttempts} onChange={(e) => setSettings({ ...settings, followUpMaxAttempts: parseInt(e.target.value) })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Interval (hours)</label>
-                          <input type="number" min="1" max="168" value={settings.followUpIntervalHours} onChange={(e) => setSettings({ ...settings, followUpIntervalHours: parseInt(e.target.value) })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
-                        </div>
-                        <div className="col-span-2 flex items-center justify-between bg-purple-50 rounded-lg px-4 py-3 border border-purple-200">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-700">Smart Follow-up</p>
-                            <p className="text-xs text-slate-500">Schedule callbacks at times requested by contacts</p>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" checked={settings.smartFollowUp} onChange={(e) => setSettings({ ...settings, smartFollowUp: e.target.checked })} className="sr-only peer" />
-                            <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-                          </label>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             )}
 
@@ -1725,10 +1692,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   Back
                 </button>
                 <button
-                  onClick={() => setStep('confirm')}
+                  onClick={() => setStep('calendar')}
                   className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all duration-300`}
                 >
-                  Review & Launch
+                  Next: Calendar & Notifications
                 </button>
               </div>
             )}
