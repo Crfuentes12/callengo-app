@@ -17,11 +17,22 @@ import type {
 // CONFIGURATION
 // ============================================================================
 
-const CALENDLY_CLIENT_ID = process.env.CALENDLY_CLIENT_ID!;
-const CALENDLY_CLIENT_SECRET = process.env.CALENDLY_CLIENT_SECRET!;
-const CALENDLY_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/calendly/callback`;
 const CALENDLY_API_BASE = 'https://api.calendly.com';
 const CALENDLY_AUTH_BASE = 'https://auth.calendly.com';
+
+function getAppUrl() {
+  const url = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  return url.replace(/\/+$/, ''); // strip trailing slashes
+}
+
+function getCalendlyConfig() {
+  const clientId = process.env.CALENDLY_CLIENT_ID;
+  const clientSecret = process.env.CALENDLY_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing CALENDLY_CLIENT_ID or CALENDLY_CLIENT_SECRET environment variables');
+  }
+  return { clientId, clientSecret, redirectUri: `${getAppUrl()}/api/integrations/calendly/callback` };
+}
 
 // ============================================================================
 // OAUTH HELPERS
@@ -31,10 +42,11 @@ const CALENDLY_AUTH_BASE = 'https://auth.calendly.com';
  * Generate the Calendly OAuth consent URL
  */
 export function getCalendlyAuthUrl(state: string): string {
+  const { clientId, redirectUri } = getCalendlyConfig();
   const params = new URLSearchParams({
-    client_id: CALENDLY_CLIENT_ID,
+    client_id: clientId,
     response_type: 'code',
-    redirect_uri: CALENDLY_REDIRECT_URI,
+    redirect_uri: redirectUri,
     state,
   });
 
@@ -47,14 +59,15 @@ export function getCalendlyAuthUrl(state: string): string {
 export async function exchangeCalendlyCode(
   code: string
 ): Promise<CalendlyTokenResponse> {
+  const { clientId, clientSecret, redirectUri } = getCalendlyConfig();
   const response = await axios.post(
     `${CALENDLY_AUTH_BASE}/oauth/token`,
     {
       grant_type: 'authorization_code',
       code,
-      redirect_uri: CALENDLY_REDIRECT_URI,
-      client_id: CALENDLY_CLIENT_ID,
-      client_secret: CALENDLY_CLIENT_SECRET,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      client_secret: clientSecret,
     },
     {
       headers: { 'Content-Type': 'application/json' },
@@ -70,13 +83,14 @@ export async function exchangeCalendlyCode(
 export async function refreshCalendlyToken(
   refreshToken: string
 ): Promise<CalendlyTokenResponse> {
+  const { clientId, clientSecret } = getCalendlyConfig();
   const response = await axios.post(
     `${CALENDLY_AUTH_BASE}/oauth/token`,
     {
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      client_id: CALENDLY_CLIENT_ID,
-      client_secret: CALENDLY_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
     },
     {
       headers: { 'Content-Type': 'application/json' },

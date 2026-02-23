@@ -14,9 +14,19 @@ import type {
 // CONFIGURATION
 // ============================================================================
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
-const GOOGLE_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/google-calendar/callback`;
+function getAppUrl() {
+  const url = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  return url.replace(/\/+$/, ''); // strip trailing slashes
+}
+
+function getGoogleConfig() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET environment variables');
+  }
+  return { clientId, clientSecret, redirectUri: `${getAppUrl()}/api/integrations/google-calendar/callback` };
+}
 
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar',
@@ -30,11 +40,8 @@ const SCOPES = [
 // ============================================================================
 
 function createOAuth2Client() {
-  return new google.auth.OAuth2(
-    GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-    GOOGLE_REDIRECT_URI
-  );
+  const { clientId, clientSecret, redirectUri } = getGoogleConfig();
+  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 }
 
 /**
