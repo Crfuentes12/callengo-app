@@ -70,6 +70,8 @@ export async function GET(request: NextRequest) {
       provider_email: userInfo.email,
       provider_user_id: userInfo.uri,
       provider_user_name: userInfo.name,
+      calendly_organization_uri: userInfo.current_organization,
+      google_calendar_id: 'primary',
       is_active: true,
       scopes: ['default'],
       raw_profile: userInfo as unknown as Record<string, unknown>,
@@ -113,10 +115,18 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (integration) {
-        await createCalendlyWebhook(
+        const webhookUri = await createCalendlyWebhook(
           integration as unknown as import('@/types/calendar').CalendarIntegration,
           webhookUrl
         );
+
+        // Save webhook URI for cleanup later
+        if (webhookUri) {
+          await supabaseAdmin
+            .from('calendar_integrations')
+            .update({ calendly_webhook_uri: webhookUri })
+            .eq('id', integrationId);
+        }
       }
     } catch (webhookError) {
       // Don't fail the connection if webhook creation fails

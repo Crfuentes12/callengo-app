@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
       provider_email: userInfo.email,
       provider_user_id: userInfo.id || null,
       provider_user_name: userInfo.name,
+      google_calendar_id: 'primary',
       is_active: true,
       scopes: tokens.scope ? tokens.scope.split(' ') : [],
       raw_profile: userInfo as Record<string, unknown>,
