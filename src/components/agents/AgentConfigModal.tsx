@@ -2071,7 +2071,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             </div>
 
             {/* Configuration Summary */}
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
+            <div className="grid md:grid-cols-3 gap-4 mb-6">
               <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
                 <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Call Configuration</h4>
                 <div className="space-y-2">
@@ -2103,12 +2103,38 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </div>
                 </div>
               </div>
+
+              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
+                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Calendar & Notifications</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Calendar Sync</span>
+                    <span className="text-sm font-bold text-slate-900">{settings.calendarSyncEnabled ? 'On' : 'Off'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Overbooking Protection</span>
+                    <span className="text-sm font-bold text-slate-900">{settings.preventOverbooking ? 'On' : 'Off'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Voicemail</span>
+                    <span className="text-sm font-bold text-slate-900">{settings.voicemailEnabled ? 'On' : 'Off'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Follow-ups</span>
+                    <span className="text-sm font-bold text-slate-900">{settings.followUpEnabled ? `${settings.followUpMaxAttempts}x` : 'Off'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Slack</span>
+                    <span className="text-sm font-bold text-slate-900">{settings.slackEnabled ? settings.slackChannel || 'Enabled' : 'Off'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Action buttons */}
             <div className="flex gap-3">
               <button
-                onClick={() => setStep('contacts')}
+                onClick={() => setStep('calendar')}
                 className="flex-1 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 font-bold text-sm transition-all duration-300"
               >
                 Back
