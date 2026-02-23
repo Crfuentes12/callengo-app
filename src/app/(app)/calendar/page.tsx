@@ -89,6 +89,8 @@ export default async function Calendar() {
     exclude_holidays: (additionalSettings.exclude_holidays as boolean) ?? false,
   };
 
+  const zoomConnected = !!(additionalSettings.zoom_connected || additionalSettings.zoom_access_token);
+
   return (
     <CalendarPage
       events={(calendarEvents || []) as unknown as CalendarEvent[]}
@@ -99,6 +101,7 @@ export default async function Calendar() {
       excludeHolidays={calendarSettings.exclude_holidays}
       timezone={calendarSettings.timezone}
       calendarSettings={calendarSettings}
+      zoomConnected={zoomConnected}
       contacts={(contacts || []).map(c => ({
         id: c.id,
         contact_name: c.contact_name,

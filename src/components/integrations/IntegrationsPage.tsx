@@ -3,11 +3,10 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SiGooglecalendar, SiGooglemeet, SiTwilio, SiZapier, SiGooglesheets } from 'react-icons/si';
-import { FaMicrosoft, FaSlack, FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
-import { BsMicrosoftTeams } from 'react-icons/bs';
-import { BiLogoZoom } from 'react-icons/bi';
+import { SiTwilio, SiZapier, SiGooglesheets } from 'react-icons/si';
+import { FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
 import Link from 'next/link';
+import { GoogleCalendarLogo, MicrosoftLogo, GoogleMeetLogo, MicrosoftTeamsLogo, SlackLogo, ZoomLogo } from '@/components/icons/IntegrationIcons';
 
 // ============================================================================
 // TYPES
@@ -199,8 +198,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       provider: 'google-calendar',
       name: 'Google Calendar',
       description: 'Sync your call schedules, appointments, and events directly with Google Calendar.',
-      icon: <SiGooglecalendar className="w-7 h-7" />,
-      iconColor: 'text-[#4285F4]',
+      icon: <GoogleCalendarLogo className="w-7 h-7" />,
+      iconColor: '',
       iconBg: 'bg-blue-50',
       requiredPlan: 'free',
       status: integrations.google_calendar.connected ? 'connected' : 'available',
@@ -229,8 +228,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       provider: 'microsoft-outlook',
       name: 'Microsoft 365 Outlook',
       description: 'Sync your Outlook calendar events, appointments, and schedules with Callengo.',
-      icon: <FaMicrosoft className="w-6 h-6" />,
-      iconColor: 'text-[#0078D4]',
+      icon: <MicrosoftLogo className="w-6 h-6" />,
+      iconColor: '',
       iconBg: 'bg-blue-50',
       requiredPlan: 'business',
       status: integrations.microsoft_outlook.connected ? 'connected' : 'available',
@@ -262,8 +261,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       provider: 'google-meet',
       name: 'Google Meet',
       description: 'Automatically adds Google Meet links when creating events through Google Calendar.',
-      icon: <SiGooglemeet className="w-7 h-7" />,
-      iconColor: 'text-[#00897B]',
+      icon: <GoogleMeetLogo className="w-7 h-7" />,
+      iconColor: '',
       iconBg: 'bg-teal-50',
       requiredPlan: 'free',
       status: integrations.google_calendar.connected ? 'auto_enabled' : 'available',
@@ -275,8 +274,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       provider: 'microsoft-teams',
       name: 'Microsoft Teams',
       description: 'Automatically adds Teams meeting links when creating events through Microsoft 365.',
-      icon: <BsMicrosoftTeams className="w-6 h-6" />,
-      iconColor: 'text-[#6264A7]',
+      icon: <MicrosoftTeamsLogo className="w-6 h-6" />,
+      iconColor: '',
       iconBg: 'bg-indigo-50',
       requiredPlan: 'business',
       status: integrations.microsoft_outlook.connected ? 'auto_enabled' : 'available',
@@ -288,8 +287,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       provider: 'zoom',
       name: 'Zoom',
       description: 'Generate Zoom meeting links for your scheduled events. Connect your Zoom account to auto-create meeting rooms.',
-      icon: <BiLogoZoom className="w-7 h-7" />,
-      iconColor: 'text-[#2D8CFF]',
+      icon: <ZoomLogo className="w-7 h-7" />,
+      iconColor: '',
       iconBg: 'bg-blue-50',
       requiredPlan: 'starter',
       status: integrations.zoom.connected ? 'connected' : 'available',
@@ -319,8 +318,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       provider: 'slack',
       name: 'Slack',
       description: 'Get real-time notifications about meetings, no-shows, reminders, and more. Supports interactive buttons and slash commands.',
-      icon: <FaSlack className="w-6 h-6" />,
-      iconColor: 'text-[#4A154B]',
+      icon: <SlackLogo className="w-6 h-6" />,
+      iconColor: '',
       iconBg: 'bg-purple-50',
       requiredPlan: 'starter',
       status: integrations.slack.connected ? 'connected' : 'available',

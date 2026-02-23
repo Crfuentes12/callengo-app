@@ -3,11 +3,8 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SiGooglecalendar, SiGooglemeet } from 'react-icons/si';
-import { FaMicrosoft } from 'react-icons/fa';
-import { BsMicrosoftTeams } from 'react-icons/bs';
-import { BiLogoZoom } from 'react-icons/bi';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
+import { GoogleCalendarLogo, MicrosoftLogo, GoogleMeetLogo, MicrosoftTeamsLogo, ZoomLogo } from '@/components/icons/IntegrationIcons';
 
 // ============================================================================
 // TYPES
@@ -30,6 +27,7 @@ interface CalendarPageProps {
   excludeHolidays: boolean;
   timezone: string;
   calendarSettings: CalendarSettings;
+  zoomConnected?: boolean;
   contacts: {
     id: string;
     contact_name: string | null;
@@ -156,6 +154,7 @@ export default function CalendarPage({
   excludeHolidays: initialExcludeHolidays,
   timezone: initialTimezone,
   calendarSettings: initialCalendarSettings,
+  zoomConnected: initialZoomConnected = false,
   contacts,
 }: CalendarPageProps) {
   const router = useRouter();
@@ -187,6 +186,9 @@ export default function CalendarPage({
     const dayStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(date).toLowerCase();
     return ALL_DAYS.indexOf(dayStr);
   };
+  const getMinuteInTz = (date: Date): number => {
+    return parseInt(new Intl.DateTimeFormat('en-US', { timeZone: tz, minute: 'numeric' }).format(date), 10);
+  };
   const getDateStringInTz = (date: Date): string => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date); // returns YYYY-MM-DD
   };
@@ -215,6 +217,38 @@ export default function CalendarPage({
   const [settingsForm, setSettingsForm] = useState<CalendarSettings>({ ...calSettings });
   const [savingSettings, setSavingSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Drag-to-create state
+  const [dragCreate, setDragCreate] = useState<{
+    active: boolean;
+    dayIndex: number;
+    startHour: number;
+    startMinute: number;
+    endHour: number;
+    endMinute: number;
+    date: Date;
+  } | null>(null);
+
+  // Drag-to-move state
+  const [dragMove, setDragMove] = useState<{
+    active: boolean;
+    eventId: string;
+    event: CalendarEvent;
+    offsetMinutes: number;
+    currentDayIndex: number;
+    currentHour: number;
+    currentMinute: number;
+  } | null>(null);
+
+  // Drag-to-resize state
+  const [dragResize, setDragResize] = useState<{
+    active: boolean;
+    eventId: string;
+    event: CalendarEvent;
+    endHour: number;
+    endMinute: number;
+  } | null>(null);
 
   // Schedule form state
   const [scheduleForm, setScheduleForm] = useState({
@@ -475,6 +509,228 @@ export default function CalendarPage({
     }
   }, [scheduleForm, contacts, refreshEvents, showToast]);
 
+  // Snap to 30-minute intervals
+  const snapTo30 = (minute: number): number => minute < 15 ? 0 : minute < 45 ? 30 : 60;
+
+  // Get time from mouse position on grid (48px per hour in week view)
+  const getTimeFromMouseY = useCallback((y: number, cellHeight: number): { hour: number; minute: number } => {
+    const totalMinutes = Math.max(0, Math.min(1439, (y / cellHeight) * 60));
+    const hour = Math.floor(totalMinutes / 60);
+    const minute = snapTo30(totalMinutes % 60);
+    return { hour: Math.min(23, hour + (minute === 60 ? 1 : 0)), minute: minute === 60 ? 0 : minute };
+  }, []);
+
+  // Handle drag-to-create start (mousedown on empty slot)
+  const handleDragCreateStart = useCallback((e: React.MouseEvent, dayIndex: number, date: Date, hour: number, cellHeight: number) => {
+    if (e.button !== 0) return; // Only left click
+    e.preventDefault();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const relY = e.clientY - rect.top;
+    const minuteInCell = snapTo30(Math.floor((relY / cellHeight) * 60));
+    const startMinute = minuteInCell === 60 ? 0 : minuteInCell;
+    const startHour = minuteInCell === 60 ? hour + 1 : hour;
+    const endMinute = startMinute + 30 >= 60 ? (startMinute + 30 - 60) : (startMinute + 30);
+    const endHour = startMinute + 30 >= 60 ? startHour + 1 : startHour;
+    setDragCreate({
+      active: true,
+      dayIndex,
+      startHour: Math.min(23, startHour),
+      startMinute,
+      endHour: Math.min(24, endHour),
+      endMinute: endHour >= 24 ? 0 : endMinute,
+      date,
+    });
+  }, []);
+
+  // Handle drag-to-create move
+  const handleDragCreateMove = useCallback((e: React.MouseEvent) => {
+    if (!dragCreate?.active || !gridRef.current) return;
+    const gridRect = gridRef.current.getBoundingClientRect();
+    const relY = e.clientY - gridRect.top;
+    const cellHeight = viewMode === 'week' ? 48 : 52;
+    const { hour, minute } = getTimeFromMouseY(relY, cellHeight);
+    if (hour > dragCreate.startHour || (hour === dragCreate.startHour && minute > dragCreate.startMinute)) {
+      setDragCreate(prev => prev ? { ...prev, endHour: Math.min(24, hour), endMinute: hour >= 24 ? 0 : minute } : null);
+    }
+  }, [dragCreate, viewMode, getTimeFromMouseY]);
+
+  // Handle drag-to-create end
+  const handleDragCreateEnd = useCallback(() => {
+    if (!dragCreate?.active) return;
+    const { date, startHour, startMinute, endHour, endMinute } = dragCreate;
+    setDragCreate(null);
+    const totalMinutes = (endHour - startHour) * 60 + (endMinute - startMinute);
+    if (totalMinutes < 15) return; // Ignore tiny drags
+    const dayName = ALL_DAYS[date.getDay()];
+    const working = isWorkingHour(startHour) && calSettings.working_days.includes(dayName);
+    const warning = working ? null : 'This time slot is outside your working hours. Callengo agents will not operate during this time.';
+    setScheduleWarning(warning);
+    setScheduleForm(prev => ({
+      ...prev,
+      date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+      time: `${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}`,
+      duration: totalMinutes,
+    }));
+    setShowScheduleModal(true);
+  }, [dragCreate, calSettings.working_days, isWorkingHour]);
+
+  // Handle event drag-to-move start
+  const handleEventDragStart = useCallback((e: React.MouseEvent, event: CalendarEvent, dayIndex: number) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const eventStartHour = getHourInTz(new Date(event.start_time));
+    const eventStartMin = getMinuteInTz(new Date(event.start_time));
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const relY = e.clientY - rect.top;
+    const cellHeight = viewMode === 'week' ? 48 : 52;
+    const offsetMinutes = Math.floor((relY / rect.height) * ((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000));
+    setDragMove({
+      active: true,
+      eventId: event.id,
+      event,
+      offsetMinutes,
+      currentDayIndex: dayIndex,
+      currentHour: eventStartHour,
+      currentMinute: eventStartMin,
+    });
+  }, [viewMode, getHourInTz, getMinuteInTz]);
+
+  // Handle event drag-to-move
+  const handleEventDragMove = useCallback((e: React.MouseEvent) => {
+    if (!dragMove?.active || !gridRef.current) return;
+    const gridRect = gridRef.current.getBoundingClientRect();
+    const relY = e.clientY - gridRect.top;
+    const cellHeight = viewMode === 'week' ? 48 : 52;
+    const { hour, minute } = getTimeFromMouseY(relY - (dragMove.offsetMinutes / 60) * cellHeight, cellHeight);
+    // Detect day column
+    if (viewMode === 'week') {
+      const gridWidth = gridRect.width - 64; // subtract time label width
+      const relX = e.clientX - gridRect.left - 64;
+      const colWidth = gridWidth / 7;
+      const newDayIndex = Math.max(0, Math.min(6, Math.floor(relX / colWidth)));
+      setDragMove(prev => prev ? { ...prev, currentHour: hour, currentMinute: minute, currentDayIndex: newDayIndex } : null);
+    } else {
+      setDragMove(prev => prev ? { ...prev, currentHour: hour, currentMinute: minute } : null);
+    }
+  }, [dragMove, viewMode, getTimeFromMouseY]);
+
+  // Handle event drag-to-move end
+  const handleEventDragEnd = useCallback(async () => {
+    if (!dragMove?.active) return;
+    const { event, currentHour, currentMinute, currentDayIndex } = dragMove;
+    setDragMove(null);
+    const duration = new Date(event.end_time).getTime() - new Date(event.start_time).getTime();
+    let newDate: Date;
+    if (viewMode === 'week') {
+      newDate = new Date(weekDays[currentDayIndex]?.date || new Date());
+    } else {
+      newDate = new Date(currentDate);
+    }
+    const dateStr = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}-${String(newDate.getDate()).padStart(2, '0')}`;
+    const newStart = new Date(`${dateStr}T${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}:00`);
+    const newEnd = new Date(newStart.getTime() + duration);
+    try {
+      const res = await fetch('/api/calendar/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_id: event.id,
+          action: 'update',
+          start_time: newStart.toISOString(),
+          end_time: newEnd.toISOString(),
+        }),
+      });
+      if (res.ok) {
+        showToast('Event moved', 'success');
+        await refreshEvents();
+      } else {
+        showToast('Failed to move event', 'error');
+      }
+    } catch {
+      showToast('Failed to move event', 'error');
+    }
+  }, [dragMove, viewMode, weekDays, currentDate, refreshEvents, showToast]);
+
+  // Handle event drag-to-resize start
+  const handleEventResizeStart = useCallback((e: React.MouseEvent, event: CalendarEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const endHour = getHourInTz(new Date(event.end_time));
+    const endMinute = getMinuteInTz(new Date(event.end_time));
+    setDragResize({
+      active: true,
+      eventId: event.id,
+      event,
+      endHour,
+      endMinute,
+    });
+  }, [getHourInTz, getMinuteInTz]);
+
+  // Handle event drag-to-resize move
+  const handleEventResizeMove = useCallback((e: React.MouseEvent) => {
+    if (!dragResize?.active || !gridRef.current) return;
+    const gridRect = gridRef.current.getBoundingClientRect();
+    const relY = e.clientY - gridRect.top;
+    const cellHeight = viewMode === 'week' ? 48 : 52;
+    const { hour, minute } = getTimeFromMouseY(relY, cellHeight);
+    const startHour = getHourInTz(new Date(dragResize.event.start_time));
+    const startMinute = getMinuteInTz(new Date(dragResize.event.start_time));
+    if (hour > startHour || (hour === startHour && minute > startMinute + 15)) {
+      setDragResize(prev => prev ? { ...prev, endHour: hour, endMinute: minute } : null);
+    }
+  }, [dragResize, viewMode, getTimeFromMouseY, getHourInTz, getMinuteInTz]);
+
+  // Handle event drag-to-resize end
+  const handleEventResizeEnd = useCallback(async () => {
+    if (!dragResize?.active) return;
+    const { event, endHour, endMinute } = dragResize;
+    setDragResize(null);
+    const startDate = new Date(event.start_time);
+    const dateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+    const newEnd = new Date(`${dateStr}T${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}:00`);
+    try {
+      const res = await fetch('/api/calendar/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_id: event.id,
+          action: 'update',
+          end_time: newEnd.toISOString(),
+        }),
+      });
+      if (res.ok) {
+        showToast('Event resized', 'success');
+        await refreshEvents();
+      } else {
+        showToast('Failed to resize event', 'error');
+      }
+    } catch {
+      showToast('Failed to resize event', 'error');
+    }
+  }, [dragResize, refreshEvents, showToast]);
+
+  // Global mouse up handler to end any drag
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (dragCreate?.active) handleDragCreateEnd();
+      if (dragMove?.active) handleEventDragEnd();
+      if (dragResize?.active) handleEventResizeEnd();
+    };
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (dragCreate?.active || dragMove?.active || dragResize?.active) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+    };
+  }, [dragCreate, dragMove, dragResize, handleDragCreateEnd, handleEventDragEnd, handleEventResizeEnd]);
+
   // Open schedule modal pre-filled from a time slot click
   const openScheduleFromSlot = useCallback((date: Date, hour: number) => {
     const dayName = ALL_DAYS[date.getDay()];
@@ -518,38 +774,32 @@ export default function CalendarPage({
 
     for (let i = firstDayOffset - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, prevMonthDays - i);
+      const dateStr = getDateStringInTz(date);
       days.push({
         date,
         isCurrentMonth: false,
-        events: filteredEvents.filter(e => {
-          const eDate = new Date(e.start_time);
-          return eDate.toDateString() === date.toDateString();
-        }),
+        events: filteredEvents.filter(e => getDateStringInTz(new Date(e.start_time)) === dateStr),
       });
     }
 
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(year, month, i);
+      const dateStr = getDateStringInTz(date);
       days.push({
         date,
         isCurrentMonth: true,
-        events: filteredEvents.filter(e => {
-          const eDate = new Date(e.start_time);
-          return eDate.toDateString() === date.toDateString();
-        }),
+        events: filteredEvents.filter(e => getDateStringInTz(new Date(e.start_time)) === dateStr),
       });
     }
 
     const remaining = 42 - days.length;
     for (let i = 1; i <= remaining; i++) {
       const date = new Date(year, month + 1, i);
+      const dateStr = getDateStringInTz(date);
       days.push({
         date,
         isCurrentMonth: false,
-        events: filteredEvents.filter(e => {
-          const eDate = new Date(e.start_time);
-          return eDate.toDateString() === date.toDateString();
-        }),
+        events: filteredEvents.filter(e => getDateStringInTz(new Date(e.start_time)) === dateStr),
       });
     }
 
@@ -567,11 +817,12 @@ export default function CalendarPage({
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek);
       date.setDate(date.getDate() + i);
+      const dateStr = getDateStringInTz(date);
       days.push({
         date,
         events: filteredEvents.filter(e => {
           const eDate = new Date(e.start_time);
-          return eDate.toDateString() === date.toDateString();
+          return getDateStringInTz(eDate) === dateStr;
         }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()),
       });
     }
@@ -633,10 +884,10 @@ export default function CalendarPage({
   // ============================================================================
   const SourceBadge = ({ source }: { source: string }) => {
     if (source === 'google_calendar') {
-      return <span className="inline-flex items-center gap-1 text-[10px] text-[#4285F4] font-medium"><SiGooglecalendar className="w-3 h-3" /> Google</span>;
+      return <span className="inline-flex items-center gap-1 text-[10px] text-[#4285F4] font-medium"><GoogleCalendarLogo className="w-3 h-3" /> Google</span>;
     }
     if (source === 'microsoft_outlook') {
-      return <span className="inline-flex items-center gap-1 text-[10px] text-[#0078D4] font-medium"><FaMicrosoft className="w-3 h-3" /> Outlook</span>;
+      return <span className="inline-flex items-center gap-1 text-[10px] text-[#0078D4] font-medium"><MicrosoftLogo className="w-3 h-3" /> Outlook</span>;
     }
     if (source === 'ai_agent') {
       return <span className="text-[10px] text-violet-600 font-medium">AI Agent</span>;
@@ -686,7 +937,7 @@ export default function CalendarPage({
               {/* Google Calendar badge */}
               {googleIntegration?.connected ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
-                  <SiGooglecalendar className="w-3.5 h-3.5 text-[#4285F4] shrink-0" />
+                  <GoogleCalendarLogo className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Google Calendar</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                   <button
@@ -705,7 +956,7 @@ export default function CalendarPage({
                   onClick={handleConnectGoogle}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
                 >
-                  <SiGooglecalendar className="w-3.5 h-3.5 text-[#4285F4] shrink-0" />
+                  <GoogleCalendarLogo className="w-3.5 h-3.5 shrink-0" />
                   <span className="whitespace-nowrap">Google Calendar</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
@@ -714,7 +965,7 @@ export default function CalendarPage({
               {/* Microsoft Outlook badge */}
               {microsoftIntegration?.connected ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
-                  <FaMicrosoft className="w-3.5 h-3.5 text-[#0078D4] shrink-0" />
+                  <MicrosoftLogo className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                   <button
@@ -733,7 +984,7 @@ export default function CalendarPage({
                   onClick={() => { window.location.href = '/api/integrations/microsoft-outlook/connect?return_to=/calendar'; }}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
                 >
-                  <FaMicrosoft className="w-3.5 h-3.5 text-[#0078D4] shrink-0" />
+                  <MicrosoftLogo className="w-3.5 h-3.5 shrink-0" />
                   <span className="whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
@@ -1053,13 +1304,18 @@ export default function CalendarPage({
               </div>
 
               {/* Time grid */}
-              <div className="relative">
+              <div
+                className="relative"
+                ref={gridRef}
+                onMouseMove={(e) => { handleDragCreateMove(e); handleEventDragMove(e); handleEventResizeMove(e); }}
+                style={{ userSelect: (dragCreate?.active || dragMove?.active || dragResize?.active) ? 'none' : undefined, cursor: dragCreate?.active ? 'row-resize' : dragMove?.active ? 'grabbing' : undefined }}
+              >
                 {/* Current time indicator */}
                 {(() => {
                   const todayIdx = weekDays.findIndex(d => isToday(d.date));
                   if (todayIdx === -1) return null;
-                  const h = currentTime.getHours();
-                  const m = currentTime.getMinutes();
+                  const h = getHourInTz(currentTime);
+                  const m = getMinuteInTz(currentTime);
                   const topPx = (h + m / 60) * 48;
                   return (
                     <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPx}px` }}>
@@ -1096,14 +1352,15 @@ export default function CalendarPage({
                       {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                     </div>
                     {weekDays.map((day, dayIdx) => {
-                      const hourEvents = day.events.filter(e => new Date(e.start_time).getHours() === hour);
+                      const hourEvents = day.events.filter(e => getHourInTz(new Date(e.start_time)) === hour);
                       const dayWorking = isWorkingDay(day.date);
                       const slotWorking = working && dayWorking;
                       const isEmpty = hourEvents.length === 0;
                       return (
                         <div
                           key={dayIdx}
-                          onClick={() => { if (isEmpty) openScheduleFromSlot(day.date, hour); }}
+                          onMouseDown={(e) => { if (isEmpty) handleDragCreateStart(e, dayIdx, day.date, hour, 48); }}
+                          onClick={() => { if (isEmpty && !dragCreate) openScheduleFromSlot(day.date, hour); }}
                           className={`h-12 border-t border-l ${dayIdx === 6 ? 'border-r' : ''} ${
                             slotWorking
                               ? isToday(day.date) ? 'bg-[var(--color-primary-50)]/20 border-slate-200' : 'bg-white border-slate-200'
@@ -1111,7 +1368,7 @@ export default function CalendarPage({
                                 ? 'border-slate-100'
                                 : isToday(day.date) ? 'bg-slate-50/80 border-slate-100' : 'bg-slate-50/60 border-slate-100'
                           } ${isFirstWork || isLastWork ? 'border-t-[var(--color-primary)]/20' : ''} relative ${
-                            isEmpty ? 'cursor-pointer hover:bg-blue-50/40 transition-colors' : ''
+                            isEmpty ? 'cursor-crosshair hover:bg-blue-50/40 transition-colors' : ''
                           }`}
                           style={!dayWorking ? { backgroundImage: 'url(#non-working-day-pattern)', backgroundColor: 'rgba(241,245,249,0.6)' } : undefined}
                         >
@@ -1121,18 +1378,45 @@ export default function CalendarPage({
                               <rect width="100%" height="100%" fill="url(#non-working-day-pattern)" />
                             </svg>
                           )}
+                          {/* Drag-to-create overlay for this cell */}
+                          {dragCreate?.active && dragCreate.dayIndex === dayIdx && (() => {
+                            const cellStartMin = hour * 60;
+                            const selStartMin = dragCreate.startHour * 60 + dragCreate.startMinute;
+                            const selEndMin = dragCreate.endHour * 60 + dragCreate.endMinute;
+                            if (selEndMin <= cellStartMin || selStartMin >= cellStartMin + 60) return null;
+                            const topMin = Math.max(0, selStartMin - cellStartMin);
+                            const botMin = Math.min(60, selEndMin - cellStartMin);
+                            return (
+                              <div
+                                className="absolute left-0.5 right-0.5 bg-[var(--color-primary)]/20 border-2 border-[var(--color-primary)]/50 rounded z-30 pointer-events-none"
+                                style={{ top: `${(topMin / 60) * 48}px`, height: `${((botMin - topMin) / 60) * 48}px` }}
+                              >
+                                <div className="text-[9px] font-bold text-[var(--color-primary)] px-1 pt-0.5 truncate">
+                                  {String(dragCreate.startHour).padStart(2, '0')}:{String(dragCreate.startMinute).padStart(2, '0')} - {String(dragCreate.endHour).padStart(2, '0')}:{String(dragCreate.endMinute).padStart(2, '0')}
+                                </div>
+                              </div>
+                            );
+                          })()}
                           {hourEvents.map(event => {
                             const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                            const startMin = new Date(event.start_time).getMinutes();
+                            const startMin = getMinuteInTz(new Date(event.start_time));
                             const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
-                            const topOffset = (startMin / 60) * 48;
-                            const height = Math.max((durationMin / 60) * 48, 18);
+                            const isBeingMoved = dragMove?.active && dragMove.eventId === event.id;
+                            const isBeingResized = dragResize?.active && dragResize.eventId === event.id;
+                            let topOffset = (startMin / 60) * 48;
+                            let height = Math.max((durationMin / 60) * 48, 18);
+                            if (isBeingResized) {
+                              const newDurationMin = (dragResize.endHour - getHourInTz(new Date(event.start_time))) * 60 + (dragResize.endMinute - getMinuteInTz(new Date(event.start_time)));
+                              height = Math.max((newDurationMin / 60) * 48, 18);
+                            }
+                            if (isBeingMoved) return null; // Hide from original position when being moved
                             return (
                               <div
                                 key={event.id}
-                                className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10`}
+                                className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-grab hover:shadow-md transition-shadow z-10 group/event ${isBeingResized ? 'ring-2 ring-[var(--color-primary)]' : ''}`}
                                 style={{ top: `${topOffset}px`, height: `${height}px` }}
-                                title={`${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`}
+                                title={`${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min\nDrag to move, drag bottom to resize`}
+                                onMouseDown={(e) => handleEventDragStart(e, event, dayIdx)}
                                 onClick={e => e.stopPropagation()}
                               >
                                 <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
@@ -1141,9 +1425,33 @@ export default function CalendarPage({
                                     {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })}
                                   </div>
                                 )}
+                                {/* Resize handle */}
+                                <div
+                                  className="absolute bottom-0 left-0 right-0 h-2 cursor-row-resize opacity-0 group-hover/event:opacity-100 bg-gradient-to-t from-current/20 to-transparent rounded-b"
+                                  onMouseDown={(e) => { e.stopPropagation(); handleEventResizeStart(e, event); }}
+                                />
                               </div>
                             );
                           })}
+                          {/* Ghost of event being moved into this cell */}
+                          {dragMove?.active && dragMove.currentDayIndex === dayIdx && (() => {
+                            const ghostStartMin = dragMove.currentHour * 60 + dragMove.currentMinute;
+                            const cellStartMin = hour * 60;
+                            const durationMin = Math.round((new Date(dragMove.event.end_time).getTime() - new Date(dragMove.event.start_time).getTime()) / 60000);
+                            const ghostEndMin = ghostStartMin + durationMin;
+                            if (ghostEndMin <= cellStartMin || ghostStartMin >= cellStartMin + 60) return null;
+                            const topMin = Math.max(0, ghostStartMin - cellStartMin);
+                            const botMin = Math.min(60, ghostEndMin - cellStartMin);
+                            const style = EVENT_TYPE_STYLES[dragMove.event.event_type] || EVENT_TYPE_STYLES.call;
+                            return (
+                              <div
+                                className={`absolute left-0.5 right-0.5 ${style.bg} border-2 border-dashed ${style.text} rounded px-1 py-0.5 opacity-70 z-20 pointer-events-none`}
+                                style={{ top: `${(topMin / 60) * 48}px`, height: `${((botMin - topMin) / 60) * 48}px` }}
+                              >
+                                <div className="text-[10px] font-semibold truncate leading-tight">{dragMove.event.contact_name || dragMove.event.title}</div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}
@@ -1184,13 +1492,13 @@ export default function CalendarPage({
               </div>
             </div>
 
-            <div className="relative">
+            <div className="relative" onMouseMove={(e) => { handleDragCreateMove(e); handleEventDragMove(e); handleEventResizeMove(e); }} style={{ userSelect: (dragCreate?.active || dragMove?.active || dragResize?.active) ? 'none' : undefined }}>
               {/* Current time indicator */}
               {(() => {
-                const isViewingToday = currentDate.toDateString() === currentTime.toDateString();
+                const isViewingToday = getDateStringInTz(currentDate) === getDateStringInTz(currentTime);
                 if (!isViewingToday) return null;
-                const currentHour = currentTime.getHours();
-                const currentMinute = currentTime.getMinutes();
+                const currentHour = getHourInTz(currentTime);
+                const currentMinute = getMinuteInTz(currentTime);
                 const topPosition = (currentHour + currentMinute / 60) * 52;
                 return (
                   <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top: `${topPosition}px` }}>
@@ -1211,7 +1519,7 @@ export default function CalendarPage({
                 {Array.from({ length: 24 }, (_, i) => i).map(hour => {
                   const hourEvents = filteredEvents.filter(e => {
                     const eDate = new Date(e.start_time);
-                    return eDate.toDateString() === currentDate.toDateString() && eDate.getHours() === hour;
+                    return getDateStringInTz(eDate) === getDateStringInTz(currentDate) && getHourInTz(eDate) === hour;
                   });
                   const working = isWorkingHour(hour);
                   const dayWorking = isWorkingDay(currentDate);
@@ -1228,11 +1536,12 @@ export default function CalendarPage({
                         {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                       </div>
                       <div
-                        onClick={() => { if (isEmpty) openScheduleFromSlot(currentDate, hour); }}
+                        onMouseDown={(e) => { if (isEmpty) handleDragCreateStart(e, 0, currentDate, hour, 52); }}
+                        onClick={() => { if (isEmpty && !dragCreate) openScheduleFromSlot(currentDate, hour); }}
                         className={`flex-1 min-h-[52px] border-t relative ${
                           slotWorking ? 'bg-white border-slate-200' : !dayWorking ? 'border-slate-100' : 'bg-slate-50/60 border-slate-100'
                         } ${isFirstWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${isLastWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${
-                          isEmpty ? 'cursor-pointer hover:bg-blue-50/40 transition-colors' : ''
+                          isEmpty ? 'cursor-crosshair hover:bg-blue-50/40 transition-colors' : ''
                         }`}
                         style={!dayWorking ? { backgroundColor: 'rgba(241,245,249,0.6)' } : undefined}
                       >
@@ -1242,13 +1551,39 @@ export default function CalendarPage({
                             <rect width="100%" height="100%" fill="url(#non-working-day-pattern)" />
                           </svg>
                         )}
+                        {/* Drag-to-create overlay for day view */}
+                        {dragCreate?.active && dragCreate.dayIndex === 0 && (() => {
+                          const cellStartMin = hour * 60;
+                          const selStartMin = dragCreate.startHour * 60 + dragCreate.startMinute;
+                          const selEndMin = dragCreate.endHour * 60 + dragCreate.endMinute;
+                          if (selEndMin <= cellStartMin || selStartMin >= cellStartMin + 60) return null;
+                          const topMin = Math.max(0, selStartMin - cellStartMin);
+                          const botMin = Math.min(60, selEndMin - cellStartMin);
+                          return (
+                            <div
+                              className="absolute left-0.5 right-0.5 bg-[var(--color-primary)]/20 border-2 border-[var(--color-primary)]/50 rounded z-30 pointer-events-none"
+                              style={{ top: `${(topMin / 60) * 52}px`, height: `${((botMin - topMin) / 60) * 52}px` }}
+                            >
+                              <div className="text-[9px] font-bold text-[var(--color-primary)] px-1 pt-0.5 truncate">
+                                {String(dragCreate.startHour).padStart(2, '0')}:{String(dragCreate.startMinute).padStart(2, '0')} - {String(dragCreate.endHour).padStart(2, '0')}:{String(dragCreate.endMinute).padStart(2, '0')}
+                              </div>
+                            </div>
+                          );
+                        })()}
                         {hourEvents.map(event => {
                           const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
                           const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
                           const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
                           const isLoading = actionLoading === event.id;
+                          const isBeingMoved = dragMove?.active && dragMove.eventId === event.id;
+                          if (isBeingMoved) return null;
                           return (
-                            <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1`} onClick={e => e.stopPropagation()}>
+                            <div
+                              key={event.id}
+                              className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1 cursor-grab group/event`}
+                              onMouseDown={(e) => handleEventDragStart(e, event, 0)}
+                              onClick={e => e.stopPropagation()}
+                            >
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
                                 <div className="min-w-0">
@@ -1507,9 +1842,9 @@ export default function CalendarPage({
                 <div className="flex gap-2">
                   {[
                     { value: '', label: 'None', icon: null, disabled: false },
-                    { value: 'google_meet', label: 'Meet', icon: <SiGooglemeet className="w-4 h-4 text-[#00897B]" />, disabled: !googleIntegration?.connected },
-                    { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: false },
-                    { value: 'microsoft_teams', label: 'Teams', icon: <BsMicrosoftTeams className="w-4 h-4 text-[#6264A7]" />, disabled: !microsoftIntegration?.connected },
+                    { value: 'google_meet', label: 'Meet', icon: <GoogleMeetLogo className="w-4 h-4" />, disabled: !googleIntegration?.connected },
+                    { value: 'zoom', label: 'Zoom', icon: <ZoomLogo className="w-4 h-4" />, disabled: !initialZoomConnected },
+                    { value: 'microsoft_teams', label: 'Teams', icon: <MicrosoftTeamsLogo className="w-4 h-4" />, disabled: !microsoftIntegration?.connected },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -1553,7 +1888,7 @@ export default function CalendarPage({
                       onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))}
                       className="w-4 h-4 rounded text-[var(--color-primary)]"
                     />
-                    <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
+                    <GoogleCalendarLogo className="w-4 h-4" />
                     Sync to Google Calendar
                   </label>
                 )}
@@ -1565,7 +1900,7 @@ export default function CalendarPage({
                       onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_microsoft: e.target.checked }))}
                       className="w-4 h-4 rounded text-[var(--color-primary)]"
                     />
-                    <FaMicrosoft className="w-4 h-4 text-[#0078D4]" />
+                    <MicrosoftLogo className="w-4 h-4" />
                     Sync to Microsoft Outlook
                   </label>
                 )}
