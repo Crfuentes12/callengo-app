@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SiGooglecalendar, SiGooglemeet } from 'react-icons/si';
 import { FaMicrosoft } from 'react-icons/fa';
 import { BiLogoZoom } from 'react-icons/bi';
@@ -12,18 +12,23 @@ import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar'
 // TYPES
 // ============================================================================
 
+interface CalendarSettings {
+  timezone: string;
+  working_hours_start: string;
+  working_hours_end: string;
+  working_days: string[];
+  exclude_holidays: boolean;
+}
+
 interface CalendarPageProps {
   events: CalendarEvent[];
   integrations: CalendarIntegrationStatus[];
   companyId: string;
   workingHours: { start: string; end: string };
-  calendarSettings: {
-    timezone: string;
-    working_hours_start: string;
-    working_hours_end: string;
-    working_days: string[];
-    exclude_holidays: boolean;
-  };
+  workingDays: string[];
+  excludeHolidays: boolean;
+  timezone: string;
+  calendarSettings: CalendarSettings;
   contacts: {
     id: string;
     contact_name: string | null;
@@ -35,11 +40,7 @@ interface CalendarPageProps {
 type ViewMode = 'month' | 'week' | 'day' | 'agenda';
 type FilterType = 'all' | 'call' | 'follow_up' | 'no_show_retry' | 'meeting' | 'appointment' | 'callback';
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const TIMEZONES = [
+const TIMEZONE_OPTIONS = [
   { value: 'America/New_York', label: 'Eastern Time (ET)' },
   { value: 'America/Chicago', label: 'Central Time (CT)' },
   { value: 'America/Denver', label: 'Mountain Time (MT)' },
@@ -53,19 +54,10 @@ const TIMEZONES = [
   { value: 'Australia/Sydney', label: 'Sydney (AEST/AEDT)' },
 ];
 
-const DAYS_OF_WEEK = [
-  { value: 'sunday', label: 'Sun' },
-  { value: 'monday', label: 'Mon' },
-  { value: 'tuesday', label: 'Tue' },
-  { value: 'wednesday', label: 'Wed' },
-  { value: 'thursday', label: 'Thu' },
-  { value: 'friday', label: 'Fri' },
-  { value: 'saturday', label: 'Sat' },
-];
-
-const DAY_INDEX_MAP: Record<string, number> = {
-  sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-  thursday: 4, friday: 5, saturday: 6,
+const ALL_DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const DAY_LABELS: Record<string, string> = {
+  sunday: 'Sun', monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed',
+  thursday: 'Thu', friday: 'Fri', saturday: 'Sat',
 };
 
 // ============================================================================
@@ -130,6 +122,7 @@ const SOURCE_LABELS: Record<string, string> = {
   webhook: 'Webhook',
 };
 
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -139,40 +132,47 @@ export default function CalendarPage({
   integrations: initialIntegrations,
   companyId,
   workingHours,
+  workingDays: initialWorkingDays,
+  excludeHolidays: initialExcludeHolidays,
+  timezone: initialTimezone,
   calendarSettings: initialCalendarSettings,
   contacts,
 }: CalendarPageProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Calendar settings state (synced with backend)
-  const [calSettings, setCalSettings] = useState(initialCalendarSettings);
+  // Calendar settings state (from calendarSettings prop)
+  const [calSettings, setCalSettings] = useState<CalendarSettings>({
+    timezone: initialCalendarSettings.timezone || initialTimezone || 'America/New_York',
+    working_hours_start: initialCalendarSettings.working_hours_start || workingHours.start || '09:00',
+    working_hours_end: initialCalendarSettings.working_hours_end || workingHours.end || '18:00',
+    working_days: initialCalendarSettings.working_days?.length ? initialCalendarSettings.working_days : (initialWorkingDays?.length ? initialWorkingDays : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']),
+    exclude_holidays: initialCalendarSettings.exclude_holidays ?? initialExcludeHolidays ?? false,
+  });
 
-  // Parse working hours
+  // Derived working hours from settings
   const workStart = parseInt(calSettings.working_hours_start.split(':')[0], 10);
   const workEnd = parseInt(calSettings.working_hours_end.split(':')[0], 10);
   const isWorkingHour = (hour: number) => hour >= workStart && hour < workEnd;
   const isWorkingDay = (date: Date) => {
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    return calSettings.working_days.includes(dayNames[date.getDay()]);
+    const dayName = ALL_DAYS[date.getDay()];
+    return calSettings.working_days.includes(dayName);
   };
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [scheduleWarning, setScheduleWarning] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
   const [integrations, setIntegrations] = useState(initialIntegrations);
   const [syncing, setSyncing] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [outsideWorkHoursWarning, setOutsideWorkHoursWarning] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [settingsForm, setSettingsForm] = useState<CalendarSettings>({ ...calSettings });
   const [savingSettings, setSavingSettings] = useState(false);
-
-  // Settings form state
-  const [settingsForm, setSettingsForm] = useState({ ...initialCalendarSettings });
-
   const settingsRef = useRef<HTMLDivElement>(null);
 
   // Schedule form state
@@ -193,30 +193,32 @@ export default function CalendarPage({
     const integration = searchParams.get('integration');
     const status = searchParams.get('status');
     if (integration && status === 'connected') {
-      const name = integration === 'google_calendar' ? 'Google Calendar' : 'Microsoft Outlook';
-      showToast(`${name} connected successfully!`, 'success');
+      showToast(`${integration === 'google_calendar' ? 'Google Calendar' : 'Microsoft Outlook'} connected successfully!`, 'success');
       refreshIntegrations();
     }
   }, [searchParams]);
 
-  // Update current time every minute
+  // Update current time every minute for the day view time indicator
   useEffect(() => {
-    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Close settings menu on outside click
+  // Close settings menu when clicking outside
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
         setShowSettingsMenu(false);
       }
     }
     if (showSettingsMenu) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSettingsMenu]);
+
 
   // ============================================================================
   // API CALLS
@@ -245,6 +247,7 @@ export default function CalendarPage({
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       const threeMonthsAhead = new Date();
       threeMonthsAhead.setMonth(threeMonthsAhead.getMonth() + 3);
+
       const res = await fetch(
         `/api/calendar/events?start_date=${threeMonthsAgo.toISOString()}&end_date=${threeMonthsAhead.toISOString()}`
       );
@@ -261,20 +264,15 @@ export default function CalendarPage({
     window.location.href = '/api/integrations/google-calendar/connect?return_to=/calendar';
   }, []);
 
-  const handleConnectMicrosoft = useCallback(() => {
-    window.location.href = '/api/integrations/microsoft-outlook/connect?return_to=/calendar';
-  }, []);
-
   const handleDisconnect = useCallback(async (provider: string) => {
-    const endpoints: Record<string, string> = {
-      google_calendar: '/api/integrations/google-calendar/disconnect',
-      microsoft_outlook: '/api/integrations/microsoft-outlook/disconnect',
-    };
+    const endpoint = provider === 'google_calendar'
+      ? '/api/integrations/google-calendar/disconnect'
+      : '/api/integrations/microsoft-outlook/disconnect';
+
     try {
-      const res = await fetch(endpoints[provider], { method: 'POST' });
+      const res = await fetch(endpoint, { method: 'POST' });
       if (res.ok) {
-        const name = provider === 'google_calendar' ? 'Google Calendar' : 'Microsoft Outlook';
-        showToast(`${name} disconnected`, 'success');
+        showToast(`${provider === 'google_calendar' ? 'Google Calendar' : 'Microsoft Outlook'} disconnected`, 'success');
         await refreshIntegrations();
       } else {
         showToast('Failed to disconnect', 'error');
@@ -287,15 +285,15 @@ export default function CalendarPage({
   const handleSync = useCallback(async (provider: string) => {
     setSyncing(prev => ({ ...prev, [provider]: true }));
     try {
-      const endpoints: Record<string, string> = {
-        google_calendar: '/api/integrations/google-calendar/sync',
-        microsoft_outlook: '/api/integrations/microsoft-outlook/sync',
-      };
-      const res = await fetch(endpoints[provider], { method: 'POST' });
+      const endpoint = provider === 'google_calendar'
+        ? '/api/integrations/google-calendar/sync'
+        : '/api/integrations/microsoft-outlook/sync';
+
+      const res = await fetch(endpoint, { method: 'POST' });
       const data = await res.json();
+
       if (res.ok) {
-        const name = provider === 'google_calendar' ? 'Google Calendar' : 'Microsoft Outlook';
-        showToast(`Synced ${data.created + data.updated} events from ${name}`, 'success');
+        showToast(`Synced ${data.created + data.updated} events from ${provider === 'google_calendar' ? 'Google Calendar' : 'Microsoft Outlook'}`, 'success');
         await refreshEvents();
         await refreshIntegrations();
       } else {
@@ -308,35 +306,17 @@ export default function CalendarPage({
     }
   }, [refreshEvents, refreshIntegrations, showToast]);
 
-  const handleSaveSettings = useCallback(async () => {
-    setSavingSettings(true);
-    try {
-      const res = await fetch('/api/settings/calendar-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settingsForm),
-      });
-      if (res.ok) {
-        setCalSettings({ ...settingsForm });
-        showToast('Calendar settings saved', 'success');
-        setShowSettingsMenu(false);
-      } else {
-        showToast('Failed to save settings', 'error');
-      }
-    } catch {
-      showToast('Failed to save settings', 'error');
-    } finally {
-      setSavingSettings(false);
-    }
-  }, [settingsForm, showToast]);
-
   const handleMarkNoShow = useCallback(async (eventId: string) => {
     setActionLoading(eventId);
     try {
       const res = await fetch('/api/calendar/events', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_id: eventId, action: 'no_show', schedule_retry: true }),
+        body: JSON.stringify({
+          event_id: eventId,
+          action: 'no_show',
+          schedule_retry: true,
+        }),
       });
       if (res.ok) {
         showToast('Marked as no-show. Retry scheduled.', 'success');
@@ -393,17 +373,27 @@ export default function CalendarPage({
     }
   }, [refreshEvents, showToast]);
 
-  // Click on time slot to schedule
-  const handleSlotClick = useCallback((date: Date, hour: number) => {
-    const isWorking = isWorkingHour(hour) && isWorkingDay(date);
-    setOutsideWorkHoursWarning(!isWorking);
-    setScheduleForm(prev => ({
-      ...prev,
-      date: date.toISOString().split('T')[0],
-      time: `${hour.toString().padStart(2, '0')}:00`,
-    }));
-    setShowScheduleModal(true);
-  }, [calSettings]);
+  const handleSaveSettings = useCallback(async () => {
+    setSavingSettings(true);
+    try {
+      const res = await fetch('/api/settings/calendar-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settingsForm),
+      });
+      if (res.ok) {
+        setCalSettings({ ...settingsForm });
+        showToast('Calendar settings saved', 'success');
+        setShowSettingsMenu(false);
+      } else {
+        showToast('Failed to save settings', 'error');
+      }
+    } catch {
+      showToast('Failed to save settings', 'error');
+    } finally {
+      setSavingSettings(false);
+    }
+  }, [settingsForm, showToast]);
 
   const handleScheduleSubmit = useCallback(async () => {
     const contact = contacts.find(c => c.id === scheduleForm.contact_id);
@@ -425,15 +415,16 @@ export default function CalendarPage({
           contact_phone: contact?.phone_number || undefined,
           contact_email: contact?.email || undefined,
           notes: scheduleForm.notes || undefined,
-          video_provider: scheduleForm.video_provider || undefined,
           sync_to_google: scheduleForm.sync_to_google,
           sync_to_microsoft: scheduleForm.sync_to_microsoft,
+          video_provider: scheduleForm.video_provider || undefined,
         }),
       });
+
       if (res.ok) {
         showToast('Event scheduled successfully', 'success');
         setShowScheduleModal(false);
-        setOutsideWorkHoursWarning(false);
+        setScheduleWarning(null);
         await refreshEvents();
       } else {
         showToast('Failed to schedule event', 'error');
@@ -443,10 +434,26 @@ export default function CalendarPage({
     }
   }, [scheduleForm, contacts, refreshEvents, showToast]);
 
+  // Open schedule modal pre-filled from a time slot click
+  const openScheduleFromSlot = useCallback((date: Date, hour: number) => {
+    const dayName = ALL_DAYS[date.getDay()];
+    const working = isWorkingHour(hour) && calSettings.working_days.includes(dayName);
+    const warning = working ? null : 'This time slot is outside your working hours. Callengo agents will not operate during this time.';
+    setScheduleWarning(warning);
+    setScheduleForm(prev => ({
+      ...prev,
+      date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+      time: `${String(hour).padStart(2, '0')}:00`,
+    }));
+    setShowScheduleModal(true);
+  }, [calSettings.working_days, isWorkingHour]);
+
+
   // ============================================================================
   // COMPUTED DATA
   // ============================================================================
 
+  // Filter events by type
   const filteredEvents = useMemo(() => {
     let filtered = events.filter(e => e.status !== 'cancelled');
     if (filterType !== 'all') {
@@ -455,6 +462,7 @@ export default function CalendarPage({
     return filtered;
   }, [events, filterType]);
 
+  // Calendar grid helpers
   const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
@@ -468,37 +476,65 @@ export default function CalendarPage({
 
     for (let i = firstDay - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, prevMonthDays - i);
-      days.push({ date, isCurrentMonth: false, events: filteredEvents.filter(e => new Date(e.start_time).toDateString() === date.toDateString()) });
+      days.push({
+        date,
+        isCurrentMonth: false,
+        events: filteredEvents.filter(e => {
+          const eDate = new Date(e.start_time);
+          return eDate.toDateString() === date.toDateString();
+        }),
+      });
     }
+
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(year, month, i);
-      days.push({ date, isCurrentMonth: true, events: filteredEvents.filter(e => new Date(e.start_time).toDateString() === date.toDateString()) });
+      days.push({
+        date,
+        isCurrentMonth: true,
+        events: filteredEvents.filter(e => {
+          const eDate = new Date(e.start_time);
+          return eDate.toDateString() === date.toDateString();
+        }),
+      });
     }
+
     const remaining = 42 - days.length;
     for (let i = 1; i <= remaining; i++) {
       const date = new Date(year, month + 1, i);
-      days.push({ date, isCurrentMonth: false, events: filteredEvents.filter(e => new Date(e.start_time).toDateString() === date.toDateString()) });
+      days.push({
+        date,
+        isCurrentMonth: false,
+        events: filteredEvents.filter(e => {
+          const eDate = new Date(e.start_time);
+          return eDate.toDateString() === date.toDateString();
+        }),
+      });
     }
+
     return days;
   }, [currentDate, filteredEvents]);
 
+  // Week view
   const weekDays = useMemo(() => {
     const startOfWeek = new Date(currentDate);
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    const days: { date: Date; events: CalendarEvent[]; isWorkDay: boolean }[] = [];
+    const days: { date: Date; events: CalendarEvent[] }[] = [];
+
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek);
       date.setDate(date.getDate() + i);
       days.push({
         date,
-        isWorkDay: isWorkingDay(date),
-        events: filteredEvents.filter(e => new Date(e.start_time).toDateString() === date.toDateString())
-          .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()),
+        events: filteredEvents.filter(e => {
+          const eDate = new Date(e.start_time);
+          return eDate.toDateString() === date.toDateString();
+        }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()),
       });
     }
     return days;
-  }, [currentDate, filteredEvents, calSettings.working_days]);
+  }, [currentDate, filteredEvents]);
 
+  // Stats
   const stats = useMemo(() => {
     const today = new Date();
     const todayStr = today.toDateString();
@@ -507,14 +543,26 @@ export default function CalendarPage({
     const noShows = events.filter(e => e.event_type === 'no_show_retry' && e.status === 'scheduled');
     const upcoming = events.filter(e => new Date(e.start_time) > today && (e.status === 'scheduled' || e.status === 'confirmed'));
     const pendingConfirmation = events.filter(e => e.confirmation_status === 'unconfirmed' && e.status === 'scheduled');
-    return { todayCount: todayEvents.length, scheduledCount: scheduled.length, noShowRetries: noShows.length, upcomingCount: upcoming.length, pendingConfirmation: pendingConfirmation.length };
+
+    return {
+      todayCount: todayEvents.length,
+      scheduledCount: scheduled.length,
+      noShowRetries: noShows.length,
+      upcomingCount: upcoming.length,
+      pendingConfirmation: pendingConfirmation.length,
+    };
   }, [events]);
 
+  // Navigation
   const navigateMonth = (direction: number) => {
     const newDate = new Date(currentDate);
-    if (viewMode === 'month') newDate.setMonth(newDate.getMonth() + direction);
-    else if (viewMode === 'week') newDate.setDate(newDate.getDate() + direction * 7);
-    else newDate.setDate(newDate.getDate() + direction);
+    if (viewMode === 'month') {
+      newDate.setMonth(newDate.getMonth() + direction);
+    } else if (viewMode === 'week') {
+      newDate.setDate(newDate.getDate() + direction * 7);
+    } else {
+      newDate.setDate(newDate.getDate() + direction);
+    }
     setCurrentDate(newDate);
   };
 
@@ -533,19 +581,22 @@ export default function CalendarPage({
   const googleIntegration = integrations.find(i => i.provider === 'google_calendar');
   const microsoftIntegration = integrations.find(i => i.provider === 'microsoft_outlook');
 
+
+  // ============================================================================
+  // HELPER: Source badge
+  // ============================================================================
   const SourceBadge = ({ source }: { source: string }) => {
-    if (source === 'google_calendar') return <span className="inline-flex items-center gap-1 text-[10px] text-[#4285F4] font-medium"><SiGooglecalendar className="w-3 h-3" /> Google</span>;
-    if (source === 'microsoft_outlook') return <span className="inline-flex items-center gap-1 text-[10px] text-[#0078D4] font-medium"><FaMicrosoft className="w-3 h-3" /> Outlook</span>;
-    if (source === 'ai_agent') return <span className="text-[10px] text-violet-600 font-medium">AI Agent</span>;
+    if (source === 'google_calendar') {
+      return <span className="inline-flex items-center gap-1 text-[10px] text-[#4285F4] font-medium"><SiGooglecalendar className="w-3 h-3" /> Google</span>;
+    }
+    if (source === 'microsoft_outlook') {
+      return <span className="inline-flex items-center gap-1 text-[10px] text-[#0078D4] font-medium"><FaMicrosoft className="w-3 h-3" /> Outlook</span>;
+    }
+    if (source === 'ai_agent') {
+      return <span className="text-[10px] text-violet-600 font-medium">AI Agent</span>;
+    }
     return source !== 'manual' ? <span className="text-[10px] text-slate-400 font-medium">{SOURCE_LABELS[source] || source}</span> : null;
   };
-
-  // Sync icon SVG
-  const SyncIcon = ({ spinning = false, className = "w-3 h-3" }: { spinning?: boolean; className?: string }) => (
-    <svg className={`${className} text-slate-400 ${spinning ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
-    </svg>
-  );
 
   // ============================================================================
   // RENDER
@@ -553,11 +604,22 @@ export default function CalendarPage({
 
   return (
     <div className="space-y-6">
-      {/* Toast */}
+      {/* Diagonal stripe pattern for non-working days */}
+      <svg className="absolute w-0 h-0">
+        <defs>
+          <pattern id="non-working-day-pattern" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(148,163,184,0.15)" strokeWidth="2" />
+          </pattern>
+        </defs>
+      </svg>
+
+      {/* Toast notification */}
       {toast && (
         <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg border text-sm font-medium animate-slideDown ${
           toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
-        }`}>{toast.message}</div>
+        }`}>
+          {toast.message}
+        </div>
       )}
 
       {/* Header */}
@@ -578,16 +640,26 @@ export default function CalendarPage({
               {googleIntegration?.connected ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
                   <SiGooglecalendar className="w-3.5 h-3.5 text-[#4285F4] shrink-0" />
-                  <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Google</span>
+                  <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Google Calendar</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                  <button onClick={() => handleSync('google_calendar')} disabled={syncing.google_calendar} className="p-0.5 hover:bg-slate-100 rounded transition-colors disabled:opacity-50" title="Sync Google Calendar">
-                    <SyncIcon spinning={syncing.google_calendar} />
+                  <button
+                    onClick={() => handleSync('google_calendar')}
+                    disabled={syncing.google_calendar}
+                    className="p-0.5 hover:bg-slate-100 rounded transition-colors disabled:opacity-50"
+                    title="Sync Google Calendar"
+                  >
+                    <svg className={`w-3 h-3 text-slate-400 ${syncing.google_calendar ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
+                    </svg>
                   </button>
                 </div>
               ) : (
-                <button onClick={handleConnectGoogle} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500">
+                <button
+                  onClick={handleConnectGoogle}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
+                >
                   <SiGooglecalendar className="w-3.5 h-3.5 text-[#4285F4] shrink-0" />
-                  <span className="whitespace-nowrap">Google</span>
+                  <span className="whitespace-nowrap">Google Calendar</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
               )}
@@ -598,100 +670,32 @@ export default function CalendarPage({
                   <FaMicrosoft className="w-3.5 h-3.5 text-[#0078D4] shrink-0" />
                   <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                  <button onClick={() => handleSync('microsoft_outlook')} disabled={syncing.microsoft_outlook} className="p-0.5 hover:bg-slate-100 rounded transition-colors disabled:opacity-50" title="Sync Microsoft Outlook">
-                    <SyncIcon spinning={syncing.microsoft_outlook} />
+                  <button
+                    onClick={() => handleSync('microsoft_outlook')}
+                    disabled={syncing.microsoft_outlook}
+                    className="p-0.5 hover:bg-slate-100 rounded transition-colors disabled:opacity-50"
+                    title="Sync Microsoft Outlook"
+                  >
+                    <svg className={`w-3 h-3 text-slate-400 ${syncing.microsoft_outlook ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
+                    </svg>
                   </button>
                 </div>
               ) : (
-                <button onClick={handleConnectMicrosoft} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500">
+                <button
+                  onClick={() => { window.location.href = '/api/integrations/microsoft-outlook/connect?return_to=/calendar'; }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
+                >
                   <FaMicrosoft className="w-3.5 h-3.5 text-[#0078D4] shrink-0" />
                   <span className="whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
               )}
 
-              {/* Settings button */}
-              <div className="relative" ref={settingsRef}>
-                <button
-                  onClick={() => { setSettingsForm({ ...calSettings }); setShowSettingsMenu(!showSettingsMenu); }}
-                  className="p-2 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all"
-                  title="Calendar Settings"
-                >
-                  <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <circle cx="12" cy="6" r="1.5" fill="currentColor" />
-                    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                    <circle cx="12" cy="18" r="1.5" fill="currentColor" />
-                  </svg>
-                </button>
-
-                {/* Settings Dropdown */}
-                {showSettingsMenu && (
-                  <div className="absolute right-0 top-12 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-slideDown">
-                    <div className="p-4 border-b border-slate-100">
-                      <h4 className="text-sm font-bold text-slate-900">Calendar Settings</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">Changes sync with your account settings</p>
-                    </div>
-                    <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                      {/* Timezone */}
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Timezone</label>
-                        <select value={settingsForm.timezone} onChange={e => setSettingsForm(prev => ({ ...prev, timezone: e.target.value }))} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none">
-                          {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
-                        </select>
-                      </div>
-                      {/* Working Hours */}
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Working Hours</label>
-                        <div className="flex items-center gap-2">
-                          <input type="time" value={settingsForm.working_hours_start} onChange={e => setSettingsForm(prev => ({ ...prev, working_hours_start: e.target.value }))} className="flex-1 px-2.5 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
-                          <span className="text-xs text-slate-400">to</span>
-                          <input type="time" value={settingsForm.working_hours_end} onChange={e => setSettingsForm(prev => ({ ...prev, working_hours_end: e.target.value }))} className="flex-1 px-2.5 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
-                        </div>
-                      </div>
-                      {/* Working Days */}
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">Working Days</label>
-                        <div className="flex gap-1">
-                          {DAYS_OF_WEEK.map(day => (
-                            <button
-                              key={day.value}
-                              onClick={() => {
-                                setSettingsForm(prev => ({
-                                  ...prev,
-                                  working_days: prev.working_days.includes(day.value)
-                                    ? prev.working_days.filter(d => d !== day.value)
-                                    : [...prev.working_days, day.value],
-                                }));
-                              }}
-                              className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
-                                settingsForm.working_days.includes(day.value)
-                                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
-                                  : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-                              }`}
-                            >{day.label}</button>
-                          ))}
-                        </div>
-                      </div>
-                      {/* Exclude Holidays */}
-                      <div>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={settingsForm.exclude_holidays} onChange={e => setSettingsForm(prev => ({ ...prev, exclude_holidays: e.target.checked }))} className="w-4 h-4 rounded text-[var(--color-primary)]" />
-                          <span className="text-sm text-slate-700 font-medium">Exclude US Federal Holidays</span>
-                        </label>
-                        <p className="text-xs text-slate-400 mt-0.5 ml-6">Mark holidays as non-working days</p>
-                      </div>
-                    </div>
-                    <div className="p-4 border-t border-slate-100 flex justify-end gap-2">
-                      <button onClick={() => setShowSettingsMenu(false)} className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
-                      <button onClick={handleSaveSettings} disabled={savingSettings} className="px-4 py-1.5 text-sm font-medium text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] rounded-lg transition-colors disabled:opacity-50">
-                        {savingSettings ? 'Saving...' : 'Save'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <button onClick={() => { setOutsideWorkHoursWarning(false); setShowScheduleModal(true); }} className="btn-primary flex items-center gap-2 whitespace-nowrap shrink-0">
+              <button
+                onClick={() => { setScheduleWarning(null); setShowScheduleModal(true); }}
+                className="btn-primary flex items-center gap-2 whitespace-nowrap shrink-0"
+              >
                 <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -702,52 +706,237 @@ export default function CalendarPage({
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
-            {[
-              { label: 'Today', value: stats.todayCount, sub: 'events scheduled', color: 'bg-blue-500' },
-              { label: 'Upcoming', value: stats.upcomingCount, sub: 'future appointments', color: 'bg-emerald-500' },
-              { label: 'No-Show Retries', value: stats.noShowRetries, sub: 'auto-scheduled', color: 'bg-amber-500' },
-              { label: 'Pending', value: stats.pendingConfirmation, sub: 'need confirmation', color: 'bg-yellow-500' },
-              { label: 'Total Scheduled', value: stats.scheduledCount, sub: 'all pending', color: 'bg-[var(--color-primary)]' },
-            ].map(stat => (
-              <div key={stat.label} className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-2 h-2 ${stat.color} rounded-full`}></div>
-                  <span className="text-xs text-slate-500 font-semibold">{stat.label}</span>
-                </div>
-                <span className="text-3xl text-slate-900 font-bold">{stat.value}</span>
-                <p className="text-xs text-slate-500 mt-1">{stat.sub}</p>
+            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-xs text-slate-500 font-semibold">Today</span>
               </div>
-            ))}
+              <span className="text-3xl text-slate-900 font-bold">{stats.todayCount}</span>
+              <p className="text-xs text-slate-500 mt-1">events scheduled</p>
+            </div>
+            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                <span className="text-xs text-slate-500 font-semibold">Upcoming</span>
+              </div>
+              <span className="text-3xl text-slate-900 font-bold">{stats.upcomingCount}</span>
+              <p className="text-xs text-slate-500 mt-1">future appointments</p>
+            </div>
+            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                <span className="text-xs text-slate-500 font-semibold">No-Show Retries</span>
+              </div>
+              <span className="text-3xl text-slate-900 font-bold">{stats.noShowRetries}</span>
+              <p className="text-xs text-slate-500 mt-1">auto-scheduled</p>
+            </div>
+            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <span className="text-xs text-slate-500 font-semibold">Pending</span>
+              </div>
+              <span className="text-3xl text-slate-900 font-bold">{stats.pendingConfirmation}</span>
+              <p className="text-xs text-slate-500 mt-1">need confirmation</p>
+            </div>
+            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
+                <span className="text-xs text-slate-500 font-semibold">Total Scheduled</span>
+              </div>
+              <span className="text-3xl text-slate-900 font-bold">{stats.scheduledCount}</span>
+              <p className="text-xs text-slate-500 mt-1">all pending</p>
+            </div>
           </div>
         </div>
       </div>
+
 
       {/* Calendar Controls */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
-              <button onClick={() => navigateMonth(-1)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors"><ChevronLeftIcon className="w-4 h-4 text-slate-600" /></button>
-              <button onClick={goToToday} className="px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">Today</button>
-              <button onClick={() => navigateMonth(1)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors"><ChevronRightIcon className="w-4 h-4 text-slate-600" /></button>
+              <button onClick={() => navigateMonth(-1)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <ChevronLeftIcon className="w-4 h-4 text-slate-600" />
+              </button>
+              <button onClick={goToToday} className="px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                Today
+              </button>
+              <button onClick={() => navigateMonth(1)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <ChevronRightIcon className="w-4 h-4 text-slate-600" />
+              </button>
             </div>
             <h3 className="text-lg font-bold text-slate-900">
               {viewMode === 'week' ? weekLabel : viewMode === 'day' ? currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : monthYearLabel}
             </h3>
           </div>
           <div className="flex items-center gap-3 flex-nowrap shrink-0">
+            {/* Filter */}
             <div className="flex bg-slate-100 rounded-lg p-0.5 flex-nowrap shrink-0">
-              {([{ id: 'all', label: 'All' }, { id: 'call', label: 'Calls' }, { id: 'follow_up', label: 'Follow-ups' }, { id: 'appointment', label: 'Appointments' }, { id: 'meeting', label: 'Meetings' }] as { id: FilterType; label: string }[]).map(f => (
-                <button key={f.id} onClick={() => setFilterType(f.id)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${filterType === f.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>{f.label}</button>
+              {([
+                { id: 'all', label: 'All' },
+                { id: 'call', label: 'Calls' },
+                { id: 'follow_up', label: 'Follow-ups' },
+                { id: 'appointment', label: 'Appointments' },
+                { id: 'meeting', label: 'Meetings' },
+              ] as { id: FilterType; label: string }[]).map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setFilterType(f.id)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
+                    filterType === f.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {f.label}
+                </button>
               ))}
             </div>
+            {/* View Mode */}
             <div className="flex bg-slate-100 rounded-lg p-0.5 flex-nowrap shrink-0">
               {(['month', 'week', 'day', 'agenda'] as ViewMode[]).map(mode => (
-                <button key={mode} onClick={() => setViewMode(mode)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all capitalize whitespace-nowrap ${viewMode === mode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>{mode}</button>
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all capitalize whitespace-nowrap ${
+                    viewMode === mode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {mode}
+                </button>
               ))}
+            </div>
+            {/* Settings Menu (three dots) */}
+            <div className="relative" ref={settingsRef}>
+              <button
+                onClick={() => {
+                  setSettingsForm({ ...calSettings });
+                  setShowSettingsMenu(!showSettingsMenu);
+                }}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500 hover:text-slate-700"
+                title="Calendar Settings"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="5" r="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="12" cy="19" r="2" />
+                </svg>
+              </button>
+
+              {/* Settings Dropdown Panel */}
+              {showSettingsMenu && (
+                <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                    <h4 className="text-sm font-bold text-slate-900">Calendar Settings</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Configure your working hours and preferences</p>
+                  </div>
+                  <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                    {/* Timezone */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Timezone</label>
+                      <select
+                        value={settingsForm.timezone}
+                        onChange={e => setSettingsForm(prev => ({ ...prev, timezone: e.target.value }))}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                      >
+                        {TIMEZONE_OPTIONS.map(tz => (
+                          <option key={tz.value} value={tz.value}>{tz.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Working Hours */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Working Hours</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          value={settingsForm.working_hours_start}
+                          onChange={e => setSettingsForm(prev => ({ ...prev, working_hours_start: e.target.value }))}
+                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                        />
+                        <span className="text-xs text-slate-400 font-medium">to</span>
+                        <input
+                          type="time"
+                          value={settingsForm.working_hours_end}
+                          onChange={e => setSettingsForm(prev => ({ ...prev, working_hours_end: e.target.value }))}
+                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Working Days */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Working Days</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ALL_DAYS.map(day => {
+                          const isActive = settingsForm.working_days.includes(day);
+                          return (
+                            <button
+                              key={day}
+                              type="button"
+                              onClick={() => {
+                                setSettingsForm(prev => ({
+                                  ...prev,
+                                  working_days: isActive
+                                    ? prev.working_days.filter(d => d !== day)
+                                    : [...prev.working_days, day],
+                                }));
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                isActive
+                                  ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                              }`}
+                            >
+                              {DAY_LABELS[day]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Exclude US Holidays */}
+                    <div>
+                      <label className="flex items-center gap-2.5 cursor-pointer">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={settingsForm.exclude_holidays}
+                            onChange={e => setSettingsForm(prev => ({ ...prev, exclude_holidays: e.target.checked }))}
+                            className="sr-only"
+                          />
+                          <div className={`w-9 h-5 rounded-full transition-colors ${settingsForm.exclude_holidays ? 'bg-[var(--color-primary)]' : 'bg-slate-200'}`}>
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${settingsForm.exclude_holidays ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold text-slate-700">Exclude US Holidays</span>
+                          <p className="text-[10px] text-slate-400">Callengo agents will not operate on US holidays</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-2">
+                    <button
+                      onClick={() => setShowSettingsMenu(false)}
+                      className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveSettings}
+                      disabled={savingSettings}
+                      className="px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)] rounded-lg transition-colors disabled:opacity-50 shadow-sm"
+                    >
+                      {savingSettings ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
+
 
         {/* Month View */}
         {viewMode === 'month' && (
@@ -758,29 +947,34 @@ export default function CalendarPage({
               ))}
             </div>
             <div className="grid grid-cols-7 border-t border-l border-slate-200">
-              {calendarDays.map((day, idx) => {
-                const dayIsWorkDay = isWorkingDay(day.date);
-                return (
-                  <div key={idx} onClick={() => { setCurrentDate(day.date); setViewMode('day'); }}
-                    className={`min-h-[100px] p-1.5 border-r border-b border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors ${!day.isCurrentMonth ? 'bg-slate-50/50' : ''} ${isToday(day.date) ? 'bg-blue-50/50' : ''} ${!dayIsWorkDay && day.isCurrentMonth ? 'bg-slate-50/80' : ''}`}
-                  >
-                    <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
-                      isToday(day.date) ? 'gradient-bg text-white' : day.isCurrentMonth ? (dayIsWorkDay ? 'text-slate-900' : 'text-slate-400') : 'text-slate-400'
-                    }`}>{day.date.getDate()}</div>
-                    <div className="space-y-0.5">
-                      {day.events.slice(0, 3).map(event => {
-                        const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                        return (
-                          <div key={event.id} className={`text-[10px] px-1.5 py-0.5 rounded ${style.bg} ${style.text} truncate border font-medium`}>
-                            {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} {(event.contact_name || event.title).split(' ')[0]}
-                          </div>
-                        );
-                      })}
-                      {day.events.length > 3 && <div className="text-[10px] text-slate-500 font-medium px-1.5">+{day.events.length - 3} more</div>}
-                    </div>
+              {calendarDays.map((day, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => { setCurrentDate(day.date); setViewMode('day'); }}
+                  className={`min-h-[100px] p-1.5 border-r border-b border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors ${
+                    !day.isCurrentMonth ? 'bg-slate-50/50' : ''
+                  } ${isToday(day.date) ? 'bg-blue-50/50' : ''}`}
+                >
+                  <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
+                    isToday(day.date) ? 'gradient-bg text-white' : day.isCurrentMonth ? 'text-slate-900' : 'text-slate-400'
+                  }`}>
+                    {day.date.getDate()}
                   </div>
-                );
-              })}
+                  <div className="space-y-0.5">
+                    {day.events.slice(0, 3).map(event => {
+                      const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
+                      return (
+                        <div key={event.id} className={`text-[10px] px-1.5 py-0.5 rounded ${style.bg} ${style.text} truncate border font-medium`}>
+                          {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} {(event.contact_name || event.title).split(' ')[0]}
+                        </div>
+                      );
+                    })}
+                    {day.events.length > 3 && (
+                      <div className="text-[10px] text-slate-500 font-medium px-1.5">+{day.events.length - 3} more</div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -789,19 +983,29 @@ export default function CalendarPage({
         {viewMode === 'week' && (
           <div className="p-4 overflow-x-auto">
             <div className="min-w-[700px]">
+              {/* Day headers */}
               <div className="grid grid-cols-[64px_repeat(7,1fr)]">
                 <div className="w-16" />
-                {weekDays.map((day, idx) => (
-                  <div key={idx} className={`text-center py-3 border-b border-l ${
-                    isToday(day.date) ? 'bg-[var(--color-primary-50)]/40 border-b-[var(--color-primary)]/30' : 'border-slate-200'
-                  } ${!day.isWorkDay ? 'bg-slate-100/60' : ''} ${idx === 6 ? 'border-r border-slate-200' : ''}`}>
-                    <div className={`text-xs font-medium ${!day.isWorkDay ? 'text-slate-400' : 'text-slate-500'}`}>{day.date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                    <div className={`text-lg font-bold ${isToday(day.date) ? 'text-[var(--color-primary)]' : day.isWorkDay ? 'text-slate-900' : 'text-slate-400'}`}>{day.date.getDate()}</div>
-                    {!day.isWorkDay && <div className="text-[9px] text-slate-400 font-medium">Off</div>}
-                  </div>
-                ))}
+                {weekDays.map((day, idx) => {
+                  const dayWorking = isWorkingDay(day.date);
+                  return (
+                    <div
+                      key={idx}
+                      className={`text-center py-3 border-b border-l ${
+                        isToday(day.date) ? 'bg-[var(--color-primary-50)]/40 border-b-[var(--color-primary)]/30' : 'border-slate-200'
+                      } ${!dayWorking ? 'bg-slate-100/60' : ''} ${idx === 6 ? 'border-r border-slate-200' : ''}`}
+                    >
+                      <div className={`text-xs font-medium ${!dayWorking ? 'text-slate-400' : 'text-slate-500'}`}>{day.date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                      <div className={`text-lg font-bold ${isToday(day.date) ? 'text-[var(--color-primary)]' : !dayWorking ? 'text-slate-400' : 'text-slate-900'}`}>
+                        {day.date.getDate()}
+                      </div>
+                      {!dayWorking && <div className="text-[9px] text-slate-400 font-medium">Off</div>}
+                    </div>
+                  );
+                })}
               </div>
 
+              {/* Time grid */}
               <div className="relative">
                 {/* Current time indicator */}
                 {(() => {
@@ -838,48 +1042,65 @@ export default function CalendarPage({
                   const isFirstWork = hour === workStart;
                   const isLastWork = hour === workEnd;
                   return (
-                    <div key={hour} className="grid grid-cols-[64px_repeat(7,1fr)]">
-                      <div className={`w-16 text-right pr-2 text-[11px] font-medium h-12 flex items-start pt-0 -mt-1.5 ${working ? 'text-slate-600' : 'text-slate-300'}`}>
-                        {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
-                      </div>
-                      {weekDays.map((day, dayIdx) => {
-                        const hourEvents = day.events.filter(e => new Date(e.start_time).getHours() === hour);
-                        const isWorkCell = working && day.isWorkDay;
-                        return (
-                          <div
-                            key={dayIdx}
-                            onClick={() => hourEvents.length === 0 && handleSlotClick(day.date, hour)}
-                            className={`h-12 border-t border-l ${dayIdx === 6 ? 'border-r' : ''} ${
-                              isWorkCell
-                                ? isToday(day.date) ? 'bg-[var(--color-primary-50)]/20 border-slate-200' : 'bg-white border-slate-200'
-                                : !day.isWorkDay
-                                  ? 'bg-slate-100/60 border-slate-100 bg-[repeating-linear-gradient(135deg,transparent,transparent_4px,rgba(148,163,184,0.06)_4px,rgba(148,163,184,0.06)_8px)]'
-                                  : isToday(day.date) ? 'bg-slate-50/80 border-slate-100' : 'bg-slate-50/60 border-slate-100'
-                            } ${isFirstWork || isLastWork ? 'border-t-[var(--color-primary)]/20' : ''} relative ${
-                              hourEvents.length === 0 ? 'cursor-pointer hover:bg-blue-50/30' : ''
-                            }`}
-                          >
-                            {hourEvents.map(event => {
-                              const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                              const startMin = new Date(event.start_time).getMinutes();
-                              const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
-                              const topOffset = (startMin / 60) * 48;
-                              const height = Math.max((durationMin / 60) * 48, 18);
-                              return (
-                                <div key={event.id} className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10`}
-                                  style={{ top: `${topOffset}px`, height: `${height}px` }}
-                                  title={`${event.title}\n${new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
-                                  {height >= 28 && <div className="text-[9px] opacity-75 truncate">{new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
+                  <div key={hour} className="grid grid-cols-[64px_repeat(7,1fr)]">
+                    <div className={`w-16 text-right pr-2 text-[11px] font-medium h-12 flex items-start pt-0 -mt-1.5 ${
+                      working ? 'text-slate-600' : 'text-slate-300'
+                    }`}>
+                      {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                     </div>
+                    {weekDays.map((day, dayIdx) => {
+                      const hourEvents = day.events.filter(e => new Date(e.start_time).getHours() === hour);
+                      const dayWorking = isWorkingDay(day.date);
+                      const slotWorking = working && dayWorking;
+                      const isEmpty = hourEvents.length === 0;
+                      return (
+                        <div
+                          key={dayIdx}
+                          onClick={() => { if (isEmpty) openScheduleFromSlot(day.date, hour); }}
+                          className={`h-12 border-t border-l ${dayIdx === 6 ? 'border-r' : ''} ${
+                            slotWorking
+                              ? isToday(day.date) ? 'bg-[var(--color-primary-50)]/20 border-slate-200' : 'bg-white border-slate-200'
+                              : !dayWorking
+                                ? 'border-slate-100'
+                                : isToday(day.date) ? 'bg-slate-50/80 border-slate-100' : 'bg-slate-50/60 border-slate-100'
+                          } ${isFirstWork || isLastWork ? 'border-t-[var(--color-primary)]/20' : ''} relative ${
+                            isEmpty ? 'cursor-pointer hover:bg-blue-50/40 transition-colors' : ''
+                          }`}
+                          style={!dayWorking ? { backgroundImage: 'url(#non-working-day-pattern)', backgroundColor: 'rgba(241,245,249,0.6)' } : undefined}
+                        >
+                          {/* Non-working day overlay with diagonal stripes */}
+                          {!dayWorking && (
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                              <rect width="100%" height="100%" fill="url(#non-working-day-pattern)" />
+                            </svg>
+                          )}
+                          {hourEvents.map(event => {
+                            const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
+                            const startMin = new Date(event.start_time).getMinutes();
+                            const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
+                            const topOffset = (startMin / 60) * 48;
+                            const height = Math.max((durationMin / 60) * 48, 18);
+                            return (
+                              <div
+                                key={event.id}
+                                className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10`}
+                                style={{ top: `${topOffset}px`, height: `${height}px` }}
+                                title={`${event.title}\n${new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`}
+                                onClick={e => e.stopPropagation()}
+                              >
+                                <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
+                                {height >= 28 && (
+                                  <div className="text-[9px] opacity-75 truncate">
+                                    {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
                   );
                 })}
               </div>
@@ -887,18 +1108,19 @@ export default function CalendarPage({
           </div>
         )}
 
+
         {/* Day View */}
         {viewMode === 'day' && (
           <div className="p-4">
             {/* Non-working day banner */}
             {!isWorkingDay(currentDate) && (
-              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
                 <svg className="w-5 h-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-amber-800">This day is outside your configured working days</p>
-                  <p className="text-xs text-amber-600">Callengo agents will not operate on this day. You can still schedule events manually.</p>
+                  <p className="text-sm font-semibold text-amber-800">This day is outside your configured working days.</p>
+                  <p className="text-xs text-amber-600 mt-0.5">Callengo agents will not operate on this day.</p>
                 </div>
               </div>
             )}
@@ -917,8 +1139,12 @@ export default function CalendarPage({
 
             <div className="relative">
               {/* Current time indicator */}
-              {isToday(currentDate) && (() => {
-                const topPosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 52;
+              {(() => {
+                const isViewingToday = currentDate.toDateString() === currentTime.toDateString();
+                if (!isViewingToday) return null;
+                const currentHour = currentTime.getHours();
+                const currentMinute = currentTime.getMinutes();
+                const topPosition = (currentHour + currentMinute / 60) * 52;
                 return (
                   <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top: `${topPosition}px` }}>
                     <div className="w-16 shrink-0 flex justify-end pr-2">
@@ -934,84 +1160,111 @@ export default function CalendarPage({
                 );
               })()}
 
-              {Array.from({ length: 24 }, (_, i) => i).map(hour => {
-                const hourEvents = filteredEvents.filter(e => {
-                  const eDate = new Date(e.start_time);
-                  return eDate.toDateString() === currentDate.toDateString() && eDate.getHours() === hour;
-                });
-                const working = isWorkingHour(hour);
-                const isFirstWork = hour === workStart;
-                const isLastWork = hour === workEnd;
-                const isDayWorking = isWorkingDay(currentDate);
+              <div>
+                {Array.from({ length: 24 }, (_, i) => i).map(hour => {
+                  const hourEvents = filteredEvents.filter(e => {
+                    const eDate = new Date(e.start_time);
+                    return eDate.toDateString() === currentDate.toDateString() && eDate.getHours() === hour;
+                  });
+                  const working = isWorkingHour(hour);
+                  const dayWorking = isWorkingDay(currentDate);
+                  const slotWorking = working && dayWorking;
+                  const isFirstWork = hour === workStart;
+                  const isLastWork = hour === workEnd;
+                  const isEmpty = hourEvents.length === 0;
 
-                return (
-                  <div key={hour} className="flex">
-                    <div className={`w-16 text-right text-[11px] font-medium pr-3 shrink-0 h-[52px] flex items-start -mt-1.5 ${working ? 'text-slate-600' : 'text-slate-300'}`}>
-                      {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
-                    </div>
-                    <div
-                      onClick={() => hourEvents.length === 0 && handleSlotClick(currentDate, hour)}
-                      className={`flex-1 min-h-[52px] border-t relative ${
-                        working && isDayWorking ? 'bg-white border-slate-200' : !isDayWorking ? 'bg-slate-100/60 border-slate-100 bg-[repeating-linear-gradient(135deg,transparent,transparent_4px,rgba(148,163,184,0.06)_4px,rgba(148,163,184,0.06)_8px)]' : 'bg-slate-50/60 border-slate-100'
-                      } ${isFirstWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${isLastWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${
-                        hourEvents.length === 0 ? 'cursor-pointer hover:bg-blue-50/30' : ''
-                      }`}
-                    >
-                      {hourEvents.map(event => {
-                        const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                        const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
-                        const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
-                        const isLoading = actionLoading === event.id;
-                        return (
-                          <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1`} onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
-                              <div className="min-w-0">
-                                <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
-                                <div className="text-xs text-slate-500">
-                                  {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
-                                  {event.contact_phone && <span className="ml-2">{event.contact_phone}</span>}
-                                </div>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <SourceBadge source={event.source} />
-                                  {event.video_link && (
-                                    <a href={event.video_link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 font-medium hover:underline flex items-center gap-0.5">
-                                      {event.video_provider === 'google_meet' && <SiGooglemeet className="w-2.5 h-2.5" />}
-                                      {event.video_provider === 'zoom' && <BiLogoZoom className="w-2.5 h-2.5" />}
-                                      {event.video_provider === 'microsoft_teams' && <FaMicrosoft className="w-2.5 h-2.5" />}
-                                      Join
-                                    </a>
-                                  )}
-                                  {event.confirmation_status === 'confirmed' && <span className="text-[10px] text-emerald-600 font-medium">Confirmed</span>}
+                  return (
+                    <div key={hour} className="flex">
+                      <div className={`w-16 text-right text-[11px] font-medium pr-3 shrink-0 h-[52px] flex items-start -mt-1.5 ${
+                        working ? 'text-slate-600' : 'text-slate-300'
+                      }`}>
+                        {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
+                      </div>
+                      <div
+                        onClick={() => { if (isEmpty) openScheduleFromSlot(currentDate, hour); }}
+                        className={`flex-1 min-h-[52px] border-t relative ${
+                          slotWorking ? 'bg-white border-slate-200' : !dayWorking ? 'border-slate-100' : 'bg-slate-50/60 border-slate-100'
+                        } ${isFirstWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${isLastWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${
+                          isEmpty ? 'cursor-pointer hover:bg-blue-50/40 transition-colors' : ''
+                        }`}
+                        style={!dayWorking ? { backgroundColor: 'rgba(241,245,249,0.6)' } : undefined}
+                      >
+                        {/* Non-working day stripe overlay */}
+                        {!dayWorking && (
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                            <rect width="100%" height="100%" fill="url(#non-working-day-pattern)" />
+                          </svg>
+                        )}
+                        {hourEvents.map(event => {
+                          const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
+                          const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
+                          const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
+                          const isLoading = actionLoading === event.id;
+                          return (
+                            <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1`} onClick={e => e.stopPropagation()}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
+                                <div className="min-w-0">
+                                  <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
+                                  <div className="text-xs text-slate-500">
+                                    {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
+                                    {event.contact_phone && <span className="ml-2">{event.contact_phone}</span>}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <SourceBadge source={event.source} />
+                                    {event.confirmation_status === 'confirmed' && (
+                                      <span className="text-[10px] text-emerald-600 font-medium">Confirmed</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                {(event.status === 'scheduled' || event.status === 'pending_confirmation') && !isLoading && (
+                                  <>
+                                    {event.confirmation_status !== 'confirmed' && (
+                                      <button
+                                        onClick={() => handleConfirm(event.id)}
+                                        className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
+                                      >
+                                        Confirm
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleMarkNoShow(event.id)}
+                                      className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                    >
+                                      No-Show
+                                    </button>
+                                    <button
+                                      onClick={() => handleCancel(event.id)}
+                                      className="px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                )}
+                                {isLoading && (
+                                  <svg className="animate-spin w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                  </svg>
+                                )}
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>
+                                  {event.status.replace(/_/g, ' ')}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                              {(event.status === 'scheduled' || event.status === 'pending_confirmation') && !isLoading && (
-                                <>
-                                  {event.confirmation_status !== 'confirmed' && <button onClick={() => handleConfirm(event.id)} className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors">Confirm</button>}
-                                  <button onClick={() => handleMarkNoShow(event.id)} className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors">No-Show</button>
-                                  <button onClick={() => handleCancel(event.id)} className="px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
-                                </>
-                              )}
-                              {isLoading && (
-                                <svg className="animate-spin w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                </svg>
-                              )}
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>{event.status.replace(/_/g, ' ')}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
+
 
         {/* Agenda View */}
         {viewMode === 'agenda' && (
@@ -1022,24 +1275,33 @@ export default function CalendarPage({
                 const upcoming = filteredEvents
                   .filter(e => e.status === 'scheduled' || e.status === 'confirmed' || e.status === 'pending_confirmation')
                   .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
                 upcoming.forEach(e => {
                   const dateKey = new Date(e.start_time).toDateString();
                   if (!grouped.has(dateKey)) grouped.set(dateKey, []);
                   grouped.get(dateKey)!.push(e);
                 });
+
                 if (grouped.size === 0) {
                   return (
                     <div className="text-center py-16">
-                      <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4"><CalendarIcon className="w-8 h-8 text-slate-400" /></div>
+                      <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                        <CalendarIcon className="w-8 h-8 text-slate-400" />
+                      </div>
                       <p className="text-slate-900 font-semibold">No upcoming events</p>
                       <p className="text-sm text-slate-500 mt-1">Schedule a call or connect your calendar to get started</p>
                     </div>
                   );
                 }
+
                 return Array.from(grouped.entries()).map(([dateStr, dayEvents]) => (
                   <div key={dateStr}>
                     <div className="flex items-center gap-3 mb-3">
-                      <div className={`px-3 py-1 rounded-lg text-xs font-bold ${new Date(dateStr).toDateString() === new Date().toDateString() ? 'gradient-bg text-white' : 'bg-slate-100 text-slate-700'}`}>
+                      <div className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                        new Date(dateStr).toDateString() === new Date().toDateString()
+                          ? 'gradient-bg text-white'
+                          : 'bg-slate-100 text-slate-700'
+                      }`}>
                         {new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                       </div>
                       <div className="flex-1 h-px bg-slate-200"></div>
@@ -1053,22 +1315,35 @@ export default function CalendarPage({
                         return (
                           <div key={event.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
                             <div className={`w-1.5 h-10 rounded-full ${style.dot}`}></div>
-                            <div className="text-sm text-slate-500 font-medium w-20 shrink-0">{new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
+                            <div className="text-sm text-slate-500 font-medium w-20 shrink-0">
+                              {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-semibold text-slate-900 truncate">{event.title}</div>
                               <div className="text-xs text-slate-500">
                                 {event.contact_phone && `${event.contact_phone} - `}{durationMin}min
-                                {event.source !== 'manual' && <span className="ml-2"><SourceBadge source={event.source} /></span>}
-                                {event.video_link && (
-                                  <a href={event.video_link} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 hover:underline">Join call</a>
+                                {event.source !== 'manual' && (
+                                  <span className="ml-2"><SourceBadge source={event.source} /></span>
                                 )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                               {(event.status === 'scheduled' || event.status === 'pending_confirmation') && !isLoading && (
                                 <>
-                                  {event.confirmation_status !== 'confirmed' && <button onClick={() => handleConfirm(event.id)} className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">Confirm</button>}
-                                  <button onClick={() => handleMarkNoShow(event.id)} className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">No-Show</button>
+                                  {event.confirmation_status !== 'confirmed' && (
+                                    <button
+                                      onClick={() => handleConfirm(event.id)}
+                                      className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                    >
+                                      Confirm
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleMarkNoShow(event.id)}
+                                    className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  >
+                                    No-Show
+                                  </button>
                                 </>
                               )}
                               {isLoading && (
@@ -1078,7 +1353,9 @@ export default function CalendarPage({
                                 </svg>
                               )}
                             </div>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${style.bg} ${style.text} border`}>{event.event_type.replace(/_/g, ' ')}</span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${style.bg} ${style.text} border`}>
+                              {event.event_type.replace(/_/g, ' ')}
+                            </span>
                           </div>
                         );
                       })}
@@ -1091,35 +1368,39 @@ export default function CalendarPage({
         )}
       </div>
 
+
       {/* Schedule Modal */}
       {showScheduleModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { setShowScheduleModal(false); setOutsideWorkHoursWarning(false); }}>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { setShowScheduleModal(false); setScheduleWarning(null); }}>
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-slate-900">Schedule Event</h3>
-                <button onClick={() => { setShowScheduleModal(false); setOutsideWorkHoursWarning(false); }} className="p-1 hover:bg-slate-100 rounded-lg">
-                  <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <button onClick={() => { setShowScheduleModal(false); setScheduleWarning(null); }} className="p-1 hover:bg-slate-100 rounded-lg">
+                  <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
             </div>
             <div className="p-6 space-y-4">
-              {/* Outside work hours warning */}
-              {outsideWorkHoursWarning && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
-                  <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              {/* Warning for off-hours scheduling */}
+              {scheduleWarning && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5">
+                  <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                   </svg>
-                  <div>
-                    <p className="text-sm font-semibold text-amber-800">Outside working hours</p>
-                    <p className="text-xs text-amber-600">This time slot is outside your configured working hours. Callengo agents will not operate during this time.</p>
-                  </div>
+                  <p className="text-xs text-amber-700 font-medium">{scheduleWarning}</p>
                 </div>
               )}
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Event Type</label>
-                <select value={scheduleForm.event_type} onChange={e => setScheduleForm(prev => ({ ...prev, event_type: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none">
+                <select
+                  value={scheduleForm.event_type}
+                  onChange={e => setScheduleForm(prev => ({ ...prev, event_type: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                >
                   <option value="call">Call</option>
                   <option value="follow_up">Follow-up</option>
                   <option value="meeting">Meeting</option>
@@ -1130,59 +1411,120 @@ export default function CalendarPage({
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact</label>
-                <select value={scheduleForm.contact_id} onChange={e => setScheduleForm(prev => ({ ...prev, contact_id: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none">
+                <select
+                  value={scheduleForm.contact_id}
+                  onChange={e => setScheduleForm(prev => ({ ...prev, contact_id: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                >
                   <option value="">Select a contact...</option>
-                  {contacts.slice(0, 50).map(c => <option key={c.id} value={c.id}>{c.contact_name || 'Unknown'} - {c.phone_number}</option>)}
+                  {contacts.slice(0, 50).map(c => (
+                    <option key={c.id} value={c.id}>{c.contact_name || 'Unknown'} - {c.phone_number}</option>
+                  ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Date</label>
-                  <input type="date" value={scheduleForm.date} onChange={e => setScheduleForm(prev => ({ ...prev, date: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
+                  <input
+                    type="date"
+                    value={scheduleForm.date}
+                    onChange={e => setScheduleForm(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Time</label>
-                  <input type="time" value={scheduleForm.time} onChange={e => setScheduleForm(prev => ({ ...prev, time: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
+                  <input
+                    type="time"
+                    value={scheduleForm.time}
+                    onChange={e => setScheduleForm(prev => ({ ...prev, time: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                  />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Duration (minutes)</label>
-                <input type="number" value={scheduleForm.duration} onChange={e => setScheduleForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 15 }))} min={5} max={120} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
+                <input
+                  type="number"
+                  value={scheduleForm.duration}
+                  onChange={e => setScheduleForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 15 }))}
+                  min={5}
+                  max={120}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                />
               </div>
+
               {/* Video Call Provider */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Video Call (optional)</label>
-                <select value={scheduleForm.video_provider} onChange={e => setScheduleForm(prev => ({ ...prev, video_provider: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none">
-                  <option value="">No video call</option>
-                  <option value="google_meet">Google Meet</option>
-                  <option value="zoom">Zoom</option>
-                  <option value="microsoft_teams">Microsoft Teams</option>
-                </select>
+                <div className="flex gap-2">
+                  {[
+                    { value: '', label: 'None', icon: null },
+                    { value: 'google_meet', label: 'Google Meet', icon: <SiGooglemeet className="w-4 h-4 text-[#00897B]" /> },
+                    { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" /> },
+                    { value: 'microsoft_teams', label: 'Teams', icon: <FaMicrosoft className="w-4 h-4 text-[#6264A7]" /> },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setScheduleForm(prev => ({ ...prev, video_provider: opt.value }))}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+                        scheduleForm.video_provider === opt.value
+                          ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)] shadow-sm'
+                          : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      {opt.icon}
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Notes</label>
-                <textarea rows={3} value={scheduleForm.notes} onChange={e => setScheduleForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="Add notes about this event..." className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none resize-none" />
+                <textarea
+                  rows={3}
+                  value={scheduleForm.notes}
+                  onChange={e => setScheduleForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Add notes about this event..."
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none resize-none"
+                />
               </div>
+
               {/* Sync options */}
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2">
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
                 {googleIntegration?.connected && (
                   <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                    <input type="checkbox" checked={scheduleForm.sync_to_google} onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))} className="w-4 h-4 rounded text-[var(--color-primary)]" />
+                    <input
+                      type="checkbox"
+                      checked={scheduleForm.sync_to_google}
+                      onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))}
+                      className="w-4 h-4 rounded text-[var(--color-primary)]"
+                    />
                     <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
                     Sync to Google Calendar
                   </label>
                 )}
                 {microsoftIntegration?.connected && (
                   <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                    <input type="checkbox" checked={scheduleForm.sync_to_microsoft} onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_microsoft: e.target.checked }))} className="w-4 h-4 rounded text-[var(--color-primary)]" />
+                    <input
+                      type="checkbox"
+                      checked={scheduleForm.sync_to_microsoft}
+                      onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_microsoft: e.target.checked }))}
+                      className="w-4 h-4 rounded text-[var(--color-primary)]"
+                    />
                     <FaMicrosoft className="w-4 h-4 text-[#0078D4]" />
                     Sync to Microsoft Outlook
                   </label>
                 )}
+                {!googleIntegration?.connected && !microsoftIntegration?.connected && (
+                  <p className="text-xs text-slate-400">Connect a calendar integration to sync events automatically.</p>
+                )}
               </div>
             </div>
             <div className="p-6 border-t border-slate-100 flex items-center justify-end gap-3">
-              <button onClick={() => { setShowScheduleModal(false); setOutsideWorkHoursWarning(false); }} className="btn-secondary">Cancel</button>
+              <button onClick={() => { setShowScheduleModal(false); setScheduleWarning(null); }} className="btn-secondary">Cancel</button>
               <button onClick={handleScheduleSubmit} className="btn-primary">Schedule Event</button>
             </div>
           </div>
