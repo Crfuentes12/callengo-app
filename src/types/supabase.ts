@@ -1294,6 +1294,321 @@ export type Database = {
           }
         ]
       }
+      calendar_integrations: {
+        Row: {
+          id: string
+          company_id: string
+          user_id: string
+          provider: string
+          access_token: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          provider_email: string | null
+          provider_user_id: string | null
+          provider_user_name: string | null
+          calendly_organization_uri: string | null
+          calendly_webhook_uri: string | null
+          google_calendar_id: string
+          last_synced_at: string | null
+          sync_token: string | null
+          is_active: boolean
+          scopes: string[] | null
+          raw_profile: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          user_id: string
+          provider: string
+          access_token: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          provider_email?: string | null
+          provider_user_id?: string | null
+          provider_user_name?: string | null
+          calendly_organization_uri?: string | null
+          calendly_webhook_uri?: string | null
+          google_calendar_id?: string
+          last_synced_at?: string | null
+          sync_token?: string | null
+          is_active?: boolean
+          scopes?: string[] | null
+          raw_profile?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          user_id?: string
+          provider?: string
+          access_token?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          provider_email?: string | null
+          provider_user_id?: string | null
+          provider_user_name?: string | null
+          calendly_organization_uri?: string | null
+          calendly_webhook_uri?: string | null
+          google_calendar_id?: string
+          last_synced_at?: string | null
+          sync_token?: string | null
+          is_active?: boolean
+          scopes?: string[] | null
+          raw_profile?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_integrations_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_integrations_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      calendar_events: {
+        Row: {
+          id: string
+          company_id: string
+          integration_id: string | null
+          external_event_id: string | null
+          external_calendar_id: string | null
+          title: string
+          description: string | null
+          location: string | null
+          start_time: string
+          end_time: string
+          timezone: string
+          all_day: boolean
+          event_type: string
+          status: string
+          source: string
+          contact_id: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          contact_email: string | null
+          agent_run_id: string | null
+          call_log_id: string | null
+          follow_up_id: string | null
+          agent_name: string | null
+          ai_notes: string | null
+          confirmation_status: string
+          confirmation_attempts: number
+          last_confirmation_at: string | null
+          original_start_time: string | null
+          rescheduled_count: number
+          rescheduled_reason: string | null
+          recurrence_rule: string | null
+          recurring_event_id: string | null
+          attendees: Json
+          last_synced_at: string | null
+          sync_status: string
+          sync_error: string | null
+          metadata: Json
+          notes: string | null
+          created_by_feature: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          integration_id?: string | null
+          external_event_id?: string | null
+          external_calendar_id?: string | null
+          title: string
+          description?: string | null
+          location?: string | null
+          start_time: string
+          end_time: string
+          timezone?: string
+          all_day?: boolean
+          event_type?: string
+          status?: string
+          source?: string
+          contact_id?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_email?: string | null
+          agent_run_id?: string | null
+          call_log_id?: string | null
+          follow_up_id?: string | null
+          agent_name?: string | null
+          ai_notes?: string | null
+          confirmation_status?: string
+          confirmation_attempts?: number
+          last_confirmation_at?: string | null
+          original_start_time?: string | null
+          rescheduled_count?: number
+          rescheduled_reason?: string | null
+          recurrence_rule?: string | null
+          recurring_event_id?: string | null
+          attendees?: Json
+          last_synced_at?: string | null
+          sync_status?: string
+          sync_error?: string | null
+          metadata?: Json
+          notes?: string | null
+          created_by_feature?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          integration_id?: string | null
+          external_event_id?: string | null
+          external_calendar_id?: string | null
+          title?: string
+          description?: string | null
+          location?: string | null
+          start_time?: string
+          end_time?: string
+          timezone?: string
+          all_day?: boolean
+          event_type?: string
+          status?: string
+          source?: string
+          contact_id?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_email?: string | null
+          agent_run_id?: string | null
+          call_log_id?: string | null
+          follow_up_id?: string | null
+          agent_name?: string | null
+          ai_notes?: string | null
+          confirmation_status?: string
+          confirmation_attempts?: number
+          last_confirmation_at?: string | null
+          original_start_time?: string | null
+          rescheduled_count?: number
+          rescheduled_reason?: string | null
+          recurrence_rule?: string | null
+          recurring_event_id?: string | null
+          attendees?: Json
+          last_synced_at?: string | null
+          sync_status?: string
+          sync_error?: string | null
+          metadata?: Json
+          notes?: string | null
+          created_by_feature?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_integration_id_fkey"
+            columns: ["integration_id"]
+            referencedRelation: "calendar_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_contact_id_fkey"
+            columns: ["contact_id"]
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_call_log_id_fkey"
+            columns: ["call_log_id"]
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_follow_up_id_fkey"
+            columns: ["follow_up_id"]
+            referencedRelation: "follow_up_queue"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      calendar_sync_log: {
+        Row: {
+          id: string
+          company_id: string
+          integration_id: string
+          sync_type: string
+          sync_direction: string
+          events_created: number
+          events_updated: number
+          events_deleted: number
+          errors: Json
+          started_at: string
+          completed_at: string | null
+          status: string
+          error_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          integration_id: string
+          sync_type: string
+          sync_direction: string
+          events_created?: number
+          events_updated?: number
+          events_deleted?: number
+          errors?: Json
+          started_at?: string
+          completed_at?: string | null
+          status?: string
+          error_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          integration_id?: string
+          sync_type?: string
+          sync_direction?: string
+          events_created?: number
+          events_updated?: number
+          events_deleted?: number
+          errors?: Json
+          started_at?: string
+          completed_at?: string | null
+          status?: string
+          error_message?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_sync_log_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_sync_log_integration_id_fkey"
+            columns: ["integration_id"]
+            referencedRelation: "calendar_integrations"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       voicemail_logs: {
         Row: {
           id: string
@@ -1415,6 +1730,9 @@ export type CallQueue = Database['public']['Tables']['call_queue']['Row'];
 export type BillingEvent = Database['public']['Tables']['billing_events']['Row'];
 export type AdminFinance = Database['public']['Tables']['admin_finances']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
+export type CalendarIntegrationRow = Database['public']['Tables']['calendar_integrations']['Row'];
+export type CalendarEventRow = Database['public']['Tables']['calendar_events']['Row'];
+export type CalendarSyncLogRow = Database['public']['Tables']['calendar_sync_log']['Row'];
 
 // Agent Run Settings Configuration
 export interface AgentRunSettings {

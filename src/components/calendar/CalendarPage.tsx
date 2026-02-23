@@ -2,57 +2,32 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SiGooglecalendar, SiCalendly } from 'react-icons/si';
+import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
 
-interface Appointment {
-  id: string;
-  title: string;
-  contact_name: string;
-  contact_phone: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  type: 'call' | 'follow_up' | 'no_show_retry' | 'meeting';
-  status: 'scheduled' | 'completed' | 'no_show' | 'cancelled' | 'rescheduled';
-  agent_name?: string;
-  notes?: string;
-  source: 'manual' | 'campaign' | 'google_calendar' | 'calendly';
-}
-
-interface CalendarIntegration {
-  provider: 'google_calendar' | 'calendly';
-  connected: boolean;
-  email?: string;
-  last_synced?: string;
-}
-
-interface CallLog {
-  id: string;
-  contact_name: string | null;
-  contact_phone: string;
-  status: string;
-  completed: boolean;
-  created_at: string;
-  call_length: number | null;
-  agent_template_id: string | null;
-}
-
-interface Contact {
-  id: string;
-  contact_name: string | null;
-  phone_number: string;
-  email: string | null;
-  status: string;
-  company_id: string;
-}
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface CalendarPageProps {
-  callLogs: CallLog[];
-  contacts: Contact[];
+  events: CalendarEvent[];
+  integrations: CalendarIntegrationStatus[];
   companyId: string;
+  contacts: {
+    id: string;
+    contact_name: string | null;
+    phone_number: string;
+    email: string | null;
+  }[];
 }
 
 type ViewMode = 'month' | 'week' | 'day' | 'agenda';
+type FilterType = 'all' | 'call' | 'follow_up' | 'no_show_retry' | 'meeting' | 'appointment' | 'callback';
+
+// ============================================================================
+// ICON COMPONENTS
+// ============================================================================
 
 function CalendarIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
@@ -78,210 +53,391 @@ function ChevronRightIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+// ============================================================================
+// STYLE MAPS
+// ============================================================================
+
 const EVENT_TYPE_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
   call: { bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
   follow_up: { bg: 'bg-purple-50 border-purple-200', text: 'text-purple-700', dot: 'bg-purple-500' },
   no_show_retry: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', dot: 'bg-amber-500' },
   meeting: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  appointment: { bg: 'bg-teal-50 border-teal-200', text: 'text-teal-700', dot: 'bg-teal-500' },
+  callback: { bg: 'bg-indigo-50 border-indigo-200', text: 'text-indigo-700', dot: 'bg-indigo-500' },
+  voicemail_followup: { bg: 'bg-rose-50 border-rose-200', text: 'text-rose-700', dot: 'bg-rose-500' },
 };
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   scheduled: { bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700' },
+  confirmed: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700' },
   completed: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700' },
   no_show: { bg: 'bg-red-50 border-red-200', text: 'text-red-700' },
   cancelled: { bg: 'bg-slate-50 border-slate-200', text: 'text-slate-500' },
   rescheduled: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700' },
+  pending_confirmation: { bg: 'bg-yellow-50 border-yellow-200', text: 'text-yellow-700' },
 };
 
-export default function CalendarPage({ callLogs, contacts, companyId }: CalendarPageProps) {
+const SOURCE_LABELS: Record<string, string> = {
+  manual: 'Manual',
+  campaign: 'Campaign',
+  google_calendar: 'Google Calendar',
+  calendly: 'Calendly',
+  ai_agent: 'AI Agent',
+  follow_up_queue: 'Follow-up Queue',
+  webhook: 'Webhook',
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export default function CalendarPage({ events: initialEvents, integrations: initialIntegrations, companyId, contacts }: CalendarPageProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showEventModal, setShowEventModal] = useState(false);
   const [showIntegrationPanel, setShowIntegrationPanel] = useState(false);
-  const [filterType, setFilterType] = useState<'all' | 'call' | 'follow_up' | 'no_show_retry' | 'meeting'>('all');
+  const [filterType, setFilterType] = useState<FilterType>('all');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
+  const [integrations, setIntegrations] = useState(initialIntegrations);
+  const [syncing, setSyncing] = useState<Record<string, boolean>>({});
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Schedule form state
+  const [scheduleForm, setScheduleForm] = useState({
+    event_type: 'call' as string,
+    contact_id: '',
+    date: new Date().toISOString().split('T')[0],
+    time: '10:00',
+    duration: 15,
+    notes: '',
+    sync_to_google: true,
+    sync_to_calendly: false,
+  });
+
+  // Show integration panel if redirected from OAuth callback
+  useEffect(() => {
+    const integration = searchParams.get('integration');
+    const status = searchParams.get('status');
+    if (integration && status === 'connected') {
+      setShowIntegrationPanel(true);
+      showToast(`${integration === 'google_calendar' ? 'Google Calendar' : 'Calendly'} connected successfully!`, 'success');
+      // Refresh integration statuses
+      refreshIntegrations();
+    }
+  }, [searchParams]);
 
   // Update current time every minute for the day view time indicator
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Update every minute
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Calendar integrations state
-  const [integrations, setIntegrations] = useState<CalendarIntegration[]>([
-    { provider: 'google_calendar', connected: false },
-    { provider: 'calendly', connected: false },
-  ]);
+  // ============================================================================
+  // API CALLS
+  // ============================================================================
 
-  // Build appointments from call logs (simulated - in production, you'd have an appointments table)
-  const appointments = useMemo((): Appointment[] => {
-    const items: Appointment[] = [];
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  }, []);
 
-    // Convert follow-up calls to scheduled events
-    callLogs.forEach(log => {
-      if (log.status === 'no_answer' || log.status === 'voicemail') {
-        const scheduledDate = new Date(log.created_at);
-        scheduledDate.setDate(scheduledDate.getDate() + 1);
-        scheduledDate.setHours(10, 0, 0, 0);
-
-        const contact = contacts.find(c => c.phone_number === log.contact_phone);
-        items.push({
-          id: `retry-${log.id}`,
-          title: `No-Show Retry: ${contact ? (contact.contact_name || 'Unknown') : log.contact_phone}`,
-          contact_name: contact ? (contact.contact_name || 'Unknown') : 'Unknown',
-          contact_phone: log.contact_phone,
-          scheduled_at: scheduledDate.toISOString(),
-          duration_minutes: 5,
-          type: 'no_show_retry',
-          status: scheduledDate < new Date() ? 'completed' : 'scheduled',
-          notes: 'Auto-scheduled retry for no-show',
-          source: 'campaign',
-        });
+  const refreshIntegrations = useCallback(async () => {
+    try {
+      const res = await fetch('/api/integrations/status');
+      if (res.ok) {
+        const data = await res.json();
+        setIntegrations(data.integrations);
       }
+    } catch (error) {
+      console.error('Failed to refresh integrations:', error);
+    }
+  }, []);
 
-      // Add completed calls
-      if (log.completed) {
-        const contact = contacts.find(c => c.phone_number === log.contact_phone);
-        items.push({
-          id: `call-${log.id}`,
-          title: `Call: ${contact ? (contact.contact_name || 'Unknown') : log.contact_phone}`,
-          contact_name: contact ? (contact.contact_name || 'Unknown') : 'Unknown',
-          contact_phone: log.contact_phone,
-          scheduled_at: log.created_at,
-          duration_minutes: Math.round((log.call_length || 0) / 60),
-          type: 'call',
-          status: log.status === 'completed' ? 'completed' : 'no_show',
-          source: 'campaign',
-        });
+  const refreshEvents = useCallback(async () => {
+    try {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const threeMonthsAhead = new Date();
+      threeMonthsAhead.setMonth(threeMonthsAhead.getMonth() + 3);
+
+      const res = await fetch(
+        `/api/calendar/events?start_date=${threeMonthsAgo.toISOString()}&end_date=${threeMonthsAhead.toISOString()}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setEvents(data.events);
       }
-    });
+    } catch (error) {
+      console.error('Failed to refresh events:', error);
+    }
+  }, []);
 
-    // Add some follow-ups based on contacts that need callbacks
-    contacts
-      .filter(c => c.status === 'For Callback' || c.status === 'No Answer')
-      .slice(0, 10)
-      .forEach((contact, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() + i);
-        date.setHours(9 + (i % 8), (i % 4) * 15, 0, 0);
-        items.push({
-          id: `followup-${contact.id}`,
-          title: `Follow-up: ${contact.contact_name || 'Unknown'}`,
-          contact_name: (contact.contact_name || 'Unknown'),
-          contact_phone: contact.phone_number,
-          scheduled_at: date.toISOString(),
-          duration_minutes: 10,
-          type: 'follow_up',
-          status: 'scheduled',
-          source: 'campaign',
-        });
+  const handleConnectGoogle = useCallback(() => {
+    window.location.href = '/api/integrations/google-calendar/connect';
+  }, []);
+
+  const handleConnectCalendly = useCallback(() => {
+    window.location.href = '/api/integrations/calendly/connect';
+  }, []);
+
+  const handleDisconnect = useCallback(async (provider: string) => {
+    const endpoint = provider === 'google_calendar'
+      ? '/api/integrations/google-calendar/disconnect'
+      : '/api/integrations/calendly/disconnect';
+
+    try {
+      const res = await fetch(endpoint, { method: 'POST' });
+      if (res.ok) {
+        showToast(`${provider === 'google_calendar' ? 'Google Calendar' : 'Calendly'} disconnected`, 'success');
+        await refreshIntegrations();
+      } else {
+        showToast('Failed to disconnect', 'error');
+      }
+    } catch {
+      showToast('Failed to disconnect', 'error');
+    }
+  }, [refreshIntegrations, showToast]);
+
+  const handleSync = useCallback(async (provider: string) => {
+    setSyncing(prev => ({ ...prev, [provider]: true }));
+    try {
+      const endpoint = provider === 'google_calendar'
+        ? '/api/integrations/google-calendar/sync'
+        : '/api/integrations/calendly/sync';
+
+      const res = await fetch(endpoint, { method: 'POST' });
+      const data = await res.json();
+
+      if (res.ok) {
+        showToast(`Synced ${data.created + data.updated} events from ${provider === 'google_calendar' ? 'Google Calendar' : 'Calendly'}`, 'success');
+        await refreshEvents();
+        await refreshIntegrations();
+      } else {
+        showToast(data.error || 'Sync failed', 'error');
+      }
+    } catch {
+      showToast('Sync failed', 'error');
+    } finally {
+      setSyncing(prev => ({ ...prev, [provider]: false }));
+    }
+  }, [refreshEvents, refreshIntegrations, showToast]);
+
+  const handleMarkNoShow = useCallback(async (eventId: string) => {
+    setActionLoading(eventId);
+    try {
+      const res = await fetch('/api/calendar/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_id: eventId,
+          action: 'no_show',
+          schedule_retry: true,
+        }),
+      });
+      if (res.ok) {
+        showToast('Marked as no-show. Retry scheduled.', 'success');
+        await refreshEvents();
+      } else {
+        showToast('Failed to mark as no-show', 'error');
+      }
+    } catch {
+      showToast('Failed to mark as no-show', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  }, [refreshEvents, showToast]);
+
+  const handleConfirm = useCallback(async (eventId: string) => {
+    setActionLoading(eventId);
+    try {
+      const res = await fetch('/api/calendar/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: eventId, action: 'confirm' }),
+      });
+      if (res.ok) {
+        showToast('Appointment confirmed', 'success');
+        await refreshEvents();
+      } else {
+        showToast('Failed to confirm', 'error');
+      }
+    } catch {
+      showToast('Failed to confirm', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  }, [refreshEvents, showToast]);
+
+  const handleCancel = useCallback(async (eventId: string) => {
+    setActionLoading(eventId);
+    try {
+      const res = await fetch('/api/calendar/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: eventId, action: 'cancel' }),
+      });
+      if (res.ok) {
+        showToast('Event cancelled', 'success');
+        await refreshEvents();
+      } else {
+        showToast('Failed to cancel', 'error');
+      }
+    } catch {
+      showToast('Failed to cancel', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  }, [refreshEvents, showToast]);
+
+  const handleScheduleSubmit = useCallback(async () => {
+    const contact = contacts.find(c => c.id === scheduleForm.contact_id);
+    const startTime = new Date(`${scheduleForm.date}T${scheduleForm.time}:00`);
+    const endTime = new Date(startTime);
+    endTime.setMinutes(endTime.getMinutes() + scheduleForm.duration);
+
+    try {
+      const res = await fetch('/api/calendar/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `${scheduleForm.event_type.replace(/_/g, ' ')}: ${contact?.contact_name || 'Event'}`,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          event_type: scheduleForm.event_type,
+          contact_id: scheduleForm.contact_id || undefined,
+          contact_name: contact?.contact_name || undefined,
+          contact_phone: contact?.phone_number || undefined,
+          contact_email: contact?.email || undefined,
+          notes: scheduleForm.notes || undefined,
+          sync_to_google: scheduleForm.sync_to_google,
+          sync_to_calendly: scheduleForm.sync_to_calendly,
+        }),
       });
 
-    return items;
-  }, [callLogs, contacts]);
+      if (res.ok) {
+        showToast('Event scheduled successfully', 'success');
+        setShowScheduleModal(false);
+        await refreshEvents();
+      } else {
+        showToast('Failed to schedule event', 'error');
+      }
+    } catch {
+      showToast('Failed to schedule event', 'error');
+    }
+  }, [scheduleForm, contacts, refreshEvents, showToast]);
 
-  // Filtered appointments
-  const filteredAppointments = useMemo(() => {
-    if (filterType === 'all') return appointments;
-    return appointments.filter(a => a.type === filterType);
-  }, [appointments, filterType]);
+  // ============================================================================
+  // COMPUTED DATA
+  // ============================================================================
+
+  // Filter events by type
+  const filteredEvents = useMemo(() => {
+    let filtered = events.filter(e => e.status !== 'cancelled');
+    if (filterType !== 'all') {
+      filtered = filtered.filter(e => e.event_type === filterType);
+    }
+    return filtered;
+  }, [events, filterType]);
 
   // Calendar grid helpers
   const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
   const calendarDays = useMemo(() => {
-    const days: { date: Date; isCurrentMonth: boolean; events: Appointment[] }[] = [];
+    const days: { date: Date; isCurrentMonth: boolean; events: CalendarEvent[] }[] = [];
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = getFirstDayOfMonth(currentDate);
     const daysInMonth = getDaysInMonth(currentDate);
     const prevMonthDays = getDaysInMonth(new Date(year, month - 1));
 
-    // Previous month days
     for (let i = firstDay - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, prevMonthDays - i);
       days.push({
         date,
         isCurrentMonth: false,
-        events: filteredAppointments.filter(a => {
-          const aDate = new Date(a.scheduled_at);
-          return aDate.toDateString() === date.toDateString();
+        events: filteredEvents.filter(e => {
+          const eDate = new Date(e.start_time);
+          return eDate.toDateString() === date.toDateString();
         }),
       });
     }
 
-    // Current month days
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(year, month, i);
       days.push({
         date,
         isCurrentMonth: true,
-        events: filteredAppointments.filter(a => {
-          const aDate = new Date(a.scheduled_at);
-          return aDate.toDateString() === date.toDateString();
+        events: filteredEvents.filter(e => {
+          const eDate = new Date(e.start_time);
+          return eDate.toDateString() === date.toDateString();
         }),
       });
     }
 
-    // Next month days to fill grid
     const remaining = 42 - days.length;
     for (let i = 1; i <= remaining; i++) {
       const date = new Date(year, month + 1, i);
       days.push({
         date,
         isCurrentMonth: false,
-        events: filteredAppointments.filter(a => {
-          const aDate = new Date(a.scheduled_at);
-          return aDate.toDateString() === date.toDateString();
+        events: filteredEvents.filter(e => {
+          const eDate = new Date(e.start_time);
+          return eDate.toDateString() === date.toDateString();
         }),
       });
     }
 
     return days;
-  }, [currentDate, filteredAppointments]);
+  }, [currentDate, filteredEvents]);
 
-  // Week view data
+  // Week view
   const weekDays = useMemo(() => {
     const startOfWeek = new Date(currentDate);
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    const days: { date: Date; events: Appointment[] }[] = [];
+    const days: { date: Date; events: CalendarEvent[] }[] = [];
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek);
       date.setDate(date.getDate() + i);
       days.push({
         date,
-        events: filteredAppointments.filter(a => {
-          const aDate = new Date(a.scheduled_at);
-          return aDate.toDateString() === date.toDateString();
-        }).sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()),
+        events: filteredEvents.filter(e => {
+          const eDate = new Date(e.start_time);
+          return eDate.toDateString() === date.toDateString();
+        }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()),
       });
     }
     return days;
-  }, [currentDate, filteredAppointments]);
+  }, [currentDate, filteredEvents]);
 
   // Stats
   const stats = useMemo(() => {
     const today = new Date();
     const todayStr = today.toDateString();
-    const todayEvents = appointments.filter(a => new Date(a.scheduled_at).toDateString() === todayStr);
-    const scheduled = appointments.filter(a => a.status === 'scheduled');
-    const noShows = appointments.filter(a => a.type === 'no_show_retry' && a.status === 'scheduled');
-    const upcoming = appointments.filter(a => new Date(a.scheduled_at) > today && a.status === 'scheduled');
+    const todayEvents = events.filter(e => new Date(e.start_time).toDateString() === todayStr && e.status !== 'cancelled');
+    const scheduled = events.filter(e => e.status === 'scheduled' || e.status === 'confirmed');
+    const noShows = events.filter(e => e.event_type === 'no_show_retry' && e.status === 'scheduled');
+    const upcoming = events.filter(e => new Date(e.start_time) > today && (e.status === 'scheduled' || e.status === 'confirmed'));
+    const pendingConfirmation = events.filter(e => e.confirmation_status === 'unconfirmed' && e.status === 'scheduled');
 
     return {
       todayCount: todayEvents.length,
       scheduledCount: scheduled.length,
       noShowRetries: noShows.length,
       upcomingCount: upcoming.length,
+      pendingConfirmation: pendingConfirmation.length,
     };
-  }, [appointments]);
+  }, [events]);
 
+  // Navigation
   const navigateMonth = (direction: number) => {
     const newDate = new Date(currentDate);
     if (viewMode === 'month') {
@@ -297,43 +453,6 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
   const goToToday = () => setCurrentDate(new Date());
   const isToday = (date: Date) => date.toDateString() === new Date().toDateString();
 
-  const handleConnectGoogle = () => {
-    // In production: redirect to Google OAuth flow
-    // window.location.href = '/api/integrations/google-calendar/connect';
-    setIntegrations(prev => prev.map(i =>
-      i.provider === 'google_calendar'
-        ? { ...i, connected: true, email: 'user@gmail.com', last_synced: new Date().toISOString() }
-        : i
-    ));
-  };
-
-  const handleConnectCalendly = () => {
-    // In production: redirect to Calendly OAuth flow
-    // window.location.href = '/api/integrations/calendly/connect';
-    setIntegrations(prev => prev.map(i =>
-      i.provider === 'calendly'
-        ? { ...i, connected: true, email: 'user@calendly.com', last_synced: new Date().toISOString() }
-        : i
-    ));
-  };
-
-  const handleDisconnect = (provider: string) => {
-    setIntegrations(prev => prev.map(i =>
-      i.provider === provider ? { ...i, connected: false, email: undefined, last_synced: undefined } : i
-    ));
-  };
-
-  const handleMarkNoShow = (appointmentId: string) => {
-    // In production: update appointment status in DB
-    console.log('Marking as no-show:', appointmentId);
-  };
-
-  const handleReschedule = (appointmentId: string) => {
-    // In production: open reschedule modal
-    console.log('Rescheduling:', appointmentId);
-    setShowScheduleModal(true);
-  };
-
   const monthYearLabel = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const weekLabel = viewMode === 'week' ? (() => {
     const start = new Date(currentDate);
@@ -343,11 +462,40 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
     return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
   })() : '';
 
-  const googleIntegration = integrations.find(i => i.provider === 'google_calendar')!;
-  const calendlyIntegration = integrations.find(i => i.provider === 'calendly')!;
+  const googleIntegration = integrations.find(i => i.provider === 'google_calendar');
+  const calendlyIntegration = integrations.find(i => i.provider === 'calendly');
+
+  // ============================================================================
+  // HELPER: Source badge
+  // ============================================================================
+  const SourceBadge = ({ source }: { source: string }) => {
+    if (source === 'google_calendar') {
+      return <span className="inline-flex items-center gap-1 text-[10px] text-[#4285F4] font-medium"><SiGooglecalendar className="w-3 h-3" /> Google</span>;
+    }
+    if (source === 'calendly') {
+      return <span className="inline-flex items-center gap-1 text-[10px] text-[#006BFF] font-medium"><SiCalendly className="w-3 h-3" /> Calendly</span>;
+    }
+    if (source === 'ai_agent') {
+      return <span className="text-[10px] text-violet-600 font-medium">AI Agent</span>;
+    }
+    return source !== 'manual' ? <span className="text-[10px] text-slate-400 font-medium">{SOURCE_LABELS[source] || source}</span> : null;
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   return (
     <div className="space-y-6">
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg border text-sm font-medium animate-slideDown ${
+          toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
       {/* Header */}
       <div className="gradient-bg-subtle rounded-2xl p-8 shadow-md border border-slate-200">
         <div className="relative z-10">
@@ -358,7 +506,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">Calendar</h2>
-                <p className="text-slate-500 font-medium">Manage appointments, no-shows, and scheduling</p>
+                <p className="text-slate-500 font-medium">Manage appointments, follow-ups, and scheduling</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -370,6 +518,9 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                 </svg>
                 Integrations
+                {(googleIntegration?.connected || calendlyIntegration?.connected) && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                )}
               </button>
               <button
                 onClick={() => setShowScheduleModal(true)}
@@ -384,7 +535,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -411,6 +562,14 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
             </div>
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <span className="text-xs text-slate-500 font-semibold">Pending</span>
+              </div>
+              <span className="text-3xl text-slate-900 font-bold">{stats.pendingConfirmation}</span>
+              <p className="text-xs text-slate-500 mt-1">need confirmation</p>
+            </div>
+            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+              <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
                 <span className="text-xs text-slate-500 font-semibold">Total Scheduled</span>
               </div>
@@ -434,7 +593,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
           </div>
           <div className="grid md:grid-cols-2 gap-6">
             {/* Google Calendar */}
-            <div className={`rounded-xl border p-6 ${googleIntegration.connected ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200'}`}>
+            <div className={`rounded-xl border p-6 ${googleIntegration?.connected ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200'}`}>
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#4285F4] flex items-center justify-center">
                   <SiGooglecalendar className="w-6 h-6" />
@@ -442,12 +601,12 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                 <div className="flex-1">
                   <h4 className="font-semibold text-slate-900">Google Calendar</h4>
                   <p className="text-xs text-slate-500">
-                    {googleIntegration.connected
+                    {googleIntegration?.connected
                       ? `Connected: ${googleIntegration.email}`
                       : 'Sync appointments & schedules'}
                   </p>
                 </div>
-                {googleIntegration.connected && (
+                {googleIntegration?.connected && (
                   <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase">
                     Connected
                   </span>
@@ -456,10 +615,22 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
               <p className="text-sm text-slate-600 mb-4">
                 Sync your call schedules, appointments, and no-show retries directly with Google Calendar. Get reminders and keep your team informed.
               </p>
-              {googleIntegration.connected ? (
+              {googleIntegration?.connected ? (
                 <div className="flex items-center gap-3">
-                  <button className="btn-secondary flex-1 justify-center text-sm py-2">
-                    Sync Now
+                  <button
+                    onClick={() => handleSync('google_calendar')}
+                    disabled={syncing.google_calendar}
+                    className="btn-secondary flex-1 justify-center text-sm py-2 disabled:opacity-50"
+                  >
+                    {syncing.google_calendar ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Syncing...
+                      </span>
+                    ) : 'Sync Now'}
                   </button>
                   <button
                     onClick={() => handleDisconnect('google_calendar')}
@@ -473,7 +644,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                   Connect Google Calendar
                 </button>
               )}
-              {googleIntegration.last_synced && (
+              {googleIntegration?.last_synced && (
                 <p className="text-xs text-slate-400 mt-3 text-center">
                   Last synced: {new Date(googleIntegration.last_synced).toLocaleString()}
                 </p>
@@ -481,7 +652,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
             </div>
 
             {/* Calendly */}
-            <div className={`rounded-xl border p-6 ${calendlyIntegration.connected ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200'}`}>
+            <div className={`rounded-xl border p-6 ${calendlyIntegration?.connected ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200'}`}>
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#006BFF] flex items-center justify-center">
                   <SiCalendly className="w-6 h-6" />
@@ -489,12 +660,12 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                 <div className="flex-1">
                   <h4 className="font-semibold text-slate-900">Calendly</h4>
                   <p className="text-xs text-slate-500">
-                    {calendlyIntegration.connected
+                    {calendlyIntegration?.connected
                       ? `Connected: ${calendlyIntegration.email}`
                       : 'Auto-schedule follow-ups'}
                   </p>
                 </div>
-                {calendlyIntegration.connected && (
+                {calendlyIntegration?.connected && (
                   <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase">
                     Connected
                   </span>
@@ -503,10 +674,22 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
               <p className="text-sm text-slate-600 mb-4">
                 Automatically schedule follow-up meetings based on call outcomes. Let prospects book directly from call results.
               </p>
-              {calendlyIntegration.connected ? (
+              {calendlyIntegration?.connected ? (
                 <div className="flex items-center gap-3">
-                  <button className="btn-secondary flex-1 justify-center text-sm py-2">
-                    Sync Now
+                  <button
+                    onClick={() => handleSync('calendly')}
+                    disabled={syncing.calendly}
+                    className="btn-secondary flex-1 justify-center text-sm py-2 disabled:opacity-50"
+                  >
+                    {syncing.calendly ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Syncing...
+                      </span>
+                    ) : 'Sync Now'}
                   </button>
                   <button
                     onClick={() => handleDisconnect('calendly')}
@@ -520,7 +703,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                   Connect Calendly
                 </button>
               )}
-              {calendlyIntegration.last_synced && (
+              {calendlyIntegration?.last_synced && (
                 <p className="text-xs text-slate-400 mt-3 text-center">
                   Last synced: {new Date(calendlyIntegration.last_synced).toLocaleString()}
                 </p>
@@ -550,18 +733,18 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
             </h3>
           </div>
           <div className="flex items-center gap-3 flex-nowrap shrink-0">
-            {/* Filter - single line with nowrap */}
+            {/* Filter */}
             <div className="flex bg-slate-100 rounded-lg p-0.5 flex-nowrap shrink-0">
-              {[
+              {([
                 { id: 'all', label: 'All' },
                 { id: 'call', label: 'Calls' },
                 { id: 'follow_up', label: 'Follow-ups' },
-                { id: 'no_show_retry', label: 'No-Shows' },
+                { id: 'appointment', label: 'Appointments' },
                 { id: 'meeting', label: 'Meetings' },
-              ].map(f => (
+              ] as { id: FilterType; label: string }[]).map(f => (
                 <button
                   key={f.id}
-                  onClick={() => setFilterType(f.id as typeof filterType)}
+                  onClick={() => setFilterType(f.id)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
                     filterType === f.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                   }`}
@@ -570,7 +753,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                 </button>
               ))}
             </div>
-            {/* View Mode - single line with nowrap */}
+            {/* View Mode */}
             <div className="flex bg-slate-100 rounded-lg p-0.5 flex-nowrap shrink-0">
               {(['month', 'week', 'day', 'agenda'] as ViewMode[]).map(mode => (
                 <button
@@ -590,18 +773,16 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
         {/* Month View */}
         {viewMode === 'month' && (
           <div className="p-4">
-            {/* Day headers */}
             <div className="grid grid-cols-7 mb-2">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                 <div key={day} className="text-center text-xs font-semibold text-slate-500 py-2">{day}</div>
               ))}
             </div>
-            {/* Calendar grid */}
             <div className="grid grid-cols-7 border-t border-l border-slate-200">
               {calendarDays.map((day, idx) => (
                 <div
                   key={idx}
-                  onClick={() => { setSelectedDate(day.date); setViewMode('day'); setCurrentDate(day.date); }}
+                  onClick={() => { setCurrentDate(day.date); setViewMode('day'); }}
                   className={`min-h-[100px] p-1.5 border-r border-b border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors ${
                     !day.isCurrentMonth ? 'bg-slate-50/50' : ''
                   } ${isToday(day.date) ? 'bg-blue-50/50' : ''}`}
@@ -613,10 +794,10 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                   </div>
                   <div className="space-y-0.5">
                     {day.events.slice(0, 3).map(event => {
-                      const style = EVENT_TYPE_STYLES[event.type] || EVENT_TYPE_STYLES.call;
+                      const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
                       return (
                         <div key={event.id} className={`text-[10px] px-1.5 py-0.5 rounded ${style.bg} ${style.text} truncate border font-medium`}>
-                          {new Date(event.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} {event.contact_name.split(' ')[0]}
+                          {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} {(event.contact_name || event.title).split(' ')[0]}
                         </div>
                       );
                     })}
@@ -642,13 +823,14 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                   </div>
                   <div className="p-2 space-y-1.5 min-h-[200px]">
                     {day.events.map(event => {
-                      const style = EVENT_TYPE_STYLES[event.type] || EVENT_TYPE_STYLES.call;
+                      const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
                       return (
                         <div key={event.id} className={`text-[11px] p-2 rounded-lg ${style.bg} border ${style.text}`}>
-                          <div className="font-semibold truncate">{event.contact_name}</div>
+                          <div className="font-semibold truncate">{event.contact_name || event.title}</div>
                           <div className="text-[10px] opacity-75">
-                            {new Date(event.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                           </div>
+                          <SourceBadge source={event.source} />
                         </div>
                       );
                     })}
@@ -669,17 +851,12 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                 if (!isViewingToday) return null;
                 const currentHour = currentTime.getHours();
                 const currentMinute = currentTime.getMinutes();
-                // Only show if current time is within the displayed range (8AM-8PM)
                 if (currentHour < 8 || currentHour >= 20) return null;
-                // Calculate position: each hour block is ~68px (60px min-h + 8px gap)
                 const hourOffset = currentHour - 8;
                 const minuteOffset = currentMinute / 60;
                 const topPosition = (hourOffset + minuteOffset) * 68;
                 return (
-                  <div
-                    className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
-                    style={{ top: `${topPosition}px` }}
-                  >
+                  <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top: `${topPosition}px` }}>
                     <div className="w-16 shrink-0 flex justify-end pr-2">
                       <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200">
                         {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -695,9 +872,9 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
 
               <div className="space-y-2">
                 {Array.from({ length: 12 }, (_, i) => i + 8).map(hour => {
-                  const hourEvents = filteredAppointments.filter(a => {
-                    const aDate = new Date(a.scheduled_at);
-                    return aDate.toDateString() === currentDate.toDateString() && aDate.getHours() === hour;
+                  const hourEvents = filteredEvents.filter(e => {
+                    const eDate = new Date(e.start_time);
+                    return eDate.toDateString() === currentDate.toDateString() && eDate.getHours() === hour;
                   });
 
                   return (
@@ -709,8 +886,10 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                         {hourEvents.length > 0 ? (
                           <div className="space-y-2">
                             {hourEvents.map(event => {
-                              const style = EVENT_TYPE_STYLES[event.type] || EVENT_TYPE_STYLES.call;
+                              const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
                               const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
+                              const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
+                              const isLoading = actionLoading === event.id;
                               return (
                                 <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group`}>
                                   <div className="flex items-center gap-3 min-w-0">
@@ -718,14 +897,28 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                                     <div className="min-w-0">
                                       <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
                                       <div className="text-xs text-slate-500">
-                                        {new Date(event.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {event.duration_minutes}min
-                                        {event.source !== 'manual' && <span className="ml-2 opacity-60">via {event.source.replace('_', ' ')}</span>}
+                                        {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
+                                        {event.contact_phone && <span className="ml-2">{event.contact_phone}</span>}
+                                      </div>
+                                      <div className="flex items-center gap-2 mt-0.5">
+                                        <SourceBadge source={event.source} />
+                                        {event.confirmation_status === 'confirmed' && (
+                                          <span className="text-[10px] text-emerald-600 font-medium">Confirmed</span>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                    {event.status === 'scheduled' && (
+                                    {(event.status === 'scheduled' || event.status === 'pending_confirmation') && !isLoading && (
                                       <>
+                                        {event.confirmation_status !== 'confirmed' && (
+                                          <button
+                                            onClick={() => handleConfirm(event.id)}
+                                            className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
+                                          >
+                                            Confirm
+                                          </button>
+                                        )}
                                         <button
                                           onClick={() => handleMarkNoShow(event.id)}
                                           className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors"
@@ -733,15 +926,21 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                                           No-Show
                                         </button>
                                         <button
-                                          onClick={() => handleReschedule(event.id)}
-                                          className="px-2.5 py-1 text-xs font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] rounded-lg transition-colors"
+                                          onClick={() => handleCancel(event.id)}
+                                          className="px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
                                         >
-                                          Reschedule
+                                          Cancel
                                         </button>
                                       </>
                                     )}
+                                    {isLoading && (
+                                      <svg className="animate-spin w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                      </svg>
+                                    )}
                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>
-                                      {event.status.replace('_', ' ')}
+                                      {event.status.replace(/_/g, ' ')}
                                     </span>
                                   </div>
                                 </div>
@@ -765,15 +964,15 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
           <div className="p-4">
             <div className="space-y-4">
               {(() => {
-                const grouped = new Map<string, Appointment[]>();
-                const upcoming = filteredAppointments
-                  .filter(a => a.status === 'scheduled')
-                  .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+                const grouped = new Map<string, CalendarEvent[]>();
+                const upcoming = filteredEvents
+                  .filter(e => e.status === 'scheduled' || e.status === 'confirmed' || e.status === 'pending_confirmation')
+                  .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-                upcoming.forEach(a => {
-                  const dateKey = new Date(a.scheduled_at).toDateString();
+                upcoming.forEach(e => {
+                  const dateKey = new Date(e.start_time).toDateString();
                   if (!grouped.has(dateKey)) grouped.set(dateKey, []);
-                  grouped.get(dateKey)!.push(a);
+                  grouped.get(dateKey)!.push(e);
                 });
 
                 if (grouped.size === 0) {
@@ -788,7 +987,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                   );
                 }
 
-                return Array.from(grouped.entries()).map(([dateStr, events]) => (
+                return Array.from(grouped.entries()).map(([dateStr, dayEvents]) => (
                   <div key={dateStr}>
                     <div className="flex items-center gap-3 mb-3">
                       <div className={`px-3 py-1 rounded-lg text-xs font-bold ${
@@ -799,37 +998,56 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                         {new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                       </div>
                       <div className="flex-1 h-px bg-slate-200"></div>
-                      <span className="text-xs text-slate-400 font-medium">{events.length} events</span>
+                      <span className="text-xs text-slate-400 font-medium">{dayEvents.length} events</span>
                     </div>
                     <div className="space-y-2 ml-4">
-                      {events.map(event => {
-                        const style = EVENT_TYPE_STYLES[event.type] || EVENT_TYPE_STYLES.call;
+                      {dayEvents.map(event => {
+                        const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
+                        const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
+                        const isLoading = actionLoading === event.id;
                         return (
                           <div key={event.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
                             <div className={`w-1.5 h-10 rounded-full ${style.dot}`}></div>
                             <div className="text-sm text-slate-500 font-medium w-20 shrink-0">
-                              {new Date(event.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                              {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-semibold text-slate-900 truncate">{event.title}</div>
-                              <div className="text-xs text-slate-500">{event.contact_phone} - {event.duration_minutes}min</div>
+                              <div className="text-xs text-slate-500">
+                                {event.contact_phone && `${event.contact_phone} - `}{durationMin}min
+                                {event.source !== 'manual' && (
+                                  <span className="ml-2"><SourceBadge source={event.source} /></span>
+                                )}
+                              </div>
                             </div>
                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                              <button
-                                onClick={() => handleMarkNoShow(event.id)}
-                                className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                No-Show
-                              </button>
-                              <button
-                                onClick={() => handleReschedule(event.id)}
-                                className="px-2.5 py-1 text-xs font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] rounded-lg transition-colors"
-                              >
-                                Reschedule
-                              </button>
+                              {(event.status === 'scheduled' || event.status === 'pending_confirmation') && !isLoading && (
+                                <>
+                                  {event.confirmation_status !== 'confirmed' && (
+                                    <button
+                                      onClick={() => handleConfirm(event.id)}
+                                      className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                    >
+                                      Confirm
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleMarkNoShow(event.id)}
+                                    className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  >
+                                    No-Show
+                                  </button>
+                                </>
+                              )}
+                              {isLoading && (
+                                <svg className="animate-spin w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                              )}
                             </div>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${style.bg} ${style.text} border`}>
-                              {event.type.replace('_', ' ')}
+                              {event.event_type.replace(/_/g, ' ')}
                             </span>
                           </div>
                         );
@@ -860,18 +1078,28 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Event Type</label>
-                <select className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none">
+                <select
+                  value={scheduleForm.event_type}
+                  onChange={e => setScheduleForm(prev => ({ ...prev, event_type: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                >
                   <option value="call">Call</option>
                   <option value="follow_up">Follow-up</option>
                   <option value="meeting">Meeting</option>
+                  <option value="appointment">Appointment</option>
+                  <option value="callback">Callback</option>
                   <option value="no_show_retry">No-Show Retry</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact</label>
-                <select className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none">
+                <select
+                  value={scheduleForm.contact_id}
+                  onChange={e => setScheduleForm(prev => ({ ...prev, contact_id: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                >
                   <option value="">Select a contact...</option>
-                  {contacts.slice(0, 20).map(c => (
+                  {contacts.slice(0, 50).map(c => (
                     <option key={c.id} value={c.id}>{c.contact_name || 'Unknown'} - {c.phone_number}</option>
                   ))}
                 </select>
@@ -881,7 +1109,8 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Date</label>
                   <input
                     type="date"
-                    defaultValue={new Date().toISOString().split('T')[0]}
+                    value={scheduleForm.date}
+                    onChange={e => setScheduleForm(prev => ({ ...prev, date: e.target.value }))}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   />
                 </div>
@@ -889,7 +1118,8 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Time</label>
                   <input
                     type="time"
-                    defaultValue="10:00"
+                    value={scheduleForm.time}
+                    onChange={e => setScheduleForm(prev => ({ ...prev, time: e.target.value }))}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   />
                 </div>
@@ -898,7 +1128,8 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Duration (minutes)</label>
                 <input
                   type="number"
-                  defaultValue={15}
+                  value={scheduleForm.duration}
+                  onChange={e => setScheduleForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 15 }))}
                   min={5}
                   max={120}
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
@@ -908,25 +1139,37 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Notes</label>
                 <textarea
                   rows={3}
+                  value={scheduleForm.notes}
+                  onChange={e => setScheduleForm(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Add notes about this event..."
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none resize-none"
                 />
               </div>
               {/* Sync options */}
-              {(googleIntegration.connected || calendlyIntegration.connected) && (
+              {(googleIntegration?.connected || calendlyIntegration?.connected) && (
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                   <p className="text-xs font-semibold text-slate-700 mb-2">Sync to:</p>
                   <div className="space-y-2">
-                    {googleIntegration.connected && (
+                    {googleIntegration?.connected && (
                       <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                        <input type="checkbox" defaultChecked className="w-4 h-4 rounded text-[var(--color-primary)]" />
+                        <input
+                          type="checkbox"
+                          checked={scheduleForm.sync_to_google}
+                          onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))}
+                          className="w-4 h-4 rounded text-[var(--color-primary)]"
+                        />
                         <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
                         Google Calendar
                       </label>
                     )}
-                    {calendlyIntegration.connected && (
+                    {calendlyIntegration?.connected && (
                       <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                        <input type="checkbox" defaultChecked className="w-4 h-4 rounded text-[var(--color-primary)]" />
+                        <input
+                          type="checkbox"
+                          checked={scheduleForm.sync_to_calendly}
+                          onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_calendly: e.target.checked }))}
+                          className="w-4 h-4 rounded text-[var(--color-primary)]"
+                        />
                         <SiCalendly className="w-4 h-4 text-[#006BFF]" />
                         Calendly
                       </label>
@@ -937,7 +1180,7 @@ export default function CalendarPage({ callLogs, contacts, companyId }: Calendar
             </div>
             <div className="p-6 border-t border-slate-100 flex items-center justify-end gap-3">
               <button onClick={() => setShowScheduleModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={() => setShowScheduleModal(false)} className="btn-primary">Schedule Event</button>
+              <button onClick={handleScheduleSubmit} className="btn-primary">Schedule Event</button>
             </div>
           </div>
         </div>

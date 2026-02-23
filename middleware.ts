@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
   const verificationRoutes = ['/auth/verify-email'];
 
   // Protected routes that require authentication AND email verification
-  const protectedRoutes = ['/dashboard', '/onboarding', '/contacts', '/campaigns', '/agents', '/calls', '/voicemails', '/follow-ups', '/analytics', '/reports', '/integrations', '/settings', '/billing', '/admin', '/subscription'];
+  const protectedRoutes = ['/dashboard', '/onboarding', '/contacts', '/campaigns', '/agents', '/calls', '/voicemails', '/follow-ups', '/analytics', '/reports', '/integrations', '/settings', '/billing', '/admin', '/subscription', '/calendar'];
 
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   const isVerificationRoute = verificationRoutes.some(route => pathname.startsWith(route));
@@ -54,6 +54,11 @@ export async function middleware(request: NextRequest) {
 
   // Allow callback always (it handles its own redirects)
   if (pathname === '/auth/callback') {
+    return supabaseResponse;
+  }
+
+  // Allow API routes and OAuth callbacks through (they handle their own auth)
+  if (pathname.startsWith('/api/')) {
     return supabaseResponse;
   }
 
