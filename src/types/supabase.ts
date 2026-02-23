@@ -1306,8 +1306,8 @@ export type Database = {
           provider_email: string | null
           provider_user_id: string | null
           provider_user_name: string | null
-          calendly_organization_uri: string | null
-          calendly_webhook_uri: string | null
+          microsoft_tenant_id: string | null
+          microsoft_calendar_id: string | null
           google_calendar_id: string
           last_synced_at: string | null
           sync_token: string | null
@@ -1328,8 +1328,8 @@ export type Database = {
           provider_email?: string | null
           provider_user_id?: string | null
           provider_user_name?: string | null
-          calendly_organization_uri?: string | null
-          calendly_webhook_uri?: string | null
+          microsoft_tenant_id?: string | null
+          microsoft_calendar_id?: string | null
           google_calendar_id?: string
           last_synced_at?: string | null
           sync_token?: string | null
@@ -1350,8 +1350,8 @@ export type Database = {
           provider_email?: string | null
           provider_user_id?: string | null
           provider_user_name?: string | null
-          calendly_organization_uri?: string | null
-          calendly_webhook_uri?: string | null
+          microsoft_tenant_id?: string | null
+          microsoft_calendar_id?: string | null
           google_calendar_id?: string
           last_synced_at?: string | null
           sync_token?: string | null

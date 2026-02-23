@@ -92,8 +92,10 @@ export async function POST(request: NextRequest) {
       contact_phone,
       contact_email,
       notes,
+      video_provider,
+      video_link,
       sync_to_google,
-      sync_to_calendly,
+      sync_to_microsoft,
     } = body;
 
     if (!title || !start_time || !end_time) {
@@ -119,11 +121,13 @@ export async function POST(request: NextRequest) {
         contact_phone,
         contact_email,
         notes,
+        video_provider: video_provider || null,
+        video_link: video_link || null,
         source: 'manual',
       },
       {
         syncToGoogle: sync_to_google || false,
-        syncToCalendly: sync_to_calendly || false,
+        syncToMicrosoft: sync_to_microsoft || false,
       }
     );
 
@@ -171,10 +175,11 @@ export async function PUT(request: NextRequest) {
         result = await confirmAppointment(event_id);
         break;
 
-      case 'cancel':
+      case 'cancel': {
         const cancelled = await cancelCalendarEvent(event_id, updateData.reason);
         result = cancelled ? { id: event_id, status: 'cancelled' } : null;
         break;
+      }
 
       case 'no_show':
         result = await markEventNoShow(event_id, {

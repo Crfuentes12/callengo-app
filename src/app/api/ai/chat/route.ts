@@ -37,11 +37,11 @@ Callengo is an AI-powered voice calling platform that helps businesses automate 
 - **Campaigns**: Create and manage AI calling campaigns. Each campaign uses an AI agent, targets a contact list, tracks progress/success rates, supports scheduling (timezone, working hours, interval between calls, max duration)
 - **Agents (AI Agents Library)**: Pre-built and customizable AI voice agents for different purposes (sales, customer support, appointment setting, surveys, debt collection, lead qualification, real estate, insurance, etc.). Each agent has a name, description, voice, language, first message, prompt, and configurable parameters
 - **Call History**: Complete log of all calls with status (completed, no_answer, voicemail, failed, busy), duration, recordings, transcripts, and AI analysis
-- **Calendar**: Scheduling view with month/week/day/agenda modes, appointment types (call, follow-up, no-show retry, meeting), integration with Google Calendar and Calendly
+- **Calendar**: Scheduling view with month/week/day/agenda modes, appointment types (call, follow-up, no-show retry, meeting), integration with Google Calendar and Microsoft Outlook, video call links (Google Meet, Zoom, Teams), availability checking, and overbooking prevention
 - **Voicemails**: View and manage voicemails left during campaigns
 - **Follow-ups**: Track and manage follow-up calls and callbacks
 - **Analytics**: Comprehensive analytics with call trends, agent performance, contact status breakdown, hourly distribution, campaign performance metrics
-- **Integrations**: Connect with Twilio (phone numbers), Google Calendar, Calendly, and more
+- **Integrations**: Connect with Twilio (phone numbers), Google Calendar, Microsoft 365 Outlook, Slack, Zoom, Google Meet, Microsoft Teams, and more
 - **Settings**: Company info, call settings (default voice, interval, max duration, timezone, working hours, language), billing, notifications
 - **Team**: Team management with roles (Owner, Admin, Member), seat limits per plan, invitations
 - **Billing**: Subscription plans (Free, Starter, Business, Teams, Enterprise) with minute-based usage tracking

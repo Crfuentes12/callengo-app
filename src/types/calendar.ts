@@ -5,7 +5,14 @@
 // DATABASE TYPES
 // ============================================================================
 
-export type CalendarProvider = 'google_calendar' | 'calendly';
+export type CalendarProvider = 'google_calendar' | 'microsoft_outlook';
+
+export type VideoProvider = 'google_meet' | 'zoom' | 'microsoft_teams';
+
+export type IntegrationProvider =
+  | CalendarProvider
+  | VideoProvider
+  | 'slack';
 
 export type CalendarEventType =
   | 'call'
@@ -29,7 +36,7 @@ export type CalendarEventSource =
   | 'manual'
   | 'campaign'
   | 'google_calendar'
-  | 'calendly'
+  | 'microsoft_outlook'
   | 'ai_agent'
   | 'follow_up_queue'
   | 'webhook';
@@ -69,8 +76,9 @@ export interface CalendarIntegration {
   provider_user_id: string | null;
   provider_user_name: string | null;
 
-  calendly_organization_uri: string | null;
-  calendly_webhook_uri: string | null;
+  // Microsoft specific
+  microsoft_tenant_id: string | null;
+  microsoft_calendar_id: string | null;
 
   google_calendar_id: string;
 
@@ -109,6 +117,10 @@ export interface CalendarEvent {
   event_type: CalendarEventType;
   status: CalendarEventStatus;
   source: CalendarEventSource;
+
+  // Video call link
+  video_link: string | null;
+  video_provider: VideoProvider | null;
 
   contact_id: string | null;
   contact_name: string | null;
@@ -191,8 +203,9 @@ export interface CreateCalendarEventRequest {
   contact_phone?: string;
   contact_email?: string;
   notes?: string;
+  video_provider?: VideoProvider;
   sync_to_google?: boolean;
-  sync_to_calendly?: boolean;
+  sync_to_microsoft?: boolean;
 }
 
 export interface UpdateCalendarEventRequest {
@@ -225,6 +238,23 @@ export interface CalendarIntegrationStatus {
 }
 
 // ============================================================================
+// AVAILABILITY TYPES
+// ============================================================================
+
+export interface TimeSlot {
+  start: string;
+  end: string;
+}
+
+export interface AvailabilityResult {
+  date: string;
+  available_slots: TimeSlot[];
+  busy_slots: TimeSlot[];
+  is_working_day: boolean;
+  is_holiday: boolean;
+}
+
+// ============================================================================
 // GOOGLE CALENDAR API TYPES
 // ============================================================================
 
@@ -250,6 +280,18 @@ export interface GoogleCalendarEvent {
     responseStatus?: string;
     organizer?: boolean;
   }>;
+  conferenceData?: {
+    entryPoints?: Array<{
+      entryPointType: string;
+      uri: string;
+      label?: string;
+    }>;
+    conferenceSolution?: {
+      name: string;
+      iconUri?: string;
+    };
+    conferenceId?: string;
+  };
   recurrence?: string[];
   recurringEventId?: string;
   created: string;
@@ -266,124 +308,124 @@ export interface GoogleTokenResponse {
 }
 
 // ============================================================================
-// CALENDLY API TYPES
+// MICROSOFT GRAPH API TYPES
 // ============================================================================
 
-export interface CalendlyUser {
-  uri: string;
-  name: string;
-  email: string;
-  scheduling_url: string;
-  timezone: string;
-  current_organization: string;
-  avatar_url?: string;
+export interface MicrosoftTokenResponse {
+  access_token: string;
+  refresh_token?: string;
+  expires_in: number;
+  token_type: string;
+  scope: string;
 }
 
-export interface CalendlyEventType {
-  uri: string;
-  name: string;
-  active: boolean;
-  slug: string;
-  scheduling_url: string;
-  duration: number;
-  color: string;
-  description_plain?: string;
-}
-
-export interface CalendlyScheduledEvent {
-  uri: string;
-  name: string;
-  status: 'active' | 'canceled';
-  start_time: string;
-  end_time: string;
-  event_type: string;
+export interface MicrosoftCalendarEvent {
+  id: string;
+  subject: string;
+  body?: {
+    contentType: string;
+    content: string;
+  };
+  start: {
+    dateTime: string;
+    timeZone: string;
+  };
+  end: {
+    dateTime: string;
+    timeZone: string;
+  };
   location?: {
-    type: string;
-    location?: string;
-    join_url?: string;
+    displayName: string;
+    locationType?: string;
   };
-  invitees_counter: {
-    total: number;
-    active: number;
-    limit: number;
+  attendees?: Array<{
+    emailAddress: {
+      address: string;
+      name?: string;
+    };
+    status?: {
+      response: string;
+    };
+    type?: string;
+  }>;
+  organizer?: {
+    emailAddress: {
+      address: string;
+      name?: string;
+    };
   };
+  onlineMeeting?: {
+    joinUrl: string;
+  };
+  isOnlineMeeting?: boolean;
+  onlineMeetingProvider?: string;
+  webLink?: string;
+  isCancelled?: boolean;
+  isAllDay?: boolean;
+  recurrence?: Record<string, unknown>;
+  seriesMasterId?: string;
+  createdDateTime?: string;
+  lastModifiedDateTime?: string;
+}
+
+// ============================================================================
+// SLACK TYPES
+// ============================================================================
+
+export interface SlackIntegration {
+  id: string;
+  company_id: string;
+  access_token: string;
+  bot_user_id: string;
+  team_id: string;
+  team_name: string;
+  default_channel_id: string | null;
+  default_channel_name: string | null;
+  webhook_url: string | null;
+  scopes: string[];
+  is_active: boolean;
   created_at: string;
   updated_at: string;
-  event_memberships: Array<{
-    user: string;
-    user_email: string;
-    user_name: string;
-  }>;
-  event_guests: Array<{
-    email: string;
-    created_at: string;
-    updated_at: string;
-  }>;
-  calendar_event?: {
-    kind: string;
-    external_id: string;
-  };
 }
 
-export interface CalendlyInvitee {
-  uri: string;
-  email: string;
-  name: string;
-  status: 'active' | 'canceled';
-  timezone: string;
-  created_at: string;
-  updated_at: string;
-  questions_and_answers: Array<{
-    question: string;
-    answer: string;
-    position: number;
-  }>;
-  tracking: Record<string, string>;
-  cancel_url: string;
-  reschedule_url: string;
-  scheduling_method?: string;
-  payment?: Record<string, unknown>;
-  no_show?: { uri: string; created_at: string } | null;
+export interface SlackNotification {
+  type: 'new_meeting' | 'no_show' | 'rescheduled' | 'confirmed' | 'cancelled' | 'reminder';
+  channel_id?: string;
+  user_id?: string;
+  event: CalendarEvent;
+  metadata?: Record<string, unknown>;
 }
 
-export interface CalendlyWebhookPayload {
-  event: string; // 'invitee.created' | 'invitee.canceled' | 'routing_form_submission.created'
-  created_at: string;
-  created_by: string;
-  payload: {
-    cancel_url?: string;
-    created_at: string;
-    email: string;
-    event: string;
-    name: string;
-    new_invitee?: string;
-    old_invitee?: string;
-    reschedule_url?: string;
-    rescheduled: boolean;
-    status: string;
-    timezone: string;
-    updated_at: string;
-    uri: string;
-    scheduled_event?: CalendlyScheduledEvent;
-    questions_and_answers?: Array<{
-      question: string;
-      answer: string;
-      position: number;
-    }>;
-    tracking?: Record<string, string>;
-    payment?: Record<string, unknown>;
-    no_show?: { uri: string; created_at: string } | null;
-  };
-}
+// ============================================================================
+// ZOOM TYPES
+// ============================================================================
 
-export interface CalendlyTokenResponse {
+export interface ZoomTokenResponse {
   access_token: string;
   refresh_token: string;
   token_type: string;
   expires_in: number;
-  created_at: number;
-  owner: string;
-  organization: string;
+  scope: string;
+}
+
+export interface ZoomMeeting {
+  id: number;
+  uuid: string;
+  topic: string;
+  start_time: string;
+  duration: number;
+  timezone: string;
+  join_url: string;
+  start_url: string;
+  password?: string;
+  settings?: {
+    host_video?: boolean;
+    participant_video?: boolean;
+    join_before_host?: boolean;
+    mute_upon_entry?: boolean;
+    auto_recording?: string;
+    waiting_room?: boolean;
+  };
 }
 
 // ============================================================================
@@ -393,34 +435,51 @@ export interface CalendlyTokenResponse {
 export type PlanTier = 'free' | 'starter' | 'business' | 'enterprise';
 
 export interface CalendarFeatureAccess {
-  canConnectCalendars: boolean;        // starter+
-  canSyncAppointments: boolean;        // starter+
-  canConfirmAppointments: boolean;     // starter+
-  canRescheduleAppointments: boolean;  // starter+
-  canSmartFollowUp: boolean;           // business+ (premium)
-  canAutoScheduleFromContext: boolean; // business+ (premium)
-  canBidirectionalSync: boolean;       // starter+
-  canWebhookIntegration: boolean;      // starter+
-  maxCalendarIntegrations: number;     // starter: 2, business: 5, enterprise: unlimited
+  canConnectGoogleCalendar: boolean;     // free+
+  canConnectMicrosoftOutlook: boolean;   // business+
+  canConnectSlack: boolean;              // starter+
+  canConnectZoom: boolean;               // starter+
+  canSyncAppointments: boolean;          // free+
+  canConfirmAppointments: boolean;       // starter+
+  canRescheduleAppointments: boolean;    // starter+
+  canSmartFollowUp: boolean;             // business+ (premium)
+  canAutoScheduleFromContext: boolean;   // business+ (premium)
+  canBidirectionalSync: boolean;         // starter+
+  canWebhookIntegration: boolean;        // starter+
+  canGoogleMeet: boolean;               // free+
+  canMicrosoftTeams: boolean;           // business+
+  canZoom: boolean;                      // starter+
+  canAvailabilityCheck: boolean;         // free+
+  maxCalendarIntegrations: number;       // free: 1, starter: 2, business: 5, enterprise: unlimited
 }
 
 export function getCalendarFeatureAccess(planSlug: string): CalendarFeatureAccess {
   switch (planSlug) {
     case 'free':
       return {
-        canConnectCalendars: false,
-        canSyncAppointments: false,
+        canConnectGoogleCalendar: true,
+        canConnectMicrosoftOutlook: false,
+        canConnectSlack: false,
+        canConnectZoom: false,
+        canSyncAppointments: true,
         canConfirmAppointments: false,
         canRescheduleAppointments: false,
         canSmartFollowUp: false,
         canAutoScheduleFromContext: false,
         canBidirectionalSync: false,
         canWebhookIntegration: false,
-        maxCalendarIntegrations: 0,
+        canGoogleMeet: true,
+        canMicrosoftTeams: false,
+        canZoom: false,
+        canAvailabilityCheck: true,
+        maxCalendarIntegrations: 1,
       };
     case 'starter':
       return {
-        canConnectCalendars: true,
+        canConnectGoogleCalendar: true,
+        canConnectMicrosoftOutlook: false,
+        canConnectSlack: true,
+        canConnectZoom: true,
         canSyncAppointments: true,
         canConfirmAppointments: true,
         canRescheduleAppointments: true,
@@ -428,11 +487,18 @@ export function getCalendarFeatureAccess(planSlug: string): CalendarFeatureAcces
         canAutoScheduleFromContext: false,
         canBidirectionalSync: true,
         canWebhookIntegration: true,
+        canGoogleMeet: true,
+        canMicrosoftTeams: false,
+        canZoom: true,
+        canAvailabilityCheck: true,
         maxCalendarIntegrations: 2,
       };
     case 'business':
       return {
-        canConnectCalendars: true,
+        canConnectGoogleCalendar: true,
+        canConnectMicrosoftOutlook: true,
+        canConnectSlack: true,
+        canConnectZoom: true,
         canSyncAppointments: true,
         canConfirmAppointments: true,
         canRescheduleAppointments: true,
@@ -440,11 +506,18 @@ export function getCalendarFeatureAccess(planSlug: string): CalendarFeatureAcces
         canAutoScheduleFromContext: true,
         canBidirectionalSync: true,
         canWebhookIntegration: true,
+        canGoogleMeet: true,
+        canMicrosoftTeams: true,
+        canZoom: true,
+        canAvailabilityCheck: true,
         maxCalendarIntegrations: 5,
       };
     case 'enterprise':
       return {
-        canConnectCalendars: true,
+        canConnectGoogleCalendar: true,
+        canConnectMicrosoftOutlook: true,
+        canConnectSlack: true,
+        canConnectZoom: true,
         canSyncAppointments: true,
         canConfirmAppointments: true,
         canRescheduleAppointments: true,
@@ -452,6 +525,10 @@ export function getCalendarFeatureAccess(planSlug: string): CalendarFeatureAcces
         canAutoScheduleFromContext: true,
         canBidirectionalSync: true,
         canWebhookIntegration: true,
+        canGoogleMeet: true,
+        canMicrosoftTeams: true,
+        canZoom: true,
+        canAvailabilityCheck: true,
         maxCalendarIntegrations: 999,
       };
     default:

@@ -35,6 +35,9 @@ const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.profile',
 ];
 
+// Google Meet conference request ID prefix
+const CONFERENCE_REQUEST_ID_PREFIX = 'callengo-meet-';
+
 // ============================================================================
 // OAUTH HELPERS
 // ============================================================================
@@ -257,9 +260,21 @@ export async function createGoogleEvent(
     },
   };
 
+  // Add Google Meet conference link if video_provider is google_meet or not specified
+  const wantsMeet = !event.video_provider || event.video_provider === 'google_meet';
+  if (wantsMeet && !event.all_day) {
+    googleEvent.conferenceData = {
+      createRequest: {
+        requestId: `${CONFERENCE_REQUEST_ID_PREFIX}${event.id || Date.now()}`,
+        conferenceSolutionKey: { type: 'hangoutsMeet' },
+      },
+    };
+  }
+
   const response = await calendar.events.insert({
     calendarId: integration.google_calendar_id || 'primary',
     requestBody: googleEvent,
+    conferenceDataVersion: wantsMeet ? 1 : 0,
     sendUpdates: 'all', // Send email notifications to attendees
   });
 
@@ -457,7 +472,12 @@ export async function pushEventToGoogle(
       // Create new Google event
       const gEvent = await createGoogleEvent(integration, event);
 
-      // Store the Google event ID
+      // Extract Google Meet link if present
+      const meetLink = gEvent.conferenceData?.entryPoints?.find(
+        (ep) => ep.entryPointType === 'video'
+      )?.uri || null;
+
+      // Store the Google event ID and Meet link
       await supabaseAdmin
         .from('calendar_events')
         .update({
@@ -465,6 +485,7 @@ export async function pushEventToGoogle(
           external_calendar_id: integration.google_calendar_id || 'primary',
           sync_status: 'synced',
           last_synced_at: new Date().toISOString(),
+          ...(meetLink && { video_link: meetLink, video_provider: 'google_meet' }),
         })
         .eq('id', event.id);
 
@@ -510,6 +531,13 @@ function googleEventToCalengoEvent(
   const callengoStatus =
     gEvent.extendedProperties?.private?.callengo_status || 'scheduled';
 
+  // Extract video link from conference data
+  const meetEntry = gEvent.conferenceData?.entryPoints?.find(
+    (ep) => ep.entryPointType === 'video'
+  );
+  const videoLink = meetEntry?.uri || null;
+  const videoProvider = videoLink ? 'google_meet' as const : null;
+
   return {
     external_event_id: gEvent.id || undefined,
     external_calendar_id: integration.google_calendar_id || 'primary',
@@ -522,6 +550,8 @@ function googleEventToCalengoEvent(
     all_day: isAllDay,
     event_type: callengoType as CalendarEvent['event_type'],
     status: callengoStatus as CalendarEvent['status'],
+    video_link: videoLink,
+    video_provider: videoProvider,
     attendees: (gEvent.attendees || []).map((a) => ({
       email: a.email!,
       name: a.displayName || undefined,

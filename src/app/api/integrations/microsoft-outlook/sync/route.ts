@@ -1,6 +1,4 @@
-// app/api/integrations/calendly/sync/route.ts
-// Triggers a sync of Calendly events
-
+// app/api/integrations/microsoft-outlook/sync/route.ts
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getActiveIntegrations, runSync } from '@/lib/calendar/sync';
@@ -24,27 +22,15 @@ export async function POST() {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
-    // Get active Calendly integration
-    const integrations = await getActiveIntegrations(
-      userData.company_id,
-      'calendly'
-    );
-
+    const integrations = await getActiveIntegrations(userData.company_id, 'microsoft_outlook');
     if (integrations.length === 0) {
-      return NextResponse.json(
-        { error: 'No active Calendly integration found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Microsoft Outlook not connected' }, { status: 400 });
     }
 
-    // Run sync
     const result = await runSync(integrations[0].id);
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Sync failed' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -52,13 +38,9 @@ export async function POST() {
       created: result.created,
       updated: result.updated,
       deleted: result.deleted,
-      message: `Synced ${result.created + result.updated} events`,
     });
   } catch (error) {
-    console.error('Error syncing Calendly:', error);
-    return NextResponse.json(
-      { error: 'Failed to sync' },
-      { status: 500 }
-    );
+    console.error('Microsoft sync error:', error);
+    return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
   }
 }
