@@ -115,7 +115,6 @@ export default function CalendarPage({ events: initialEvents, integrations: init
     duration: 15,
     notes: '',
     sync_to_google: true,
-    sync_to_calendly: false,
   });
 
   // Show toast if redirected from OAuth callback
@@ -314,7 +313,6 @@ export default function CalendarPage({ events: initialEvents, integrations: init
           contact_email: contact?.email || undefined,
           notes: scheduleForm.notes || undefined,
           sync_to_google: scheduleForm.sync_to_google,
-          sync_to_calendly: scheduleForm.sync_to_calendly,
         }),
       });
 
@@ -721,30 +719,101 @@ export default function CalendarPage({ events: initialEvents, integrations: init
 
         {/* Week View */}
         {viewMode === 'week' && (
-          <div className="p-4">
-            <div className="grid grid-cols-7 gap-3">
-              {weekDays.map((day, idx) => (
-                <div key={idx} className={`rounded-xl border ${isToday(day.date) ? 'border-[var(--color-primary)]/30 bg-[var(--color-primary-50)]/30' : 'border-slate-200'}`}>
-                  <div className={`text-center py-3 border-b ${isToday(day.date) ? 'border-[var(--color-primary)]/20' : 'border-slate-100'}`}>
+          <div className="p-4 overflow-x-auto">
+            <div className="min-w-[700px]">
+              {/* Day headers */}
+              <div className="grid grid-cols-[64px_repeat(7,1fr)]">
+                <div className="w-16" />
+                {weekDays.map((day, idx) => (
+                  <div
+                    key={idx}
+                    className={`text-center py-3 border-b border-l ${
+                      isToday(day.date) ? 'bg-[var(--color-primary-50)]/40 border-b-[var(--color-primary)]/30' : 'border-slate-200'
+                    } ${idx === 6 ? 'border-r border-slate-200' : ''}`}
+                  >
                     <div className="text-xs text-slate-500 font-medium">{day.date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                    <div className={`text-lg font-bold ${isToday(day.date) ? 'text-[var(--color-primary)]' : 'text-slate-900'}`}>{day.date.getDate()}</div>
+                    <div className={`text-lg font-bold ${isToday(day.date) ? 'text-[var(--color-primary)]' : 'text-slate-900'}`}>
+                      {day.date.getDate()}
+                    </div>
                   </div>
-                  <div className="p-2 space-y-1.5 min-h-[200px]">
-                    {day.events.map(event => {
-                      const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                      return (
-                        <div key={event.id} className={`text-[11px] p-2 rounded-lg ${style.bg} border ${style.text}`}>
-                          <div className="font-semibold truncate">{event.contact_name || event.title}</div>
-                          <div className="text-[10px] opacity-75">
-                            {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                ))}
+              </div>
+
+              {/* Time grid */}
+              <div className="relative">
+                {/* Current time indicator */}
+                {(() => {
+                  const todayIdx = weekDays.findIndex(d => isToday(d.date));
+                  if (todayIdx === -1) return null;
+                  const h = currentTime.getHours();
+                  const m = currentTime.getMinutes();
+                  if (h < 8 || h >= 20) return null;
+                  const topPx = (h - 8 + m / 60) * 48;
+                  return (
+                    <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPx}px` }}>
+                      <div className="grid grid-cols-[64px_repeat(7,1fr)]">
+                        <div className="flex justify-end pr-1">
+                          <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded-full border border-red-200">
+                            {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        {weekDays.map((_, i) => (
+                          <div key={i} className="relative">
+                            {i === todayIdx && (
+                              <div className="absolute inset-x-0 flex items-center">
+                                <div className="w-2 h-2 rounded-full bg-red-500 shrink-0 -ml-1" />
+                                <div className="flex-1 h-[2px] bg-gradient-to-r from-red-500 to-transparent" />
+                              </div>
+                            )}
                           </div>
-                          <SourceBadge source={event.source} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {Array.from({ length: 12 }, (_, i) => i + 8).map(hour => (
+                  <div key={hour} className="grid grid-cols-[64px_repeat(7,1fr)]">
+                    <div className="w-16 text-right pr-2 text-[11px] text-slate-400 font-medium h-12 flex items-start pt-0 -mt-1.5">
+                      {hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
+                    </div>
+                    {weekDays.map((day, dayIdx) => {
+                      const hourEvents = day.events.filter(e => new Date(e.start_time).getHours() === hour);
+                      return (
+                        <div
+                          key={dayIdx}
+                          className={`h-12 border-t border-l ${dayIdx === 6 ? 'border-r' : ''} ${
+                            isToday(day.date) ? 'bg-[var(--color-primary-50)]/20 border-slate-200/80' : 'border-slate-100'
+                          } relative`}
+                        >
+                          {hourEvents.map(event => {
+                            const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
+                            const startMin = new Date(event.start_time).getMinutes();
+                            const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
+                            const topOffset = (startMin / 60) * 48;
+                            const height = Math.max((durationMin / 60) * 48, 18);
+                            return (
+                              <div
+                                key={event.id}
+                                className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10`}
+                                style={{ top: `${topOffset}px`, height: `${height}px` }}
+                                title={`${event.title}\n${new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`}
+                              >
+                                <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
+                                {height >= 28 && (
+                                  <div className="text-[9px] opacity-75 truncate">
+                                    {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -1054,35 +1123,18 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                 />
               </div>
               {/* Sync options */}
-              {(googleIntegration?.connected || calendlyIntegration?.connected) && (
+              {googleIntegration?.connected && (
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p className="text-xs font-semibold text-slate-700 mb-2">Sync to:</p>
-                  <div className="space-y-2">
-                    {googleIntegration?.connected && (
-                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={scheduleForm.sync_to_google}
-                          onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))}
-                          className="w-4 h-4 rounded text-[var(--color-primary)]"
-                        />
-                        <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
-                        Google Calendar
-                      </label>
-                    )}
-                    {calendlyIntegration?.connected && (
-                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={scheduleForm.sync_to_calendly}
-                          onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_calendly: e.target.checked }))}
-                          className="w-4 h-4 rounded text-[var(--color-primary)]"
-                        />
-                        <SiCalendly className="w-4 h-4 text-[#006BFF]" />
-                        Calendly
-                      </label>
-                    )}
-                  </div>
+                  <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scheduleForm.sync_to_google}
+                      onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))}
+                      className="w-4 h-4 rounded text-[var(--color-primary)]"
+                    />
+                    <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
+                    Sync to Google Calendar
+                  </label>
                 </div>
               )}
             </div>
