@@ -2,7 +2,7 @@
 // Handles the Calendly OAuth callback after user grants permission
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import {
   exchangeCalendlyCode,
   getCalendlyCurrentUser,
@@ -70,11 +70,9 @@ export async function GET(request: NextRequest) {
       provider_email: userInfo.email,
       provider_user_id: userInfo.uri,
       provider_user_name: userInfo.name,
-      calendly_organization_uri: userInfo.current_organization,
-      google_calendar_id: 'primary', // default value, not used for Calendly
       is_active: true,
       scopes: ['default'],
-      raw_profile: userInfo as unknown as import('@/types/supabase').Json,
+      raw_profile: userInfo as unknown as Record<string, unknown>,
     };
 
     let integrationId: string;
@@ -115,16 +113,10 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (integration) {
-        const webhookUri = await createCalendlyWebhook(
+        await createCalendlyWebhook(
           integration as unknown as import('@/types/calendar').CalendarIntegration,
           webhookUrl
         );
-
-        // Save webhook URI for cleanup later
-        await supabaseAdmin
-          .from('calendar_integrations')
-          .update({ calendly_webhook_uri: webhookUri })
-          .eq('id', integrationId);
       }
     } catch (webhookError) {
       // Don't fail the connection if webhook creation fails
