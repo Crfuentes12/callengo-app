@@ -1705,6 +1705,319 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
     );
   }
 
+  if (step === 'calendar') {
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
+        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-100 backdrop-blur-sm border border-slate-200 text-slate-500 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+          >
+            <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Header */}
+          <div className="p-6 border-b border-slate-200">
+            <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">Calendar & Notifications</h2>
+            <p className="text-sm text-slate-500 mt-1">Configure scheduling rules and notification preferences</p>
+          </div>
+
+          {/* Scrollable content */}
+          <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
+            <StepIndicator currentStep={getStepNumber()} />
+
+            <div className="space-y-6">
+              {/* Calendar Sync & Scheduling */}
+              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 uppercase mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                  </svg>
+                  Calendar & Scheduling
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Calendar Sync</p>
+                      <p className="text-xs text-slate-500">Sync appointments with connected calendars</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={settings.calendarSyncEnabled} onChange={(e) => setSettings({ ...settings, calendarSyncEnabled: e.target.checked })} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Prevent Overbooking</p>
+                      <p className="text-xs text-slate-500">Check calendar availability before booking</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={settings.preventOverbooking} onChange={(e) => setSettings({ ...settings, preventOverbooking: e.target.checked })} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Allow Rescheduling</p>
+                      <p className="text-xs text-slate-500">Let contacts reschedule via the agent</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={settings.allowRescheduling} onChange={(e) => setSettings({ ...settings, allowRescheduling: e.target.checked })} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Buffer Between Appointments</label>
+                      <select
+                        value={settings.bufferMinutes}
+                        onChange={(e) => setSettings({ ...settings, bufferMinutes: parseInt(e.target.value) })}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                      >
+                        <option value={0}>No buffer</option>
+                        <option value={5}>5 minutes</option>
+                        <option value={10}>10 minutes</option>
+                        <option value={15}>15 minutes</option>
+                        <option value={30}>30 minutes</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Max Daily Appointments</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={settings.maxDailyAppointments}
+                        onChange={(e) => setSettings({ ...settings, maxDailyAppointments: parseInt(e.target.value) || 20 })}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Voicemail & Follow-ups (moved from contacts step) */}
+              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 uppercase mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  Voicemail & Follow-ups
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Voicemail Detection</p>
+                      <p className="text-xs text-slate-500">Leave a message when voicemail is detected</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={settings.voicemailEnabled} onChange={(e) => setSettings({ ...settings, voicemailEnabled: e.target.checked })} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Automatic Follow-ups</p>
+                      <p className="text-xs text-slate-500">Retry contacts that didn&apos;t answer</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={settings.followUpEnabled} onChange={(e) => setSettings({ ...settings, followUpEnabled: e.target.checked })} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                    </label>
+                  </div>
+                  {settings.followUpEnabled && (
+                    <div className="grid grid-cols-2 gap-3 pl-2 border-l-2 border-[var(--color-primary)]/20">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Max Attempts</label>
+                        <input type="number" min="1" max="10" value={settings.followUpMaxAttempts} onChange={(e) => setSettings({ ...settings, followUpMaxAttempts: parseInt(e.target.value) })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Interval (hours)</label>
+                        <input type="number" min="1" max="168" value={settings.followUpIntervalHours} onChange={(e) => setSettings({ ...settings, followUpIntervalHours: parseInt(e.target.value) })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
+                      </div>
+                      <div className="col-span-2 flex items-center justify-between bg-purple-50 rounded-lg px-4 py-3 border border-purple-200">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700">Smart Follow-up</p>
+                          <p className="text-xs text-slate-500">Schedule callbacks at times requested by contacts</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" checked={settings.smartFollowUp} onChange={(e) => setSettings({ ...settings, smartFollowUp: e.target.checked })} className="sr-only peer" />
+                          <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Slack Notifications */}
+              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 uppercase mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4" viewBox="0 0 127 127" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M27.2 80c0 7.3-5.9 13.2-13.2 13.2C6.7 93.2.8 87.3.8 80c0-7.3 5.9-13.2 13.2-13.2h13.2V80zm6.6 0c0-7.3 5.9-13.2 13.2-13.2 7.3 0 13.2 5.9 13.2 13.2v33c0 7.3-5.9 13.2-13.2 13.2-7.3 0-13.2-5.9-13.2-13.2V80z" fill="#E01E5A"/>
+                    <path d="M47 27c-7.3 0-13.2-5.9-13.2-13.2C33.8 6.5 39.7.6 47 .6c7.3 0 13.2 5.9 13.2 13.2V27H47zm0 6.7c7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2H13.9C6.6 60.1.7 54.2.7 46.9c0-7.3 5.9-13.2 13.2-13.2H47z" fill="#36C5F0"/>
+                    <path d="M99.9 46.9c0-7.3 5.9-13.2 13.2-13.2 7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2H99.9V46.9zm-6.6 0c0 7.3-5.9 13.2-13.2 13.2-7.3 0-13.2-5.9-13.2-13.2V13.8C66.9 6.5 72.8.6 80.1.6c7.3 0 13.2 5.9 13.2 13.2v33.1z" fill="#2EB67D"/>
+                    <path d="M80.1 99.8c7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2-7.3 0-13.2-5.9-13.2-13.2V99.8h13.2zm0-6.6c-7.3 0-13.2-5.9-13.2-13.2 0-7.3 5.9-13.2 13.2-13.2h33.1c7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2H80.1z" fill="#ECB22E"/>
+                  </svg>
+                  Slack Notifications
+                </h3>
+
+                <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200 mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Enable Slack Notifications</p>
+                    <p className="text-xs text-slate-500">Receive campaign updates in Slack</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={settings.slackEnabled} onChange={(e) => setSettings({ ...settings, slackEnabled: e.target.checked })} className="sr-only peer" />
+                    <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#4A154B]"></div>
+                  </label>
+                </div>
+
+                {settings.slackEnabled && (
+                  <div className="space-y-3 pl-2 border-l-2 border-[#4A154B]/20">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Slack Channel</label>
+                      <input
+                        type="text"
+                        placeholder="#campaigns-notifications"
+                        value={settings.slackChannel}
+                        onChange={(e) => setSettings({ ...settings, slackChannel: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[#4A154B]/30 outline-none placeholder-slate-400"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1">Enter the channel name or ID where notifications will be sent</p>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-4 border border-slate-200">
+                      <p className="text-xs font-bold text-slate-700 uppercase mb-3">Notify me about:</p>
+                      <div className="space-y-2">
+                        {[
+                          { key: 'slackNotifyNewBookings', label: 'New Bookings', desc: 'When an appointment is booked' },
+                          { key: 'slackNotifyFollowUps', label: 'Follow-ups', desc: 'When follow-up calls are scheduled' },
+                          { key: 'slackNotifyCallbacks', label: 'Callbacks', desc: 'When a contact requests a callback' },
+                          { key: 'slackNotifyNoShows', label: 'No-Shows', desc: 'When a contact misses an appointment' },
+                          { key: 'slackNotifyRescheduling', label: 'Rescheduling', desc: 'When appointments are rescheduled' },
+                        ].map(item => (
+                          <label key={item.key} className="flex items-center justify-between py-1.5 cursor-pointer group">
+                            <div>
+                              <span className="text-sm text-slate-700 font-medium group-hover:text-slate-900">{item.label}</span>
+                              <p className="text-[10px] text-slate-400">{item.desc}</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={(settings as any)[item.key]}
+                              onChange={(e) => setSettings({ ...settings, [item.key]: e.target.checked })}
+                              className="w-4 h-4 rounded text-[#4A154B] focus:ring-[#4A154B]/30"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!settings.slackEnabled && (
+                  <div className="bg-slate-100/50 rounded-lg p-3 border border-slate-200">
+                    <p className="text-xs text-slate-500 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Connect Slack in Integrations to enable real-time campaign notifications
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Calendar Preview */}
+              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 uppercase mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Campaign Overview
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-white rounded-lg p-3 border border-slate-200 text-center">
+                    <p className="text-2xl font-bold text-slate-900">{contactCount}</p>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Contacts</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-slate-200 text-center">
+                    <p className="text-2xl font-bold text-slate-900">{settings.workingHoursStart}-{settings.workingHoursEnd}</p>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Working Hours</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-slate-200 text-center">
+                    <p className="text-2xl font-bold text-[var(--color-primary)]">{settings.followUpEnabled ? settings.followUpMaxAttempts : 0}</p>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Follow-ups</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-slate-200 text-center">
+                    <p className="text-2xl font-bold text-emerald-600">{settings.bufferMinutes}m</p>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Buffer</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {settings.voicemailEnabled && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg text-[10px] font-bold text-purple-700">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                      Voicemail
+                    </span>
+                  )}
+                  {settings.followUpEnabled && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 border border-blue-200 rounded-lg text-[10px] font-bold text-blue-700">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" /></svg>
+                      Follow-ups
+                    </span>
+                  )}
+                  {settings.smartFollowUp && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-violet-50 border border-violet-200 rounded-lg text-[10px] font-bold text-violet-700">
+                      Smart Follow-up
+                    </span>
+                  )}
+                  {settings.calendarSyncEnabled && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[10px] font-bold text-emerald-700">
+                      Calendar Sync
+                    </span>
+                  )}
+                  {settings.preventOverbooking && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg text-[10px] font-bold text-amber-700">
+                      No Overbooking
+                    </span>
+                  )}
+                  {settings.slackEnabled && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-[#4A154B]/10 border border-[#4A154B]/20 rounded-lg text-[10px] font-bold text-[#4A154B]">
+                      Slack {settings.slackChannel || 'notifications'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3 mt-6 pt-6 border-t border-slate-200">
+              <button
+                onClick={() => setStep('contacts')}
+                className="flex-1 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 font-bold text-sm transition-all duration-300"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => setStep('confirm')}
+                className="flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all duration-300"
+              >
+                Review & Launch
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'confirm') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
