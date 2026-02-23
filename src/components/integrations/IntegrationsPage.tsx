@@ -5,6 +5,7 @@ import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SiGooglecalendar, SiGooglemeet, SiTwilio, SiZapier, SiGooglesheets } from 'react-icons/si';
 import { FaMicrosoft, FaSlack, FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
+import { BsMicrosoftTeams } from 'react-icons/bs';
 import { BiLogoZoom } from 'react-icons/bi';
 import Link from 'next/link';
 
@@ -99,6 +100,20 @@ function Spinner({ className = 'w-4 h-4' }: { className?: string }) {
 }
 
 // ============================================================================
+// CATEGORY FILTER TYPES
+// ============================================================================
+
+type CategoryFilter = 'all' | 'calendar' | 'video' | 'communication' | 'crm' | 'automation';
+
+const CATEGORY_OPTIONS: { value: CategoryFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'calendar', label: 'Calendar' },
+  { value: 'video', label: 'Video' },
+  { value: 'communication', label: 'Communication' },
+  { value: 'crm', label: 'CRM & Automation' },
+];
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -107,6 +122,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   const searchParams = useSearchParams();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
 
   // --------------------------------------------------------------------------
   // Toast
@@ -259,7 +275,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       provider: 'microsoft-teams',
       name: 'Microsoft Teams',
       description: 'Automatically adds Teams meeting links when creating events through Microsoft 365.',
-      icon: <FaMicrosoft className="w-6 h-6" />,
+      icon: <BsMicrosoftTeams className="w-6 h-6" />,
       iconColor: 'text-[#6264A7]',
       iconBg: 'bg-indigo-50',
       requiredPlan: 'business',
@@ -407,15 +423,21 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   ];
 
   // --------------------------------------------------------------------------
-  // Category sections
+  // Combined integrations + filtering
   // --------------------------------------------------------------------------
 
-  const sections = [
-    { title: 'Calendar Integrations', cards: calendarIntegrations },
-    { title: 'Video Conferencing', cards: videoIntegrations },
-    { title: 'Communication', cards: communicationIntegrations },
-    { title: 'CRM & Automation', cards: comingSoonIntegrations, comingSoon: true },
+  const allIntegrations: IntegrationCardConfig[] = [
+    ...calendarIntegrations,
+    ...videoIntegrations,
+    ...communicationIntegrations,
+    ...comingSoonIntegrations,
   ];
+
+  const filteredIntegrations = selectedCategory === 'all'
+    ? allIntegrations
+    : selectedCategory === 'crm'
+      ? allIntegrations.filter((card) => card.category === 'crm' || card.category === 'automation')
+      : allIntegrations.filter((card) => card.category === selectedCategory);
 
   // --------------------------------------------------------------------------
   // Card Renderer
@@ -576,12 +598,14 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
 
           {/* Not connected Twilio - link to settings */}
           {!isConnected && !isComingSoon && card.settingsUrl && !card.connectUrl && (
-            <Link
-              href={card.settingsUrl}
-              className="block w-full py-2.5 rounded-lg font-medium text-sm text-center btn-primary"
-            >
-              Configure in Settings
-            </Link>
+            <div className="flex justify-center">
+              <Link
+                href={card.settingsUrl}
+                className="block w-full py-2.5 rounded-lg font-medium text-sm text-center btn-primary"
+              >
+                Configure in Settings
+              </Link>
+            </div>
           )}
 
           {/* Coming Soon */}
@@ -621,22 +645,50 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         </p>
       </div>
 
-      {/* Sections */}
-      {sections.map((section) => (
-        <div key={section.title}>
-          <div className="flex items-center gap-3 mb-4">
-            <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
-            {section.comingSoon && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-wide">
-                Coming Soon
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {section.cards.map((card) => renderCard(card))}
-          </div>
+      {/* Category Filter Badges */}
+      <div className="flex flex-wrap items-center gap-2">
+        {CATEGORY_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => setSelectedCategory(option.value)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              selectedCategory === option.value
+                ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Integration Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredIntegrations.map((card) => renderCard(card))}
+      </div>
+
+      {/* Help Center Section */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col sm:flex-row items-center gap-4">
+        <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
-      ))}
+        <div className="flex-1 text-center sm:text-left">
+          <h3 className="text-base font-semibold text-slate-900">Need help setting up your integrations?</h3>
+          <p className="text-sm text-slate-600 mt-0.5">
+            Visit our Help Center for step-by-step guides and troubleshooting.
+          </p>
+        </div>
+        <a
+          href="https://callengo.com/help/integrations"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 px-5 py-2.5 rounded-lg font-medium text-sm text-[var(--color-primary)] bg-white border border-[var(--color-primary)]/20 hover:bg-[var(--color-primary)]/5 transition-all"
+        >
+          Visit Help Center
+        </a>
+      </div>
     </div>
   );
 }
