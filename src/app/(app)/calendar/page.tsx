@@ -95,6 +95,9 @@ export default async function Calendar() {
       integrations={integrationStatuses}
       companyId={companyId}
       workingHours={workingHours}
+      workingDays={calendarSettings.working_days}
+      excludeHolidays={calendarSettings.exclude_holidays}
+      timezone={calendarSettings.timezone}
       calendarSettings={calendarSettings}
       contacts={(contacts || []).map(c => ({
         id: c.id,
