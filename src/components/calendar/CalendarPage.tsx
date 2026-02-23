@@ -177,11 +177,11 @@ export default function CalendarPage({ events: initialEvents, integrations: init
   }, []);
 
   const handleConnectGoogle = useCallback(() => {
-    window.location.href = '/api/integrations/google-calendar/connect';
+    window.location.href = '/api/integrations/google-calendar/connect?return_to=/calendar';
   }, []);
 
   const handleConnectCalendly = useCallback(() => {
-    window.location.href = '/api/integrations/calendly/connect';
+    window.location.href = '/api/integrations/calendly/connect?return_to=/calendar';
   }, []);
 
   const handleDisconnect = useCallback(async (provider: string) => {
@@ -506,60 +506,52 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                 <p className="text-slate-500 font-medium">Manage appointments, follow-ups, and scheduling</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {/* Google Calendar button */}
+            <div className="flex items-center gap-1.5">
+              {/* Google Calendar chip */}
               {googleIntegration?.connected ? (
-                <div className="flex items-center gap-1.5 px-3 py-2 bg-white/80 border border-emerald-200 rounded-xl">
-                  <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
-                  <span className="text-xs font-semibold text-slate-700">Google</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <button
-                    onClick={() => handleSync('google_calendar')}
-                    disabled={syncing.google_calendar}
-                    className="ml-1 p-1 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
-                    title="Sync Google Calendar"
-                  >
-                    <svg className={`w-3.5 h-3.5 text-slate-500 ${syncing.google_calendar ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
-                    </svg>
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleSync('google_calendar')}
+                  disabled={syncing.google_calendar}
+                  title="Sync Google Calendar"
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-white/80 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50 text-[11px] font-medium text-slate-600"
+                >
+                  <SiGooglecalendar className="w-3 h-3 text-[#4285F4]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                  <svg className={`w-3 h-3 text-slate-400 ${syncing.google_calendar ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
+                  </svg>
+                </button>
               ) : (
                 <button
                   onClick={handleConnectGoogle}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/80 border border-slate-200 rounded-xl hover:bg-white hover:border-slate-300 transition-all text-xs font-semibold text-slate-600"
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-medium text-slate-500"
                 >
-                  <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
-                  <span>Google Calendar</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                  <SiGooglecalendar className="w-3 h-3 text-[#4285F4]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
               )}
 
-              {/* Calendly button */}
+              {/* Calendly chip */}
               {calendlyIntegration?.connected ? (
-                <div className="flex items-center gap-1.5 px-3 py-2 bg-white/80 border border-emerald-200 rounded-xl">
-                  <SiCalendly className="w-4 h-4 text-[#006BFF]" />
-                  <span className="text-xs font-semibold text-slate-700">Calendly</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <button
-                    onClick={() => handleSync('calendly')}
-                    disabled={syncing.calendly}
-                    className="ml-1 p-1 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
-                    title="Sync Calendly"
-                  >
-                    <svg className={`w-3.5 h-3.5 text-slate-500 ${syncing.calendly ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
-                    </svg>
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleSync('calendly')}
+                  disabled={syncing.calendly}
+                  title="Sync Calendly"
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-white/80 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50 text-[11px] font-medium text-slate-600"
+                >
+                  <SiCalendly className="w-3 h-3 text-[#006BFF]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                  <svg className={`w-3 h-3 text-slate-400 ${syncing.calendly ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
+                  </svg>
+                </button>
               ) : (
                 <button
                   onClick={handleConnectCalendly}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/80 border border-slate-200 rounded-xl hover:bg-white hover:border-slate-300 transition-all text-xs font-semibold text-slate-600"
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-medium text-slate-500"
                 >
-                  <SiCalendly className="w-4 h-4 text-[#006BFF]" />
-                  <span>Calendly</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                  <SiCalendly className="w-3 h-3 text-[#006BFF]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
               )}
 

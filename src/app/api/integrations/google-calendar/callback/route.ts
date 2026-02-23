@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Decode state parameter
-    let stateData: { user_id: string; company_id: string };
+    let stateData: { user_id: string; company_id: string; return_to?: string };
     try {
       stateData = JSON.parse(
         Buffer.from(state, 'base64url').toString('utf-8')
@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { user_id, company_id } = stateData;
+    const { user_id, company_id, return_to } = stateData;
+    const redirectBase = return_to || '/integrations';
 
     // Exchange code for tokens
     const tokens = await exchangeGoogleCode(code);
@@ -84,9 +85,9 @@ export async function GET(request: NextRequest) {
         .insert(integrationData);
     }
 
-    // Redirect to calendar page with success message
+    // Redirect back to origin page with success message
     return NextResponse.redirect(
-      new URL('/calendar?integration=google_calendar&status=connected', request.url)
+      new URL(`${redirectBase}?integration=google_calendar&status=connected`, request.url)
     );
   } catch (error) {
     console.error('Error processing Google Calendar callback:', error);

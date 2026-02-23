@@ -4,6 +4,8 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import CalendarPage from '@/components/calendar/CalendarPage';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Calendar() {
   const supabase = await createServerClient();
 
