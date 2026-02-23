@@ -1,7 +1,7 @@
 // components/integrations/IntegrationsPage.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaSalesforce, FaHubspot, FaSlack } from 'react-icons/fa';
 import { SiZapier, SiTwilio, SiGooglecalendar, SiCalendly, SiGooglesheets } from 'react-icons/si';
@@ -37,6 +37,25 @@ export default function IntegrationsPage() {
   const [filter, setFilter] = useState<'all' | 'crm' | 'communication' | 'telephony' | 'automation' | 'productivity' | 'calendar'>('all');
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
   const [calendlyConnected, setCalendlyConnected] = useState(false);
+
+  // Fetch real integration status on mount
+  useEffect(() => {
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/integrations/status');
+        if (res.ok) {
+          const data = await res.json();
+          const googleStatus = data.integrations?.find((i: { provider: string }) => i.provider === 'google_calendar');
+          const calendlyStatus = data.integrations?.find((i: { provider: string }) => i.provider === 'calendly');
+          if (googleStatus?.connected) setGoogleCalendarConnected(true);
+          if (calendlyStatus?.connected) setCalendlyConnected(true);
+        }
+      } catch (error) {
+        console.error('Failed to fetch integration status:', error);
+      }
+    }
+    fetchStatus();
+  }, []);
 
   const integrations: Integration[] = [
     {
@@ -113,8 +132,7 @@ export default function IntegrationsPage() {
       requiredPlan: 'starter',
       action: () => {
         if (!googleCalendarConnected) {
-          // In production: redirect to Google OAuth flow
-          setGoogleCalendarConnected(true);
+          window.location.href = '/api/integrations/google-calendar/connect';
         } else {
           router.push('/calendar');
         }
@@ -133,8 +151,7 @@ export default function IntegrationsPage() {
       requiredPlan: 'starter',
       action: () => {
         if (!calendlyConnected) {
-          // In production: redirect to Calendly OAuth flow
-          setCalendlyConnected(true);
+          window.location.href = '/api/integrations/calendly/connect';
         } else {
           router.push('/calendar');
         }
