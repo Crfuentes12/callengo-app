@@ -2,7 +2,7 @@
 // Handles the Google OAuth callback after user grants permission
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { exchangeGoogleCode, getGoogleUserInfo } from '@/lib/calendar/google';
 
 export async function GET(request: NextRequest) {
@@ -69,20 +69,26 @@ export async function GET(request: NextRequest) {
       google_calendar_id: 'primary',
       is_active: true,
       scopes: tokens.scope ? tokens.scope.split(' ') : [],
-      raw_profile: userInfo as unknown as import('@/types/supabase').Json,
+      raw_profile: userInfo as Record<string, unknown>,
     };
 
     if (existing) {
-      // Update existing integration
-      await supabaseAdmin
+      const { error: updateError } = await supabaseAdmin
         .from('calendar_integrations')
         .update(integrationData)
         .eq('id', existing.id);
+      if (updateError) {
+        console.error('Failed to update Google Calendar integration:', updateError);
+        throw new Error(`Failed to update integration: ${updateError.message}`);
+      }
     } else {
-      // Create new integration
-      await supabaseAdmin
+      const { error: insertError } = await supabaseAdmin
         .from('calendar_integrations')
         .insert(integrationData);
+      if (insertError) {
+        console.error('Failed to insert Google Calendar integration:', insertError);
+        throw new Error(`Failed to save integration: ${insertError.message}`);
+      }
     }
 
     // Redirect back to origin page with success message
