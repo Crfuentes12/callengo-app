@@ -14,6 +14,7 @@ interface CalendarPageProps {
   events: CalendarEvent[];
   integrations: CalendarIntegrationStatus[];
   companyId: string;
+  workingHours: { start: string; end: string };
   contacts: {
     id: string;
     contact_name: string | null;
@@ -91,9 +92,14 @@ const SOURCE_LABELS: Record<string, string> = {
 // MAIN COMPONENT
 // ============================================================================
 
-export default function CalendarPage({ events: initialEvents, integrations: initialIntegrations, companyId, contacts }: CalendarPageProps) {
+export default function CalendarPage({ events: initialEvents, integrations: initialIntegrations, companyId, workingHours, contacts }: CalendarPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Parse working hours (e.g. '09:00' -> 9, '18:00' -> 18)
+  const workStart = parseInt(workingHours.start.split(':')[0], 10);
+  const workEnd = parseInt(workingHours.end.split(':')[0], 10);
+  const isWorkingHour = (hour: number) => hour >= workStart && hour < workEnd;
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
@@ -747,8 +753,7 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                   if (todayIdx === -1) return null;
                   const h = currentTime.getHours();
                   const m = currentTime.getMinutes();
-                  if (h < 8 || h >= 20) return null;
-                  const topPx = (h - 8 + m / 60) * 48;
+                  const topPx = (h + m / 60) * 48;
                   return (
                     <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPx}px` }}>
                       <div className="grid grid-cols-[64px_repeat(7,1fr)]">
@@ -772,10 +777,16 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                   );
                 })()}
 
-                {Array.from({ length: 12 }, (_, i) => i + 8).map(hour => (
+                {Array.from({ length: 24 }, (_, i) => i).map(hour => {
+                  const working = isWorkingHour(hour);
+                  const isFirstWork = hour === workStart;
+                  const isLastWork = hour === workEnd;
+                  return (
                   <div key={hour} className="grid grid-cols-[64px_repeat(7,1fr)]">
-                    <div className="w-16 text-right pr-2 text-[11px] text-slate-400 font-medium h-12 flex items-start pt-0 -mt-1.5">
-                      {hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
+                    <div className={`w-16 text-right pr-2 text-[11px] font-medium h-12 flex items-start pt-0 -mt-1.5 ${
+                      working ? 'text-slate-600' : 'text-slate-300'
+                    }`}>
+                      {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                     </div>
                     {weekDays.map((day, dayIdx) => {
                       const hourEvents = day.events.filter(e => new Date(e.start_time).getHours() === hour);
@@ -783,8 +794,10 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                         <div
                           key={dayIdx}
                           className={`h-12 border-t border-l ${dayIdx === 6 ? 'border-r' : ''} ${
-                            isToday(day.date) ? 'bg-[var(--color-primary-50)]/20 border-slate-200/80' : 'border-slate-100'
-                          } relative`}
+                            working
+                              ? isToday(day.date) ? 'bg-[var(--color-primary-50)]/20 border-slate-200' : 'bg-white border-slate-200'
+                              : isToday(day.date) ? 'bg-slate-50/80 border-slate-100' : 'bg-slate-50/60 border-slate-100'
+                          } ${isFirstWork || isLastWork ? 'border-t-[var(--color-primary)]/20' : ''} relative`}
                         >
                           {hourEvents.map(event => {
                             const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
@@ -812,7 +825,8 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                       );
                     })}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -821,6 +835,18 @@ export default function CalendarPage({ events: initialEvents, integrations: init
         {/* Day View */}
         {viewMode === 'day' && (
           <div className="p-4">
+            {/* Working hours legend */}
+            <div className="flex items-center gap-4 mb-3 text-xs text-slate-500">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-white border border-slate-200" />
+                <span>Working hours ({workingHours.start} - {workingHours.end})</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-slate-50 border border-slate-100" />
+                <span>Off hours</span>
+              </div>
+            </div>
+
             <div className="relative">
               {/* Current time indicator */}
               {(() => {
@@ -828,10 +854,7 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                 if (!isViewingToday) return null;
                 const currentHour = currentTime.getHours();
                 const currentMinute = currentTime.getMinutes();
-                if (currentHour < 8 || currentHour >= 20) return null;
-                const hourOffset = currentHour - 8;
-                const minuteOffset = currentMinute / 60;
-                const topPosition = (hourOffset + minuteOffset) * 68;
+                const topPosition = (currentHour + currentMinute / 60) * 52;
                 return (
                   <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top: `${topPosition}px` }}>
                     <div className="w-16 shrink-0 flex justify-end pr-2">
@@ -847,86 +870,87 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                 );
               })()}
 
-              <div className="space-y-2">
-                {Array.from({ length: 12 }, (_, i) => i + 8).map(hour => {
+              <div>
+                {Array.from({ length: 24 }, (_, i) => i).map(hour => {
                   const hourEvents = filteredEvents.filter(e => {
                     const eDate = new Date(e.start_time);
                     return eDate.toDateString() === currentDate.toDateString() && eDate.getHours() === hour;
                   });
+                  const working = isWorkingHour(hour);
+                  const isFirstWork = hour === workStart;
+                  const isLastWork = hour === workEnd;
 
                   return (
-                    <div key={hour} className="flex gap-4">
-                      <div className="w-16 text-right text-xs text-slate-400 font-medium py-3 shrink-0">
-                        {hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
+                    <div key={hour} className="flex">
+                      <div className={`w-16 text-right text-[11px] font-medium pr-3 shrink-0 h-[52px] flex items-start -mt-1.5 ${
+                        working ? 'text-slate-600' : 'text-slate-300'
+                      }`}>
+                        {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                       </div>
-                      <div className="flex-1 min-h-[60px] border-t border-slate-100 py-2">
-                        {hourEvents.length > 0 ? (
-                          <div className="space-y-2">
-                            {hourEvents.map(event => {
-                              const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                              const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
-                              const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
-                              const isLoading = actionLoading === event.id;
-                              return (
-                                <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group`}>
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
-                                    <div className="min-w-0">
-                                      <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
-                                      <div className="text-xs text-slate-500">
-                                        {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
-                                        {event.contact_phone && <span className="ml-2">{event.contact_phone}</span>}
-                                      </div>
-                                      <div className="flex items-center gap-2 mt-0.5">
-                                        <SourceBadge source={event.source} />
-                                        {event.confirmation_status === 'confirmed' && (
-                                          <span className="text-[10px] text-emerald-600 font-medium">Confirmed</span>
-                                        )}
-                                      </div>
-                                    </div>
+                      <div className={`flex-1 min-h-[52px] border-t relative ${
+                        working ? 'bg-white border-slate-200' : 'bg-slate-50/60 border-slate-100'
+                      } ${isFirstWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${isLastWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''}`}>
+                        {hourEvents.map(event => {
+                          const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
+                          const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
+                          const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
+                          const isLoading = actionLoading === event.id;
+                          return (
+                            <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1`}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
+                                <div className="min-w-0">
+                                  <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
+                                  <div className="text-xs text-slate-500">
+                                    {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
+                                    {event.contact_phone && <span className="ml-2">{event.contact_phone}</span>}
                                   </div>
-                                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                    {(event.status === 'scheduled' || event.status === 'pending_confirmation') && !isLoading && (
-                                      <>
-                                        {event.confirmation_status !== 'confirmed' && (
-                                          <button
-                                            onClick={() => handleConfirm(event.id)}
-                                            className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
-                                          >
-                                            Confirm
-                                          </button>
-                                        )}
-                                        <button
-                                          onClick={() => handleMarkNoShow(event.id)}
-                                          className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                                        >
-                                          No-Show
-                                        </button>
-                                        <button
-                                          onClick={() => handleCancel(event.id)}
-                                          className="px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
-                                        >
-                                          Cancel
-                                        </button>
-                                      </>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <SourceBadge source={event.source} />
+                                    {event.confirmation_status === 'confirmed' && (
+                                      <span className="text-[10px] text-emerald-600 font-medium">Confirmed</span>
                                     )}
-                                    {isLoading && (
-                                      <svg className="animate-spin w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                      </svg>
-                                    )}
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>
-                                      {event.status.replace(/_/g, ' ')}
-                                    </span>
                                   </div>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="h-full"></div>
-                        )}
+                              </div>
+                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                {(event.status === 'scheduled' || event.status === 'pending_confirmation') && !isLoading && (
+                                  <>
+                                    {event.confirmation_status !== 'confirmed' && (
+                                      <button
+                                        onClick={() => handleConfirm(event.id)}
+                                        className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
+                                      >
+                                        Confirm
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleMarkNoShow(event.id)}
+                                      className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                    >
+                                      No-Show
+                                    </button>
+                                    <button
+                                      onClick={() => handleCancel(event.id)}
+                                      className="px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                )}
+                                {isLoading && (
+                                  <svg className="animate-spin w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                  </svg>
+                                )}
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>
+                                  {event.status.replace(/_/g, ' ')}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );

@@ -68,11 +68,25 @@ export default async function Calendar() {
     .eq('company_id', companyId)
     .limit(100);
 
+  // Fetch working hours from company settings
+  const { data: companySettings } = await supabaseAdmin
+    .from('company_settings')
+    .select('settings')
+    .eq('company_id', companyId)
+    .single();
+
+  const additionalSettings = (companySettings?.settings ?? {}) as Record<string, unknown>;
+  const workingHours = {
+    start: (additionalSettings.working_hours_start as string) || '09:00',
+    end: (additionalSettings.working_hours_end as string) || '18:00',
+  };
+
   return (
     <CalendarPage
       events={(calendarEvents || []) as unknown as CalendarEvent[]}
       integrations={integrationStatuses}
       companyId={companyId}
+      workingHours={workingHours}
       contacts={(contacts || []).map(c => ({
         id: c.id,
         contact_name: c.contact_name,
