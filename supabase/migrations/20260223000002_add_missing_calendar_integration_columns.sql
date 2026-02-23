@@ -63,3 +63,10 @@ ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS external_calendar_id TEXT;
 
 -- Plan-gating for premium features
 ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS created_by_feature TEXT;
+
+-- ============================================================================
+-- 3. Fix legacy NOT NULL constraints on columns the new code doesn't use
+--    The old schema had scheduled_at NOT NULL, but new code uses start_time/end_time
+-- ============================================================================
+
+ALTER TABLE calendar_events ALTER COLUMN scheduled_at DROP NOT NULL;
