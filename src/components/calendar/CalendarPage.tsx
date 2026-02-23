@@ -5,6 +5,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SiGooglecalendar, SiGooglemeet } from 'react-icons/si';
 import { FaMicrosoft } from 'react-icons/fa';
+import { BsMicrosoftTeams } from 'react-icons/bs';
 import { BiLogoZoom } from 'react-icons/bi';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
 
@@ -48,13 +49,32 @@ const TIMEZONE_OPTIONS = [
   { value: 'America/Phoenix', label: 'Arizona (no DST)' },
   { value: 'America/Anchorage', label: 'Alaska' },
   { value: 'Pacific/Honolulu', label: 'Hawaii' },
+  { value: 'America/Puerto_Rico', label: 'Atlantic Time (AT)' },
+  { value: 'America/Mexico_City', label: 'Mexico City (CST)' },
+  { value: 'America/Bogota', label: 'Bogota (COT)' },
+  { value: 'America/Sao_Paulo', label: 'São Paulo (BRT)' },
+  { value: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires (ART)' },
   { value: 'Europe/London', label: 'London (GMT/BST)' },
   { value: 'Europe/Paris', label: 'Paris (CET/CEST)' },
+  { value: 'Europe/Berlin', label: 'Berlin (CET/CEST)' },
+  { value: 'Europe/Madrid', label: 'Madrid (CET/CEST)' },
+  { value: 'Europe/Rome', label: 'Rome (CET/CEST)' },
+  { value: 'Europe/Amsterdam', label: 'Amsterdam (CET/CEST)' },
+  { value: 'Europe/Moscow', label: 'Moscow (MSK)' },
+  { value: 'Asia/Dubai', label: 'Dubai (GST)' },
+  { value: 'Asia/Kolkata', label: 'India (IST)' },
+  { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
+  { value: 'Asia/Shanghai', label: 'China (CST)' },
   { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+  { value: 'Asia/Seoul', label: 'Seoul (KST)' },
   { value: 'Australia/Sydney', label: 'Sydney (AEST/AEDT)' },
+  { value: 'Australia/Melbourne', label: 'Melbourne (AEST/AEDT)' },
+  { value: 'Pacific/Auckland', label: 'Auckland (NZST/NZDT)' },
 ];
 
 const ALL_DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const DISPLAY_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const DISPLAY_DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_LABELS: Record<string, string> = {
   sunday: 'Sun', monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed',
   thursday: 'Thu', friday: 'Fri', saturday: 'Sat',
@@ -150,13 +170,34 @@ export default function CalendarPage({
     exclude_holidays: initialCalendarSettings.exclude_holidays ?? initialExcludeHolidays ?? false,
   });
 
+  // Timezone-aware formatting helpers
+  const tz = calSettings.timezone;
+  const formatTime = (date: Date | string, options?: Intl.DateTimeFormatOptions) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleTimeString('en-US', { timeZone: tz, ...options });
+  };
+  const formatDate = (date: Date | string, options?: Intl.DateTimeFormatOptions) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString('en-US', { timeZone: tz, ...options });
+  };
+  const getHourInTz = (date: Date): number => {
+    return parseInt(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(date), 10);
+  };
+  const getDayInTz = (date: Date): number => {
+    const dayStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(date).toLowerCase();
+    return ALL_DAYS.indexOf(dayStr);
+  };
+  const getDateStringInTz = (date: Date): string => {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date); // returns YYYY-MM-DD
+  };
+
   // Derived working hours from settings
   const workStart = parseInt(calSettings.working_hours_start.split(':')[0], 10);
   const workEnd = parseInt(calSettings.working_hours_end.split(':')[0], 10);
   const isWorkingHour = (hour: number) => hour >= workStart && hour < workEnd;
   const isWorkingDay = (date: Date) => {
-    const dayName = ALL_DAYS[date.getDay()];
-    return calSettings.working_days.includes(dayName);
+    const dayStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(date).toLowerCase();
+    return calSettings.working_days.includes(dayStr);
   };
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -471,10 +512,11 @@ export default function CalendarPage({
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = getFirstDayOfMonth(currentDate);
+    const firstDayOffset = (firstDay + 6) % 7;
     const daysInMonth = getDaysInMonth(currentDate);
     const prevMonthDays = getDaysInMonth(new Date(year, month - 1));
 
-    for (let i = firstDay - 1; i >= 0; i--) {
+    for (let i = firstDayOffset - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, prevMonthDays - i);
       days.push({
         date,
@@ -517,7 +559,9 @@ export default function CalendarPage({
   // Week view
   const weekDays = useMemo(() => {
     const startOfWeek = new Date(currentDate);
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const dayOfWeek = startOfWeek.getDay();
+    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    startOfWeek.setDate(startOfWeek.getDate() - mondayOffset);
     const days: { date: Date; events: CalendarEvent[] }[] = [];
 
     for (let i = 0; i < 7; i++) {
@@ -567,15 +611,17 @@ export default function CalendarPage({
   };
 
   const goToToday = () => setCurrentDate(new Date());
-  const isToday = (date: Date) => date.toDateString() === new Date().toDateString();
+  const isToday = (date: Date) => getDateStringInTz(date) === getDateStringInTz(new Date());
 
-  const monthYearLabel = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthYearLabel = formatDate(currentDate, { month: 'long', year: 'numeric' });
   const weekLabel = viewMode === 'week' ? (() => {
     const start = new Date(currentDate);
-    start.setDate(start.getDate() - start.getDay());
+    const dow = start.getDay();
+    const mondayOff = dow === 0 ? 6 : dow - 1;
+    start.setDate(start.getDate() - mondayOff);
     const end = new Date(start);
     end.setDate(end.getDate() + 6);
-    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    return `${formatDate(start, { month: 'short', day: 'numeric' })} - ${formatDate(end, { month: 'short', day: 'numeric', year: 'numeric' })}`;
   })() : '';
 
   const googleIntegration = integrations.find(i => i.provider === 'google_calendar');
@@ -633,6 +679,7 @@ export default function CalendarPage({
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">Calendar</h2>
                 <p className="text-slate-500 font-medium">Manage appointments, follow-ups, and scheduling</p>
+                <p className="text-xs text-slate-400 mt-0.5">Timezone: {TIMEZONE_OPTIONS.find(t => t.value === calSettings.timezone)?.label || calSettings.timezone}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -767,7 +814,7 @@ export default function CalendarPage({
               </button>
             </div>
             <h3 className="text-lg font-bold text-slate-900">
-              {viewMode === 'week' ? weekLabel : viewMode === 'day' ? currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : monthYearLabel}
+              {viewMode === 'week' ? weekLabel : viewMode === 'day' ? formatDate(currentDate, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : monthYearLabel}
             </h3>
           </div>
           <div className="flex items-center gap-3 flex-nowrap shrink-0">
@@ -868,7 +915,7 @@ export default function CalendarPage({
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">Working Days</label>
                       <div className="flex flex-wrap gap-1.5">
-                        {ALL_DAYS.map(day => {
+                        {DISPLAY_DAYS.map(day => {
                           const isActive = settingsForm.working_days.includes(day);
                           return (
                             <button
@@ -942,7 +989,7 @@ export default function CalendarPage({
         {viewMode === 'month' && (
           <div className="p-4">
             <div className="grid grid-cols-7 mb-2">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              {DISPLAY_DAY_HEADERS.map(day => (
                 <div key={day} className="text-center text-xs font-semibold text-slate-500 py-2">{day}</div>
               ))}
             </div>
@@ -965,7 +1012,7 @@ export default function CalendarPage({
                       const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
                       return (
                         <div key={event.id} className={`text-[10px] px-1.5 py-0.5 rounded ${style.bg} ${style.text} truncate border font-medium`}>
-                          {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} {(event.contact_name || event.title).split(' ')[0]}
+                          {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} {(event.contact_name || event.title).split(' ')[0]}
                         </div>
                       );
                     })}
@@ -995,7 +1042,7 @@ export default function CalendarPage({
                         isToday(day.date) ? 'bg-[var(--color-primary-50)]/40 border-b-[var(--color-primary)]/30' : 'border-slate-200'
                       } ${!dayWorking ? 'bg-slate-100/60' : ''} ${idx === 6 ? 'border-r border-slate-200' : ''}`}
                     >
-                      <div className={`text-xs font-medium ${!dayWorking ? 'text-slate-400' : 'text-slate-500'}`}>{day.date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                      <div className={`text-xs font-medium ${!dayWorking ? 'text-slate-400' : 'text-slate-500'}`}>{formatDate(day.date, { weekday: 'short' })}</div>
                       <div className={`text-lg font-bold ${isToday(day.date) ? 'text-[var(--color-primary)]' : !dayWorking ? 'text-slate-400' : 'text-slate-900'}`}>
                         {day.date.getDate()}
                       </div>
@@ -1019,7 +1066,7 @@ export default function CalendarPage({
                       <div className="grid grid-cols-[64px_repeat(7,1fr)]">
                         <div className="flex justify-end pr-1">
                           <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded-full border border-red-200">
-                            {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            {formatTime(currentTime, { hour: 'numeric', minute: '2-digit' })}
                           </span>
                         </div>
                         {weekDays.map((_, i) => (
@@ -1085,13 +1132,13 @@ export default function CalendarPage({
                                 key={event.id}
                                 className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10`}
                                 style={{ top: `${topOffset}px`, height: `${height}px` }}
-                                title={`${event.title}\n${new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`}
+                                title={`${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`}
                                 onClick={e => e.stopPropagation()}
                               >
                                 <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
                                 {height >= 28 && (
                                   <div className="text-[9px] opacity-75 truncate">
-                                    {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                    {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })}
                                   </div>
                                 )}
                               </div>
@@ -1149,7 +1196,7 @@ export default function CalendarPage({
                   <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top: `${topPosition}px` }}>
                     <div className="w-16 shrink-0 flex justify-end pr-2">
                       <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200">
-                        {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        {formatTime(currentTime, { hour: 'numeric', minute: '2-digit' })}
                       </span>
                     </div>
                     <div className="flex-1 flex items-center">
@@ -1207,7 +1254,7 @@ export default function CalendarPage({
                                 <div className="min-w-0">
                                   <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
                                   <div className="text-xs text-slate-500">
-                                    {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
+                                    {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
                                     {event.contact_phone && <span className="ml-2">{event.contact_phone}</span>}
                                   </div>
                                   <div className="flex items-center gap-2 mt-0.5">
@@ -1302,7 +1349,7 @@ export default function CalendarPage({
                           ? 'gradient-bg text-white'
                           : 'bg-slate-100 text-slate-700'
                       }`}>
-                        {new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        {formatDate(new Date(dateStr), { weekday: 'short', month: 'short', day: 'numeric' })}
                       </div>
                       <div className="flex-1 h-px bg-slate-200"></div>
                       <span className="text-xs text-slate-400 font-medium">{dayEvents.length} events</span>
@@ -1316,7 +1363,7 @@ export default function CalendarPage({
                           <div key={event.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
                             <div className={`w-1.5 h-10 rounded-full ${style.dot}`}></div>
                             <div className="text-sm text-slate-500 font-medium w-20 shrink-0">
-                              {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                              {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-semibold text-slate-900 truncate">{event.title}</div>
@@ -1459,20 +1506,24 @@ export default function CalendarPage({
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Video Call (optional)</label>
                 <div className="flex gap-2">
                   {[
-                    { value: '', label: 'None', icon: null },
-                    { value: 'google_meet', label: 'Google Meet', icon: <SiGooglemeet className="w-4 h-4 text-[#00897B]" /> },
-                    { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" /> },
-                    { value: 'microsoft_teams', label: 'Teams', icon: <FaMicrosoft className="w-4 h-4 text-[#6264A7]" /> },
+                    { value: '', label: 'None', icon: null, disabled: false },
+                    { value: 'google_meet', label: 'Meet', icon: <SiGooglemeet className="w-4 h-4 text-[#00897B]" />, disabled: !googleIntegration?.connected },
+                    { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: false },
+                    { value: 'microsoft_teams', label: 'Teams', icon: <BsMicrosoftTeams className="w-4 h-4 text-[#6264A7]" />, disabled: !microsoftIntegration?.connected },
                   ].map(opt => (
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => setScheduleForm(prev => ({ ...prev, video_provider: opt.value }))}
+                      disabled={opt.disabled}
+                      onClick={() => { if (!opt.disabled) setScheduleForm(prev => ({ ...prev, video_provider: opt.value })); }}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
-                        scheduleForm.video_provider === opt.value
-                          ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)] shadow-sm'
-                          : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                        opt.disabled
+                          ? 'border-slate-100 text-slate-300 bg-slate-50 cursor-not-allowed'
+                          : scheduleForm.video_provider === opt.value
+                            ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)] shadow-sm'
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                       }`}
+                      title={opt.disabled ? `Connect ${opt.label} integration first` : ''}
                     >
                       {opt.icon}
                       {opt.label}
