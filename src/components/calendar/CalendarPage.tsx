@@ -14,6 +14,7 @@ interface CalendarPageProps {
   events: CalendarEvent[];
   integrations: CalendarIntegrationStatus[];
   companyId: string;
+  workingHours: { start: string; end: string };
   contacts: {
     id: string;
     contact_name: string | null;
@@ -91,9 +92,14 @@ const SOURCE_LABELS: Record<string, string> = {
 // MAIN COMPONENT
 // ============================================================================
 
-export default function CalendarPage({ events: initialEvents, integrations: initialIntegrations, companyId, contacts }: CalendarPageProps) {
+export default function CalendarPage({ events: initialEvents, integrations: initialIntegrations, companyId, workingHours, contacts }: CalendarPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Parse working hours (e.g. '09:00' -> 9, '18:00' -> 18)
+  const workStart = parseInt(workingHours.start.split(':')[0], 10);
+  const workEnd = parseInt(workingHours.end.split(':')[0], 10);
+  const isWorkingHour = (hour: number) => hour >= workStart && hour < workEnd;
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
@@ -115,7 +121,6 @@ export default function CalendarPage({ events: initialEvents, integrations: init
     duration: 15,
     notes: '',
     sync_to_google: true,
-    sync_to_calendly: false,
   });
 
   // Show toast if redirected from OAuth callback
@@ -314,7 +319,6 @@ export default function CalendarPage({ events: initialEvents, integrations: init
           contact_email: contact?.email || undefined,
           notes: scheduleForm.notes || undefined,
           sync_to_google: scheduleForm.sync_to_google,
-          sync_to_calendly: scheduleForm.sync_to_calendly,
         }),
       });
 
@@ -721,30 +725,109 @@ export default function CalendarPage({ events: initialEvents, integrations: init
 
         {/* Week View */}
         {viewMode === 'week' && (
-          <div className="p-4">
-            <div className="grid grid-cols-7 gap-3">
-              {weekDays.map((day, idx) => (
-                <div key={idx} className={`rounded-xl border ${isToday(day.date) ? 'border-[var(--color-primary)]/30 bg-[var(--color-primary-50)]/30' : 'border-slate-200'}`}>
-                  <div className={`text-center py-3 border-b ${isToday(day.date) ? 'border-[var(--color-primary)]/20' : 'border-slate-100'}`}>
+          <div className="p-4 overflow-x-auto">
+            <div className="min-w-[700px]">
+              {/* Day headers */}
+              <div className="grid grid-cols-[64px_repeat(7,1fr)]">
+                <div className="w-16" />
+                {weekDays.map((day, idx) => (
+                  <div
+                    key={idx}
+                    className={`text-center py-3 border-b border-l ${
+                      isToday(day.date) ? 'bg-[var(--color-primary-50)]/40 border-b-[var(--color-primary)]/30' : 'border-slate-200'
+                    } ${idx === 6 ? 'border-r border-slate-200' : ''}`}
+                  >
                     <div className="text-xs text-slate-500 font-medium">{day.date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                    <div className={`text-lg font-bold ${isToday(day.date) ? 'text-[var(--color-primary)]' : 'text-slate-900'}`}>{day.date.getDate()}</div>
+                    <div className={`text-lg font-bold ${isToday(day.date) ? 'text-[var(--color-primary)]' : 'text-slate-900'}`}>
+                      {day.date.getDate()}
+                    </div>
                   </div>
-                  <div className="p-2 space-y-1.5 min-h-[200px]">
-                    {day.events.map(event => {
-                      const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                      return (
-                        <div key={event.id} className={`text-[11px] p-2 rounded-lg ${style.bg} border ${style.text}`}>
-                          <div className="font-semibold truncate">{event.contact_name || event.title}</div>
-                          <div className="text-[10px] opacity-75">
-                            {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                ))}
+              </div>
+
+              {/* Time grid */}
+              <div className="relative">
+                {/* Current time indicator */}
+                {(() => {
+                  const todayIdx = weekDays.findIndex(d => isToday(d.date));
+                  if (todayIdx === -1) return null;
+                  const h = currentTime.getHours();
+                  const m = currentTime.getMinutes();
+                  const topPx = (h + m / 60) * 48;
+                  return (
+                    <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPx}px` }}>
+                      <div className="grid grid-cols-[64px_repeat(7,1fr)]">
+                        <div className="flex justify-end pr-1">
+                          <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded-full border border-red-200">
+                            {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        {weekDays.map((_, i) => (
+                          <div key={i} className="relative">
+                            {i === todayIdx && (
+                              <div className="absolute inset-x-0 flex items-center">
+                                <div className="w-2 h-2 rounded-full bg-red-500 shrink-0 -ml-1" />
+                                <div className="flex-1 h-[2px] bg-gradient-to-r from-red-500 to-transparent" />
+                              </div>
+                            )}
                           </div>
-                          <SourceBadge source={event.source} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {Array.from({ length: 24 }, (_, i) => i).map(hour => {
+                  const working = isWorkingHour(hour);
+                  const isFirstWork = hour === workStart;
+                  const isLastWork = hour === workEnd;
+                  return (
+                  <div key={hour} className="grid grid-cols-[64px_repeat(7,1fr)]">
+                    <div className={`w-16 text-right pr-2 text-[11px] font-medium h-12 flex items-start pt-0 -mt-1.5 ${
+                      working ? 'text-slate-600' : 'text-slate-300'
+                    }`}>
+                      {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
+                    </div>
+                    {weekDays.map((day, dayIdx) => {
+                      const hourEvents = day.events.filter(e => new Date(e.start_time).getHours() === hour);
+                      return (
+                        <div
+                          key={dayIdx}
+                          className={`h-12 border-t border-l ${dayIdx === 6 ? 'border-r' : ''} ${
+                            working
+                              ? isToday(day.date) ? 'bg-[var(--color-primary-50)]/20 border-slate-200' : 'bg-white border-slate-200'
+                              : isToday(day.date) ? 'bg-slate-50/80 border-slate-100' : 'bg-slate-50/60 border-slate-100'
+                          } ${isFirstWork || isLastWork ? 'border-t-[var(--color-primary)]/20' : ''} relative`}
+                        >
+                          {hourEvents.map(event => {
+                            const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
+                            const startMin = new Date(event.start_time).getMinutes();
+                            const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
+                            const topOffset = (startMin / 60) * 48;
+                            const height = Math.max((durationMin / 60) * 48, 18);
+                            return (
+                              <div
+                                key={event.id}
+                                className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10`}
+                                style={{ top: `${topOffset}px`, height: `${height}px` }}
+                                title={`${event.title}\n${new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`}
+                              >
+                                <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
+                                {height >= 28 && (
+                                  <div className="text-[9px] opacity-75 truncate">
+                                    {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })}
                   </div>
-                </div>
-              ))}
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -752,6 +835,18 @@ export default function CalendarPage({ events: initialEvents, integrations: init
         {/* Day View */}
         {viewMode === 'day' && (
           <div className="p-4">
+            {/* Working hours legend */}
+            <div className="flex items-center gap-4 mb-3 text-xs text-slate-500">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-white border border-slate-200" />
+                <span>Working hours ({workingHours.start} - {workingHours.end})</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-slate-50 border border-slate-100" />
+                <span>Off hours</span>
+              </div>
+            </div>
+
             <div className="relative">
               {/* Current time indicator */}
               {(() => {
@@ -759,10 +854,7 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                 if (!isViewingToday) return null;
                 const currentHour = currentTime.getHours();
                 const currentMinute = currentTime.getMinutes();
-                if (currentHour < 8 || currentHour >= 20) return null;
-                const hourOffset = currentHour - 8;
-                const minuteOffset = currentMinute / 60;
-                const topPosition = (hourOffset + minuteOffset) * 68;
+                const topPosition = (currentHour + currentMinute / 60) * 52;
                 return (
                   <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top: `${topPosition}px` }}>
                     <div className="w-16 shrink-0 flex justify-end pr-2">
@@ -778,86 +870,87 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                 );
               })()}
 
-              <div className="space-y-2">
-                {Array.from({ length: 12 }, (_, i) => i + 8).map(hour => {
+              <div>
+                {Array.from({ length: 24 }, (_, i) => i).map(hour => {
                   const hourEvents = filteredEvents.filter(e => {
                     const eDate = new Date(e.start_time);
                     return eDate.toDateString() === currentDate.toDateString() && eDate.getHours() === hour;
                   });
+                  const working = isWorkingHour(hour);
+                  const isFirstWork = hour === workStart;
+                  const isLastWork = hour === workEnd;
 
                   return (
-                    <div key={hour} className="flex gap-4">
-                      <div className="w-16 text-right text-xs text-slate-400 font-medium py-3 shrink-0">
-                        {hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
+                    <div key={hour} className="flex">
+                      <div className={`w-16 text-right text-[11px] font-medium pr-3 shrink-0 h-[52px] flex items-start -mt-1.5 ${
+                        working ? 'text-slate-600' : 'text-slate-300'
+                      }`}>
+                        {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                       </div>
-                      <div className="flex-1 min-h-[60px] border-t border-slate-100 py-2">
-                        {hourEvents.length > 0 ? (
-                          <div className="space-y-2">
-                            {hourEvents.map(event => {
-                              const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                              const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
-                              const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
-                              const isLoading = actionLoading === event.id;
-                              return (
-                                <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group`}>
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
-                                    <div className="min-w-0">
-                                      <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
-                                      <div className="text-xs text-slate-500">
-                                        {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
-                                        {event.contact_phone && <span className="ml-2">{event.contact_phone}</span>}
-                                      </div>
-                                      <div className="flex items-center gap-2 mt-0.5">
-                                        <SourceBadge source={event.source} />
-                                        {event.confirmation_status === 'confirmed' && (
-                                          <span className="text-[10px] text-emerald-600 font-medium">Confirmed</span>
-                                        )}
-                                      </div>
-                                    </div>
+                      <div className={`flex-1 min-h-[52px] border-t relative ${
+                        working ? 'bg-white border-slate-200' : 'bg-slate-50/60 border-slate-100'
+                      } ${isFirstWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${isLastWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''}`}>
+                        {hourEvents.map(event => {
+                          const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
+                          const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
+                          const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
+                          const isLoading = actionLoading === event.id;
+                          return (
+                            <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1`}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
+                                <div className="min-w-0">
+                                  <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
+                                  <div className="text-xs text-slate-500">
+                                    {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
+                                    {event.contact_phone && <span className="ml-2">{event.contact_phone}</span>}
                                   </div>
-                                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                    {(event.status === 'scheduled' || event.status === 'pending_confirmation') && !isLoading && (
-                                      <>
-                                        {event.confirmation_status !== 'confirmed' && (
-                                          <button
-                                            onClick={() => handleConfirm(event.id)}
-                                            className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
-                                          >
-                                            Confirm
-                                          </button>
-                                        )}
-                                        <button
-                                          onClick={() => handleMarkNoShow(event.id)}
-                                          className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                                        >
-                                          No-Show
-                                        </button>
-                                        <button
-                                          onClick={() => handleCancel(event.id)}
-                                          className="px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
-                                        >
-                                          Cancel
-                                        </button>
-                                      </>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <SourceBadge source={event.source} />
+                                    {event.confirmation_status === 'confirmed' && (
+                                      <span className="text-[10px] text-emerald-600 font-medium">Confirmed</span>
                                     )}
-                                    {isLoading && (
-                                      <svg className="animate-spin w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                      </svg>
-                                    )}
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>
-                                      {event.status.replace(/_/g, ' ')}
-                                    </span>
                                   </div>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="h-full"></div>
-                        )}
+                              </div>
+                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                {(event.status === 'scheduled' || event.status === 'pending_confirmation') && !isLoading && (
+                                  <>
+                                    {event.confirmation_status !== 'confirmed' && (
+                                      <button
+                                        onClick={() => handleConfirm(event.id)}
+                                        className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
+                                      >
+                                        Confirm
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleMarkNoShow(event.id)}
+                                      className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                    >
+                                      No-Show
+                                    </button>
+                                    <button
+                                      onClick={() => handleCancel(event.id)}
+                                      className="px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                )}
+                                {isLoading && (
+                                  <svg className="animate-spin w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                  </svg>
+                                )}
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>
+                                  {event.status.replace(/_/g, ' ')}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -1054,35 +1147,18 @@ export default function CalendarPage({ events: initialEvents, integrations: init
                 />
               </div>
               {/* Sync options */}
-              {(googleIntegration?.connected || calendlyIntegration?.connected) && (
+              {googleIntegration?.connected && (
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p className="text-xs font-semibold text-slate-700 mb-2">Sync to:</p>
-                  <div className="space-y-2">
-                    {googleIntegration?.connected && (
-                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={scheduleForm.sync_to_google}
-                          onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))}
-                          className="w-4 h-4 rounded text-[var(--color-primary)]"
-                        />
-                        <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
-                        Google Calendar
-                      </label>
-                    )}
-                    {calendlyIntegration?.connected && (
-                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={scheduleForm.sync_to_calendly}
-                          onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_calendly: e.target.checked }))}
-                          className="w-4 h-4 rounded text-[var(--color-primary)]"
-                        />
-                        <SiCalendly className="w-4 h-4 text-[#006BFF]" />
-                        Calendly
-                      </label>
-                    )}
-                  </div>
+                  <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scheduleForm.sync_to_google}
+                      onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))}
+                      className="w-4 h-4 rounded text-[var(--color-primary)]"
+                    />
+                    <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
+                    Sync to Google Calendar
+                  </label>
                 </div>
               )}
             </div>
