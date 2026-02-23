@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Decode state parameter
-    let stateData: { user_id: string; company_id: string };
+    let stateData: { user_id: string; company_id: string; return_to?: string };
     try {
       stateData = JSON.parse(
         Buffer.from(state, 'base64url').toString('utf-8')
@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { user_id, company_id } = stateData;
+    const { user_id, company_id, return_to } = stateData;
+    const redirectBase = return_to || '/integrations';
 
     // Exchange code for tokens
     const tokens = await exchangeCalendlyCode(code);
@@ -79,23 +80,32 @@ export async function GET(request: NextRequest) {
     let integrationId: string;
 
     if (existing) {
-      await supabaseAdmin
+      const { error: updateError } = await supabaseAdmin
         .from('calendar_integrations')
         .update(integrationData)
         .eq('id', existing.id);
+      if (updateError) {
+        console.error('Failed to update Calendly integration:', updateError);
+        throw new Error(`Failed to update integration: ${updateError.message}`);
+      }
       integrationId = existing.id;
     } else {
-      const { data: inserted } = await supabaseAdmin
+      const { data: inserted, error: insertError } = await supabaseAdmin
         .from('calendar_integrations')
         .insert(integrationData)
         .select('id')
         .single();
-      integrationId = inserted!.id;
+      if (insertError || !inserted) {
+        console.error('Failed to insert Calendly integration:', insertError);
+        throw new Error(`Failed to save integration: ${insertError?.message || 'No data returned'}`);
+      }
+      integrationId = inserted.id;
     }
 
     // Create webhook subscription for real-time event updates
     try {
-      const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/calendly/webhook`;
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/+$/, '');
+      const webhookUrl = `${appUrl}/api/integrations/calendly/webhook`;
 
       // Get the full integration object for the API call
       const { data: integration } = await supabaseAdmin
@@ -121,9 +131,9 @@ export async function GET(request: NextRequest) {
       console.error('Failed to create Calendly webhook (non-fatal):', webhookError);
     }
 
-    // Redirect to calendar page with success message
+    // Redirect back to origin page with success message
     return NextResponse.redirect(
-      new URL('/calendar?integration=calendly&status=connected', request.url)
+      new URL(`${redirectBase}?integration=calendly&status=connected`, request.url)
     );
   } catch (error) {
     console.error('Error processing Calendly callback:', error);

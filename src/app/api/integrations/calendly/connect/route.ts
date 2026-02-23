@@ -25,12 +25,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Create a state parameter with user/company info for the callback
+    const returnTo = request.nextUrl.searchParams.get('return_to') || '/integrations';
     const state = Buffer.from(
       JSON.stringify({
         user_id: user.id,
         company_id: userData.company_id,
         provider: 'calendly',
         timestamp: Date.now(),
+        return_to: returnTo,
       })
     ).toString('base64url');
 

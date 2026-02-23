@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { FaSalesforce, FaHubspot, FaSlack } from 'react-icons/fa';
 import { SiZapier, SiTwilio, SiGooglecalendar, SiCalendly, SiGooglesheets } from 'react-icons/si';
@@ -35,6 +35,7 @@ const planBadgeLabel: Record<PlanTier, string | null> = {
 
 export default function IntegrationsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState<'all' | 'crm' | 'communication' | 'telephony' | 'automation' | 'productivity' | 'calendar'>('all');
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
   const [calendlyConnected, setCalendlyConnected] = useState(false);
@@ -46,6 +47,20 @@ export default function IntegrationsPage() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   }, []);
+
+  // Handle OAuth callback success params
+  useEffect(() => {
+    const integration = searchParams.get('integration');
+    const status = searchParams.get('status');
+    if (integration && status === 'connected') {
+      const name = integration === 'google_calendar' ? 'Google Calendar' : 'Calendly';
+      showToast(`${name} connected successfully!`, 'success');
+      if (integration === 'google_calendar') setGoogleCalendarConnected(true);
+      if (integration === 'calendly') setCalendlyConnected(true);
+      // Clean the URL params
+      router.replace('/integrations', { scroll: false });
+    }
+  }, [searchParams, showToast, router]);
 
   // Fetch real integration status on mount
   useEffect(() => {
