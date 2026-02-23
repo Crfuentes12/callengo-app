@@ -120,6 +120,12 @@ export async function runSync(
         .eq('id', syncLog.id);
     }
 
+    // Update last_synced_at on the integration record
+    await supabaseAdmin
+      .from('calendar_integrations')
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq('id', integrationId);
+
     return { success: true, ...result };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
