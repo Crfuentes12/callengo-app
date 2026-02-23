@@ -1,312 +1,609 @@
 // components/integrations/IntegrationsPage.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
-import { FaSalesforce, FaHubspot, FaSlack } from 'react-icons/fa';
-import { SiZapier, SiTwilio, SiGooglecalendar, SiCalendly, SiGooglesheets } from 'react-icons/si';
-import { MdOutlineWebhook } from 'react-icons/md';
-import { AiFillApi } from 'react-icons/ai';
-import { PiMicrosoftTeamsLogoFill } from 'react-icons/pi';
+import { SiGooglecalendar, SiGooglemeet, SiTwilio, SiZapier, SiGooglesheets } from 'react-icons/si';
+import { FaMicrosoft, FaSlack, FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
+import { BiLogoZoom } from 'react-icons/bi';
+import Link from 'next/link';
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 type PlanTier = 'free' | 'starter' | 'business' | 'enterprise';
 
-interface Integration {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  categoryLabel: string;
-  icon: React.ReactNode;
-  status: 'available' | 'coming_soon' | 'connected';
-  color: string;
-  iconColor: string;
-  requiredPlan: PlanTier;
-  action?: () => void;
+interface IntegrationsPageProps {
+  integrations: {
+    google_calendar: { connected: boolean; email?: string; lastSynced?: string; integrationId?: string };
+    microsoft_outlook: { connected: boolean; email?: string; lastSynced?: string; integrationId?: string };
+    zoom: { connected: boolean; email?: string };
+    slack: { connected: boolean; teamName?: string; channelName?: string };
+    twilio: { connected: boolean };
+  };
+  planSlug: string;
+  companyId: string;
 }
 
-const planBadgeLabel: Record<PlanTier, string | null> = {
-  free: null,
-  starter: null,
-  business: 'Business+',
-  enterprise: 'Enterprise',
+interface IntegrationCardConfig {
+  id: string;
+  provider: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  iconColor: string;
+  iconBg: string;
+  requiredPlan: PlanTier;
+  status: 'connected' | 'available' | 'auto_enabled' | 'coming_soon';
+  category: string;
+  connectedDetail?: React.ReactNode;
+  autoEnabledWith?: string;
+  connectUrl?: string;
+  disconnectUrl?: string;
+  syncUrl?: string;
+  settingsUrl?: string;
+  showSync?: boolean;
+}
+
+// ============================================================================
+// PLAN HELPERS
+// ============================================================================
+
+const PLAN_ORDER: Record<PlanTier, number> = {
+  free: 0,
+  starter: 1,
+  business: 2,
+  enterprise: 3,
 };
 
-export default function IntegrationsPage() {
+function planMeetsRequirement(currentPlan: string, requiredPlan: PlanTier): boolean {
+  const current = PLAN_ORDER[currentPlan as PlanTier] ?? 0;
+  const required = PLAN_ORDER[requiredPlan] ?? 0;
+  return current >= required;
+}
+
+function getPlanLabel(plan: PlanTier): string {
+  return plan.charAt(0).toUpperCase() + plan.slice(1);
+}
+
+// ============================================================================
+// TIME HELPERS
+// ============================================================================
+
+function formatLastSynced(dateStr?: string): string {
+  if (!dateStr) return 'Never';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+// ============================================================================
+// SPINNER COMPONENT
+// ============================================================================
+
+function Spinner({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  );
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export default function IntegrationsPage({ integrations, planSlug, companyId }: IntegrationsPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [filter, setFilter] = useState<'all' | 'crm' | 'communication' | 'telephony' | 'automation' | 'productivity' | 'calendar'>('all');
-  const [loading, setLoading] = useState(true);
-  const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
-  const [calendlyConnected, setCalendlyConnected] = useState(false);
-  const [twilioConnected, setTwilioConnected] = useState(false);
-  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // --------------------------------------------------------------------------
+  // Toast
+  // --------------------------------------------------------------------------
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   }, []);
 
-  // Handle OAuth callback success params
-  useEffect(() => {
-    const integration = searchParams.get('integration');
-    const status = searchParams.get('status');
-    if (integration && status === 'connected') {
-      const name = integration === 'google_calendar' ? 'Google Calendar' : 'Calendly';
-      showToast(`${name} connected successfully!`, 'success');
-      if (integration === 'google_calendar') setGoogleCalendarConnected(true);
-      if (integration === 'calendly') setCalendlyConnected(true);
-      // Clean the URL params
-      router.replace('/integrations', { scroll: false });
+  // Handle OAuth callback params on mount
+  const integrationParam = searchParams.get('integration');
+  const statusParam = searchParams.get('status');
+  if (integrationParam && statusParam === 'connected') {
+    // We read params but rely on server data for actual status
+    // Clean URL on next tick
+    if (typeof window !== 'undefined') {
+      setTimeout(() => router.replace('/integrations', { scroll: false }), 0);
     }
-  }, [searchParams, showToast, router]);
+  }
 
-  // Fetch real integration status on mount
-  useEffect(() => {
-    async function fetchStatus() {
-      try {
-        // Fetch calendar integrations status
-        const res = await fetch('/api/integrations/status');
-        if (res.ok) {
-          const data = await res.json();
-          const googleStatus = data.integrations?.find((i: { provider: string }) => i.provider === 'google_calendar');
-          const calendlyStatus = data.integrations?.find((i: { provider: string }) => i.provider === 'calendly');
-          if (googleStatus?.connected) setGoogleCalendarConnected(true);
-          if (calendlyStatus?.connected) setCalendlyConnected(true);
-        }
+  // --------------------------------------------------------------------------
+  // Actions
+  // --------------------------------------------------------------------------
 
-        // Fetch Twilio status from company_settings
-        const supabase = createBrowserClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('company_id')
-            .eq('id', user.id)
-            .single();
-
-          if (userData?.company_id) {
-            const { data: companySettings } = await supabase
-              .from('company_settings')
-              .select('settings')
-              .eq('company_id', userData.company_id)
-              .single();
-
-            const settings = companySettings?.settings as Record<string, unknown> | null;
-            if (settings?.twilio_encrypted_key) {
-              setTwilioConnected(true);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch integration status:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchStatus();
+  const handleConnect = useCallback((provider: string, connectUrl: string) => {
+    window.location.href = connectUrl;
   }, []);
 
-  const handleDisconnectGoogle = useCallback(async () => {
-    setDisconnecting('google-calendar');
+  const handleDisconnect = useCallback(async (provider: string, name: string) => {
+    const key = `disconnect-${provider}`;
+    setLoadingAction(key);
     try {
-      const res = await fetch('/api/integrations/google-calendar/disconnect', { method: 'POST' });
+      const res = await fetch(`/api/integrations/${provider}/disconnect`, { method: 'POST' });
       if (res.ok) {
-        setGoogleCalendarConnected(false);
-        showToast('Google Calendar disconnected', 'success');
+        showToast(`${name} disconnected successfully`, 'success');
+        router.refresh();
       } else {
-        showToast('Failed to disconnect Google Calendar', 'error');
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || `Failed to disconnect ${name}`, 'error');
       }
     } catch {
-      showToast('Failed to disconnect Google Calendar', 'error');
+      showToast(`Failed to disconnect ${name}`, 'error');
     } finally {
-      setDisconnecting(null);
+      setLoadingAction(null);
     }
-  }, [showToast]);
+  }, [showToast, router]);
 
-  const handleDisconnectCalendly = useCallback(async () => {
-    setDisconnecting('calendly');
+  const handleSync = useCallback(async (provider: string, name: string) => {
+    const key = `sync-${provider}`;
+    setLoadingAction(key);
     try {
-      const res = await fetch('/api/integrations/calendly/disconnect', { method: 'POST' });
+      const res = await fetch(`/api/integrations/${provider}/sync`, { method: 'POST' });
       if (res.ok) {
-        setCalendlyConnected(false);
-        showToast('Calendly disconnected', 'success');
+        showToast(`${name} synced successfully`, 'success');
+        router.refresh();
       } else {
-        showToast('Failed to disconnect Calendly', 'error');
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || `Failed to sync ${name}`, 'error');
       }
     } catch {
-      showToast('Failed to disconnect Calendly', 'error');
+      showToast(`Failed to sync ${name}`, 'error');
     } finally {
-      setDisconnecting(null);
+      setLoadingAction(null);
     }
-  }, [showToast]);
+  }, [showToast, router]);
 
-  const integrations: Integration[] = [
-    {
-      id: 'salesforce',
-      name: 'Salesforce',
-      description: 'Sync contacts and call data with your Salesforce CRM. Automatically update lead status after calls.',
-      category: 'crm',
-      categoryLabel: 'CRM',
-      status: 'coming_soon',
-      color: 'bg-blue-50',
-      iconColor: 'text-[#00A1E0]',
-      icon: <FaSalesforce className="w-7 h-7" />,
-      requiredPlan: 'business',
-    },
-    {
-      id: 'hubspot',
-      name: 'HubSpot',
-      description: 'Connect your HubSpot CRM to import contacts and sync call outcomes automatically.',
-      category: 'crm',
-      categoryLabel: 'CRM',
-      status: 'coming_soon',
-      color: 'bg-orange-50',
-      iconColor: 'text-[#FF7A59]',
-      icon: <FaHubspot className="w-7 h-7" />,
-      requiredPlan: 'business',
-    },
-    {
-      id: 'slack',
-      name: 'Slack',
-      description: 'Get real-time notifications about call completions, campaign progress, and important events.',
-      category: 'communication',
-      categoryLabel: 'Communication',
-      status: 'coming_soon',
-      color: 'bg-purple-50',
-      iconColor: 'text-[#4A154B]',
-      icon: <FaSlack className="w-6 h-6" />,
-      requiredPlan: 'free',
-    },
-    {
-      id: 'zapier',
-      name: 'Zapier',
-      description: 'Connect Callengo with 5000+ apps. Automate workflows and trigger actions based on call outcomes.',
-      category: 'automation',
-      categoryLabel: 'Automation',
-      status: 'coming_soon',
-      color: 'bg-orange-50',
-      iconColor: 'text-[#FF4F00]',
-      icon: <SiZapier className="w-6 h-6" />,
-      requiredPlan: 'free',
-    },
-    {
-      id: 'twilio',
-      name: 'Twilio',
-      description: 'Bring your own Twilio phone number for outbound and inbound calls. Full BYOP integration with number management.',
-      category: 'telephony',
-      categoryLabel: 'Telephony',
-      status: twilioConnected ? 'connected' : 'available',
-      color: 'bg-red-50',
-      iconColor: 'text-[#F22F46]',
-      icon: <SiTwilio className="w-6 h-6" />,
-      requiredPlan: 'free',
-      action: () => router.push('/settings?tab=calling&section=phone-numbers'),
-    },
+  // --------------------------------------------------------------------------
+  // Integration Definitions
+  // --------------------------------------------------------------------------
+
+  const calendarIntegrations: IntegrationCardConfig[] = [
     {
       id: 'google-calendar',
+      provider: 'google-calendar',
       name: 'Google Calendar',
-      description: 'Sync your call schedules, appointments, and no-show retries directly with Google Calendar. Manage everything from the Calendar page.',
-      category: 'calendar',
-      categoryLabel: 'Calendar',
-      status: googleCalendarConnected ? 'connected' : 'available',
-      color: 'bg-blue-50',
+      description: 'Sync your call schedules, appointments, and events directly with Google Calendar.',
+      icon: <SiGooglecalendar className="w-7 h-7" />,
       iconColor: 'text-[#4285F4]',
-      icon: <SiGooglecalendar className="w-6 h-6" />,
-      requiredPlan: 'starter',
-      action: () => {
-        if (!googleCalendarConnected) {
-          window.location.href = '/api/integrations/google-calendar/connect';
-        }
-      },
+      iconBg: 'bg-blue-50',
+      requiredPlan: 'free',
+      status: integrations.google_calendar.connected ? 'connected' : 'available',
+      category: 'calendar',
+      connectUrl: '/api/integrations/google-calendar/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/google-calendar/disconnect',
+      syncUrl: '/api/integrations/google-calendar/sync',
+      showSync: true,
+      connectedDetail: integrations.google_calendar.connected ? (
+        <div className="text-xs text-slate-500 space-y-0.5 mt-2">
+          {integrations.google_calendar.email && (
+            <p className="flex items-center gap-1.5">
+              <span className="text-slate-400">Account:</span>
+              <span className="font-medium text-slate-600">{integrations.google_calendar.email}</span>
+            </p>
+          )}
+          <p className="flex items-center gap-1.5">
+            <span className="text-slate-400">Last sync:</span>
+            <span className="font-medium text-slate-600">{formatLastSynced(integrations.google_calendar.lastSynced)}</span>
+          </p>
+        </div>
+      ) : undefined,
     },
     {
-      id: 'calendly',
-      name: 'Calendly',
-      description: 'Automatically schedule follow-up meetings based on call outcomes. Let prospects book directly from call results. Manage from Calendar page.',
+      id: 'microsoft-outlook',
+      provider: 'microsoft-outlook',
+      name: 'Microsoft 365 Outlook',
+      description: 'Sync your Outlook calendar events, appointments, and schedules with Callengo.',
+      icon: <FaMicrosoft className="w-6 h-6" />,
+      iconColor: 'text-[#0078D4]',
+      iconBg: 'bg-blue-50',
+      requiredPlan: 'business',
+      status: integrations.microsoft_outlook.connected ? 'connected' : 'available',
       category: 'calendar',
-      categoryLabel: 'Calendar',
-      status: calendlyConnected ? 'connected' : 'available',
-      color: 'bg-blue-50',
-      iconColor: 'text-[#006BFF]',
-      icon: <SiCalendly className="w-6 h-6" />,
-      requiredPlan: 'starter',
-      action: () => {
-        if (!calendlyConnected) {
-          window.location.href = '/api/integrations/calendly/connect';
-        }
-      },
+      connectUrl: '/api/integrations/microsoft-outlook/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/microsoft-outlook/disconnect',
+      syncUrl: '/api/integrations/microsoft-outlook/sync',
+      showSync: true,
+      connectedDetail: integrations.microsoft_outlook.connected ? (
+        <div className="text-xs text-slate-500 space-y-0.5 mt-2">
+          {integrations.microsoft_outlook.email && (
+            <p className="flex items-center gap-1.5">
+              <span className="text-slate-400">Account:</span>
+              <span className="font-medium text-slate-600">{integrations.microsoft_outlook.email}</span>
+            </p>
+          )}
+          <p className="flex items-center gap-1.5">
+            <span className="text-slate-400">Last sync:</span>
+            <span className="font-medium text-slate-600">{formatLastSynced(integrations.microsoft_outlook.lastSynced)}</span>
+          </p>
+        </div>
+      ) : undefined,
+    },
+  ];
+
+  const videoIntegrations: IntegrationCardConfig[] = [
+    {
+      id: 'google-meet',
+      provider: 'google-meet',
+      name: 'Google Meet',
+      description: 'Automatically adds Google Meet links when creating events through Google Calendar.',
+      icon: <SiGooglemeet className="w-7 h-7" />,
+      iconColor: 'text-[#00897B]',
+      iconBg: 'bg-teal-50',
+      requiredPlan: 'free',
+      status: integrations.google_calendar.connected ? 'auto_enabled' : 'available',
+      category: 'video',
+      autoEnabledWith: 'Google Calendar',
     },
     {
       id: 'microsoft-teams',
+      provider: 'microsoft-teams',
       name: 'Microsoft Teams',
-      description: 'Receive call summaries and campaign alerts directly in your Teams channels. Stay informed without switching apps.',
-      category: 'communication',
-      categoryLabel: 'Communication',
-      status: 'coming_soon',
-      color: 'bg-indigo-50',
+      description: 'Automatically adds Teams meeting links when creating events through Microsoft 365.',
+      icon: <FaMicrosoft className="w-6 h-6" />,
       iconColor: 'text-[#6264A7]',
-      icon: <PiMicrosoftTeamsLogoFill className="w-7 h-7" />,
+      iconBg: 'bg-indigo-50',
       requiredPlan: 'business',
+      status: integrations.microsoft_outlook.connected ? 'auto_enabled' : 'available',
+      category: 'video',
+      autoEnabledWith: 'Microsoft 365',
+    },
+    {
+      id: 'zoom',
+      provider: 'zoom',
+      name: 'Zoom',
+      description: 'Generate Zoom meeting links for your scheduled events. Connect your Zoom account to auto-create meeting rooms.',
+      icon: <BiLogoZoom className="w-7 h-7" />,
+      iconColor: 'text-[#2D8CFF]',
+      iconBg: 'bg-blue-50',
+      requiredPlan: 'starter',
+      status: integrations.zoom.connected ? 'connected' : 'available',
+      category: 'video',
+      connectUrl: '/api/integrations/zoom/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/zoom/disconnect',
+      connectedDetail: integrations.zoom.connected ? (
+        <div className="text-xs text-slate-500 mt-2">
+          {integrations.zoom.email && (
+            <p className="flex items-center gap-1.5">
+              <span className="text-slate-400">Account:</span>
+              <span className="font-medium text-slate-600">{integrations.zoom.email}</span>
+            </p>
+          )}
+          <p className="flex items-center gap-1.5">
+            <span className="text-slate-400">Feature:</span>
+            <span className="font-medium text-slate-600">Meeting link generation enabled</span>
+          </p>
+        </div>
+      ) : undefined,
+    },
+  ];
+
+  const communicationIntegrations: IntegrationCardConfig[] = [
+    {
+      id: 'slack',
+      provider: 'slack',
+      name: 'Slack',
+      description: 'Get real-time notifications about meetings, no-shows, reminders, and more. Supports interactive buttons and slash commands.',
+      icon: <FaSlack className="w-6 h-6" />,
+      iconColor: 'text-[#4A154B]',
+      iconBg: 'bg-purple-50',
+      requiredPlan: 'starter',
+      status: integrations.slack.connected ? 'connected' : 'available',
+      category: 'communication',
+      connectUrl: '/api/integrations/slack/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/slack/disconnect',
+      connectedDetail: integrations.slack.connected ? (
+        <div className="text-xs text-slate-500 space-y-0.5 mt-2">
+          {integrations.slack.teamName && (
+            <p className="flex items-center gap-1.5">
+              <span className="text-slate-400">Workspace:</span>
+              <span className="font-medium text-slate-600">{integrations.slack.teamName}</span>
+            </p>
+          )}
+          {integrations.slack.channelName && (
+            <p className="flex items-center gap-1.5">
+              <span className="text-slate-400">Channel:</span>
+              <span className="font-medium text-slate-600">#{integrations.slack.channelName}</span>
+            </p>
+          )}
+          <p className="flex items-center gap-1.5 mt-1">
+            <span className="text-slate-400">Features:</span>
+            <span className="font-medium text-slate-600">Notifications, slash commands</span>
+          </p>
+        </div>
+      ) : undefined,
+    },
+    {
+      id: 'twilio',
+      provider: 'twilio',
+      name: 'Twilio',
+      description: 'Voice calling and SMS. Configure in Call Settings.',
+      icon: <SiTwilio className="w-6 h-6" />,
+      iconColor: 'text-[#F22F46]',
+      iconBg: 'bg-red-50',
+      requiredPlan: 'starter',
+      status: integrations.twilio.connected ? 'connected' : 'available',
+      category: 'communication',
+      settingsUrl: '/settings?section=call-settings&scroll=phone-numbers',
+      connectedDetail: integrations.twilio.connected ? (
+        <div className="text-xs text-slate-500 mt-2">
+          <p className="flex items-center gap-1.5">
+            <span className="text-slate-400">Status:</span>
+            <span className="font-medium text-slate-600">Configured via Settings</span>
+          </p>
+        </div>
+      ) : undefined,
+    },
+  ];
+
+  const comingSoonIntegrations: IntegrationCardConfig[] = [
+    {
+      id: 'salesforce',
+      provider: 'salesforce',
+      name: 'Salesforce',
+      description: 'Sync contacts and call data with your Salesforce CRM. Automatically update lead status after calls.',
+      icon: <FaSalesforce className="w-7 h-7" />,
+      iconColor: 'text-[#00A1E0]',
+      iconBg: 'bg-blue-50',
+      requiredPlan: 'business',
+      status: 'coming_soon',
+      category: 'crm',
+    },
+    {
+      id: 'hubspot',
+      provider: 'hubspot',
+      name: 'HubSpot',
+      description: 'Connect your HubSpot CRM to import contacts and sync call outcomes automatically.',
+      icon: <FaHubspot className="w-7 h-7" />,
+      iconColor: 'text-[#FF7A59]',
+      iconBg: 'bg-orange-50',
+      requiredPlan: 'business',
+      status: 'coming_soon',
+      category: 'crm',
+    },
+    {
+      id: 'zapier',
+      provider: 'zapier',
+      name: 'Zapier',
+      description: 'Connect Callengo with 5000+ apps. Automate workflows and trigger actions based on call outcomes.',
+      icon: <SiZapier className="w-6 h-6" />,
+      iconColor: 'text-[#FF4A00]',
+      iconBg: 'bg-orange-50',
+      requiredPlan: 'starter',
+      status: 'coming_soon',
+      category: 'automation',
     },
     {
       id: 'google-sheets',
+      provider: 'google-sheets',
       name: 'Google Sheets',
       description: 'Export call logs, campaign results, and contact data to Google Sheets for easy reporting and analysis.',
-      category: 'productivity',
-      categoryLabel: 'Productivity',
-      status: 'coming_soon',
-      color: 'bg-green-50',
-      iconColor: 'text-[#0F9D58]',
       icon: <SiGooglesheets className="w-6 h-6" />,
+      iconColor: 'text-[#0F9D58]',
+      iconBg: 'bg-green-50',
       requiredPlan: 'starter',
+      status: 'coming_soon',
+      category: 'automation',
     },
   ];
 
-  const filteredIntegrations = filter === 'all'
-    ? integrations
-    : integrations.filter(i => i.category === filter);
+  // --------------------------------------------------------------------------
+  // Category sections
+  // --------------------------------------------------------------------------
 
-  const categories = [
-    { id: 'all', label: 'All' },
-    { id: 'calendar', label: 'Calendar' },
-    { id: 'crm', label: 'CRM' },
-    { id: 'communication', label: 'Communication' },
-    { id: 'telephony', label: 'Telephony' },
-    { id: 'automation', label: 'Automation' },
-    { id: 'productivity', label: 'Productivity' },
+  const sections = [
+    { title: 'Calendar Integrations', cards: calendarIntegrations },
+    { title: 'Video Conferencing', cards: videoIntegrations },
+    { title: 'Communication', cards: communicationIntegrations },
+    { title: 'CRM & Automation', cards: comingSoonIntegrations, comingSoon: true },
   ];
 
-  const handleDisconnect = (integrationId: string) => {
-    if (integrationId === 'google-calendar') handleDisconnectGoogle();
-    else if (integrationId === 'calendly') handleDisconnectCalendly();
-    else if (integrationId === 'twilio') router.push('/settings?tab=calling&section=phone-numbers');
-  };
+  // --------------------------------------------------------------------------
+  // Card Renderer
+  // --------------------------------------------------------------------------
 
-  const getButtonLabel = (integration: Integration): string => {
-    if (integration.status === 'connected') {
-      if (integration.id === 'twilio') return 'Configured';
-      return 'Connected';
-    }
-    if (integration.status === 'coming_soon') return 'Coming Soon';
-    if (integration.id === 'twilio') return 'Configure Phone Numbers';
-    if (integration.id === 'google-calendar') return 'Connect Google Calendar';
-    if (integration.id === 'calendly') return 'Connect Calendly';
-    return 'Connect';
-  };
+  function renderCard(card: IntegrationCardConfig) {
+    const isComingSoon = card.status === 'coming_soon';
+    const isConnected = card.status === 'connected';
+    const isAutoEnabled = card.status === 'auto_enabled';
+    const meetsRequirement = planMeetsRequirement(planSlug, card.requiredPlan);
+    const isLocked = !meetsRequirement && !isComingSoon;
 
-  const getDisconnectLabel = (integrationId: string): string => {
-    if (integrationId === 'twilio') return 'Manage';
-    return 'Disconnect';
-  };
+    return (
+      <div
+        key={card.id}
+        className={`bg-white rounded-xl border p-6 flex flex-col transition-all ${
+          isComingSoon
+            ? 'border-slate-200 opacity-60'
+            : isConnected || isAutoEnabled
+            ? 'border-emerald-200 hover:shadow-md'
+            : 'border-slate-200 hover:shadow-md'
+        }`}
+      >
+        {/* Card Header */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-xl ${card.iconBg} ${card.iconColor} flex items-center justify-center shrink-0`}>
+              {card.icon}
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-slate-900">{card.name}</h3>
+              <div className="flex items-center gap-2 mt-0.5">
+                {card.requiredPlan !== 'free' && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-wide">
+                    {getPlanLabel(card.requiredPlan)}+
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {isConnected && (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Connected
+              </span>
+            )}
+            {isAutoEnabled && (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Auto-enabled
+              </span>
+            )}
+            {isComingSoon && (
+              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-wide">
+                Coming Soon
+              </span>
+            )}
+            {isLocked && !isConnected && !isAutoEnabled && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wide">
+                <FaLock className="w-2.5 h-2.5" />
+                {getPlanLabel(card.requiredPlan)} Plan Required
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="text-sm text-slate-600 mb-3 leading-relaxed flex-1">{card.description}</p>
+
+        {/* Auto-enabled note */}
+        {isAutoEnabled && card.autoEnabledWith && (
+          <div className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 mb-3">
+            Automatically enabled with {card.autoEnabledWith} connection
+          </div>
+        )}
+
+        {/* Not auto-enabled but could be */}
+        {card.autoEnabledWith && !isAutoEnabled && !isComingSoon && (
+          <div className="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 mb-3">
+            Connect {card.autoEnabledWith} to auto-enable this integration
+          </div>
+        )}
+
+        {/* Connected detail (email, last sync, etc.) */}
+        {isConnected && card.connectedDetail && (
+          <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 mb-3">
+            {card.connectedDetail}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="mt-auto">
+          {/* Connected State */}
+          {isConnected && !card.settingsUrl && (
+            <div className="flex items-center gap-2">
+              {card.showSync && card.syncUrl && (
+                <button
+                  onClick={() => handleSync(card.provider, card.name)}
+                  disabled={loadingAction === `sync-${card.provider}`}
+                  className="flex-1 py-2.5 rounded-lg font-medium text-sm text-[var(--color-primary)] bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/20 hover:bg-[var(--color-primary)]/10 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {loadingAction === `sync-${card.provider}` ? (
+                    <Spinner />
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Sync Now
+                    </>
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => handleDisconnect(card.provider, card.name)}
+                disabled={loadingAction === `disconnect-${card.provider}`}
+                className="px-3 py-2.5 rounded-lg font-medium text-sm text-red-600 hover:bg-red-50 border border-red-200 transition-all disabled:opacity-50"
+              >
+                {loadingAction === `disconnect-${card.provider}` ? (
+                  <Spinner />
+                ) : (
+                  'Disconnect'
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Twilio connected - link to settings */}
+          {isConnected && card.settingsUrl && (
+            <div className="flex items-center gap-2">
+              <Link
+                href={card.settingsUrl}
+                className="flex-1 py-2.5 rounded-lg font-medium text-sm text-center text-[var(--color-primary)] bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/20 hover:bg-[var(--color-primary)]/10 transition-all"
+              >
+                Manage in Settings
+              </Link>
+            </div>
+          )}
+
+          {/* Not connected, not coming soon, not auto-enabled */}
+          {!isConnected && !isComingSoon && !isAutoEnabled && card.connectUrl && (
+            <button
+              onClick={() => {
+                if (isLocked) return;
+                handleConnect(card.provider, card.connectUrl!);
+              }}
+              disabled={isLocked}
+              className={`w-full py-2.5 rounded-lg font-medium text-sm transition-all ${
+                isLocked
+                  ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
+                  : 'btn-primary w-full justify-center'
+              }`}
+            >
+              {isLocked ? `Requires ${getPlanLabel(card.requiredPlan)} Plan` : `Connect ${card.name}`}
+            </button>
+          )}
+
+          {/* Not connected Twilio - link to settings */}
+          {!isConnected && !isComingSoon && card.settingsUrl && !card.connectUrl && (
+            <Link
+              href={card.settingsUrl}
+              className="block w-full py-2.5 rounded-lg font-medium text-sm text-center btn-primary"
+            >
+              Configure in Settings
+            </Link>
+          )}
+
+          {/* Coming Soon */}
+          {isComingSoon && (
+            <button
+              disabled
+              className="w-full py-2.5 rounded-lg font-medium text-sm bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed"
+            >
+              Coming Soon
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // Render
+  // --------------------------------------------------------------------------
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Toast notification */}
       {toast && (
         <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg border text-sm font-medium animate-slideDown ${
@@ -319,177 +616,27 @@ export default function IntegrationsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Integrations</h1>
-        <p className="text-slate-600 mt-1">Connect Callengo with your favorite tools and services</p>
+        <p className="text-slate-600 mt-1">
+          Connect Callengo with your favorite tools and services to streamline your workflow
+        </p>
       </div>
 
-      {/* Category Filter */}
-      <div className="flex gap-2 flex-wrap">
-        {categories.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setFilter(cat.id as typeof filter)}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-              filter === cat.id
-                ? 'gradient-bg text-white shadow-sm'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Integrations Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-200" />
-                <div className="flex-1">
-                  <div className="h-5 w-32 bg-slate-200 rounded mb-1" />
-                  <div className="h-3 w-20 bg-slate-100 rounded" />
-                </div>
-              </div>
-              <div className="h-4 w-full bg-slate-100 rounded mb-2" />
-              <div className="h-4 w-3/4 bg-slate-100 rounded mb-4" />
-              <div className="h-10 w-full bg-slate-100 rounded-lg" />
-            </div>
-          ))}
-        </div>
-      ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredIntegrations.map(integration => (
-          <div
-            key={integration.id}
-            className={`bg-white rounded-xl border p-6 hover:shadow-md transition-shadow flex flex-col ${
-              integration.status === 'connected'
-                ? 'border-emerald-200'
-                : integration.status === 'available'
-                ? 'border-[var(--color-primary)]/30 shadow-sm'
-                : 'border-slate-200'
-            }`}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl ${integration.color} ${integration.iconColor} flex items-center justify-center shrink-0`}>
-                  {integration.icon}
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">{integration.name}</h3>
-                  <span className="text-xs text-slate-500">{integration.categoryLabel}</span>
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                {integration.status === 'connected' && (
-                  <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide">
-                    {integration.id === 'twilio' ? 'Configured' : 'Connected'}
-                  </span>
-                )}
-                {integration.status === 'available' && (
-                  <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide">
-                    Available
-                  </span>
-                )}
-                {planBadgeLabel[integration.requiredPlan] && (
-                  <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wide whitespace-nowrap">
-                    {planBadgeLabel[integration.requiredPlan]}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <p className="text-sm text-slate-600 mb-4 leading-relaxed flex-1">{integration.description}</p>
-
-            {integration.status === 'connected' ? (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 py-2.5 rounded-lg font-medium text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 text-center flex items-center justify-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  {getButtonLabel(integration)}
-                </div>
-                <button
-                  onClick={() => handleDisconnect(integration.id)}
-                  disabled={disconnecting === integration.id}
-                  className="px-3 py-2.5 rounded-lg font-medium text-sm text-red-600 hover:bg-red-50 border border-red-200 transition-all disabled:opacity-50"
-                >
-                  {disconnecting === integration.id ? (
-                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  ) : getDisconnectLabel(integration.id)}
-                </button>
-              </div>
-            ) : (
-              <button
-                disabled={integration.status === 'coming_soon'}
-                onClick={integration.action}
-                className={`w-full py-2.5 rounded-lg font-medium text-sm transition-all ${
-                  integration.status === 'coming_soon'
-                    ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
-                    : 'btn-primary w-full justify-center'
-                }`}
-              >
-                {getButtonLabel(integration)}
-              </button>
+      {/* Sections */}
+      {sections.map((section) => (
+        <div key={section.title}>
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
+            {section.comingSoon && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-wide">
+                Coming Soon
+              </span>
             )}
           </div>
-        ))}
-      </div>
-      )}
-
-      {/* Developer Tools */}
-      <div>
-        <h2 className="text-lg font-bold text-slate-900 mb-4">Developer Tools</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Webhooks */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-50 text-slate-700 flex items-center justify-center shrink-0">
-                  <MdOutlineWebhook className="w-7 h-7" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">Webhooks</h3>
-                  <span className="text-xs text-slate-500">Automation</span>
-                </div>
-              </div>
-            </div>
-            <p className="text-sm text-slate-600 mb-4 leading-relaxed flex-1">Send real-time event data to your own endpoints. Perfect for custom integrations and workflows.</p>
-            <button
-              disabled
-              className="w-full py-2.5 rounded-lg font-medium text-sm bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed"
-            >
-              Coming Soon
-            </button>
-          </div>
-
-          {/* API Access */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-violet-50 text-[var(--color-primary)] flex items-center justify-center shrink-0">
-                  <AiFillApi className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">API Access</h3>
-                  <span className="text-xs text-slate-500">Developer</span>
-                </div>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wide whitespace-nowrap">
-                Enterprise
-              </span>
-            </div>
-            <p className="text-sm text-slate-600 mb-4 leading-relaxed flex-1">Access your Callengo data programmatically. Create contacts, trigger campaigns, and retrieve call results through our REST API.</p>
-            <button
-              disabled
-              className="w-full py-2.5 rounded-lg font-medium text-sm bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed"
-            >
-              Coming Soon
-            </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {section.cards.map((card) => renderCard(card))}
           </div>
         </div>
-      </div>
+      ))}
     </div>
   );
 }

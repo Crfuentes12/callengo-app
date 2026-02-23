@@ -42,7 +42,7 @@ export default async function Calendar() {
 
   const integrationStatuses: CalendarIntegrationStatus[] = [
     { provider: 'google_calendar', connected: false },
-    { provider: 'calendly', connected: false },
+    { provider: 'microsoft_outlook', connected: false },
   ];
 
   if (integrations) {
@@ -50,7 +50,7 @@ export default async function Calendar() {
       const idx = integrationStatuses.findIndex(s => s.provider === integration.provider);
       if (idx !== -1) {
         integrationStatuses[idx] = {
-          provider: integration.provider as 'google_calendar' | 'calendly',
+          provider: integration.provider as 'google_calendar' | 'microsoft_outlook',
           connected: true,
           email: integration.provider_email || undefined,
           user_name: integration.provider_user_name || undefined,
@@ -68,7 +68,7 @@ export default async function Calendar() {
     .eq('company_id', companyId)
     .limit(100);
 
-  // Fetch working hours from company settings
+  // Fetch working hours and calendar settings from company settings
   const { data: companySettings } = await supabaseAdmin
     .from('company_settings')
     .select('settings')
@@ -81,12 +81,21 @@ export default async function Calendar() {
     end: (additionalSettings.working_hours_end as string) || '18:00',
   };
 
+  const calendarSettings = {
+    timezone: (additionalSettings.timezone as string) || 'America/New_York',
+    working_hours_start: (additionalSettings.working_hours_start as string) || '09:00',
+    working_hours_end: (additionalSettings.working_hours_end as string) || '18:00',
+    working_days: (additionalSettings.working_days as string[]) || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    exclude_holidays: (additionalSettings.exclude_holidays as boolean) ?? false,
+  };
+
   return (
     <CalendarPage
       events={(calendarEvents || []) as unknown as CalendarEvent[]}
       integrations={integrationStatuses}
       companyId={companyId}
       workingHours={workingHours}
+      calendarSettings={calendarSettings}
       contacts={(contacts || []).map(c => ({
         id: c.id,
         contact_name: c.contact_name,

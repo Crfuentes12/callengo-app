@@ -3,7 +3,6 @@
 
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { syncGoogleCalendarToCallengo, pushEventToGoogle } from './google';
-import { syncCalendlyToCallengo } from './calendly';
 import type { CalendarIntegration, CalendarEvent, CalendarProvider } from '@/types/calendar';
 
 // ============================================================================
@@ -98,9 +97,11 @@ export async function runSync(
       case 'google_calendar':
         result = await syncGoogleCalendarToCallengo(integration);
         break;
-      case 'calendly':
-        result = await syncCalendlyToCallengo(integration);
+      case 'microsoft_outlook': {
+        const { syncMicrosoftToCallengo } = await import('./microsoft');
+        result = await syncMicrosoftToCallengo(integration);
         break;
+      }
       default:
         throw new Error(`Unknown provider: ${integration.provider}`);
     }
@@ -176,7 +177,7 @@ export async function createCalendarEvent(
   },
   options: {
     syncToGoogle?: boolean;
-    syncToCalendly?: boolean;
+    syncToMicrosoft?: boolean;
   } = {}
 ): Promise<CalendarEvent | null> {
   // Insert event into database
@@ -194,6 +195,8 @@ export async function createCalendarEvent(
       event_type: eventData.event_type || 'meeting',
       status: eventData.status || 'scheduled',
       source: eventData.source || 'manual',
+      video_link: eventData.video_link || null,
+      video_provider: eventData.video_provider || null,
       contact_id: eventData.contact_id || null,
       contact_name: eventData.contact_name || null,
       contact_phone: eventData.contact_phone || null,
@@ -228,6 +231,19 @@ export async function createCalendarEvent(
     }
   }
 
+  // Push to Microsoft if requested
+  if (options.syncToMicrosoft) {
+    try {
+      const { pushEventToMicrosoft } = await import('./microsoft');
+      const msIntegrations = await getActiveIntegrations(companyId, 'microsoft_outlook');
+      for (const integration of msIntegrations) {
+        await pushEventToMicrosoft(integration, createdEvent);
+      }
+    } catch (e) {
+      console.error('Failed to push to Microsoft:', e);
+    }
+  }
+
   return createdEvent;
 }
 
@@ -243,7 +259,6 @@ export async function updateCalendarEvent(
 ): Promise<CalendarEvent | null> {
   // Handle rescheduling
   if (updates.start_time || updates.end_time) {
-    // Get current event to track original time
     const { data: current } = await supabaseAdmin
       .from('calendar_events')
       .select('*')
@@ -278,7 +293,7 @@ export async function updateCalendarEvent(
 
   const updatedEvent = event as unknown as CalendarEvent;
 
-  // Push to Google Calendar if needed
+  // Push to external calendars if needed
   if (options.syncToExternal && updatedEvent.external_event_id) {
     const googleIntegrations = await getActiveIntegrations(
       updatedEvent.company_id,
@@ -286,6 +301,19 @@ export async function updateCalendarEvent(
     );
     for (const integration of googleIntegrations) {
       await pushEventToGoogle(integration, updatedEvent);
+    }
+
+    try {
+      const { pushEventToMicrosoft } = await import('./microsoft');
+      const msIntegrations = await getActiveIntegrations(
+        updatedEvent.company_id,
+        'microsoft_outlook'
+      );
+      for (const integration of msIntegrations) {
+        await pushEventToMicrosoft(integration, updatedEvent);
+      }
+    } catch (e) {
+      console.error('Failed to push update to Microsoft:', e);
     }
   }
 
@@ -325,11 +353,10 @@ export async function markEventNoShow(
 
   if (!updated) return null;
 
-  // Schedule a retry event if requested
   if (options.scheduleRetry) {
     const retryStart = options.retryDate
       ? new Date(options.retryDate)
-      : new Date(Date.now() + 24 * 60 * 60 * 1000); // Default: next day
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
     retryStart.setHours(10, 0, 0, 0);
 
     const retryEnd = new Date(retryStart);
@@ -354,7 +381,7 @@ export async function markEventNoShow(
         notes: options.retryNotes || `Auto-scheduled retry after no-show for: ${updated.title}`,
         created_by_feature: 'appointment_confirmation',
       },
-      { syncToGoogle: true }
+      { syncToGoogle: true, syncToMicrosoft: true }
     );
   }
 
@@ -397,7 +424,6 @@ export async function rescheduleAppointment(
 
 /**
  * Create a follow-up event from an AI agent action.
- * Used by the Appointment Confirmation agent when scheduling follow-ups.
  */
 export async function createAgentFollowUp(
   companyId: string,
@@ -411,7 +437,7 @@ export async function createAgentFollowUp(
     reason: string;
     notes?: string;
     eventType?: CalendarEvent['event_type'];
-    isPremium?: boolean; // Smart follow-up (business+)
+    isPremium?: boolean;
   }
 ): Promise<CalendarEvent | null> {
   const startTime = new Date(params.followUpDate);
@@ -437,13 +463,12 @@ export async function createAgentFollowUp(
       notes: params.notes,
       created_by_feature: params.isPremium ? 'smart_followup' : 'follow_up',
     },
-    { syncToGoogle: true }
+    { syncToGoogle: true, syncToMicrosoft: true }
   );
 }
 
 /**
  * Create a callback event from an AI agent action.
- * Used when a contact requests a callback or is unreachable.
  */
 export async function createAgentCallback(
   companyId: string,
@@ -486,7 +511,7 @@ export async function createAgentCallback(
       notes: params.notes,
       created_by_feature: 'callback_scheduling',
     },
-    { syncToGoogle: true }
+    { syncToGoogle: true, syncToMicrosoft: true }
   );
 }
 
@@ -573,7 +598,7 @@ export async function getIntegrationStatuses(
     integrationId?: string;
   }> = [
     { provider: 'google_calendar', connected: false },
-    { provider: 'calendly', connected: false },
+    { provider: 'microsoft_outlook', connected: false },
   ];
 
   for (const integration of integrations) {
