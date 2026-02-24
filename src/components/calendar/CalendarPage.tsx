@@ -3,7 +3,8 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { GoogleCalendarIcon, GoogleMeetIcon, MicrosoftIcon, TeamsIcon, ZoomIcon } from '@/components/icons/BrandIcons';
+import { BiLogoZoom } from 'react-icons/bi';
+import { GoogleCalendarIcon, GoogleMeetIcon, MicrosoftIcon, TeamsIcon } from '@/components/icons/BrandIcons';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
 
 // ============================================================================
@@ -1563,7 +1564,7 @@ export default function CalendarPage({
                   {[
                     { value: '', label: 'None', icon: null, disabled: false },
                     { value: 'google_meet', label: 'Meet', icon: <GoogleMeetIcon className="w-4 h-4" />, disabled: !googleIntegration?.connected },
-                    { value: 'zoom', label: 'Zoom', icon: <ZoomIcon className="w-4 h-4" />, disabled: !zoomConnected },
+                    { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: !zoomConnected },
                     { value: 'microsoft_teams', label: 'Teams', icon: <TeamsIcon className="w-4 h-4" />, disabled: !microsoftIntegration?.connected },
                   ].map(opt => (
                     <button
