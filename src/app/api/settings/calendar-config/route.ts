@@ -29,10 +29,18 @@ export async function GET() {
       .eq('company_id', userData.company_id)
       .single();
 
+    // Fetch user's geolocation-detected timezone as fallback
+    const { data: userTzData } = await supabase
+      .from('users')
+      .select('timezone')
+      .eq('id', user.id)
+      .single();
+    const geoTimezone = userTzData?.timezone;
+
     const settings = (companySettings?.settings ?? {}) as Record<string, unknown>;
 
     return NextResponse.json({
-      timezone: settings.timezone || 'America/New_York',
+      timezone: settings.timezone || geoTimezone || 'America/New_York',
       working_hours_start: settings.working_hours_start || '09:00',
       working_hours_end: settings.working_hours_end || '18:00',
       working_days: settings.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
