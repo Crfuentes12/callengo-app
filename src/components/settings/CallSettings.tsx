@@ -398,7 +398,8 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
   };
 
   const isFreePlan = plan?.slug === 'free';
-  const canConnectTwilio = !isFreePlan;
+  const isBusinessOrAbove = plan?.slug === 'business' || plan?.slug === 'teams' || plan?.slug === 'enterprise';
+  const canConnectTwilio = isBusinessOrAbove;
   const suggestion = getOptimizationSuggestion();
   const limitIndicator = getPlanLimitIndicator();
   const approximateCalls = calculateApproximateCalls(settings.default_max_duration);
@@ -488,7 +489,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
                   <p className="text-xs text-slate-500">Auto-rotated by default or connect your own via Twilio</p>
                 </div>
               </div>
-              {!isFreePlan && (
+              {canConnectTwilio && (
                 <button type="button" onClick={() => { setShowTwilioSetup(true); setTwilioStep(1); }} disabled={!canConnectTwilio || twilioConnected} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-50 flex items-center gap-1.5">
                   <SiTwilio className="w-3.5 h-3.5 text-[#F22F46]" />
                   {twilioConnected ? 'Twilio Connected' : 'Connect Twilio'}
@@ -497,14 +498,14 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
             </div>
           </div>
 
-          {isFreePlan ? (
+          {!canConnectTwilio ? (
             <div className="p-8 text-center">
               <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
               </div>
-              <h4 className="text-lg font-bold text-slate-900 mb-2">Twilio Integration Available on Paid Plans</h4>
-              <p className="text-sm text-slate-600 mb-1">Upgrade to Starter or above to connect your Twilio account.</p>
-              <p className="text-xs text-slate-500 mb-4">On the Free plan, Callengo automatically rotates numbers from our pool to protect against spam flags.</p>
+              <h4 className="text-lg font-bold text-slate-900 mb-2">Twilio Integration Available on Business+</h4>
+              <p className="text-sm text-slate-600 mb-1">Upgrade to Business or above to connect your Twilio account.</p>
+              <p className="text-xs text-slate-500 mb-4">On your current plan, Callengo automatically rotates numbers from our pool to protect against spam flags.</p>
             </div>
           ) : (
             <div className="p-6 space-y-6">

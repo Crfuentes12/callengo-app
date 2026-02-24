@@ -3,11 +3,10 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SiGooglecalendar, SiGooglemeet, SiTwilio, SiZapier, SiGooglesheets } from 'react-icons/si';
-import { FaMicrosoft, FaSlack, FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
-import { BsMicrosoftTeams } from 'react-icons/bs';
-import { BiLogoZoom } from 'react-icons/bi';
+import { SiTwilio } from 'react-icons/si';
+import { FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
 import Link from 'next/link';
+import { GoogleCalendarIcon, GoogleMeetIcon, GoogleSheetsIcon, MicrosoftIcon, TeamsIcon, ZoomIcon, SlackIcon } from '@/components/icons/BrandIcons';
 
 // ============================================================================
 // TYPES
@@ -19,7 +18,7 @@ interface IntegrationsPageProps {
   integrations: {
     google_calendar: { connected: boolean; email?: string; lastSynced?: string; integrationId?: string };
     microsoft_outlook: { connected: boolean; email?: string; lastSynced?: string; integrationId?: string };
-    zoom: { connected: boolean; email?: string };
+    zoom: { connected: boolean };
     slack: { connected: boolean; teamName?: string; channelName?: string };
     twilio: { connected: boolean };
   };
@@ -104,14 +103,14 @@ function Spinner({ className = 'w-4 h-4' }: { className?: string }) {
 // CATEGORY FILTER TYPES
 // ============================================================================
 
-type CategoryFilter = 'all' | 'calendar' | 'video' | 'communication' | 'crm' | 'automation';
+type CategoryFilter = 'all' | 'calendar' | 'video' | 'communication' | 'crm';
 
 const CATEGORY_OPTIONS: { value: CategoryFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'calendar', label: 'Calendar' },
   { value: 'video', label: 'Video' },
   { value: 'communication', label: 'Communication' },
-  { value: 'crm', label: 'CRM & Automation' },
+  { value: 'crm', label: 'CRM' },
 ];
 
 // ============================================================================
@@ -213,14 +212,17 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   // Integration Definitions
   // --------------------------------------------------------------------------
 
-  const calendarIntegrations: IntegrationCardConfig[] = [
+  // --------------------------------------------------------------------------
+  // Free tier integrations
+  // --------------------------------------------------------------------------
+  const freeIntegrations: IntegrationCardConfig[] = [
     {
       id: 'google-calendar',
       provider: 'google-calendar',
       name: 'Google Calendar',
       description: 'Sync your call schedules, appointments, and events directly with Google Calendar.',
-      icon: <SiGooglecalendar className="w-7 h-7" />,
-      iconColor: 'text-[#4285F4]',
+      icon: <GoogleCalendarIcon className="w-7 h-7" />,
+      iconColor: '',
       iconBg: 'bg-blue-50',
       requiredPlan: 'free',
       status: integrations.google_calendar.connected ? 'connected' : 'available',
@@ -245,12 +247,66 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       ) : undefined,
     },
     {
+      id: 'google-meet',
+      provider: 'google-meet',
+      name: 'Google Meet',
+      description: 'Automatically adds Google Meet links when creating events through Google Calendar.',
+      icon: <GoogleMeetIcon className="w-7 h-7" />,
+      iconColor: '',
+      iconBg: 'bg-teal-50',
+      requiredPlan: 'free',
+      status: integrations.google_calendar.connected ? 'auto_enabled' : 'available',
+      category: 'video',
+      autoEnabledWith: 'Google Calendar',
+    },
+    {
+      id: 'zoom',
+      provider: 'zoom',
+      name: 'Zoom',
+      description: 'Generate Zoom meeting links for your scheduled events. Auto-create meeting rooms for every call.',
+      icon: <ZoomIcon className="w-7 h-7" />,
+      iconColor: '',
+      iconBg: 'bg-blue-50',
+      requiredPlan: 'free',
+      status: integrations.zoom.connected ? 'connected' : 'available',
+      category: 'video',
+      connectUrl: '/api/integrations/zoom/connect',
+      connectMethod: 'post' as const,
+      disconnectUrl: '/api/integrations/zoom/disconnect',
+      connectedDetail: integrations.zoom.connected ? (
+        <div className="text-xs text-slate-500 mt-2">
+          <p className="flex items-center gap-1.5">
+            <span className="text-slate-400">Status:</span>
+            <span className="font-medium text-slate-600">Meeting link generation enabled</span>
+          </p>
+        </div>
+      ) : undefined,
+    },
+    {
+      id: 'google-sheets',
+      provider: 'google-sheets',
+      name: 'Google Sheets',
+      description: 'Export call logs, campaign results, and contact data to Google Sheets for easy reporting and analysis.',
+      icon: <GoogleSheetsIcon className="w-7 h-7" />,
+      iconColor: '',
+      iconBg: 'bg-green-50',
+      requiredPlan: 'free',
+      status: 'coming_soon',
+      category: 'automation',
+    },
+  ];
+
+  // --------------------------------------------------------------------------
+  // Business tier integrations
+  // --------------------------------------------------------------------------
+  const businessIntegrations: IntegrationCardConfig[] = [
+    {
       id: 'microsoft-outlook',
       provider: 'microsoft-outlook',
       name: 'Microsoft 365 Outlook',
       description: 'Sync your Outlook calendar events, appointments, and schedules with Callengo.',
-      icon: <FaMicrosoft className="w-6 h-6" />,
-      iconColor: 'text-[#0078D4]',
+      icon: <MicrosoftIcon className="w-7 h-7" />,
+      iconColor: '',
       iconBg: 'bg-blue-50',
       requiredPlan: 'business',
       status: integrations.microsoft_outlook.connected ? 'connected' : 'available',
@@ -274,70 +330,28 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         </div>
       ) : undefined,
     },
-  ];
-
-  const videoIntegrations: IntegrationCardConfig[] = [
-    {
-      id: 'google-meet',
-      provider: 'google-meet',
-      name: 'Google Meet',
-      description: 'Automatically adds Google Meet links when creating events through Google Calendar.',
-      icon: <SiGooglemeet className="w-7 h-7" />,
-      iconColor: 'text-[#00897B]',
-      iconBg: 'bg-teal-50',
-      requiredPlan: 'free',
-      status: integrations.google_calendar.connected ? 'auto_enabled' : 'available',
-      category: 'video',
-      autoEnabledWith: 'Google Calendar',
-    },
     {
       id: 'microsoft-teams',
       provider: 'microsoft-teams',
       name: 'Microsoft Teams',
       description: 'Automatically adds Teams meeting links when creating events through Microsoft 365.',
-      icon: <BsMicrosoftTeams className="w-6 h-6" />,
-      iconColor: 'text-[#6264A7]',
+      icon: <TeamsIcon className="w-7 h-7" />,
+      iconColor: '',
       iconBg: 'bg-indigo-50',
       requiredPlan: 'business',
       status: integrations.microsoft_outlook.connected ? 'auto_enabled' : 'available',
       category: 'video',
-      autoEnabledWith: 'Microsoft 365',
+      autoEnabledWith: 'Microsoft 365 Outlook',
     },
-    {
-      id: 'zoom',
-      provider: 'zoom',
-      name: 'Zoom',
-      description: 'Generate Zoom meeting links for your scheduled events. Connect your Zoom account to auto-create meeting rooms.',
-      icon: <BiLogoZoom className="w-7 h-7" />,
-      iconColor: 'text-[#2D8CFF]',
-      iconBg: 'bg-blue-50',
-      requiredPlan: 'starter',
-      status: integrations.zoom.connected ? 'connected' : 'available',
-      category: 'video',
-      connectUrl: '/api/integrations/zoom/connect',
-      connectMethod: 'post' as const,
-      disconnectUrl: '/api/integrations/zoom/disconnect',
-      connectedDetail: integrations.zoom.connected ? (
-        <div className="text-xs text-slate-500 mt-2">
-          <p className="flex items-center gap-1.5">
-            <span className="text-slate-400">Feature:</span>
-            <span className="font-medium text-slate-600">Meeting link generation enabled</span>
-          </p>
-        </div>
-      ) : undefined,
-    },
-  ];
-
-  const communicationIntegrations: IntegrationCardConfig[] = [
     {
       id: 'slack',
       provider: 'slack',
       name: 'Slack',
       description: 'Get real-time notifications about meetings, no-shows, reminders, and more. Supports interactive buttons and slash commands.',
-      icon: <FaSlack className="w-6 h-6" />,
-      iconColor: 'text-[#4A154B]',
+      icon: <SlackIcon className="w-7 h-7" />,
+      iconColor: '',
       iconBg: 'bg-purple-50',
-      requiredPlan: 'starter',
+      requiredPlan: 'business',
       status: integrations.slack.connected ? 'connected' : 'available',
       category: 'communication',
       connectUrl: '/api/integrations/slack/connect?return_to=/integrations',
@@ -356,10 +370,6 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
               <span className="font-medium text-slate-600">#{integrations.slack.channelName}</span>
             </p>
           )}
-          <p className="flex items-center gap-1.5 mt-1">
-            <span className="text-slate-400">Features:</span>
-            <span className="font-medium text-slate-600">Notifications, slash commands</span>
-          </p>
         </div>
       ) : undefined,
     },
@@ -367,11 +377,11 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'twilio',
       provider: 'twilio',
       name: 'Twilio',
-      description: 'Voice calling and SMS. Configure in Call Settings.',
+      description: 'Voice calling and SMS. Configure phone numbers in Call Settings.',
       icon: <SiTwilio className="w-6 h-6" />,
       iconColor: 'text-[#F22F46]',
       iconBg: 'bg-red-50',
-      requiredPlan: 'starter',
+      requiredPlan: 'business',
       status: integrations.twilio.connected ? 'connected' : 'available',
       category: 'communication',
       settingsUrl: '/settings?section=call-settings&scroll=phone-numbers',
@@ -384,9 +394,6 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         </div>
       ) : undefined,
     },
-  ];
-
-  const comingSoonIntegrations: IntegrationCardConfig[] = [
     {
       id: 'salesforce',
       provider: 'salesforce',
@@ -411,30 +418,6 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       status: 'coming_soon',
       category: 'crm',
     },
-    {
-      id: 'zapier',
-      provider: 'zapier',
-      name: 'Zapier',
-      description: 'Connect Callengo with 5000+ apps. Automate workflows and trigger actions based on call outcomes.',
-      icon: <SiZapier className="w-6 h-6" />,
-      iconColor: 'text-[#FF4A00]',
-      iconBg: 'bg-orange-50',
-      requiredPlan: 'starter',
-      status: 'coming_soon',
-      category: 'automation',
-    },
-    {
-      id: 'google-sheets',
-      provider: 'google-sheets',
-      name: 'Google Sheets',
-      description: 'Export call logs, campaign results, and contact data to Google Sheets for easy reporting and analysis.',
-      icon: <SiGooglesheets className="w-6 h-6" />,
-      iconColor: 'text-[#0F9D58]',
-      iconBg: 'bg-green-50',
-      requiredPlan: 'starter',
-      status: 'coming_soon',
-      category: 'automation',
-    },
   ];
 
   // --------------------------------------------------------------------------
@@ -442,17 +425,13 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   // --------------------------------------------------------------------------
 
   const allIntegrations: IntegrationCardConfig[] = [
-    ...calendarIntegrations,
-    ...videoIntegrations,
-    ...communicationIntegrations,
-    ...comingSoonIntegrations,
+    ...freeIntegrations,
+    ...businessIntegrations,
   ];
 
   const filteredIntegrations = selectedCategory === 'all'
     ? allIntegrations
-    : selectedCategory === 'crm'
-      ? allIntegrations.filter((card) => card.category === 'crm' || card.category === 'automation')
-      : allIntegrations.filter((card) => card.category === selectedCategory);
+    : allIntegrations.filter((card) => card.category === selectedCategory);
 
   // --------------------------------------------------------------------------
   // Card Renderer
@@ -479,7 +458,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         {/* Card Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl ${card.iconBg} ${card.iconColor} flex items-center justify-center shrink-0`}>
+            <div className={`w-12 h-12 rounded-xl ${card.iconBg} ${card.iconColor || ''} flex items-center justify-center shrink-0`}>
               {card.icon}
             </div>
             <div>

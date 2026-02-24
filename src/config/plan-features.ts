@@ -16,6 +16,8 @@ export const COMMON_FEATURES = [
   'Usage dashboard',
   'Billing alerts',
   'Auto-rotating phone numbers (spam protection)',
+  'Google Calendar & Meet integration',
+  'Zoom meeting links',
 ];
 
 export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
@@ -30,7 +32,6 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
     '1 user (dashboard access)',
     'Basic async support',
     'Auto-rotated numbers from Callengo pool',
-    'Twilio BYOP integration',
   ],
 
   business: [
@@ -43,6 +44,8 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
     'Priority email support',
     'Auto-rotated numbers from Callengo pool',
     'Twilio BYOP integration',
+    'Microsoft 365 Outlook & Teams',
+    'Slack notifications',
   ],
 
   teams: [
@@ -57,6 +60,8 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
     'Auto-rotated numbers from Callengo pool',
     'Twilio BYOP integration',
     'Custom dialing pools',
+    'Microsoft 365 Outlook & Teams',
+    'Slack notifications',
   ],
 
   enterprise: [
@@ -94,7 +99,7 @@ export const PHONE_NUMBER_FEATURES: Record<string, {
   },
   starter: {
     autoRotation: true,
-    twilioByop: true,
+    twilioByop: false,
     customDialingPools: false,
     sipIntegration: false,
   },
