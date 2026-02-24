@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { SiTwilio } from 'react-icons/si';
 import { FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
 import Link from 'next/link';
-import { GoogleCalendarIcon, GoogleMeetIcon, GoogleSheetsIcon, MicrosoftIcon, TeamsIcon, ZoomIcon, SlackIcon } from '@/components/icons/BrandIcons';
+import { GoogleCalendarIcon, GoogleMeetIcon, GoogleSheetsIcon, OutlookIcon, TeamsIcon, ZoomIcon, SlackIcon } from '@/components/icons/BrandIcons';
 
 // ============================================================================
 // TYPES
@@ -305,7 +305,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       provider: 'microsoft-outlook',
       name: 'Microsoft 365 Outlook',
       description: 'Sync your Outlook calendar events, appointments, and schedules with Callengo.',
-      icon: <MicrosoftIcon className="w-7 h-7" />,
+      icon: <OutlookIcon className="w-7 h-7" />,
       iconColor: '',
       iconBg: 'bg-blue-50',
       requiredPlan: 'business',
