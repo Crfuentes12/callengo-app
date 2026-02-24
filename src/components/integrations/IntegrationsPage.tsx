@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { SiTwilio } from 'react-icons/si';
 import { FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
 import Link from 'next/link';
-import { GoogleCalendarIcon, GoogleMeetIcon, GoogleSheetsIcon, OutlookIcon, TeamsIcon, ZoomIcon, SlackIcon } from '@/components/icons/BrandIcons';
+import { BiLogoZoom } from 'react-icons/bi';
+import { GoogleCalendarIcon, GoogleMeetIcon, GoogleSheetsIcon, OutlookIcon, TeamsIcon, SlackIcon } from '@/components/icons/BrandIcons';
 
 // ============================================================================
 // TYPES
@@ -264,8 +265,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       provider: 'zoom',
       name: 'Zoom',
       description: 'Generate Zoom meeting links for your scheduled events. Auto-create meeting rooms for every call.',
-      icon: <ZoomIcon className="w-7 h-7" />,
-      iconColor: '',
+      icon: <BiLogoZoom className="w-7 h-7" />,
+      iconColor: 'text-[#2D8CFF]',
       iconBg: 'bg-blue-50',
       requiredPlan: 'free',
       status: integrations.zoom.connected ? 'connected' : 'available',
