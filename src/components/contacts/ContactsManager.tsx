@@ -7,7 +7,7 @@ import { Contact as ContactType } from '@/types/call-agent';
 import { ContactList } from '@/types/supabase';
 import ContactsTable from './ContactsTable';
 import ImportModal from './ImportModal';
-import { SiGooglesheets } from 'react-icons/si';
+import { GoogleSheetsIcon } from '@/components/icons/BrandIcons';
 
 interface ContactsManagerProps {
   initialContacts: any[];
@@ -576,7 +576,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                   onClick={() => handleImportTypeSelect('google')}
                   className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
                 >
-                  <SiGooglesheets className="w-5 h-5 text-[#0F9D58]" />
+                  <GoogleSheetsIcon className="w-5 h-5" />
                   <span className="font-medium">Import from Google Sheets</span>
                 </button>
               </div>

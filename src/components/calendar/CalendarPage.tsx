@@ -3,10 +3,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SiGooglecalendar, SiGooglemeet } from 'react-icons/si';
-import { FaMicrosoft } from 'react-icons/fa';
-import { BsMicrosoftTeams } from 'react-icons/bs';
-import { BiLogoZoom } from 'react-icons/bi';
+import { GoogleCalendarIcon, GoogleMeetIcon, MicrosoftIcon, TeamsIcon, ZoomIcon } from '@/components/icons/BrandIcons';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
 
 // ============================================================================
@@ -673,10 +670,10 @@ export default function CalendarPage({
   // ============================================================================
   const SourceBadge = ({ source }: { source: string }) => {
     if (source === 'google_calendar') {
-      return <span className="inline-flex items-center gap-1 text-[10px] text-[#4285F4] font-medium"><SiGooglecalendar className="w-3 h-3" /> Google</span>;
+      return <span className="inline-flex items-center gap-1 text-[10px] text-slate-600 font-medium"><GoogleCalendarIcon className="w-3 h-3" /> Google</span>;
     }
     if (source === 'microsoft_outlook') {
-      return <span className="inline-flex items-center gap-1 text-[10px] text-[#0078D4] font-medium"><FaMicrosoft className="w-3 h-3" /> Outlook</span>;
+      return <span className="inline-flex items-center gap-1 text-[10px] text-slate-600 font-medium"><MicrosoftIcon className="w-3 h-3" /> Outlook</span>;
     }
     if (source === 'ai_agent') {
       return <span className="text-[10px] text-violet-600 font-medium">AI Agent</span>;
@@ -740,7 +737,7 @@ export default function CalendarPage({
               {/* Google Calendar badge */}
               {googleIntegration?.connected ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
-                  <SiGooglecalendar className="w-3.5 h-3.5 text-[#4285F4] shrink-0" />
+                  <GoogleCalendarIcon className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Google Calendar</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                   <button
@@ -760,7 +757,7 @@ export default function CalendarPage({
                   onClick={handleConnectGoogle}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
                 >
-                  <SiGooglecalendar className="w-3.5 h-3.5 text-[#4285F4] shrink-0" />
+                  <GoogleCalendarIcon className="w-3.5 h-3.5 shrink-0" />
                   <span className="whitespace-nowrap">Google Calendar</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
@@ -769,7 +766,7 @@ export default function CalendarPage({
               {/* Microsoft Outlook badge */}
               {microsoftIntegration?.connected ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
-                  <FaMicrosoft className="w-3.5 h-3.5 text-[#0078D4] shrink-0" />
+                  <MicrosoftIcon className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                   <button
@@ -789,7 +786,7 @@ export default function CalendarPage({
                   onClick={() => { window.location.href = '/api/integrations/microsoft-outlook/connect?return_to=/calendar'; }}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
                 >
-                  <FaMicrosoft className="w-3.5 h-3.5 text-[#0078D4] shrink-0" />
+                  <MicrosoftIcon className="w-3.5 h-3.5 shrink-0" />
                   <span className="whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
@@ -1565,9 +1562,9 @@ export default function CalendarPage({
                 <div className="flex gap-2">
                   {[
                     { value: '', label: 'None', icon: null, disabled: false },
-                    { value: 'google_meet', label: 'Meet', icon: <SiGooglemeet className="w-4 h-4 text-[#00897B]" />, disabled: !googleIntegration?.connected },
-                    { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: !zoomConnected },
-                    { value: 'microsoft_teams', label: 'Teams', icon: <BsMicrosoftTeams className="w-4 h-4 text-[#6264A7]" />, disabled: !microsoftIntegration?.connected },
+                    { value: 'google_meet', label: 'Meet', icon: <GoogleMeetIcon className="w-4 h-4" />, disabled: !googleIntegration?.connected },
+                    { value: 'zoom', label: 'Zoom', icon: <ZoomIcon className="w-4 h-4" />, disabled: !zoomConnected },
+                    { value: 'microsoft_teams', label: 'Teams', icon: <TeamsIcon className="w-4 h-4" />, disabled: !microsoftIntegration?.connected },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -1612,7 +1609,7 @@ export default function CalendarPage({
                       onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))}
                       className="w-4 h-4 rounded text-[var(--color-primary)]"
                     />
-                    <SiGooglecalendar className="w-4 h-4 text-[#4285F4]" />
+                    <GoogleCalendarIcon className="w-4 h-4" />
                     Sync to Google Calendar
                   </label>
                 )}
@@ -1624,7 +1621,7 @@ export default function CalendarPage({
                       onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_microsoft: e.target.checked }))}
                       className="w-4 h-4 rounded text-[var(--color-primary)]"
                     />
-                    <FaMicrosoft className="w-4 h-4 text-[#0078D4]" />
+                    <MicrosoftIcon className="w-4 h-4" />
                     Sync to Microsoft Outlook
                   </label>
                 )}

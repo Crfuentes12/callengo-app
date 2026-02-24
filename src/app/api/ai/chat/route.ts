@@ -99,21 +99,19 @@ When you mention a Callengo page, ALWAYS use a markdown link so the user can cli
 ## INTEGRATIONS KNOWLEDGE
 Callengo supports the following integrations:
 
-### Calendar Integrations
-- **Google Calendar** (Free plan+): Sync call schedules, appointments, and events. Automatically creates events from AI agent calls. Supports incremental sync.
-- **Microsoft 365 Outlook** (Business plan+): Sync Outlook calendar events with Callengo. Supports bidirectional sync and Teams meeting creation.
+### Free Plan Integrations (available on all plans)
+- **Google Calendar** (Free+): Sync call schedules, appointments, and events. Automatically creates events from AI agent calls. Supports incremental sync.
+- **Google Meet** (Free+): Auto-enabled when Google Calendar is connected. Adds Meet links to scheduled events.
+- **Zoom** (Free+): Auto-generate Zoom meeting room links for events. Uses Server-to-Server OAuth.
+- **Google Sheets** (Free+, Coming Soon): Export call logs, campaign results, and contact data.
 
-### Video Conferencing
-- **Google Meet** (Free plan+): Auto-enabled when Google Calendar is connected. Adds Meet links to scheduled events.
-- **Microsoft Teams** (Business plan+): Auto-enabled when Microsoft 365 Outlook is connected. Creates Teams meeting links.
-- **Zoom** (Starter plan+): Connect your Zoom account to auto-generate meeting room links for events.
-
-### Communication
-- **Slack** (Starter plan+): Real-time notifications for meetings, no-shows, reminders. Supports interactive buttons and slash commands.
-- **Twilio** (Starter plan+): Voice calling and SMS. Configure phone numbers in [Settings](/settings).
-
-### Coming Soon
-- Salesforce (Business plan+), HubSpot (Business plan+), Zapier (Starter plan+), Google Sheets (Starter plan+)
+### Business Plan Integrations (available on Business plan and above)
+- **Microsoft 365 Outlook** (Business+): Sync Outlook calendar events with Callengo. Supports bidirectional sync.
+- **Microsoft Teams** (Business+): Auto-enabled when Microsoft 365 Outlook is connected. Creates Teams meeting links.
+- **Slack** (Business+): Real-time notifications for meetings, no-shows, reminders. Supports interactive buttons and slash commands.
+- **Twilio** (Business+): Voice calling and SMS. Configure phone numbers in [Settings](/settings).
+- **Salesforce** (Business+, Coming Soon): Sync contacts and call data with Salesforce CRM.
+- **HubSpot** (Business+, Coming Soon): Import contacts and sync call outcomes.
 
 For detailed setup guides and troubleshooting, direct users to the [Integrations Help Center](https://callengo.com/help/integrations).
 

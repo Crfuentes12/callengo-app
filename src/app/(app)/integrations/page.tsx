@@ -47,7 +47,6 @@ export default async function Integrations() {
 
   // Determine Zoom connection status
   const zoomConnected = !!settings.zoom_connected;
-  const zoomEmail = (settings.zoom_user_email as string) || undefined;
 
   // Fetch subscription plan slug
   let planSlug = 'free';
@@ -79,7 +78,6 @@ export default async function Integrations() {
         },
         zoom: {
           connected: zoomConnected,
-          email: zoomEmail,
         },
         slack: {
           connected: slackConnected,
