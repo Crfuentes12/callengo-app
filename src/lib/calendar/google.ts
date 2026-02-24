@@ -219,7 +219,9 @@ export async function listGoogleEvents(
 }
 
 /**
- * Create an event in Google Calendar
+ * Create an event in Google Calendar.
+ * - If video_provider is 'google_meet': creates a Meet conference link via Google API
+ * - If video_provider is 'zoom' or 'microsoft_teams' and video_link exists: adds it to the description
  */
 export async function createGoogleEvent(
   integration: CalendarIntegration,
@@ -260,8 +262,8 @@ export async function createGoogleEvent(
     },
   };
 
-  // Add Google Meet conference link if video_provider is google_meet or not specified
-  const wantsMeet = !event.video_provider || event.video_provider === 'google_meet';
+  // Only create Google Meet conference when explicitly selected
+  const wantsMeet = event.video_provider === 'google_meet';
   if (wantsMeet && !event.all_day) {
     googleEvent.conferenceData = {
       createRequest: {
@@ -271,14 +273,30 @@ export async function createGoogleEvent(
     };
   }
 
-  const response = await calendar.events.insert({
-    calendarId: integration.google_calendar_id || 'primary',
-    requestBody: googleEvent,
-    conferenceDataVersion: wantsMeet ? 1 : 0,
-    sendUpdates: 'all', // Send email notifications to attendees
-  });
+  const calendarId = integration.google_calendar_id || 'primary';
 
-  return response.data;
+  try {
+    const response = await calendar.events.insert({
+      calendarId,
+      requestBody: googleEvent,
+      conferenceDataVersion: wantsMeet ? 1 : 0,
+      sendUpdates: 'all',
+    });
+    return response.data;
+  } catch (err: unknown) {
+    // If 404 (calendar not found), retry with 'primary'
+    if (calendarId !== 'primary' && err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 404) {
+      console.warn(`Google Calendar ID "${calendarId}" not found, retrying with 'primary'`);
+      const response = await calendar.events.insert({
+        calendarId: 'primary',
+        requestBody: googleEvent,
+        conferenceDataVersion: wantsMeet ? 1 : 0,
+        sendUpdates: 'all',
+      });
+      return response.data;
+    }
+    throw err;
+  }
 }
 
 /**
@@ -457,27 +475,34 @@ export async function syncGoogleCalendarToCallengo(
 }
 
 /**
- * Push a Callengo event to Google Calendar
+ * Push a Callengo event to Google Calendar.
+ * Stores the Google event ID in metadata.google_event_id for independent tracking.
  */
 export async function pushEventToGoogle(
   integration: CalendarIntegration,
   event: CalendarEvent
 ): Promise<string | null> {
+  const meta = (event.metadata || {}) as Record<string, unknown>;
+  const existingGoogleEventId = meta.google_event_id as string | undefined;
+
   try {
-    if (event.external_event_id) {
+    if (existingGoogleEventId) {
       // Update existing Google event
-      await updateGoogleEvent(integration, event.external_event_id, event);
-      return event.external_event_id;
+      await updateGoogleEvent(integration, existingGoogleEventId, event);
+      return existingGoogleEventId;
     } else {
       // Create new Google event
       const gEvent = await createGoogleEvent(integration, event);
 
-      // Extract Google Meet link if present
-      const meetLink = gEvent.conferenceData?.entryPoints?.find(
-        (ep) => ep.entryPointType === 'video'
-      )?.uri || null;
+      // Extract Google Meet link if present (only when Meet was requested)
+      const meetLink = event.video_provider === 'google_meet'
+        ? gEvent.conferenceData?.entryPoints?.find(
+            (ep) => ep.entryPointType === 'video'
+          )?.uri || null
+        : null;
 
-      // Store the Google event ID and Meet link
+      // Store the Google event ID in metadata and update sync status
+      const updatedMeta = { ...meta, google_event_id: gEvent.id };
       await supabaseAdmin
         .from('calendar_events')
         .update({
@@ -485,7 +510,9 @@ export async function pushEventToGoogle(
           external_calendar_id: integration.google_calendar_id || 'primary',
           sync_status: 'synced',
           last_synced_at: new Date().toISOString(),
-          ...(meetLink && { video_link: meetLink, video_provider: 'google_meet' }),
+          metadata: updatedMeta,
+          // Only set video_link if Meet was the chosen provider and a link was generated
+          ...(meetLink && { video_link: meetLink }),
         })
         .eq('id', event.id);
 
@@ -564,12 +591,21 @@ function googleEventToCalengoEvent(
 }
 
 /**
- * Build a descriptive text for the Google Calendar event
+ * Build a descriptive text for the Google Calendar event.
+ * Includes video call link when the provider is not Google Meet
+ * (Meet links are handled natively via conferenceData).
  */
 function buildEventDescription(event: CalendarEvent): string {
   const lines: string[] = [];
 
   lines.push(`[Callengo ${event.event_type.replace(/_/g, ' ').toUpperCase()}]`);
+
+  // Include video link for non-Meet providers (Zoom, Teams)
+  if (event.video_link && event.video_provider && event.video_provider !== 'google_meet') {
+    const providerLabel = event.video_provider === 'zoom' ? 'Zoom' : 'Microsoft Teams';
+    lines.push('');
+    lines.push(`${providerLabel} Meeting: ${event.video_link}`);
+  }
 
   if (event.contact_name) lines.push(`Contact: ${event.contact_name}`);
   if (event.contact_phone) lines.push(`Phone: ${event.contact_phone}`);

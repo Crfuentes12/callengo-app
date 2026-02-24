@@ -224,6 +224,7 @@ export default function CalendarPage({
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [settingsForm, setSettingsForm] = useState<CalendarSettings>({ ...calSettings });
   const [savingSettings, setSavingSettings] = useState(false);
+  const [schedulingEvent, setSchedulingEvent] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   // Custom tooltip state (replaces native title attributes)
@@ -471,6 +472,9 @@ export default function CalendarPage({
   }, [settingsForm, showToast]);
 
   const handleScheduleSubmit = useCallback(async () => {
+    if (schedulingEvent) return;
+    setSchedulingEvent(true);
+
     const contact = contacts.find(c => c.id === scheduleForm.contact_id);
     const startTime = new Date(`${scheduleForm.date}T${scheduleForm.time}:00`);
     const endTime = new Date(startTime);
@@ -506,8 +510,10 @@ export default function CalendarPage({
       }
     } catch {
       showToast('Failed to schedule event', 'error');
+    } finally {
+      setSchedulingEvent(false);
     }
-  }, [scheduleForm, contacts, refreshEvents, showToast]);
+  }, [scheduleForm, contacts, refreshEvents, showToast, schedulingEvent]);
 
   // Open schedule modal pre-filled from a time slot click
   const openScheduleFromSlot = useCallback((date: Date, hour: number) => {
@@ -1628,8 +1634,15 @@ export default function CalendarPage({
               </div>
             </div>
             <div className="p-6 border-t border-slate-100 flex items-center justify-end gap-3">
-              <button onClick={() => { setShowScheduleModal(false); setScheduleWarning(null); }} className="btn-secondary">Cancel</button>
-              <button onClick={handleScheduleSubmit} className="btn-primary">Schedule Event</button>
+              <button onClick={() => { setShowScheduleModal(false); setScheduleWarning(null); }} className="btn-secondary" disabled={schedulingEvent}>Cancel</button>
+              <button onClick={handleScheduleSubmit} className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed" disabled={schedulingEvent}>
+                {schedulingEvent ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    Scheduling...
+                  </span>
+                ) : 'Schedule Event'}
+              </button>
             </div>
           </div>
         </div>

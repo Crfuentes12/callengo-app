@@ -588,32 +588,43 @@ export async function syncMicrosoftToCallengo(
 }
 
 /**
- * Push a Callengo event to Microsoft Outlook Calendar
+ * Push a Callengo event to Microsoft Outlook Calendar.
+ * Stores the Microsoft event ID in metadata.microsoft_event_id for independent tracking.
  */
 export async function pushEventToMicrosoft(
   integration: CalendarIntegration,
   event: CalendarEvent
 ): Promise<string | null> {
+  const meta = (event.metadata || {}) as Record<string, unknown>;
+  const existingMsEventId = meta.microsoft_event_id as string | undefined;
+
   try {
-    if (event.external_event_id) {
+    if (existingMsEventId) {
       // Update existing Microsoft event
-      await updateMicrosoftEvent(integration, event.external_event_id, event);
-      return event.external_event_id;
+      await updateMicrosoftEvent(integration, existingMsEventId, event);
+      return existingMsEventId;
     } else {
       // Create new Microsoft event
       const msEvent = await createMicrosoftEvent(integration, event);
 
-      // Store the Microsoft event ID
+      // Extract Teams link only if Teams was the chosen provider
+      const teamsLink = event.video_provider === 'microsoft_teams'
+        ? msEvent.onlineMeeting?.joinUrl || null
+        : null;
+
+      // Store the Microsoft event ID in metadata and update sync status
+      const updatedMeta = { ...meta, microsoft_event_id: msEvent.id };
       await supabaseAdmin
         .from('calendar_events')
         .update({
           external_event_id: msEvent.id,
           external_calendar_id:
             integration.microsoft_calendar_id || 'primary',
-          video_link: msEvent.onlineMeeting?.joinUrl || null,
-          video_provider: msEvent.isOnlineMeeting ? 'microsoft_teams' : null,
           sync_status: 'synced',
           last_synced_at: new Date().toISOString(),
+          metadata: updatedMeta,
+          // Only set video_link if Teams was the chosen provider and a link was generated
+          ...(teamsLink && { video_link: teamsLink }),
         })
         .eq('id', event.id);
 
@@ -712,12 +723,13 @@ function microsoftEventToCallengoEvent(
 
 /**
  * Convert a Callengo CalendarEvent to Microsoft Graph event format.
- * Enables Teams meeting creation via isOnlineMeeting flag.
+ * Only enables Teams meeting creation when video_provider is 'microsoft_teams'.
  */
 function callengoEventToMicrosoftEvent(
   event: CalendarEvent
 ): Record<string, unknown> {
   const description = buildEventDescription(event);
+  const wantsTeams = event.video_provider === 'microsoft_teams';
 
   const msEvent: Record<string, unknown> = {
     subject: event.title,
@@ -744,9 +756,9 @@ function callengoEventToMicrosoftEvent(
           timeZone: event.timezone || 'UTC',
         },
     isAllDay: event.all_day || false,
-    // Enable Teams meeting link generation
-    isOnlineMeeting: true,
-    onlineMeetingProvider: 'teamsForBusiness',
+    // Only create Teams meeting when explicitly selected
+    isOnlineMeeting: wantsTeams,
+    ...(wantsTeams && { onlineMeetingProvider: 'teamsForBusiness' }),
     reminderMinutesBeforeStart: 10,
   };
 
@@ -814,12 +826,21 @@ function mapMicrosoftResponseStatus(
 }
 
 /**
- * Build a descriptive text for the Microsoft Outlook Calendar event
+ * Build a descriptive text for the Microsoft Outlook Calendar event.
+ * Includes video call link when the provider is not Microsoft Teams
+ * (Teams links are handled natively via isOnlineMeeting).
  */
 function buildEventDescription(event: CalendarEvent): string {
   const lines: string[] = [];
 
   lines.push(`[Callengo ${event.event_type.replace(/_/g, ' ').toUpperCase()}]`);
+
+  // Include video link for non-Teams providers (Zoom, Google Meet)
+  if (event.video_link && event.video_provider && event.video_provider !== 'microsoft_teams') {
+    const providerLabel = event.video_provider === 'zoom' ? 'Zoom' : 'Google Meet';
+    lines.push('');
+    lines.push(`${providerLabel} Meeting: ${event.video_link}`);
+  }
 
   if (event.contact_name) lines.push(`Contact: ${event.contact_name}`);
   if (event.contact_phone) lines.push(`Phone: ${event.contact_phone}`);

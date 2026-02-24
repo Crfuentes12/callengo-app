@@ -2,7 +2,7 @@
 // Calendar sync manager - orchestrates sync between Callengo and external calendars
 
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
-import { syncGoogleCalendarToCallengo, pushEventToGoogle } from './google';
+import { syncGoogleCalendarToCallengo, pushEventToGoogle, updateGoogleEvent } from './google';
 import type { CalendarIntegration, CalendarEvent, CalendarProvider } from '@/types/calendar';
 
 // ============================================================================
@@ -172,7 +172,24 @@ export async function runSyncAll(
 // ============================================================================
 
 /**
- * Create a calendar event in Callengo and optionally push to external calendars
+ * Re-read an event from the database to get the latest state
+ */
+async function refetchEvent(eventId: string): Promise<CalendarEvent | null> {
+  const { data } = await supabaseAdmin
+    .from('calendar_events')
+    .select('*')
+    .eq('id', eventId)
+    .single();
+  return data ? (data as unknown as CalendarEvent) : null;
+}
+
+/**
+ * Create a calendar event in Callengo and optionally push to external calendars.
+ *
+ * Video provider ordering:
+ * - Zoom: create Zoom meeting first, then push to both calendars with link
+ * - Google Meet: push to Google first (creates Meet link), then push to Microsoft with link
+ * - Microsoft Teams: push to Microsoft first (creates Teams link), then push to Google with link
  */
 export async function createCalendarEvent(
   companyId: string,
@@ -227,30 +244,99 @@ export async function createCalendarEvent(
     return null;
   }
 
-  const createdEvent = event as unknown as CalendarEvent;
+  let createdEvent = event as unknown as CalendarEvent;
+  const videoProvider = createdEvent.video_provider;
 
-  // Push to Google Calendar if requested
-  if (options.syncToGoogle) {
-    const googleIntegrations = await getActiveIntegrations(companyId, 'google_calendar');
-    for (const integration of googleIntegrations) {
-      await pushEventToGoogle(integration, createdEvent);
-    }
-  }
-
-  // Push to Microsoft if requested
-  if (options.syncToMicrosoft) {
+  // Step 1: If Zoom is selected, create Zoom meeting before pushing to any calendar
+  if (videoProvider === 'zoom') {
     try {
-      const { pushEventToMicrosoft } = await import('./microsoft');
-      const msIntegrations = await getActiveIntegrations(companyId, 'microsoft_outlook');
-      for (const integration of msIntegrations) {
-        await pushEventToMicrosoft(integration, createdEvent);
+      const { getZoomAccessToken, createZoomMeeting } = await import('./zoom');
+      const zoomToken = await getZoomAccessToken(companyId);
+      if (zoomToken) {
+        const zoomMeeting = await createZoomMeeting(zoomToken, createdEvent);
+        await supabaseAdmin
+          .from('calendar_events')
+          .update({
+            video_link: zoomMeeting.join_url,
+            metadata: { ...(createdEvent.metadata || {}), zoom_meeting_id: zoomMeeting.id },
+          })
+          .eq('id', createdEvent.id);
+        createdEvent = (await refetchEvent(createdEvent.id)) || createdEvent;
+      } else {
+        console.error('Zoom is selected but no valid token found for company:', companyId);
       }
     } catch (e) {
-      console.error('Failed to push to Microsoft:', e);
+      console.error('Failed to create Zoom meeting:', e);
     }
   }
 
-  return createdEvent;
+  // Step 2: Push to calendars in the correct order based on video provider.
+  // The calendar that creates the video link goes first so the other calendar
+  // can include the link in its event description.
+
+  if (videoProvider === 'google_meet') {
+    // Google first (creates Meet link), then Microsoft with the link
+    if (options.syncToGoogle) {
+      const googleIntegrations = await getActiveIntegrations(companyId, 'google_calendar');
+      for (const integration of googleIntegrations) {
+        await pushEventToGoogle(integration, createdEvent);
+      }
+      createdEvent = (await refetchEvent(createdEvent.id)) || createdEvent;
+    }
+    if (options.syncToMicrosoft) {
+      try {
+        const { pushEventToMicrosoft } = await import('./microsoft');
+        const msIntegrations = await getActiveIntegrations(companyId, 'microsoft_outlook');
+        for (const integration of msIntegrations) {
+          await pushEventToMicrosoft(integration, createdEvent);
+        }
+      } catch (e) {
+        console.error('Failed to push to Microsoft:', e);
+      }
+    }
+  } else if (videoProvider === 'microsoft_teams') {
+    // Microsoft first (creates Teams link), then Google with the link
+    if (options.syncToMicrosoft) {
+      try {
+        const { pushEventToMicrosoft } = await import('./microsoft');
+        const msIntegrations = await getActiveIntegrations(companyId, 'microsoft_outlook');
+        for (const integration of msIntegrations) {
+          await pushEventToMicrosoft(integration, createdEvent);
+        }
+        createdEvent = (await refetchEvent(createdEvent.id)) || createdEvent;
+      } catch (e) {
+        console.error('Failed to push to Microsoft:', e);
+      }
+    }
+    if (options.syncToGoogle) {
+      const googleIntegrations = await getActiveIntegrations(companyId, 'google_calendar');
+      for (const integration of googleIntegrations) {
+        await pushEventToGoogle(integration, createdEvent);
+      }
+    }
+  } else {
+    // No special ordering needed (Zoom link already set, or no video)
+    if (options.syncToGoogle) {
+      const googleIntegrations = await getActiveIntegrations(companyId, 'google_calendar');
+      for (const integration of googleIntegrations) {
+        await pushEventToGoogle(integration, createdEvent);
+      }
+    }
+    if (options.syncToMicrosoft) {
+      try {
+        const { pushEventToMicrosoft } = await import('./microsoft');
+        const msIntegrations = await getActiveIntegrations(companyId, 'microsoft_outlook');
+        for (const integration of msIntegrations) {
+          await pushEventToMicrosoft(integration, createdEvent);
+        }
+      } catch (e) {
+        console.error('Failed to push to Microsoft:', e);
+      }
+    }
+  }
+
+  // Return the latest event state
+  return (await refetchEvent(createdEvent.id)) || createdEvent;
 }
 
 /**
@@ -298,28 +384,41 @@ export async function updateCalendarEvent(
   }
 
   const updatedEvent = event as unknown as CalendarEvent;
+  const meta = (updatedEvent.metadata || {}) as Record<string, unknown>;
 
   // Push to external calendars if needed
-  if (options.syncToExternal && updatedEvent.external_event_id) {
-    const googleIntegrations = await getActiveIntegrations(
-      updatedEvent.company_id,
-      'google_calendar'
-    );
-    for (const integration of googleIntegrations) {
-      await pushEventToGoogle(integration, updatedEvent);
+  if (options.syncToExternal) {
+    // Sync to Google Calendar using the stored google_event_id from metadata
+    const googleEventId = (meta.google_event_id as string) || null;
+    if (googleEventId) {
+      try {
+        const googleIntegrations = await getActiveIntegrations(
+          updatedEvent.company_id,
+          'google_calendar'
+        );
+        for (const integration of googleIntegrations) {
+          await updateGoogleEvent(integration, googleEventId, updatedEvent);
+        }
+      } catch (e) {
+        console.error('Failed to sync update to Google Calendar:', e);
+      }
     }
 
-    try {
-      const { pushEventToMicrosoft } = await import('./microsoft');
-      const msIntegrations = await getActiveIntegrations(
-        updatedEvent.company_id,
-        'microsoft_outlook'
-      );
-      for (const integration of msIntegrations) {
-        await pushEventToMicrosoft(integration, updatedEvent);
+    // Sync to Microsoft Outlook using the stored microsoft_event_id from metadata
+    const msEventId = (meta.microsoft_event_id as string) || null;
+    if (msEventId) {
+      try {
+        const { updateMicrosoftEvent } = await import('./microsoft');
+        const msIntegrations = await getActiveIntegrations(
+          updatedEvent.company_id,
+          'microsoft_outlook'
+        );
+        for (const integration of msIntegrations) {
+          await updateMicrosoftEvent(integration, msEventId, updatedEvent);
+        }
+      } catch (e) {
+        console.error('Failed to sync update to Microsoft Outlook:', e);
       }
-    } catch (e) {
-      console.error('Failed to push update to Microsoft:', e);
     }
   }
 
