@@ -2,7 +2,7 @@
 // Calendar sync manager - orchestrates sync between Callengo and external calendars
 
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
-import { syncGoogleCalendarToCallengo, pushEventToGoogle, updateGoogleEvent } from './google';
+import { syncGoogleCalendarToCallengo, pushEventToGoogle, updateGoogleEvent, deleteGoogleEvent } from './google';
 import type { CalendarIntegration, CalendarEvent, CalendarProvider } from '@/types/calendar';
 
 // ============================================================================
@@ -396,8 +396,14 @@ export async function updateCalendarEvent(
           updatedEvent.company_id,
           'google_calendar'
         );
-        for (const integration of googleIntegrations) {
-          await updateGoogleEvent(integration, googleEventId, updatedEvent);
+        if (updatedEvent.status === 'cancelled') {
+          for (const integration of googleIntegrations) {
+            await deleteGoogleEvent(integration, googleEventId);
+          }
+        } else {
+          for (const integration of googleIntegrations) {
+            await updateGoogleEvent(integration, googleEventId, updatedEvent);
+          }
         }
       } catch (e) {
         console.error('Failed to sync update to Google Calendar:', e);
@@ -408,13 +414,22 @@ export async function updateCalendarEvent(
     const msEventId = (meta.microsoft_event_id as string) || null;
     if (msEventId) {
       try {
-        const { updateMicrosoftEvent } = await import('./microsoft');
         const msIntegrations = await getActiveIntegrations(
           updatedEvent.company_id,
           'microsoft_outlook'
         );
-        for (const integration of msIntegrations) {
-          await updateMicrosoftEvent(integration, msEventId, updatedEvent);
+        if (updatedEvent.status === 'cancelled') {
+          // Microsoft Graph doesn't support setting status to cancelled via PATCH;
+          // the event must be deleted to remove it from the calendar
+          const { deleteMicrosoftEvent } = await import('./microsoft');
+          for (const integration of msIntegrations) {
+            await deleteMicrosoftEvent(integration, msEventId);
+          }
+        } else {
+          const { updateMicrosoftEvent } = await import('./microsoft');
+          for (const integration of msIntegrations) {
+            await updateMicrosoftEvent(integration, msEventId, updatedEvent);
+          }
         }
       } catch (e) {
         console.error('Failed to sync update to Microsoft Outlook:', e);

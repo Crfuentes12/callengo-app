@@ -612,6 +612,17 @@ export async function pushEventToMicrosoft(
         ? msEvent.onlineMeeting?.joinUrl || null
         : null;
 
+      if (event.video_provider === 'microsoft_teams' && !teamsLink) {
+        console.warn(
+          'Teams meeting requested but no joinUrl returned. isOnlineMeeting:',
+          msEvent.isOnlineMeeting,
+          'onlineMeetingProvider:',
+          msEvent.onlineMeetingProvider,
+          'onlineMeeting:',
+          JSON.stringify(msEvent.onlineMeeting)
+        );
+      }
+
       // Store the Microsoft event ID in metadata and update sync status
       const updatedMeta = { ...meta, microsoft_event_id: msEvent.id };
       await supabaseAdmin
@@ -756,9 +767,11 @@ function callengoEventToMicrosoftEvent(
           timeZone: event.timezone || 'UTC',
         },
     isAllDay: event.all_day || false,
-    // Only create Teams meeting when explicitly selected
+    // Only create Teams meeting when explicitly selected.
+    // Don't specify onlineMeetingProvider — let Microsoft auto-detect
+    // the correct provider for the user's account type
+    // (teamsForBusiness, teamsForConsumer, etc.)
     isOnlineMeeting: wantsTeams,
-    ...(wantsTeams && { onlineMeetingProvider: 'teamsForBusiness' }),
     reminderMinutesBeforeStart: 10,
   };
 
