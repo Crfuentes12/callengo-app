@@ -190,6 +190,13 @@ export default function CalendarPage({
   const getDateStringInTz = (date: Date): string => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date); // returns YYYY-MM-DD
   };
+  const getMinutesInTz = (date: Date): number => {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(date);
+    return parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+  };
+  // Get YYYY-MM-DD from a Date's local parts (for calendar grid dates that represent abstract dates)
+  const getLocalDateString = (d: Date): string =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   // Derived working hours from settings
   const workStart = parseInt(calSettings.working_hours_start.split(':')[0], 10);
@@ -522,8 +529,7 @@ export default function CalendarPage({
         date,
         isCurrentMonth: false,
         events: filteredEvents.filter(e => {
-          const eDate = new Date(e.start_time);
-          return eDate.toDateString() === date.toDateString();
+          return getDateStringInTz(new Date(e.start_time)) === getLocalDateString(date);
         }),
       });
     }
@@ -534,8 +540,7 @@ export default function CalendarPage({
         date,
         isCurrentMonth: true,
         events: filteredEvents.filter(e => {
-          const eDate = new Date(e.start_time);
-          return eDate.toDateString() === date.toDateString();
+          return getDateStringInTz(new Date(e.start_time)) === getLocalDateString(date);
         }),
       });
     }
@@ -547,8 +552,7 @@ export default function CalendarPage({
         date,
         isCurrentMonth: false,
         events: filteredEvents.filter(e => {
-          const eDate = new Date(e.start_time);
-          return eDate.toDateString() === date.toDateString();
+          return getDateStringInTz(new Date(e.start_time)) === getLocalDateString(date);
         }),
       });
     }
@@ -570,8 +574,7 @@ export default function CalendarPage({
       days.push({
         date,
         events: filteredEvents.filter(e => {
-          const eDate = new Date(e.start_time);
-          return eDate.toDateString() === date.toDateString();
+          return getDateStringInTz(new Date(e.start_time)) === getLocalDateString(date);
         }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()),
       });
     }
@@ -581,8 +584,8 @@ export default function CalendarPage({
   // Stats
   const stats = useMemo(() => {
     const today = new Date();
-    const todayStr = today.toDateString();
-    const todayEvents = events.filter(e => new Date(e.start_time).toDateString() === todayStr && e.status !== 'cancelled');
+    const todayTzStr = getDateStringInTz(today);
+    const todayEvents = events.filter(e => getDateStringInTz(new Date(e.start_time)) === todayTzStr && e.status !== 'cancelled');
     const scheduled = events.filter(e => e.status === 'scheduled' || e.status === 'confirmed');
     const noShows = events.filter(e => e.event_type === 'no_show_retry' && e.status === 'scheduled');
     const upcoming = events.filter(e => new Date(e.start_time) > today && (e.status === 'scheduled' || e.status === 'confirmed'));
@@ -610,8 +613,12 @@ export default function CalendarPage({
     setCurrentDate(newDate);
   };
 
-  const goToToday = () => setCurrentDate(new Date());
-  const isToday = (date: Date) => getDateStringInTz(date) === getDateStringInTz(new Date());
+  const goToToday = () => {
+    const todayStr = getDateStringInTz(new Date());
+    const [y, m, d] = todayStr.split('-').map(Number);
+    setCurrentDate(new Date(y, m - 1, d));
+  };
+  const isToday = (date: Date) => getLocalDateString(date) === getDateStringInTz(currentTime);
 
   const monthYearLabel = formatDate(currentDate, { month: 'long', year: 'numeric' });
   const weekLabel = viewMode === 'week' ? (() => {
@@ -1058,8 +1065,8 @@ export default function CalendarPage({
                 {(() => {
                   const todayIdx = weekDays.findIndex(d => isToday(d.date));
                   if (todayIdx === -1) return null;
-                  const h = currentTime.getHours();
-                  const m = currentTime.getMinutes();
+                  const h = getHourInTz(currentTime);
+                  const m = getMinutesInTz(currentTime);
                   const topPx = (h + m / 60) * 48;
                   return (
                     <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPx}px` }}>
@@ -1096,7 +1103,7 @@ export default function CalendarPage({
                       {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                     </div>
                     {weekDays.map((day, dayIdx) => {
-                      const hourEvents = day.events.filter(e => new Date(e.start_time).getHours() === hour);
+                      const hourEvents = day.events.filter(e => getHourInTz(new Date(e.start_time)) === hour);
                       const dayWorking = isWorkingDay(day.date);
                       const slotWorking = working && dayWorking;
                       const isEmpty = hourEvents.length === 0;
@@ -1123,7 +1130,7 @@ export default function CalendarPage({
                           )}
                           {hourEvents.map(event => {
                             const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                            const startMin = new Date(event.start_time).getMinutes();
+                            const startMin = getMinutesInTz(new Date(event.start_time));
                             const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
                             const topOffset = (startMin / 60) * 48;
                             const height = Math.max((durationMin / 60) * 48, 18);
@@ -1187,10 +1194,10 @@ export default function CalendarPage({
             <div className="relative">
               {/* Current time indicator */}
               {(() => {
-                const isViewingToday = currentDate.toDateString() === currentTime.toDateString();
+                const isViewingToday = getLocalDateString(currentDate) === getDateStringInTz(currentTime);
                 if (!isViewingToday) return null;
-                const currentHour = currentTime.getHours();
-                const currentMinute = currentTime.getMinutes();
+                const currentHour = getHourInTz(currentTime);
+                const currentMinute = getMinutesInTz(currentTime);
                 const topPosition = (currentHour + currentMinute / 60) * 52;
                 return (
                   <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top: `${topPosition}px` }}>
@@ -1211,7 +1218,7 @@ export default function CalendarPage({
                 {Array.from({ length: 24 }, (_, i) => i).map(hour => {
                   const hourEvents = filteredEvents.filter(e => {
                     const eDate = new Date(e.start_time);
-                    return eDate.toDateString() === currentDate.toDateString() && eDate.getHours() === hour;
+                    return getDateStringInTz(eDate) === getLocalDateString(currentDate) && getHourInTz(eDate) === hour;
                   });
                   const working = isWorkingHour(hour);
                   const dayWorking = isWorkingDay(currentDate);
@@ -1324,7 +1331,7 @@ export default function CalendarPage({
                   .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
                 upcoming.forEach(e => {
-                  const dateKey = new Date(e.start_time).toDateString();
+                  const dateKey = getDateStringInTz(new Date(e.start_time));
                   if (!grouped.has(dateKey)) grouped.set(dateKey, []);
                   grouped.get(dateKey)!.push(e);
                 });
@@ -1345,11 +1352,11 @@ export default function CalendarPage({
                   <div key={dateStr}>
                     <div className="flex items-center gap-3 mb-3">
                       <div className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                        new Date(dateStr).toDateString() === new Date().toDateString()
+                        dateStr === getDateStringInTz(currentTime)
                           ? 'gradient-bg text-white'
                           : 'bg-slate-100 text-slate-700'
                       }`}>
-                        {formatDate(new Date(dateStr), { weekday: 'short', month: 'short', day: 'numeric' })}
+                        {formatDate(new Date(dayEvents[0].start_time), { weekday: 'short', month: 'short', day: 'numeric' })}
                       </div>
                       <div className="flex-1 h-px bg-slate-200"></div>
                       <span className="text-xs text-slate-400 font-medium">{dayEvents.length} events</span>

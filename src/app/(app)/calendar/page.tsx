@@ -75,6 +75,14 @@ export default async function Calendar() {
     .eq('company_id', companyId)
     .single();
 
+  // Fetch user's geolocation-detected timezone as fallback
+  const { data: userTzData } = await supabaseAdmin
+    .from('users')
+    .select('timezone')
+    .eq('id', user!.id)
+    .single();
+  const geoTimezone = userTzData?.timezone;
+
   const additionalSettings = (companySettings?.settings ?? {}) as Record<string, unknown>;
   const workingHours = {
     start: (additionalSettings.working_hours_start as string) || '09:00',
@@ -82,7 +90,7 @@ export default async function Calendar() {
   };
 
   const calendarSettings = {
-    timezone: (additionalSettings.timezone as string) || 'America/New_York',
+    timezone: (additionalSettings.timezone as string) || geoTimezone || 'America/New_York',
     working_hours_start: (additionalSettings.working_hours_start as string) || '09:00',
     working_hours_end: (additionalSettings.working_hours_end as string) || '18:00',
     working_days: (additionalSettings.working_days as string[]) || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],

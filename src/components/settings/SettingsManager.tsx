@@ -18,6 +18,7 @@ type User = {
   full_name: string | null;
   role: string;
   notifications_enabled?: boolean;
+  timezone?: string | null;
 };
 
 interface SettingsManagerProps {
@@ -62,7 +63,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     default_interval_minutes: initialSettings.default_interval_minutes,
     default_max_duration: initialSettings.default_max_duration,
     test_phone_number: initialSettings.test_phone_number || '',
-    timezone: additionalSettings.timezone || 'America/New_York',
+    timezone: additionalSettings.timezone || user.timezone || 'America/New_York',
     working_hours_start: additionalSettings.working_hours_start || '09:00',
     working_hours_end: additionalSettings.working_hours_end || '18:00',
     max_calls_per_day: additionalSettings.max_calls_per_day || 100,
