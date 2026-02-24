@@ -30,6 +30,7 @@ interface CalendarPageProps {
   excludeHolidays: boolean;
   timezone: string;
   calendarSettings: CalendarSettings;
+  zoomConnected?: boolean;
   contacts: {
     id: string;
     contact_name: string | null;
@@ -156,6 +157,7 @@ export default function CalendarPage({
   excludeHolidays: initialExcludeHolidays,
   timezone: initialTimezone,
   calendarSettings: initialCalendarSettings,
+  zoomConnected: initialZoomConnected = false,
   contacts,
 }: CalendarPageProps) {
   const router = useRouter();
@@ -215,6 +217,7 @@ export default function CalendarPage({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
   const [integrations, setIntegrations] = useState(initialIntegrations);
+  const [zoomConnected, setZoomConnected] = useState(initialZoomConnected);
   const [syncing, setSyncing] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -222,6 +225,22 @@ export default function CalendarPage({
   const [settingsForm, setSettingsForm] = useState<CalendarSettings>({ ...calSettings });
   const [savingSettings, setSavingSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Custom tooltip state (replaces native title attributes)
+  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
+  const tooltipTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const showCalTooltip = useCallback((e: React.MouseEvent, text: string) => {
+    if (!text) return;
+    clearTimeout(tooltipTimeout.current);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    tooltipTimeout.current = setTimeout(() => {
+      setTooltip({ text, x: rect.left + rect.width / 2, y: rect.bottom + 8 });
+    }, 400);
+  }, []);
+  const hideCalTooltip = useCallback(() => {
+    clearTimeout(tooltipTimeout.current);
+    setTooltip(null);
+  }, []);
 
   // Schedule form state
   const [scheduleForm, setScheduleForm] = useState({
@@ -254,6 +273,11 @@ export default function CalendarPage({
     return () => clearInterval(interval);
   }, []);
 
+  // Clean up tooltip timeout on unmount
+  useEffect(() => {
+    return () => clearTimeout(tooltipTimeout.current);
+  }, []);
+
   // Close settings menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -283,6 +307,9 @@ export default function CalendarPage({
       if (res.ok) {
         const data = await res.json();
         setIntegrations(data.integrations);
+        if (data.all?.zoom) {
+          setZoomConnected(!!data.all.zoom.connected);
+        }
       }
     } catch (error) {
       console.error('Failed to refresh integrations:', error);
@@ -675,6 +702,20 @@ export default function CalendarPage({
         </div>
       )}
 
+      {/* Custom tooltip (replaces native title attributes) */}
+      {tooltip && (
+        <div
+          className="fixed px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-lg whitespace-pre-line z-[100] pointer-events-none"
+          style={{
+            left: `${tooltip.x}px`,
+            top: `${tooltip.y}px`,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          {tooltip.text}
+        </div>
+      )}
+
       {/* Header */}
       <div className="gradient-bg-subtle rounded-2xl p-8 shadow-md border border-slate-200">
         <div className="relative z-10">
@@ -700,7 +741,8 @@ export default function CalendarPage({
                     onClick={() => handleSync('google_calendar')}
                     disabled={syncing.google_calendar}
                     className="p-0.5 hover:bg-slate-100 rounded transition-colors disabled:opacity-50"
-                    title="Sync Google Calendar"
+                    onMouseEnter={e => showCalTooltip(e, 'Sync Google Calendar')}
+                    onMouseLeave={hideCalTooltip}
                   >
                     <svg className={`w-3 h-3 text-slate-400 ${syncing.google_calendar ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
@@ -728,7 +770,8 @@ export default function CalendarPage({
                     onClick={() => handleSync('microsoft_outlook')}
                     disabled={syncing.microsoft_outlook}
                     className="p-0.5 hover:bg-slate-100 rounded transition-colors disabled:opacity-50"
-                    title="Sync Microsoft Outlook"
+                    onMouseEnter={e => showCalTooltip(e, 'Sync Microsoft Outlook')}
+                    onMouseLeave={hideCalTooltip}
                   >
                     <svg className={`w-3 h-3 text-slate-400 ${syncing.microsoft_outlook ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
@@ -867,7 +910,8 @@ export default function CalendarPage({
                   setShowSettingsMenu(!showSettingsMenu);
                 }}
                 className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500 hover:text-slate-700"
-                title="Calendar Settings"
+                onMouseEnter={e => showCalTooltip(e, 'Calendar Settings')}
+                onMouseLeave={hideCalTooltip}
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <circle cx="12" cy="5" r="2" />
@@ -1139,7 +1183,8 @@ export default function CalendarPage({
                                 key={event.id}
                                 className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10`}
                                 style={{ top: `${topOffset}px`, height: `${height}px` }}
-                                title={`${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`}
+                                onMouseEnter={e => showCalTooltip(e, `${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`)}
+                                onMouseLeave={hideCalTooltip}
                                 onClick={e => e.stopPropagation()}
                               >
                                 <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
@@ -1515,7 +1560,7 @@ export default function CalendarPage({
                   {[
                     { value: '', label: 'None', icon: null, disabled: false },
                     { value: 'google_meet', label: 'Meet', icon: <SiGooglemeet className="w-4 h-4 text-[#00897B]" />, disabled: !googleIntegration?.connected },
-                    { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: false },
+                    { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: !zoomConnected },
                     { value: 'microsoft_teams', label: 'Teams', icon: <BsMicrosoftTeams className="w-4 h-4 text-[#6264A7]" />, disabled: !microsoftIntegration?.connected },
                   ].map(opt => (
                     <button
@@ -1530,7 +1575,8 @@ export default function CalendarPage({
                             ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)] shadow-sm'
                             : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                       }`}
-                      title={opt.disabled ? `Connect ${opt.label} integration first` : ''}
+                      onMouseEnter={e => opt.disabled ? showCalTooltip(e, `Connect ${opt.label} integration first`) : undefined}
+                      onMouseLeave={opt.disabled ? hideCalTooltip : undefined}
                     >
                       {opt.icon}
                       {opt.label}

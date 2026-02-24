@@ -89,6 +89,8 @@ export default async function Calendar() {
     end: (additionalSettings.working_hours_end as string) || '18:00',
   };
 
+  const zoomConnected = !!additionalSettings.zoom_connected;
+
   const calendarSettings = {
     timezone: (additionalSettings.timezone as string) || geoTimezone || 'America/New_York',
     working_hours_start: (additionalSettings.working_hours_start as string) || '09:00',
@@ -107,6 +109,7 @@ export default async function Calendar() {
       excludeHolidays={calendarSettings.exclude_holidays}
       timezone={calendarSettings.timezone}
       calendarSettings={calendarSettings}
+      zoomConnected={zoomConnected}
       contacts={(contacts || []).map(c => ({
         id: c.id,
         contact_name: c.contact_name,
