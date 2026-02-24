@@ -241,17 +241,29 @@ export default function CalendarPage({
     setTooltip(null);
   }, []);
 
-  // Schedule form state
-  const [scheduleForm, setScheduleForm] = useState({
-    event_type: 'call' as string,
-    contact_id: '',
-    date: new Date().toISOString().split('T')[0],
-    time: '10:00',
-    duration: 15,
-    notes: '',
-    sync_to_google: true,
-    sync_to_microsoft: false,
-    video_provider: '' as string,
+  // Schedule form state – restore last sync preferences from localStorage
+  const [scheduleForm, setScheduleForm] = useState(() => {
+    let syncGoogle = true;
+    let syncMicrosoft = false;
+    try {
+      const saved = localStorage.getItem('callengo_sync_preferences');
+      if (saved) {
+        const prefs = JSON.parse(saved);
+        if (typeof prefs.sync_to_google === 'boolean') syncGoogle = prefs.sync_to_google;
+        if (typeof prefs.sync_to_microsoft === 'boolean') syncMicrosoft = prefs.sync_to_microsoft;
+      }
+    } catch { /* ignore */ }
+    return {
+      event_type: 'call' as string,
+      contact_id: '',
+      date: new Date().toISOString().split('T')[0],
+      time: '10:00',
+      duration: 15,
+      notes: '',
+      sync_to_google: syncGoogle,
+      sync_to_microsoft: syncMicrosoft,
+      video_provider: '' as string,
+    };
   });
 
   // Show toast if redirected from OAuth callback
@@ -502,6 +514,12 @@ export default function CalendarPage({
         showToast('Event scheduled successfully', 'success');
         setShowScheduleModal(false);
         setScheduleWarning(null);
+        try {
+          localStorage.setItem('callengo_sync_preferences', JSON.stringify({
+            sync_to_google: scheduleForm.sync_to_google,
+            sync_to_microsoft: scheduleForm.sync_to_microsoft,
+          }));
+        } catch { /* ignore */ }
         await refreshEvents();
       } else {
         showToast('Failed to schedule event', 'error');
