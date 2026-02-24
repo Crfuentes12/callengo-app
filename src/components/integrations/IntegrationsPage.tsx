@@ -319,12 +319,6 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       disconnectUrl: '/api/integrations/zoom/disconnect',
       connectedDetail: integrations.zoom.connected ? (
         <div className="text-xs text-slate-500 mt-2">
-          {integrations.zoom.email && (
-            <p className="flex items-center gap-1.5">
-              <span className="text-slate-400">Account:</span>
-              <span className="font-medium text-slate-600">{integrations.zoom.email}</span>
-            </p>
-          )}
           <p className="flex items-center gap-1.5">
             <span className="text-slate-400">Feature:</span>
             <span className="font-medium text-slate-600">Meeting link generation enabled</span>
