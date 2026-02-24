@@ -251,7 +251,7 @@ export async function createCalendarEvent(
   if (videoProvider === 'zoom') {
     try {
       const { getZoomAccessToken, createZoomMeeting } = await import('./zoom');
-      const zoomToken = await getZoomAccessToken(companyId);
+      const zoomToken = await getZoomAccessToken();
       if (zoomToken) {
         const zoomMeeting = await createZoomMeeting(zoomToken, createdEvent);
         await supabaseAdmin
@@ -263,7 +263,7 @@ export async function createCalendarEvent(
           .eq('id', createdEvent.id);
         createdEvent = (await refetchEvent(createdEvent.id)) || createdEvent;
       } else {
-        console.error('Zoom is selected but no valid token found for company:', companyId);
+        console.error('Zoom is selected but no valid token available (check ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, ZOOM_ACCOUNT_ID env vars)');
       }
     } catch (e) {
       console.error('Failed to create Zoom meeting:', e);

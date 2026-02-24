@@ -41,6 +41,7 @@ interface IntegrationCardConfig {
   connectedDetail?: React.ReactNode;
   autoEnabledWith?: string;
   connectUrl?: string;
+  connectMethod?: 'redirect' | 'post'; // 'redirect' = GET redirect (default), 'post' = API call
   disconnectUrl?: string;
   syncUrl?: string;
   settingsUrl?: string;
@@ -147,9 +148,28 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   // Actions
   // --------------------------------------------------------------------------
 
-  const handleConnect = useCallback((provider: string, connectUrl: string) => {
-    window.location.href = connectUrl;
-  }, []);
+  const handleConnect = useCallback(async (provider: string, connectUrl: string, method?: 'redirect' | 'post') => {
+    if (method === 'post') {
+      // Server-to-Server OAuth (e.g., Zoom) — API call instead of redirect
+      setLoadingAction(`connect-${provider}`);
+      try {
+        const res = await fetch(connectUrl, { method: 'POST' });
+        if (res.ok) {
+          showToast('Connected successfully', 'success');
+          router.refresh();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          showToast(data.error || 'Failed to connect', 'error');
+        }
+      } catch {
+        showToast('Failed to connect', 'error');
+      } finally {
+        setLoadingAction(null);
+      }
+    } else {
+      window.location.href = connectUrl;
+    }
+  }, [router, showToast]);
 
   const handleDisconnect = useCallback(async (provider: string, name: string) => {
     const key = `disconnect-${provider}`;
@@ -294,7 +314,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       requiredPlan: 'starter',
       status: integrations.zoom.connected ? 'connected' : 'available',
       category: 'video',
-      connectUrl: '/api/integrations/zoom/connect?return_to=/integrations',
+      connectUrl: '/api/integrations/zoom/connect',
+      connectMethod: 'post' as const,
       disconnectUrl: '/api/integrations/zoom/disconnect',
       connectedDetail: integrations.zoom.connected ? (
         <div className="text-xs text-slate-500 mt-2">
@@ -583,7 +604,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             <button
               onClick={() => {
                 if (isLocked) return;
-                handleConnect(card.provider, card.connectUrl!);
+                handleConnect(card.provider, card.connectUrl!, card.connectMethod);
               }}
               disabled={isLocked}
               className={`w-full py-2.5 rounded-lg font-medium text-sm transition-all ${
