@@ -303,6 +303,22 @@ export default function CalendarPage({
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const inlinePanelRef = useRef<HTMLDivElement>(null);
 
+  // Event resize state (drag top/bottom edge to change start/end time)
+  const isResizingRef = useRef(false);
+  const resizeRef = useRef<{
+    eventId: string;
+    edge: 'top' | 'bottom';
+    originalStartMin: number;
+    originalEndMin: number;
+  } | null>(null);
+  const resizePreviewRef = useRef<{ eventId: string; startMinutes: number; endMinutes: number } | null>(null);
+  const [resizePreview, setResizePreview] = useState<{
+    eventId: string;
+    startMinutes: number;
+    endMinutes: number;
+  } | null>(null);
+  const handleResizeCompleteRef = useRef<(eventId: string, startMin: number, endMin: number) => void>(() => {});
+
   // Custom tooltip state (replaces native title attributes)
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
   const tooltipTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -385,9 +401,19 @@ export default function CalendarPage({
     openScheduleRef.current = openScheduleFromSlot;
   });
 
-  // Global mouseup handler for drag-to-select
+  // Global mouseup handler for drag-to-select and resize
   useEffect(() => {
     const handleMouseUp = (e: MouseEvent) => {
+      // Handle resize completion
+      if (isResizingRef.current && resizePreviewRef.current) {
+        const preview = { ...resizePreviewRef.current };
+        isResizingRef.current = false;
+        resizeRef.current = null;
+        resizePreviewRef.current = null;
+        setResizePreview(null);
+        handleResizeCompleteRef.current(preview.eventId, preview.startMinutes, preview.endMinutes);
+        return;
+      }
       if (isDraggingRef.current && dragSelRef.current) {
         const sel = { ...dragSelRef.current };
         isDraggingRef.current = false;
@@ -406,15 +432,15 @@ export default function CalendarPage({
     return () => window.removeEventListener('mouseup', handleMouseUp);
   }, []);
 
-  // Prevent text selection during drag
+  // Prevent text selection during drag or resize
   useEffect(() => {
-    if (dragSelection) {
+    if (dragSelection || resizePreview) {
       document.body.style.userSelect = 'none';
     } else {
       document.body.style.userSelect = '';
     }
     return () => { document.body.style.userSelect = ''; };
-  }, [dragSelection]);
+  }, [dragSelection, resizePreview]);
 
 
   // Close inline panel (and selection)
@@ -453,6 +479,27 @@ export default function CalendarPage({
     setSelectedEvent(event);
     setDragSelection(null);
     setInlinePanel({ mode: 'view', x, y });
+  }, []);
+
+  // Event edge resize: start
+  const handleResizeStart = useCallback((
+    e: React.MouseEvent,
+    eventId: string,
+    edge: 'top' | 'bottom',
+    originalStartMin: number,
+    originalEndMin: number,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Close any inline panel
+    setInlinePanel(null);
+    setSelectedEvent(null);
+    setDragSelection(null);
+    isResizingRef.current = true;
+    resizeRef.current = { eventId, edge, originalStartMin, originalEndMin };
+    const preview = { eventId, startMinutes: originalStartMin, endMinutes: originalEndMin };
+    resizePreviewRef.current = preview;
+    setResizePreview(preview);
   }, []);
 
   // ============================================================================
@@ -610,6 +657,45 @@ export default function CalendarPage({
       setActionLoading(null);
     }
   }, [refreshEvents, showToast]);
+
+  // Event edge resize: complete (API call to reschedule)
+  const handleResizeComplete = useCallback(async (eventId: string, newStartMin: number, newEndMin: number) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+    const eventDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(event.start_time));
+    const toTzDate = (dateStr: string, minutes: number) => {
+      const h = String(Math.floor(minutes / 60)).padStart(2, '0');
+      const m = String(minutes % 60).padStart(2, '0');
+      const naive = new Date(`${dateStr}T${h}:${m}:00`);
+      const inTz = new Date(naive.toLocaleString('en-US', { timeZone: tz }));
+      return new Date(naive.getTime() + (naive.getTime() - inTz.getTime()));
+    };
+    try {
+      const res = await fetch('/api/calendar/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_id: eventId,
+          action: 'reschedule',
+          new_start_time: toTzDate(eventDate, newStartMin).toISOString(),
+          new_end_time: toTzDate(eventDate, newEndMin).toISOString(),
+        }),
+      });
+      if (res.ok) {
+        showToast('Event resized', 'success');
+        await refreshEvents();
+      } else {
+        showToast('Failed to resize event', 'error');
+      }
+    } catch {
+      showToast('Failed to resize event', 'error');
+    }
+  }, [events, tz, showToast, refreshEvents]);
+
+  // Keep resize complete ref in sync
+  useEffect(() => {
+    handleResizeCompleteRef.current = handleResizeComplete;
+  });
 
   const handleSaveSettings = useCallback(async () => {
     setSavingSettings(true);
@@ -859,8 +945,28 @@ export default function CalendarPage({
     setDragSelection(sel);
   }, []);
 
-  // Drag move handler for time grid container
+  // Drag move handler for time grid container (also handles resize)
   const handleGridMouseMove = useCallback((e: React.MouseEvent, quarterHeight: number) => {
+    // Handle resize tracking
+    if (isResizingRef.current && resizeRef.current) {
+      e.preventDefault();
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const y = Math.max(0, e.clientY - rect.top);
+      const quarterInGrid = Math.floor(y / quarterHeight);
+      const absoluteMinutes = Math.min(23 * 60 + 45, Math.max(0, (quarterInGrid + visibleStartHour * 4) * 15));
+      const info = resizeRef.current;
+      let newStart = info.originalStartMin;
+      let newEnd = info.originalEndMin;
+      if (info.edge === 'bottom') {
+        newEnd = Math.max(newStart + 15, absoluteMinutes + 15);
+      } else {
+        newStart = Math.min(newEnd - 15, absoluteMinutes);
+      }
+      const preview = { eventId: info.eventId, startMinutes: newStart, endMinutes: newEnd };
+      resizePreviewRef.current = preview;
+      setResizePreview(preview);
+      return;
+    }
     if (!isDraggingRef.current || !dragStartRef.current) return;
     e.preventDefault();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -1495,33 +1601,51 @@ export default function CalendarPage({
                           const startH = getHourInTz(eStart);
                           const startM = getMinutesInTz(eStart);
                           const durationMin = Math.round((new Date(event.end_time).getTime() - eStart.getTime()) / 60000);
-                          const eventStartMin = startH * 60 + startM;
-                          const eventEndMin = eventStartMin + durationMin;
+                          // Use resize preview if this event is being resized
+                          const rp = resizePreview?.eventId === event.id ? resizePreview : null;
+                          const eventStartMin = rp ? rp.startMinutes : startH * 60 + startM;
+                          const eventEndMin = rp ? rp.endMinutes : eventStartMin + durationMin;
                           const visStartMin = visibleStartHour * 60;
                           const visEndMin = (visibleStartHour + visibleHours.length) * 60;
-                          // Skip events entirely outside visible range
                           if (eventEndMin <= visStartMin || eventStartMin >= visEndMin) return null;
-                          // Clamp to visible range
                           const clampedStart = Math.max(eventStartMin, visStartMin);
                           const clampedEnd = Math.min(eventEndMin, visEndMin);
                           const topPx = ((clampedStart / 60) - visibleStartHour) * 48;
                           const heightPx = Math.max(((clampedEnd - clampedStart) / 60) * 48, 18);
+                          const actualStartMin = rp ? rp.startMinutes : startH * 60 + startM;
+                          const actualEndMin = rp ? rp.endMinutes : actualStartMin + durationMin;
                           return (
                             <div
                               key={event.id}
-                              className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-md transition-shadow z-10 pointer-events-auto`}
+                              className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded overflow-hidden cursor-pointer hover:shadow-md transition-shadow z-10 pointer-events-auto group/evt`}
                               style={{ top: `${topPx}px`, height: `${heightPx}px` }}
-                              onMouseEnter={e => showCalTooltip(e, `${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`)}
+                              onMouseEnter={e => !isResizingRef.current && showCalTooltip(e, `${event.title}\n${rp ? formatTimeFromMinutes(rp.startMinutes) + ' – ' + formatTimeFromMinutes(rp.endMinutes) : formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' }) + ' - ' + durationMin + 'min'}`)}
                               onMouseLeave={hideCalTooltip}
                               onMouseDown={e => e.stopPropagation()}
-                              onClick={(e) => { e.stopPropagation(); hideCalTooltip(); openEventPanel(event, e.clientX, e.clientY); }}
+                              onClick={(e) => { if (!isResizingRef.current) { e.stopPropagation(); hideCalTooltip(); openEventPanel(event, e.clientX, e.clientY); } }}
                             >
-                              <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
-                              {heightPx >= 28 && (
-                                <div className="text-[9px] opacity-75 truncate">
-                                  {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })}
-                                </div>
-                              )}
+                              {/* Top resize handle */}
+                              <div
+                                className="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize z-20 flex items-center justify-center"
+                                onMouseDown={(e) => handleResizeStart(e, event.id, 'top', actualStartMin, actualEndMin)}
+                              >
+                                <div className="w-6 h-[3px] rounded-full bg-current opacity-0 group-hover/evt:opacity-30 transition-opacity" />
+                              </div>
+                              <div className="px-1 py-0.5">
+                                <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
+                                {heightPx >= 28 && (
+                                  <div className="text-[9px] opacity-75 truncate">
+                                    {rp ? `${formatTimeFromMinutes(rp.startMinutes)} – ${formatTimeFromMinutes(rp.endMinutes)}` : formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })}
+                                  </div>
+                                )}
+                              </div>
+                              {/* Bottom resize handle */}
+                              <div
+                                className="absolute bottom-0 left-0 right-0 h-1.5 cursor-ns-resize z-20 flex items-center justify-center"
+                                onMouseDown={(e) => handleResizeStart(e, event.id, 'bottom', actualStartMin, actualEndMin)}
+                              >
+                                <div className="w-6 h-[3px] rounded-full bg-current opacity-0 group-hover/evt:opacity-30 transition-opacity" />
+                              </div>
                             </div>
                           );
                         })}
@@ -1672,32 +1796,41 @@ export default function CalendarPage({
                         const startH = getHourInTz(eStart);
                         const startM = getMinutesInTz(eStart);
                         const durationMin = Math.round((new Date(event.end_time).getTime() - eStart.getTime()) / 60000);
-                        const eventStartMin = startH * 60 + startM;
-                        const eventEndMin = eventStartMin + durationMin;
+                        // Use resize preview if this event is being resized
+                        const rp = resizePreview?.eventId === event.id ? resizePreview : null;
+                        const eventStartMin = rp ? rp.startMinutes : startH * 60 + startM;
+                        const eventEndMin = rp ? rp.endMinutes : eventStartMin + durationMin;
                         const visStartMin = visibleStartHour * 60;
                         const visEndMin = (visibleStartHour + visibleHours.length) * 60;
-                        // Skip events entirely outside visible range
                         if (eventEndMin <= visStartMin || eventStartMin >= visEndMin) return null;
-                        // Clamp to visible range
                         const clampedStart = Math.max(eventStartMin, visStartMin);
                         const clampedEnd = Math.min(eventEndMin, visEndMin);
                         const topPx = ((clampedStart / 60) - visibleStartHour) * 52;
                         const heightPx = Math.max(((clampedEnd - clampedStart) / 60) * 52, 40);
+                        const actualStartMin = rp ? rp.startMinutes : startH * 60 + startM;
+                        const actualEndMin = rp ? rp.endMinutes : actualStartMin + durationMin;
                         return (
                           <div
                             key={event.id}
-                            className={`absolute left-1 right-1 ${style.bg} border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow z-10 pointer-events-auto group`}
+                            className={`absolute left-1 right-1 ${style.bg} border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow z-10 pointer-events-auto group/evt`}
                             style={{ top: `${topPx}px`, height: `${heightPx}px` }}
                             onMouseDown={e => e.stopPropagation()}
-                            onClick={(e) => { e.stopPropagation(); openEventPanel(event, e.clientX, e.clientY); }}
+                            onClick={(e) => { if (!isResizingRef.current) { e.stopPropagation(); openEventPanel(event, e.clientX, e.clientY); } }}
                           >
+                            {/* Top resize handle */}
+                            <div
+                              className="absolute top-0 left-0 right-0 h-2 cursor-ns-resize z-20 flex items-center justify-center"
+                              onMouseDown={(e) => handleResizeStart(e, event.id, 'top', actualStartMin, actualEndMin)}
+                            >
+                              <div className="w-8 h-[3px] rounded-full bg-current opacity-0 group-hover/evt:opacity-30 transition-opacity" />
+                            </div>
                             <div className="p-2.5 h-full flex items-center justify-between">
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
                                 <div className="min-w-0">
                                   <div className={`text-sm font-semibold ${style.text} truncate`}>{event.title}</div>
                                   <div className="text-xs text-slate-500">
-                                    {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
+                                    {rp ? `${formatTimeFromMinutes(rp.startMinutes)} – ${formatTimeFromMinutes(rp.endMinutes)}` : `${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`}
                                     {event.contact_phone && <span className="ml-2">{event.contact_phone}</span>}
                                   </div>
                                   {heightPx >= 60 && (
@@ -1710,6 +1843,13 @@ export default function CalendarPage({
                                   )}
                                 </div>
                               </div>
+                            </div>
+                            {/* Bottom resize handle */}
+                            <div
+                              className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize z-20 flex items-center justify-center"
+                              onMouseDown={(e) => handleResizeStart(e, event.id, 'bottom', actualStartMin, actualEndMin)}
+                            >
+                              <div className="w-8 h-[3px] rounded-full bg-current opacity-0 group-hover/evt:opacity-30 transition-opacity" />
                             </div>
                           </div>
                         );
