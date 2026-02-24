@@ -80,6 +80,62 @@ const DAY_LABELS: Record<string, string> = {
 };
 
 // ============================================================================
+// US HOLIDAYS (for calendar display)
+// ============================================================================
+
+function getUSHolidaysForYear(year: number): { date: string; name: string }[] {
+  const fmt = (m: number, d: number) =>
+    `${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+  const nthWeekday = (month: number, weekday: number, n: number): number => {
+    let count = 0;
+    for (let d = 1; d <= 31; d++) {
+      const dt = new Date(year, month - 1, d);
+      if (dt.getMonth() !== month - 1) break;
+      if (dt.getDay() === weekday) {
+        count++;
+        if (count === n) return d;
+      }
+    }
+    return 1;
+  };
+
+  const lastWeekday = (month: number, weekday: number): number => {
+    let last = 1;
+    for (let d = 1; d <= 31; d++) {
+      const dt = new Date(year, month - 1, d);
+      if (dt.getMonth() !== month - 1) break;
+      if (dt.getDay() === weekday) last = d;
+    }
+    return last;
+  };
+
+  const holidays: { date: string; name: string }[] = [];
+
+  const addFixed = (month: number, day: number, name: string) => {
+    const date = new Date(year, month - 1, day);
+    const dow = date.getDay();
+    holidays.push({ date: fmt(month, day), name });
+    if (dow === 6) holidays.push({ date: fmt(month, day - 1), name: `${name} (Observed)` });
+    if (dow === 0) holidays.push({ date: fmt(month, day + 1), name: `${name} (Observed)` });
+  };
+
+  addFixed(1, 1, "New Year's Day");
+  holidays.push({ date: fmt(1, nthWeekday(1, 1, 3)), name: 'MLK Day' });
+  holidays.push({ date: fmt(2, nthWeekday(2, 1, 3)), name: "Presidents' Day" });
+  holidays.push({ date: fmt(5, lastWeekday(5, 1)), name: 'Memorial Day' });
+  addFixed(6, 19, 'Juneteenth');
+  addFixed(7, 4, 'Independence Day');
+  holidays.push({ date: fmt(9, nthWeekday(9, 1, 1)), name: 'Labor Day' });
+  holidays.push({ date: fmt(10, nthWeekday(10, 1, 2)), name: 'Columbus Day' });
+  addFixed(11, 11, 'Veterans Day');
+  holidays.push({ date: fmt(11, nthWeekday(11, 4, 4)), name: 'Thanksgiving' });
+  addFixed(12, 25, 'Christmas');
+
+  return holidays;
+}
+
+// ============================================================================
 // ICON COMPONENTS
 // ============================================================================
 
@@ -225,6 +281,20 @@ export default function CalendarPage({
   const [schedulingEvent, setSchedulingEvent] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
+  // Working hours visibility & drag-to-select state
+  const [showFullDay, setShowFullDay] = useState(false);
+  const [dragSelection, setDragSelection] = useState<{
+    dayDate: Date;
+    startMinutes: number;
+    endMinutes: number;
+  } | null>(null);
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef<{ dayDate: Date; minutes: number } | null>(null);
+  const dragSelRef = useRef<{ dayDate: Date; startMinutes: number; endMinutes: number } | null>(null);
+  const openScheduleRef = useRef<(date: Date, startMin: number, endMin: number) => void>(() => {});
+  const weekGridRef = useRef<HTMLDivElement>(null);
+  const dayGridRef = useRef<HTMLDivElement>(null);
+
   // Custom tooltip state (replaces native title attributes)
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
   const tooltipTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -301,6 +371,41 @@ export default function CalendarPage({
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSettingsMenu]);
+
+  // Keep openScheduleRef in sync
+  useEffect(() => {
+    openScheduleRef.current = openScheduleFromSlot;
+  });
+
+  // Global mouseup handler for drag-to-select
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (isDraggingRef.current && dragSelRef.current) {
+        const sel = { ...dragSelRef.current };
+        isDraggingRef.current = false;
+        dragStartRef.current = null;
+        dragSelRef.current = null;
+        setDragSelection(null);
+        // If selection is very small (just a click), default to 1 hour
+        if (sel.endMinutes - sel.startMinutes <= 15) {
+          sel.endMinutes = Math.min(24 * 60, sel.startMinutes + 60);
+        }
+        openScheduleRef.current(sel.dayDate, sel.startMinutes, sel.endMinutes);
+      }
+    };
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, []);
+
+  // Prevent text selection during drag
+  useEffect(() => {
+    if (dragSelection) {
+      document.body.style.userSelect = 'none';
+    } else {
+      document.body.style.userSelect = '';
+    }
+    return () => { document.body.style.userSelect = ''; };
+  }, [dragSelection]);
 
 
   // ============================================================================
@@ -531,16 +636,21 @@ export default function CalendarPage({
     }
   }, [scheduleForm, contacts, refreshEvents, showToast, schedulingEvent]);
 
-  // Open schedule modal pre-filled from a time slot click
-  const openScheduleFromSlot = useCallback((date: Date, hour: number) => {
+  // Open schedule modal pre-filled from a time slot click (supports minute-level precision)
+  const openScheduleFromSlot = useCallback((date: Date, startMinutes: number, endMinutes: number) => {
     const dayName = ALL_DAYS[date.getDay()];
-    const working = isWorkingHour(hour) && calSettings.working_days.includes(dayName);
+    const startHour = Math.floor(startMinutes / 60);
+    const working = isWorkingHour(startHour) && calSettings.working_days.includes(dayName);
     const warning = working ? null : 'This time slot is outside your working hours. Callengo agents will not operate during this time.';
     setScheduleWarning(warning);
+    const h = String(Math.floor(startMinutes / 60)).padStart(2, '0');
+    const m = String(startMinutes % 60).padStart(2, '0');
+    const duration = endMinutes - startMinutes;
     setScheduleForm(prev => ({
       ...prev,
       date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
-      time: `${String(hour).padStart(2, '0')}:00`,
+      time: `${h}:${m}`,
+      duration: duration > 0 ? duration : 30,
     }));
     setShowScheduleModal(true);
   }, [calSettings.working_days, isWorkingHour]);
@@ -648,6 +758,67 @@ export default function CalendarPage({
       pendingConfirmation: pendingConfirmation.length,
     };
   }, [events]);
+
+  // Holiday map (date string -> holiday name)
+  const holidayMap = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const combined = new Map<string, string>();
+    for (const h of getUSHolidaysForYear(year - 1)) combined.set(h.date, h.name);
+    for (const h of getUSHolidaysForYear(year)) combined.set(h.date, h.name);
+    for (const h of getUSHolidaysForYear(year + 1)) combined.set(h.date, h.name);
+    return combined;
+  }, [currentDate]);
+
+  // Visible hours (for collapsing non-working hours in week/day views)
+  const visibleHours = useMemo(() => {
+    if (showFullDay) return Array.from({ length: 24 }, (_, i) => i);
+    const start = Math.max(0, workStart);
+    const end = Math.min(24, workEnd);
+    return Array.from({ length: end - start }, (_, i) => i + start);
+  }, [showFullDay, workStart, workEnd]);
+
+  const visibleStartHour = showFullDay ? 0 : workStart;
+
+  // Format minutes (0-1440) to readable time string
+  const formatTimeFromMinutes = useCallback((totalMinutes: number): string => {
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  }, []);
+
+  // Drag start handler for time grid cells
+  const handleCellMouseDown = useCallback((dayDate: Date, hour: number, e: React.MouseEvent, quarterHeight: number) => {
+    e.preventDefault();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const yInCell = e.clientY - rect.top;
+    const quarterInCell = Math.min(3, Math.max(0, Math.floor(yInCell / quarterHeight)));
+    const startMinutes = hour * 60 + quarterInCell * 15;
+    isDraggingRef.current = true;
+    dragStartRef.current = { dayDate, minutes: startMinutes };
+    const sel = { dayDate, startMinutes, endMinutes: startMinutes + 15 };
+    dragSelRef.current = sel;
+    setDragSelection(sel);
+  }, []);
+
+  // Drag move handler for time grid container
+  const handleGridMouseMove = useCallback((e: React.MouseEvent, quarterHeight: number) => {
+    if (!isDraggingRef.current || !dragStartRef.current) return;
+    e.preventDefault();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const y = Math.max(0, e.clientY - rect.top);
+    const quarterInGrid = Math.floor(y / quarterHeight);
+    const absoluteMinutes = Math.min(23 * 60 + 45, Math.max(0, (quarterInGrid + visibleStartHour * 4) * 15));
+    const startMin = dragStartRef.current.minutes;
+    const sel = {
+      dayDate: dragStartRef.current.dayDate,
+      startMinutes: Math.min(startMin, absoluteMinutes),
+      endMinutes: Math.max(startMin, absoluteMinutes) + 15,
+    };
+    dragSelRef.current = sel;
+    setDragSelection(sel);
+  }, [visibleStartHour]);
 
   // Navigation
   const navigateMonth = (direction: number) => {
@@ -987,7 +1158,7 @@ export default function CalendarPage({
                     {/* Working Days */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">Working Days</label>
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex gap-1">
                         {DISPLAY_DAYS.map(day => {
                           const isActive = settingsForm.working_days.includes(day);
                           return (
@@ -1002,7 +1173,7 @@ export default function CalendarPage({
                                     : [...prev.working_days, day],
                                 }));
                               }}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
                                 isActive
                                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
                                   : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
@@ -1032,6 +1203,27 @@ export default function CalendarPage({
                         <div>
                           <span className="text-xs font-semibold text-slate-700">Exclude US Holidays</span>
                           <p className="text-[10px] text-slate-400">Callengo agents will not operate on US holidays</p>
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* Show Full Day Hours */}
+                    <div>
+                      <label className="flex items-center gap-2.5 cursor-pointer">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={showFullDay}
+                            onChange={e => setShowFullDay(e.target.checked)}
+                            className="sr-only"
+                          />
+                          <div className={`w-9 h-5 rounded-full transition-colors ${showFullDay ? 'bg-[var(--color-primary)]' : 'bg-slate-200'}`}>
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${showFullDay ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold text-slate-700">Show Full Day</span>
+                          <p className="text-[10px] text-slate-400">Display all 24 hours instead of just working hours</p>
                         </div>
                       </label>
                     </div>
@@ -1067,18 +1259,25 @@ export default function CalendarPage({
               ))}
             </div>
             <div className="grid grid-cols-7 border-t border-l border-slate-200">
-              {calendarDays.map((day, idx) => (
+              {calendarDays.map((day, idx) => {
+                const holidayName = holidayMap.get(getLocalDateString(day.date));
+                return (
                 <div
                   key={idx}
                   onClick={() => { setCurrentDate(day.date); setViewMode('day'); }}
                   className={`min-h-[100px] p-1.5 border-r border-b border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors ${
                     !day.isCurrentMonth ? 'bg-slate-50/50' : ''
-                  } ${isToday(day.date) ? 'bg-blue-50/50' : ''}`}
+                  } ${isToday(day.date) ? 'bg-blue-50/50' : ''} ${holidayName ? 'bg-red-50/30' : ''}`}
                 >
-                  <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
-                    isToday(day.date) ? 'gradient-bg text-white' : day.isCurrentMonth ? 'text-slate-900' : 'text-slate-400'
-                  }`}>
-                    {day.date.getDate()}
+                  <div className="flex items-center gap-1 mb-1">
+                    <div className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full shrink-0 ${
+                      isToday(day.date) ? 'gradient-bg text-white' : day.isCurrentMonth ? 'text-slate-900' : 'text-slate-400'
+                    }`}>
+                      {day.date.getDate()}
+                    </div>
+                    {holidayName && (
+                      <span className="text-[9px] text-red-600 font-semibold truncate leading-tight">{holidayName}</span>
+                    )}
                   </div>
                   <div className="space-y-0.5">
                     {day.events.slice(0, 3).map(event => {
@@ -1094,7 +1293,8 @@ export default function CalendarPage({
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -1108,34 +1308,41 @@ export default function CalendarPage({
                 <div className="w-16" />
                 {weekDays.map((day, idx) => {
                   const dayWorking = isWorkingDay(day.date);
+                  const holiday = holidayMap.get(getLocalDateString(day.date));
                   return (
                     <div
                       key={idx}
-                      className={`text-center py-3 border-b border-l ${
+                      className={`text-center py-2 border-b border-l ${
                         isToday(day.date) ? 'bg-[var(--color-primary-50)]/40 border-b-[var(--color-primary)]/30' : 'border-slate-200'
-                      } ${!dayWorking ? 'bg-slate-100/60' : ''} ${idx === 6 ? 'border-r border-slate-200' : ''}`}
+                      } ${!dayWorking ? 'bg-slate-100/60' : ''} ${idx === 6 ? 'border-r border-slate-200' : ''} ${holiday ? 'bg-red-50/30' : ''}`}
                     >
                       <div className={`text-xs font-medium ${!dayWorking ? 'text-slate-400' : 'text-slate-500'}`}>{formatDate(day.date, { weekday: 'short' })}</div>
                       <div className={`text-lg font-bold ${isToday(day.date) ? 'text-[var(--color-primary)]' : !dayWorking ? 'text-slate-400' : 'text-slate-900'}`}>
                         {day.date.getDate()}
                       </div>
-                      {!dayWorking && <div className="text-[9px] text-slate-400 font-medium">Off</div>}
+                      {holiday && <div className="text-[9px] text-red-600 font-semibold truncate px-1">{holiday}</div>}
+                      {!dayWorking && !holiday && <div className="text-[9px] text-slate-400 font-medium">Off</div>}
                     </div>
                   );
                 })}
               </div>
 
               {/* Time grid */}
-              <div className="relative">
+              <div
+                ref={weekGridRef}
+                className="relative select-none"
+                onMouseMove={(e) => handleGridMouseMove(e, 12)}
+              >
                 {/* Current time indicator */}
                 {(() => {
                   const todayIdx = weekDays.findIndex(d => isToday(d.date));
                   if (todayIdx === -1) return null;
                   const h = getHourInTz(currentTime);
                   const m = getMinutesInTz(currentTime);
-                  const topPx = (h + m / 60) * 48;
+                  if (!showFullDay && (h < workStart || h >= workEnd)) return null;
+                  const topPx = ((h - visibleStartHour) + m / 60) * 48;
                   return (
-                    <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPx}px` }}>
+                    <div className="absolute left-0 right-0 z-30 pointer-events-none" style={{ top: `${topPx}px` }}>
                       <div className="grid grid-cols-[64px_repeat(7,1fr)]">
                         <div className="flex justify-end pr-1">
                           <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded-full border border-red-200">
@@ -1157,7 +1364,7 @@ export default function CalendarPage({
                   );
                 })()}
 
-                {Array.from({ length: 24 }, (_, i) => i).map(hour => {
+                {visibleHours.map(hour => {
                   const working = isWorkingHour(hour);
                   const isFirstWork = hour === workStart;
                   const isLastWork = hour === workEnd;
@@ -1172,19 +1379,24 @@ export default function CalendarPage({
                       const hourEvents = day.events.filter(e => getHourInTz(new Date(e.start_time)) === hour);
                       const dayWorking = isWorkingDay(day.date);
                       const slotWorking = working && dayWorking;
-                      const isEmpty = hourEvents.length === 0;
+                      const cellStartMin = hour * 60;
+                      const cellEndMin = (hour + 1) * 60;
+                      const isDragSelected = dragSelection &&
+                        getLocalDateString(dragSelection.dayDate) === getLocalDateString(day.date) &&
+                        dragSelection.startMinutes < cellEndMin &&
+                        dragSelection.endMinutes > cellStartMin;
                       return (
                         <div
                           key={dayIdx}
-                          onClick={() => { if (isEmpty) openScheduleFromSlot(day.date, hour); }}
+                          onMouseDown={(e) => handleCellMouseDown(day.date, hour, e, 12)}
                           className={`h-12 border-t border-l ${dayIdx === 6 ? 'border-r' : ''} ${
                             slotWorking
                               ? isToday(day.date) ? 'bg-[var(--color-primary-50)]/20 border-slate-200' : 'bg-white border-slate-200'
                               : !dayWorking
                                 ? 'border-slate-100'
                                 : isToday(day.date) ? 'bg-slate-50/80 border-slate-100' : 'bg-slate-50/60 border-slate-100'
-                          } ${isFirstWork || isLastWork ? 'border-t-[var(--color-primary)]/20' : ''} relative ${
-                            isEmpty ? 'cursor-pointer hover:bg-blue-50/40 transition-colors' : ''
+                          } ${isFirstWork || isLastWork ? 'border-t-[var(--color-primary)]/20' : ''} relative cursor-pointer transition-colors ${
+                            !isDragSelected ? 'hover:bg-blue-50/40' : ''
                           }`}
                           style={!dayWorking ? { backgroundImage: 'url(#non-working-day-pattern)', backgroundColor: 'rgba(241,245,249,0.6)' } : undefined}
                         >
@@ -1194,6 +1406,25 @@ export default function CalendarPage({
                               <rect width="100%" height="100%" fill="url(#non-working-day-pattern)" />
                             </svg>
                           )}
+                          {/* Drag selection overlay */}
+                          {isDragSelected && (() => {
+                            const overlapStart = Math.max(dragSelection!.startMinutes, cellStartMin);
+                            const overlapEnd = Math.min(dragSelection!.endMinutes, cellEndMin);
+                            const topPct = ((overlapStart - cellStartMin) / 60) * 100;
+                            const heightPct = ((overlapEnd - overlapStart) / 60) * 100;
+                            return (
+                              <div
+                                className="absolute left-0.5 right-0.5 bg-blue-200/70 border-2 border-blue-400/80 rounded-md z-20 pointer-events-none flex items-start"
+                                style={{ top: `${topPct}%`, height: `${heightPct}%` }}
+                              >
+                                {overlapStart === dragSelection!.startMinutes && (
+                                  <div className="text-[10px] text-blue-700 font-semibold px-1 truncate leading-tight mt-0.5">
+                                    {formatTimeFromMinutes(dragSelection!.startMinutes)} – {formatTimeFromMinutes(dragSelection!.endMinutes)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                           {hourEvents.map(event => {
                             const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
                             const startMin = getMinutesInTz(new Date(event.start_time));
@@ -1207,7 +1438,7 @@ export default function CalendarPage({
                                 style={{ top: `${topOffset}px`, height: `${height}px` }}
                                 onMouseEnter={e => showCalTooltip(e, `${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`)}
                                 onMouseLeave={hideCalTooltip}
-                                onClick={e => e.stopPropagation()}
+                                onMouseDown={e => e.stopPropagation()}
                               >
                                 <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
                                 {height >= 28 && (
@@ -1246,28 +1477,51 @@ export default function CalendarPage({
               </div>
             )}
 
+            {/* Holiday banner */}
+            {(() => {
+              const holiday = holidayMap.get(getLocalDateString(currentDate));
+              return holiday ? (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+                  <svg className="w-5 h-5 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-semibold text-red-800">{holiday}</p>
+                    <p className="text-xs text-red-600 mt-0.5">US Federal Holiday</p>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
             {/* Working hours legend */}
             <div className="flex items-center gap-4 mb-3 text-xs text-slate-500">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded bg-white border border-slate-200" />
                 <span>Working hours ({calSettings.working_hours_start} - {calSettings.working_hours_end})</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-slate-50 border border-slate-100" />
-                <span>Off hours</span>
-              </div>
+              {showFullDay && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-slate-50 border border-slate-100" />
+                  <span>Off hours</span>
+                </div>
+              )}
             </div>
 
-            <div className="relative">
+            <div
+              ref={dayGridRef}
+              className="relative select-none"
+              onMouseMove={(e) => handleGridMouseMove(e, 13)}
+            >
               {/* Current time indicator */}
               {(() => {
                 const isViewingToday = getLocalDateString(currentDate) === getDateStringInTz(currentTime);
                 if (!isViewingToday) return null;
                 const currentHour = getHourInTz(currentTime);
                 const currentMinute = getMinutesInTz(currentTime);
-                const topPosition = (currentHour + currentMinute / 60) * 52;
+                if (!showFullDay && (currentHour < workStart || currentHour >= workEnd)) return null;
+                const topPosition = ((currentHour - visibleStartHour) + currentMinute / 60) * 52;
                 return (
-                  <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top: `${topPosition}px` }}>
+                  <div className="absolute left-0 right-0 z-30 pointer-events-none flex items-center" style={{ top: `${topPosition}px` }}>
                     <div className="w-16 shrink-0 flex justify-end pr-2">
                       <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200">
                         {formatTime(currentTime, { hour: 'numeric', minute: '2-digit' })}
@@ -1282,7 +1536,7 @@ export default function CalendarPage({
               })()}
 
               <div>
-                {Array.from({ length: 24 }, (_, i) => i).map(hour => {
+                {visibleHours.map(hour => {
                   const hourEvents = filteredEvents.filter(e => {
                     const eDate = new Date(e.start_time);
                     return getDateStringInTz(eDate) === getLocalDateString(currentDate) && getHourInTz(eDate) === hour;
@@ -1292,7 +1546,12 @@ export default function CalendarPage({
                   const slotWorking = working && dayWorking;
                   const isFirstWork = hour === workStart;
                   const isLastWork = hour === workEnd;
-                  const isEmpty = hourEvents.length === 0;
+                  const cellStartMin = hour * 60;
+                  const cellEndMin = (hour + 1) * 60;
+                  const isDragSelected = dragSelection &&
+                    getLocalDateString(dragSelection.dayDate) === getLocalDateString(currentDate) &&
+                    dragSelection.startMinutes < cellEndMin &&
+                    dragSelection.endMinutes > cellStartMin;
 
                   return (
                     <div key={hour} className="flex">
@@ -1302,11 +1561,11 @@ export default function CalendarPage({
                         {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                       </div>
                       <div
-                        onClick={() => { if (isEmpty) openScheduleFromSlot(currentDate, hour); }}
-                        className={`flex-1 min-h-[52px] border-t relative ${
+                        onMouseDown={(e) => handleCellMouseDown(currentDate, hour, e, 13)}
+                        className={`flex-1 min-h-[52px] border-t relative cursor-pointer transition-colors ${
                           slotWorking ? 'bg-white border-slate-200' : !dayWorking ? 'border-slate-100' : 'bg-slate-50/60 border-slate-100'
                         } ${isFirstWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${isLastWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${
-                          isEmpty ? 'cursor-pointer hover:bg-blue-50/40 transition-colors' : ''
+                          !isDragSelected ? 'hover:bg-blue-50/40' : ''
                         }`}
                         style={!dayWorking ? { backgroundColor: 'rgba(241,245,249,0.6)' } : undefined}
                       >
@@ -1316,13 +1575,32 @@ export default function CalendarPage({
                             <rect width="100%" height="100%" fill="url(#non-working-day-pattern)" />
                           </svg>
                         )}
+                        {/* Drag selection overlay */}
+                        {isDragSelected && (() => {
+                          const overlapStart = Math.max(dragSelection!.startMinutes, cellStartMin);
+                          const overlapEnd = Math.min(dragSelection!.endMinutes, cellEndMin);
+                          const topPct = ((overlapStart - cellStartMin) / 60) * 100;
+                          const heightPct = ((overlapEnd - overlapStart) / 60) * 100;
+                          return (
+                            <div
+                              className="absolute left-0.5 right-0.5 bg-blue-200/70 border-2 border-blue-400/80 rounded-md z-20 pointer-events-none flex items-start"
+                              style={{ top: `${topPct}%`, height: `${heightPct}%` }}
+                            >
+                              {overlapStart === dragSelection!.startMinutes && (
+                                <div className="text-[10px] text-blue-700 font-semibold px-1 truncate leading-tight mt-0.5">
+                                  {formatTimeFromMinutes(dragSelection!.startMinutes)} – {formatTimeFromMinutes(dragSelection!.endMinutes)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                         {hourEvents.map(event => {
                           const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
                           const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
                           const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
                           const isLoading = actionLoading === event.id;
                           return (
-                            <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1`} onClick={e => e.stopPropagation()}>
+                            <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1`} onMouseDown={e => e.stopPropagation()}>
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
                                 <div className="min-w-0">
