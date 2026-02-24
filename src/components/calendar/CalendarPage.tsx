@@ -266,7 +266,6 @@ export default function CalendarPage({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [filterType, setFilterType] = useState<FilterType>('all');
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleWarning, setScheduleWarning] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
@@ -291,9 +290,18 @@ export default function CalendarPage({
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<{ dayDate: Date; minutes: number } | null>(null);
   const dragSelRef = useRef<{ dayDate: Date; startMinutes: number; endMinutes: number } | null>(null);
-  const openScheduleRef = useRef<(date: Date, startMin: number, endMin: number) => void>(() => {});
+  const openScheduleRef = useRef<(date: Date, startMin: number, endMin: number, x: number, y: number) => void>(() => {});
   const weekGridRef = useRef<HTMLDivElement>(null);
   const dayGridRef = useRef<HTMLDivElement>(null);
+
+  // Inline panel state (replaces modal popup – Google Calendar style)
+  const [inlinePanel, setInlinePanel] = useState<{
+    mode: 'create' | 'view';
+    x: number;
+    y: number;
+  } | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const inlinePanelRef = useRef<HTMLDivElement>(null);
 
   // Custom tooltip state (replaces native title attributes)
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -379,18 +387,19 @@ export default function CalendarPage({
 
   // Global mouseup handler for drag-to-select
   useEffect(() => {
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
       if (isDraggingRef.current && dragSelRef.current) {
         const sel = { ...dragSelRef.current };
         isDraggingRef.current = false;
         dragStartRef.current = null;
         dragSelRef.current = null;
-        setDragSelection(null);
         // If selection is very small (just a click), default to 1 hour
         if (sel.endMinutes - sel.startMinutes <= 15) {
           sel.endMinutes = Math.min(24 * 60, sel.startMinutes + 60);
         }
-        openScheduleRef.current(sel.dayDate, sel.startMinutes, sel.endMinutes);
+        // Keep drag selection visible (blue highlight persists)
+        setDragSelection(sel);
+        openScheduleRef.current(sel.dayDate, sel.startMinutes, sel.endMinutes, e.clientX, e.clientY);
       }
     };
     window.addEventListener('mouseup', handleMouseUp);
@@ -407,6 +416,44 @@ export default function CalendarPage({
     return () => { document.body.style.userSelect = ''; };
   }, [dragSelection]);
 
+
+  // Close inline panel (and selection)
+  const closePanel = useCallback(() => {
+    setInlinePanel(null);
+    setSelectedEvent(null);
+    setDragSelection(null);
+    setScheduleWarning(null);
+  }, []);
+
+  // Close inline panel on Escape key
+  useEffect(() => {
+    if (!inlinePanel) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closePanel();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [inlinePanel, closePanel]);
+
+  // Click outside inline panel to close
+  useEffect(() => {
+    if (!inlinePanel) return;
+    const handler = (e: MouseEvent) => {
+      if (inlinePanelRef.current && !inlinePanelRef.current.contains(e.target as Node)) {
+        closePanel();
+      }
+    };
+    // Delay so the opening click doesn't immediately close
+    const timer = setTimeout(() => document.addEventListener('mousedown', handler), 50);
+    return () => { clearTimeout(timer); document.removeEventListener('mousedown', handler); };
+  }, [inlinePanel, closePanel]);
+
+  // Open event detail panel
+  const openEventPanel = useCallback((event: CalendarEvent, x: number, y: number) => {
+    setSelectedEvent(event);
+    setDragSelection(null);
+    setInlinePanel({ mode: 'view', x, y });
+  }, []);
 
   // ============================================================================
   // API CALLS
@@ -591,7 +638,12 @@ export default function CalendarPage({
     setSchedulingEvent(true);
 
     const contact = contacts.find(c => c.id === scheduleForm.contact_id);
-    const startTime = new Date(`${scheduleForm.date}T${scheduleForm.time}:00`);
+    // Timezone-aware: interpret date/time in the configured TZ, not browser local TZ
+    const naive = new Date(`${scheduleForm.date}T${scheduleForm.time}:00`);
+    const inTzStr = naive.toLocaleString('en-US', { timeZone: tz });
+    const inTzDate = new Date(inTzStr);
+    const tzOffset = naive.getTime() - inTzDate.getTime();
+    const startTime = new Date(naive.getTime() + tzOffset);
     const endTime = new Date(startTime);
     endTime.setMinutes(endTime.getMinutes() + scheduleForm.duration);
 
@@ -617,7 +669,8 @@ export default function CalendarPage({
 
       if (res.ok) {
         showToast('Event scheduled successfully', 'success');
-        setShowScheduleModal(false);
+        setInlinePanel(null);
+        setDragSelection(null);
         setScheduleWarning(null);
         try {
           localStorage.setItem('callengo_sync_preferences', JSON.stringify({
@@ -636,8 +689,8 @@ export default function CalendarPage({
     }
   }, [scheduleForm, contacts, refreshEvents, showToast, schedulingEvent]);
 
-  // Open schedule modal pre-filled from a time slot click (supports minute-level precision)
-  const openScheduleFromSlot = useCallback((date: Date, startMinutes: number, endMinutes: number) => {
+  // Open inline create panel pre-filled from a time slot click/drag
+  const openScheduleFromSlot = useCallback((date: Date, startMinutes: number, endMinutes: number, x: number, y: number) => {
     const dayName = ALL_DAYS[date.getDay()];
     const startHour = Math.floor(startMinutes / 60);
     const working = isWorkingHour(startHour) && calSettings.working_days.includes(dayName);
@@ -652,7 +705,8 @@ export default function CalendarPage({
       time: `${h}:${m}`,
       duration: duration > 0 ? duration : 30,
     }));
-    setShowScheduleModal(true);
+    setSelectedEvent(null);
+    setInlinePanel({ mode: 'create', x, y });
   }, [calSettings.working_days, isWorkingHour]);
 
 
@@ -791,6 +845,9 @@ export default function CalendarPage({
   // Drag start handler for time grid cells
   const handleCellMouseDown = useCallback((dayDate: Date, hour: number, e: React.MouseEvent, quarterHeight: number) => {
     e.preventDefault();
+    // Close any existing inline panel
+    setInlinePanel(null);
+    setSelectedEvent(null);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const yInCell = e.clientY - rect.top;
     const quarterInCell = Math.min(3, Math.max(0, Math.floor(yInCell / quarterHeight)));
@@ -983,7 +1040,13 @@ export default function CalendarPage({
               )}
 
               <button
-                onClick={() => { setScheduleWarning(null); setShowScheduleModal(true); }}
+                onClick={(e) => {
+                  setScheduleWarning(null);
+                  setSelectedEvent(null);
+                  setDragSelection(null);
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  setInlinePanel({ mode: 'create', x: rect.right - 380, y: rect.bottom + 12 });
+                }}
                 className="btn-primary flex items-center gap-2 whitespace-nowrap shrink-0"
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1283,7 +1346,7 @@ export default function CalendarPage({
                     {day.events.slice(0, 3).map(event => {
                       const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
                       return (
-                        <div key={event.id} className={`text-[10px] px-1.5 py-0.5 rounded ${style.bg} ${style.text} truncate border font-medium`}>
+                        <div key={event.id} className={`text-[10px] px-1.5 py-0.5 rounded ${style.bg} ${style.text} truncate border font-medium cursor-pointer hover:shadow-sm`} onClick={(e) => { e.stopPropagation(); openEventPanel(event, e.clientX, e.clientY); }}>
                           {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} {(event.contact_name || event.title).split(' ')[0]}
                         </div>
                       );
@@ -1432,16 +1495,26 @@ export default function CalendarPage({
                           const startH = getHourInTz(eStart);
                           const startM = getMinutesInTz(eStart);
                           const durationMin = Math.round((new Date(event.end_time).getTime() - eStart.getTime()) / 60000);
-                          const topPx = ((startH + startM / 60) - visibleStartHour) * 48;
-                          const heightPx = Math.max((durationMin / 60) * 48, 18);
+                          const eventStartMin = startH * 60 + startM;
+                          const eventEndMin = eventStartMin + durationMin;
+                          const visStartMin = visibleStartHour * 60;
+                          const visEndMin = (visibleStartHour + visibleHours.length) * 60;
+                          // Skip events entirely outside visible range
+                          if (eventEndMin <= visStartMin || eventStartMin >= visEndMin) return null;
+                          // Clamp to visible range
+                          const clampedStart = Math.max(eventStartMin, visStartMin);
+                          const clampedEnd = Math.min(eventEndMin, visEndMin);
+                          const topPx = ((clampedStart / 60) - visibleStartHour) * 48;
+                          const heightPx = Math.max(((clampedEnd - clampedStart) / 60) * 48, 18);
                           return (
                             <div
                               key={event.id}
-                              className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10 pointer-events-auto`}
+                              className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-md transition-shadow z-10 pointer-events-auto`}
                               style={{ top: `${topPx}px`, height: `${heightPx}px` }}
                               onMouseEnter={e => showCalTooltip(e, `${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`)}
                               onMouseLeave={hideCalTooltip}
                               onMouseDown={e => e.stopPropagation()}
+                              onClick={(e) => { e.stopPropagation(); hideCalTooltip(); openEventPanel(event, e.clientX, e.clientY); }}
                             >
                               <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
                               {heightPx >= 28 && (
@@ -1595,20 +1668,28 @@ export default function CalendarPage({
                       .filter(e => getDateStringInTz(new Date(e.start_time)) === getLocalDateString(currentDate))
                       .map(event => {
                         const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                        const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
                         const eStart = new Date(event.start_time);
                         const startH = getHourInTz(eStart);
                         const startM = getMinutesInTz(eStart);
                         const durationMin = Math.round((new Date(event.end_time).getTime() - eStart.getTime()) / 60000);
-                        const topPx = ((startH + startM / 60) - visibleStartHour) * 52;
-                        const heightPx = Math.max((durationMin / 60) * 52, 40);
-                        const isLoading = actionLoading === event.id;
+                        const eventStartMin = startH * 60 + startM;
+                        const eventEndMin = eventStartMin + durationMin;
+                        const visStartMin = visibleStartHour * 60;
+                        const visEndMin = (visibleStartHour + visibleHours.length) * 60;
+                        // Skip events entirely outside visible range
+                        if (eventEndMin <= visStartMin || eventStartMin >= visEndMin) return null;
+                        // Clamp to visible range
+                        const clampedStart = Math.max(eventStartMin, visStartMin);
+                        const clampedEnd = Math.min(eventEndMin, visEndMin);
+                        const topPx = ((clampedStart / 60) - visibleStartHour) * 52;
+                        const heightPx = Math.max(((clampedEnd - clampedStart) / 60) * 52, 40);
                         return (
                           <div
                             key={event.id}
                             className={`absolute left-1 right-1 ${style.bg} border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow z-10 pointer-events-auto group`}
                             style={{ top: `${topPx}px`, height: `${heightPx}px` }}
                             onMouseDown={e => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); openEventPanel(event, e.clientX, e.clientY); }}
                           >
                             <div className="p-2.5 h-full flex items-center justify-between">
                               <div className="flex items-center gap-3 min-w-0">
@@ -1628,41 +1709,6 @@ export default function CalendarPage({
                                     </div>
                                   )}
                                 </div>
-                              </div>
-                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                {(event.status === 'scheduled' || event.status === 'pending_confirmation') && !isLoading && (
-                                  <>
-                                    {event.confirmation_status !== 'confirmed' && (
-                                      <button
-                                        onClick={() => handleConfirm(event.id)}
-                                        className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
-                                      >
-                                        Confirm
-                                      </button>
-                                    )}
-                                    <button
-                                      onClick={() => handleMarkNoShow(event.id)}
-                                      className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                                    >
-                                      No-Show
-                                    </button>
-                                    <button
-                                      onClick={() => handleCancel(event.id)}
-                                      className="px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </>
-                                )}
-                                {isLoading && (
-                                  <svg className="animate-spin w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                  </svg>
-                                )}
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>
-                                  {event.status.replace(/_/g, ' ')}
-                                </span>
                               </div>
                             </div>
                           </div>
@@ -1723,7 +1769,7 @@ export default function CalendarPage({
                         const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
                         const isLoading = actionLoading === event.id;
                         return (
-                          <div key={event.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
+                          <div key={event.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group cursor-pointer" onClick={(e) => openEventPanel(event, e.clientX, e.clientY)}>
                             <div className={`w-1.5 h-10 rounded-full ${style.dot}`}></div>
                             <div className="text-sm text-slate-500 font-medium w-20 shrink-0">
                               {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })}
@@ -1779,179 +1825,240 @@ export default function CalendarPage({
       </div>
 
 
-      {/* Schedule Modal */}
-      {showScheduleModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { setShowScheduleModal(false); setScheduleWarning(null); }}>
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-900">Schedule Event</h3>
-                <button onClick={() => { setShowScheduleModal(false); setScheduleWarning(null); }} className="p-1 hover:bg-slate-100 rounded-lg">
-                  <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
-              {/* Warning for off-hours scheduling */}
-              {scheduleWarning && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5">
-                  <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>
-                  <p className="text-xs text-amber-700 font-medium">{scheduleWarning}</p>
-                </div>
-              )}
+      {/* Inline Panel (Google Calendar style – floating card) */}
+      {inlinePanel && (() => {
+        const panelWidth = 380;
+        const panelMaxHeight = 520;
+        const margin = 16;
+        let left = inlinePanel.x + 16;
+        let top = inlinePanel.y - 80;
+        if (typeof window !== 'undefined') {
+          if (left + panelWidth > window.innerWidth - margin) left = inlinePanel.x - panelWidth - 16;
+          if (left < margin) left = margin;
+          if (top + panelMaxHeight > window.innerHeight - margin) top = window.innerHeight - panelMaxHeight - margin;
+          if (top < margin) top = margin;
+        }
+        return (
+          <div
+            ref={inlinePanelRef}
+            className="fixed z-[60] bg-white rounded-2xl border border-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            style={{ left: `${left}px`, top: `${top}px`, width: `${panelWidth}px`, maxHeight: `${panelMaxHeight}px` }}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            {/* VIEW MODE – Event details */}
+            {inlinePanel.mode === 'view' && selectedEvent && (() => {
+              const ev = selectedEvent;
+              const style = EVENT_TYPE_STYLES[ev.event_type] || EVENT_TYPE_STYLES.call;
+              const statusStyle = STATUS_STYLES[ev.status] || STATUS_STYLES.scheduled;
+              const durationMin = Math.round((new Date(ev.end_time).getTime() - new Date(ev.start_time).getTime()) / 60000);
+              const isLoading = actionLoading === ev.id;
+              return (
+                <>
+                  <div className={`p-4 border-b border-slate-100 rounded-t-2xl ${style.bg}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-3 h-3 rounded-full ${style.dot} shrink-0`} />
+                        <h4 className={`text-sm font-bold ${style.text} truncate`}>{ev.title}</h4>
+                      </div>
+                      <button onClick={closePanel} className="p-1 hover:bg-white/60 rounded-lg shrink-0 -mr-1 -mt-1">
+                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusStyle.bg} ${statusStyle.text}`}>
+                      {ev.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <div className="p-4 space-y-3 overflow-y-auto" style={{ maxHeight: `${panelMaxHeight - 160}px` }}>
+                    <div className="flex items-center gap-2.5 text-sm text-slate-700">
+                      <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75" /></svg>
+                      <span className="font-medium">{formatDate(ev.start_time, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-sm text-slate-700">
+                      <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <span className="font-medium">{formatTime(ev.start_time, { hour: 'numeric', minute: '2-digit' })} – {formatTime(ev.end_time, { hour: 'numeric', minute: '2-digit' })}</span>
+                      <span className="text-xs text-slate-400">({durationMin}min)</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-sm text-slate-700">
+                      <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" /></svg>
+                      <span className="font-medium capitalize">{ev.event_type.replace(/_/g, ' ')}</span>
+                    </div>
+                    {ev.contact_name && (
+                      <div className="flex items-center gap-2.5 text-sm text-slate-700">
+                        <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
+                        <span className="font-medium">{ev.contact_name}</span>
+                      </div>
+                    )}
+                    {ev.contact_phone && (
+                      <div className="flex items-center gap-2.5 text-sm text-slate-600">
+                        <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+                        <span>{ev.contact_phone}</span>
+                      </div>
+                    )}
+                    {ev.contact_email && (
+                      <div className="flex items-center gap-2.5 text-sm text-slate-600">
+                        <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                        <span>{ev.contact_email}</span>
+                      </div>
+                    )}
+                    {ev.video_link && (
+                      <div className="flex items-center gap-2.5 text-sm">
+                        <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9.75a2.25 2.25 0 002.25-2.25V7.5a2.25 2.25 0 00-2.25-2.25H4.5A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" /></svg>
+                        <a href={ev.video_link} target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] font-medium hover:underline truncate">Join video call</a>
+                      </div>
+                    )}
+                    {(ev.notes || ev.ai_notes) && (
+                      <div className="pt-2 border-t border-slate-100">
+                        <p className="text-xs font-semibold text-slate-500 mb-1">Notes</p>
+                        <p className="text-sm text-slate-600 whitespace-pre-wrap">{ev.notes || ev.ai_notes}</p>
+                      </div>
+                    )}
+                    <div className="pt-2 border-t border-slate-100 flex items-center gap-2 flex-wrap">
+                      <SourceBadge source={ev.source} />
+                      {ev.confirmation_status === 'confirmed' && <span className="text-[10px] text-emerald-600 font-semibold">Confirmed</span>}
+                      {ev.confirmation_status === 'unconfirmed' && <span className="text-[10px] text-yellow-600 font-semibold">Unconfirmed</span>}
+                      {ev.rescheduled_count > 0 && <span className="text-[10px] text-amber-600 font-semibold">Rescheduled {ev.rescheduled_count}x</span>}
+                    </div>
+                  </div>
+                  {(ev.status === 'scheduled' || ev.status === 'pending_confirmation') && (
+                    <div className="p-3 border-t border-slate-100 flex items-center gap-2">
+                      {ev.confirmation_status !== 'confirmed' && (
+                        <button onClick={() => { handleConfirm(ev.id); closePanel(); }} disabled={isLoading} className="flex-1 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors disabled:opacity-50">Confirm</button>
+                      )}
+                      <button onClick={() => { handleMarkNoShow(ev.id); closePanel(); }} disabled={isLoading} className="flex-1 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors disabled:opacity-50">No-Show</button>
+                      <button onClick={() => { handleCancel(ev.id); closePanel(); }} disabled={isLoading} className="flex-1 px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors disabled:opacity-50">Cancel</button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Event Type</label>
-                <select
-                  value={scheduleForm.event_type}
-                  onChange={e => setScheduleForm(prev => ({ ...prev, event_type: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
-                >
-                  <option value="call">Call</option>
-                  <option value="follow_up">Follow-up</option>
-                  <option value="meeting">Meeting</option>
-                  <option value="appointment">Appointment</option>
-                  <option value="callback">Callback</option>
-                  <option value="no_show_retry">No-Show Retry</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact</label>
-                <select
-                  value={scheduleForm.contact_id}
-                  onChange={e => setScheduleForm(prev => ({ ...prev, contact_id: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
-                >
-                  <option value="">Select a contact...</option>
-                  {contacts.slice(0, 50).map(c => (
-                    <option key={c.id} value={c.id}>{c.contact_name || 'Unknown'} - {c.phone_number}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Date</label>
-                  <input
-                    type="date"
-                    value={scheduleForm.date}
-                    onChange={e => setScheduleForm(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Time</label>
-                  <input
-                    type="time"
-                    value={scheduleForm.time}
-                    onChange={e => setScheduleForm(prev => ({ ...prev, time: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Duration (minutes)</label>
-                <input
-                  type="number"
-                  value={scheduleForm.duration}
-                  onChange={e => setScheduleForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 15 }))}
-                  min={5}
-                  max={120}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
-                />
-              </div>
-
-              {/* Video Call Provider */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Video Call (optional)</label>
-                <div className="flex gap-2">
-                  {[
-                    { value: '', label: 'None', icon: null, disabled: false },
-                    { value: 'google_meet', label: 'Meet', icon: <GoogleMeetIcon className="w-4 h-4" />, disabled: !googleIntegration?.connected },
-                    { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: !zoomConnected },
-                    { value: 'microsoft_teams', label: 'Teams', icon: <TeamsIcon className="w-4 h-4" />, disabled: !microsoftIntegration?.connected },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      disabled={opt.disabled}
-                      onClick={() => { if (!opt.disabled) setScheduleForm(prev => ({ ...prev, video_provider: opt.value })); }}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
-                        opt.disabled
-                          ? 'border-slate-100 text-slate-300 bg-slate-50 cursor-not-allowed'
-                          : scheduleForm.video_provider === opt.value
-                            ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)] shadow-sm'
-                            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                      onMouseEnter={e => opt.disabled ? showCalTooltip(e, `Connect ${opt.label} integration first`) : undefined}
-                      onMouseLeave={opt.disabled ? hideCalTooltip : undefined}
-                    >
-                      {opt.icon}
-                      {opt.label}
+            {/* CREATE MODE – Schedule new event */}
+            {inlinePanel.mode === 'create' && (
+              <>
+                <div className="p-4 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-slate-900">New Event</h4>
+                    <button onClick={closePanel} className="p-1 hover:bg-slate-100 rounded-lg -mr-1 -mt-1">
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
-                  ))}
+                  </div>
                 </div>
-              </div>
+                <div className="p-4 space-y-3 overflow-y-auto" style={{ maxHeight: `${panelMaxHeight - 130}px` }}>
+                  {scheduleWarning && (
+                    <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                      <svg className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                      </svg>
+                      <p className="text-[11px] text-amber-700 font-medium leading-tight">{scheduleWarning}</p>
+                    </div>
+                  )}
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Notes</label>
-                <textarea
-                  rows={3}
-                  value={scheduleForm.notes}
-                  onChange={e => setScheduleForm(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Add notes about this event..."
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none resize-none"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Type</label>
+                    <select
+                      value={scheduleForm.event_type}
+                      onChange={e => setScheduleForm(prev => ({ ...prev, event_type: e.target.value }))}
+                      className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                    >
+                      <option value="call">Call</option>
+                      <option value="follow_up">Follow-up</option>
+                      <option value="meeting">Meeting</option>
+                      <option value="appointment">Appointment</option>
+                      <option value="callback">Callback</option>
+                      <option value="no_show_retry">No-Show Retry</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Contact</label>
+                    <select
+                      value={scheduleForm.contact_id}
+                      onChange={e => setScheduleForm(prev => ({ ...prev, contact_id: e.target.value }))}
+                      className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                    >
+                      <option value="">Select a contact...</option>
+                      {contacts.slice(0, 50).map(c => (
+                        <option key={c.id} value={c.id}>{c.contact_name || 'Unknown'} - {c.phone_number}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Date</label>
+                      <input type="date" value={scheduleForm.date} onChange={e => setScheduleForm(prev => ({ ...prev, date: e.target.value }))} className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Time</label>
+                      <input type="time" value={scheduleForm.time} onChange={e => setScheduleForm(prev => ({ ...prev, time: e.target.value }))} className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Duration (min)</label>
+                    <input type="number" value={scheduleForm.duration} onChange={e => setScheduleForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 15 }))} min={5} max={480} className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
+                  </div>
 
-              {/* Sync options */}
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-                {googleIntegration?.connected && (
-                  <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={scheduleForm.sync_to_google}
-                      onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))}
-                      className="w-4 h-4 rounded text-[var(--color-primary)]"
-                    />
-                    <GoogleCalendarIcon className="w-4 h-4" />
-                    Sync to Google Calendar
-                  </label>
-                )}
-                {microsoftIntegration?.connected && (
-                  <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={scheduleForm.sync_to_microsoft}
-                      onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_microsoft: e.target.checked }))}
-                      className="w-4 h-4 rounded text-[var(--color-primary)]"
-                    />
-                    <OutlookIcon className="w-4 h-4" />
-                    Sync to Microsoft Outlook
-                  </label>
-                )}
-                {!googleIntegration?.connected && !microsoftIntegration?.connected && (
-                  <p className="text-xs text-slate-400">Connect a calendar integration to sync events automatically.</p>
-                )}
-              </div>
-            </div>
-            <div className="p-6 border-t border-slate-100 flex items-center justify-end gap-3">
-              <button onClick={() => { setShowScheduleModal(false); setScheduleWarning(null); }} className="btn-secondary" disabled={schedulingEvent}>Cancel</button>
-              <button onClick={handleScheduleSubmit} className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed" disabled={schedulingEvent}>
-                {schedulingEvent ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                    Scheduling...
-                  </span>
-                ) : 'Schedule Event'}
-              </button>
-            </div>
+                  {/* Video Call */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Video Call</label>
+                    <div className="flex gap-1.5">
+                      {[
+                        { value: '', label: 'None', icon: null, disabled: false },
+                        { value: 'google_meet', label: 'Meet', icon: <GoogleMeetIcon className="w-3.5 h-3.5" />, disabled: !googleIntegration?.connected },
+                        { value: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-3.5 h-3.5 text-[#2D8CFF]" />, disabled: !zoomConnected },
+                        { value: 'microsoft_teams', label: 'Teams', icon: <TeamsIcon className="w-3.5 h-3.5" />, disabled: !microsoftIntegration?.connected },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          disabled={opt.disabled}
+                          onClick={() => { if (!opt.disabled) setScheduleForm(prev => ({ ...prev, video_provider: opt.value })); }}
+                          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[11px] font-medium transition-all ${
+                            opt.disabled ? 'border-slate-100 text-slate-300 bg-slate-50 cursor-not-allowed'
+                              : scheduleForm.video_provider === opt.value ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)] shadow-sm'
+                              : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                          }`}
+                        >
+                          {opt.icon}{opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Notes</label>
+                    <textarea rows={2} value={scheduleForm.notes} onChange={e => setScheduleForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="Add notes..." className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none resize-none" />
+                  </div>
+
+                  {/* Sync toggles */}
+                  <div className="flex items-center gap-3 text-xs">
+                    {googleIntegration?.connected && (
+                      <label className="flex items-center gap-1.5 cursor-pointer text-slate-600">
+                        <input type="checkbox" checked={scheduleForm.sync_to_google} onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_google: e.target.checked }))} className="w-3.5 h-3.5 rounded" />
+                        <GoogleCalendarIcon className="w-3.5 h-3.5" /> Google
+                      </label>
+                    )}
+                    {microsoftIntegration?.connected && (
+                      <label className="flex items-center gap-1.5 cursor-pointer text-slate-600">
+                        <input type="checkbox" checked={scheduleForm.sync_to_microsoft} onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_microsoft: e.target.checked }))} className="w-3.5 h-3.5 rounded" />
+                        <OutlookIcon className="w-3.5 h-3.5" /> Outlook
+                      </label>
+                    )}
+                  </div>
+                </div>
+                <div className="p-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                  <button onClick={closePanel} className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" disabled={schedulingEvent}>Cancel</button>
+                  <button onClick={handleScheduleSubmit} className="px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)] rounded-lg shadow-sm transition-colors disabled:opacity-50" disabled={schedulingEvent}>
+                    {schedulingEvent ? 'Scheduling...' : 'Schedule'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
