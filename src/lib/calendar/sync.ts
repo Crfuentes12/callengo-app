@@ -321,6 +321,10 @@ export async function createCalendarEvent(
       for (const integration of googleIntegrations) {
         await pushEventToGoogle(integration, createdEvent);
       }
+      // Refetch so Microsoft push gets the latest metadata (including google_event_id)
+      if (options.syncToMicrosoft) {
+        createdEvent = (await refetchEvent(createdEvent.id)) || createdEvent;
+      }
     }
     if (options.syncToMicrosoft) {
       try {

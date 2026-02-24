@@ -46,8 +46,8 @@ export default async function Integrations() {
   const slackChannelName = (settings.slack_channel_name as string) || undefined;
 
   // Determine Zoom connection status
-  const zoomConnected = !!settings.zoom_access_token;
-  const zoomEmail = (settings.zoom_email as string) || undefined;
+  const zoomConnected = !!settings.zoom_connected;
+  const zoomEmail = (settings.zoom_user_email as string) || undefined;
 
   // Fetch subscription plan slug
   let planSlug = 'free';
