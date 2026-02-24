@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BiLogoZoom } from 'react-icons/bi';
-import { GoogleCalendarIcon, GoogleMeetIcon, MicrosoftIcon, TeamsIcon } from '@/components/icons/BrandIcons';
+import { GoogleCalendarIcon, GoogleMeetIcon, OutlookIcon, TeamsIcon } from '@/components/icons/BrandIcons';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
 
 // ============================================================================
@@ -674,7 +674,7 @@ export default function CalendarPage({
       return <span className="inline-flex items-center gap-1 text-[10px] text-slate-600 font-medium"><GoogleCalendarIcon className="w-3 h-3" /> Google</span>;
     }
     if (source === 'microsoft_outlook') {
-      return <span className="inline-flex items-center gap-1 text-[10px] text-slate-600 font-medium"><MicrosoftIcon className="w-3 h-3" /> Outlook</span>;
+      return <span className="inline-flex items-center gap-1 text-[10px] text-slate-600 font-medium"><OutlookIcon className="w-3 h-3" /> Outlook</span>;
     }
     if (source === 'ai_agent') {
       return <span className="text-[10px] text-violet-600 font-medium">AI Agent</span>;
@@ -767,7 +767,7 @@ export default function CalendarPage({
               {/* Microsoft Outlook badge */}
               {microsoftIntegration?.connected ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
-                  <MicrosoftIcon className="w-3.5 h-3.5 shrink-0" />
+                  <OutlookIcon className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                   <button
@@ -787,7 +787,7 @@ export default function CalendarPage({
                   onClick={() => { window.location.href = '/api/integrations/microsoft-outlook/connect?return_to=/calendar'; }}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
                 >
-                  <MicrosoftIcon className="w-3.5 h-3.5 shrink-0" />
+                  <OutlookIcon className="w-3.5 h-3.5 shrink-0" />
                   <span className="whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
@@ -1622,7 +1622,7 @@ export default function CalendarPage({
                       onChange={e => setScheduleForm(prev => ({ ...prev, sync_to_microsoft: e.target.checked }))}
                       className="w-4 h-4 rounded text-[var(--color-primary)]"
                     />
-                    <MicrosoftIcon className="w-4 h-4" />
+                    <OutlookIcon className="w-4 h-4" />
                     Sync to Microsoft Outlook
                   </label>
                 )}
