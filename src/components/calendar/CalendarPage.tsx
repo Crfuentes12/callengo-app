@@ -1376,15 +1376,8 @@ export default function CalendarPage({
                       {hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 {hour >= 12 ? 'PM' : 'AM'}
                     </div>
                     {weekDays.map((day, dayIdx) => {
-                      const hourEvents = day.events.filter(e => getHourInTz(new Date(e.start_time)) === hour);
                       const dayWorking = isWorkingDay(day.date);
                       const slotWorking = working && dayWorking;
-                      const cellStartMin = hour * 60;
-                      const cellEndMin = (hour + 1) * 60;
-                      const isDragSelected = dragSelection &&
-                        getLocalDateString(dragSelection.dayDate) === getLocalDateString(day.date) &&
-                        dragSelection.startMinutes < cellEndMin &&
-                        dragSelection.endMinutes > cellStartMin;
                       return (
                         <div
                           key={dayIdx}
@@ -1395,9 +1388,7 @@ export default function CalendarPage({
                               : !dayWorking
                                 ? 'border-slate-100'
                                 : isToday(day.date) ? 'bg-slate-50/80 border-slate-100' : 'bg-slate-50/60 border-slate-100'
-                          } ${isFirstWork || isLastWork ? 'border-t-[var(--color-primary)]/20' : ''} relative cursor-pointer transition-colors ${
-                            !isDragSelected ? 'hover:bg-blue-50/40' : ''
-                          }`}
+                          } ${isFirstWork || isLastWork ? 'border-t-[var(--color-primary)]/20' : ''} relative cursor-pointer transition-colors hover:bg-blue-50/40`}
                           style={!dayWorking ? { backgroundImage: 'url(#non-working-day-pattern)', backgroundColor: 'rgba(241,245,249,0.6)' } : undefined}
                         >
                           {/* Non-working day overlay with diagonal stripes */}
@@ -1406,55 +1397,65 @@ export default function CalendarPage({
                               <rect width="100%" height="100%" fill="url(#non-working-day-pattern)" />
                             </svg>
                           )}
-                          {/* Drag selection overlay */}
-                          {isDragSelected && (() => {
-                            const overlapStart = Math.max(dragSelection!.startMinutes, cellStartMin);
-                            const overlapEnd = Math.min(dragSelection!.endMinutes, cellEndMin);
-                            const topPct = ((overlapStart - cellStartMin) / 60) * 100;
-                            const heightPct = ((overlapEnd - overlapStart) / 60) * 100;
-                            return (
-                              <div
-                                className="absolute left-0.5 right-0.5 bg-blue-200/70 border-2 border-blue-400/80 rounded-md z-20 pointer-events-none flex items-start"
-                                style={{ top: `${topPct}%`, height: `${heightPct}%` }}
-                              >
-                                {overlapStart === dragSelection!.startMinutes && (
-                                  <div className="text-[10px] text-blue-700 font-semibold px-1 truncate leading-tight mt-0.5">
-                                    {formatTimeFromMinutes(dragSelection!.startMinutes)} – {formatTimeFromMinutes(dragSelection!.endMinutes)}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                          {hourEvents.map(event => {
-                            const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                            const startMin = getMinutesInTz(new Date(event.start_time));
-                            const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
-                            const topOffset = (startMin / 60) * 48;
-                            const height = Math.max((durationMin / 60) * 48, 18);
-                            return (
-                              <div
-                                key={event.id}
-                                className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10`}
-                                style={{ top: `${topOffset}px`, height: `${height}px` }}
-                                onMouseEnter={e => showCalTooltip(e, `${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`)}
-                                onMouseLeave={hideCalTooltip}
-                                onMouseDown={e => e.stopPropagation()}
-                              >
-                                <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
-                                {height >= 28 && (
-                                  <div className="text-[9px] opacity-75 truncate">
-                                    {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
                         </div>
                       );
                     })}
                   </div>
                   );
                 })}
+
+                {/* Continuous overlay for drag selection & events (not partitioned by hour rows) */}
+                <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{ height: `${visibleHours.length * 48}px` }}>
+                  <div className="grid grid-cols-[64px_repeat(7,1fr)] h-full">
+                    <div />
+                    {weekDays.map((day, dayIdx) => (
+                      <div key={dayIdx} className="relative h-full">
+                        {/* Drag selection overlay */}
+                        {dragSelection && getLocalDateString(dragSelection.dayDate) === getLocalDateString(day.date) && (() => {
+                          const topPx = ((dragSelection.startMinutes / 60) - visibleStartHour) * 48;
+                          const heightPx = ((dragSelection.endMinutes - dragSelection.startMinutes) / 60) * 48;
+                          return (
+                            <div
+                              className="absolute left-0.5 right-0.5 bg-blue-200/70 border-2 border-blue-400/80 rounded-md z-20 flex items-start"
+                              style={{ top: `${topPx}px`, height: `${heightPx}px` }}
+                            >
+                              <div className="text-[10px] text-blue-700 font-semibold px-1 truncate leading-tight mt-0.5">
+                                {formatTimeFromMinutes(dragSelection.startMinutes)} – {formatTimeFromMinutes(dragSelection.endMinutes)}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        {/* Events */}
+                        {day.events.map(event => {
+                          const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
+                          const eStart = new Date(event.start_time);
+                          const startH = getHourInTz(eStart);
+                          const startM = getMinutesInTz(eStart);
+                          const durationMin = Math.round((new Date(event.end_time).getTime() - eStart.getTime()) / 60000);
+                          const topPx = ((startH + startM / 60) - visibleStartHour) * 48;
+                          const heightPx = Math.max((durationMin / 60) * 48, 18);
+                          return (
+                            <div
+                              key={event.id}
+                              className={`absolute left-0.5 right-0.5 ${style.bg} border ${style.text} rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow z-10 pointer-events-auto`}
+                              style={{ top: `${topPx}px`, height: `${heightPx}px` }}
+                              onMouseEnter={e => showCalTooltip(e, `${event.title}\n${formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - ${durationMin}min`)}
+                              onMouseLeave={hideCalTooltip}
+                              onMouseDown={e => e.stopPropagation()}
+                            >
+                              <div className="text-[10px] font-semibold truncate leading-tight">{event.contact_name || event.title}</div>
+                              {heightPx >= 28 && (
+                                <div className="text-[9px] opacity-75 truncate">
+                                  {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1537,21 +1538,11 @@ export default function CalendarPage({
 
               <div>
                 {visibleHours.map(hour => {
-                  const hourEvents = filteredEvents.filter(e => {
-                    const eDate = new Date(e.start_time);
-                    return getDateStringInTz(eDate) === getLocalDateString(currentDate) && getHourInTz(eDate) === hour;
-                  });
                   const working = isWorkingHour(hour);
                   const dayWorking = isWorkingDay(currentDate);
                   const slotWorking = working && dayWorking;
                   const isFirstWork = hour === workStart;
                   const isLastWork = hour === workEnd;
-                  const cellStartMin = hour * 60;
-                  const cellEndMin = (hour + 1) * 60;
-                  const isDragSelected = dragSelection &&
-                    getLocalDateString(dragSelection.dayDate) === getLocalDateString(currentDate) &&
-                    dragSelection.startMinutes < cellEndMin &&
-                    dragSelection.endMinutes > cellStartMin;
 
                   return (
                     <div key={hour} className="flex">
@@ -1564,9 +1555,7 @@ export default function CalendarPage({
                         onMouseDown={(e) => handleCellMouseDown(currentDate, hour, e, 13)}
                         className={`flex-1 min-h-[52px] border-t relative cursor-pointer transition-colors ${
                           slotWorking ? 'bg-white border-slate-200' : !dayWorking ? 'border-slate-100' : 'bg-slate-50/60 border-slate-100'
-                        } ${isFirstWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${isLastWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${
-                          !isDragSelected ? 'hover:bg-blue-50/40' : ''
-                        }`}
+                        } ${isFirstWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} ${isLastWork ? 'border-t-[var(--color-primary)]/30 border-t-2' : ''} hover:bg-blue-50/40`}
                         style={!dayWorking ? { backgroundColor: 'rgba(241,245,249,0.6)' } : undefined}
                       >
                         {/* Non-working day stripe overlay */}
@@ -1575,32 +1564,53 @@ export default function CalendarPage({
                             <rect width="100%" height="100%" fill="url(#non-working-day-pattern)" />
                           </svg>
                         )}
-                        {/* Drag selection overlay */}
-                        {isDragSelected && (() => {
-                          const overlapStart = Math.max(dragSelection!.startMinutes, cellStartMin);
-                          const overlapEnd = Math.min(dragSelection!.endMinutes, cellEndMin);
-                          const topPct = ((overlapStart - cellStartMin) / 60) * 100;
-                          const heightPct = ((overlapEnd - overlapStart) / 60) * 100;
-                          return (
-                            <div
-                              className="absolute left-0.5 right-0.5 bg-blue-200/70 border-2 border-blue-400/80 rounded-md z-20 pointer-events-none flex items-start"
-                              style={{ top: `${topPct}%`, height: `${heightPct}%` }}
-                            >
-                              {overlapStart === dragSelection!.startMinutes && (
-                                <div className="text-[10px] text-blue-700 font-semibold px-1 truncate leading-tight mt-0.5">
-                                  {formatTimeFromMinutes(dragSelection!.startMinutes)} – {formatTimeFromMinutes(dragSelection!.endMinutes)}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-                        {hourEvents.map(event => {
-                          const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
-                          const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
-                          const durationMin = Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000);
-                          const isLoading = actionLoading === event.id;
-                          return (
-                            <div key={event.id} className={`p-3 rounded-xl ${style.bg} border flex items-center justify-between group my-1 mx-1`} onMouseDown={e => e.stopPropagation()}>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Continuous overlay for drag selection & events (not partitioned by hour rows) */}
+              <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{ height: `${visibleHours.length * 52}px` }}>
+                <div className="flex h-full">
+                  <div className="w-16 shrink-0" />
+                  <div className="flex-1 relative">
+                    {/* Drag selection overlay */}
+                    {dragSelection && getLocalDateString(dragSelection.dayDate) === getLocalDateString(currentDate) && (() => {
+                      const topPx = ((dragSelection.startMinutes / 60) - visibleStartHour) * 52;
+                      const heightPx = ((dragSelection.endMinutes - dragSelection.startMinutes) / 60) * 52;
+                      return (
+                        <div
+                          className="absolute left-0.5 right-0.5 bg-blue-200/70 border-2 border-blue-400/80 rounded-md z-20 flex items-start"
+                          style={{ top: `${topPx}px`, height: `${heightPx}px` }}
+                        >
+                          <div className="text-[10px] text-blue-700 font-semibold px-1 truncate leading-tight mt-0.5">
+                            {formatTimeFromMinutes(dragSelection.startMinutes)} – {formatTimeFromMinutes(dragSelection.endMinutes)}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {/* Events */}
+                    {filteredEvents
+                      .filter(e => getDateStringInTz(new Date(e.start_time)) === getLocalDateString(currentDate))
+                      .map(event => {
+                        const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.call;
+                        const statusStyle = STATUS_STYLES[event.status] || STATUS_STYLES.scheduled;
+                        const eStart = new Date(event.start_time);
+                        const startH = getHourInTz(eStart);
+                        const startM = getMinutesInTz(eStart);
+                        const durationMin = Math.round((new Date(event.end_time).getTime() - eStart.getTime()) / 60000);
+                        const topPx = ((startH + startM / 60) - visibleStartHour) * 52;
+                        const heightPx = Math.max((durationMin / 60) * 52, 40);
+                        const isLoading = actionLoading === event.id;
+                        return (
+                          <div
+                            key={event.id}
+                            className={`absolute left-1 right-1 ${style.bg} border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow z-10 pointer-events-auto group`}
+                            style={{ top: `${topPx}px`, height: `${heightPx}px` }}
+                            onMouseDown={e => e.stopPropagation()}
+                          >
+                            <div className="p-2.5 h-full flex items-center justify-between">
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className={`w-2 h-2 rounded-full ${style.dot} shrink-0`}></div>
                                 <div className="min-w-0">
@@ -1609,12 +1619,14 @@ export default function CalendarPage({
                                     {formatTime(event.start_time, { hour: 'numeric', minute: '2-digit' })} - {durationMin}min
                                     {event.contact_phone && <span className="ml-2">{event.contact_phone}</span>}
                                   </div>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    <SourceBadge source={event.source} />
-                                    {event.confirmation_status === 'confirmed' && (
-                                      <span className="text-[10px] text-emerald-600 font-medium">Confirmed</span>
-                                    )}
-                                  </div>
+                                  {heightPx >= 60 && (
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      <SourceBadge source={event.source} />
+                                      {event.confirmation_status === 'confirmed' && (
+                                        <span className="text-[10px] text-emerald-600 font-medium">Confirmed</span>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -1653,12 +1665,11 @@ export default function CalendarPage({
                                 </span>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+                          </div>
+                        );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
