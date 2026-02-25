@@ -86,14 +86,36 @@ export default function SignupPage() {
         </button>
 
         <p className="text-[10px] text-center text-white/20 leading-relaxed">
-          By signing up you agree to our Terms of Service and Privacy Policy
+          By signing up you agree to our{" "}
+          <a
+            href="https://callengo.com/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-white/40 transition-colors"
+          >
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://callengo.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-white/40 transition-colors"
+          >
+            Privacy Policy
+          </a>
         </p>
       </form>
 
       {/* Divider */}
-      <div className="relative my-5">
-        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10" /></div>
-        <div className="relative flex justify-center text-xs"><span className="px-3 text-white/25">or</span></div>
+      <div className="flex items-center my-5">
+        <div className="flex-1 border-t border-white/10" />
+        
+        <span className="px-4 text-xs text-white/25">
+          or
+        </span>
+        
+        <div className="flex-1 border-t border-white/10" />
       </div>
 
       {/* Social auth at bottom */}

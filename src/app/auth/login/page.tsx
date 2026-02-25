@@ -86,11 +86,14 @@ function LoginForm() {
       </form>
 
       {/* Divider */}
-      <div className="relative my-5">
-        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10" /></div>
-        <div className="relative flex justify-center text-xs">
-          <span className="px-3 text-white/25">or</span>
-        </div>
+      <div className="flex items-center my-5">
+        <div className="flex-1 border-t border-white/10" />
+        
+        <span className="px-4 text-xs text-white/25">
+          or
+        </span>
+        
+        <div className="flex-1 border-t border-white/10" />
       </div>
 
       {/* Social auth at bottom */}
