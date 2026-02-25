@@ -289,7 +289,7 @@ export async function POST(request: NextRequest) {
 
         // ---- Data Validation Agent (and all agents) ----
         // Handle callback requests from any agent type
-        if (contactId && calendarConfig.callbackEnabled) {
+        if (contactId && (calendarConfig.callbackEnabled || calendarConfig.followUpEnabled)) {
           const callbackRequested =
             metadata?.callback_requested ||
             metadata?.for_callback;
