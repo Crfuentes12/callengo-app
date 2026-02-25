@@ -41,13 +41,26 @@ export default async function AgentsPage() {
     .eq('company_id', userData!.company_id)
     .single();
 
+  // Fetch subscription plan slug
+  let planSlug = 'free';
+  const { data: subscription } = await supabase
+    .from('company_subscriptions')
+    .select('subscription_plans ( slug )')
+    .eq('company_id', userData!.company_id)
+    .eq('status', 'active')
+    .single();
+
+  if (subscription?.subscription_plans) {
+    planSlug = (subscription.subscription_plans as unknown as { slug: string }).slug || 'free';
+  }
+
   return (
     <AgentsLibrary
       agentTemplates={agentTemplates || []}
       companyAgents={companyAgents || []}
       companyId={userData!.company_id}
       company={company}
-      companySettings={companySettings}
+      companySettings={{ ...companySettings, plan_slug: planSlug }}
     />
   );
 }

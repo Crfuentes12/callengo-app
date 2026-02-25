@@ -553,27 +553,30 @@ export interface CalendarStepConfig {
   workingDays: string[];
   excludeUSHolidays: boolean;
 
-  // Follow-ups & Callbacks
+  // Follow-ups (retrying calls - does NOT create calendar events)
   followUpEnabled: boolean;
   followUpMaxAttempts: number;
   followUpIntervalHours: number;
+  // Smart scheduling: when contact requests a specific time, auto-schedule it (Business+)
   smartFollowUp: boolean;
-  callbackEnabled: boolean;
-  callbackMaxAttempts: number;
 
   // Calendar awareness (always enabled by default)
   calendarContextEnabled: boolean;
 
-  // Appointment Confirmation specific
-  appointmentAvailabilityEnabled: boolean;
+  // Appointment/meeting duration default
   defaultMeetingDuration: number;
-  allowRescheduling: boolean;
-  noShowAutoRetry: boolean;
-  noShowRetryDelayHours: number;
 
   // Video conferencing preference
   preferredVideoProvider: 'none' | 'google_meet' | 'zoom' | 'microsoft_teams';
 
   // Connected integrations snapshot at campaign creation time
   connectedIntegrations: string[];
+
+  // Legacy compat fields (kept for backward compatibility with existing campaigns)
+  callbackEnabled?: boolean;
+  callbackMaxAttempts?: number;
+  appointmentAvailabilityEnabled?: boolean;
+  allowRescheduling?: boolean;
+  noShowAutoRetry?: boolean;
+  noShowRetryDelayHours?: number;
 }

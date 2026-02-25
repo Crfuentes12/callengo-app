@@ -244,14 +244,8 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     followUpMaxAttempts: 3,
     followUpIntervalHours: 24,
     smartFollowUp: false,
-    callbackEnabled: true,
-    callbackMaxAttempts: 2,
     calendarContextEnabled: true,
-    appointmentAvailabilityEnabled: true,
     defaultMeetingDuration: 30,
-    allowRescheduling: true,
-    noShowAutoRetry: true,
-    noShowRetryDelayHours: 24,
     preferredVideoProvider: 'none',
     connectedIntegrations: [],
   });
@@ -270,10 +264,10 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     loadContactLists();
   }, []);
 
-  // Reload contact count when selected lists change
+  // Reload contact count when selected lists change (no skeleton on list toggle)
   useEffect(() => {
     if (step === 'contacts') {
-      loadContactCount();
+      loadContactCount(false);
     }
   }, [selectedLists, step]);
 
@@ -331,8 +325,8 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     }
   };
 
-  const loadContactCount = async () => {
-    setLoadingContacts(true);
+  const loadContactCount = async (showLoading = false) => {
+    if (showLoading) setLoadingContacts(true);
     try {
       let query = supabase
         .from('contacts')
@@ -777,7 +771,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               <button
                 onClick={() => {
                   if (!settings.voice) return;
-                  loadContactCount();
+                  loadContactCount(true);
                   setStep('contacts');
                 }}
                 disabled={!settings.voice}
@@ -1453,7 +1447,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   <p className="text-xs text-slate-500">{agentTitle}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-slate-500">Voice:</span>
-                    <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{settings.voice}</span>
+                    <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{BLAND_VOICES.find(v => v.id === settings.voice)?.name || settings.voice}</span>
                   </div>
                 </div>
               </div>
@@ -1913,7 +1907,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-400">Voice:</span>
-                      <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{settings.voice}</span>
+                      <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{BLAND_VOICES.find(v => v.id === settings.voice)?.name || settings.voice}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-400">Contacts:</span>
@@ -1994,41 +1988,21 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               </div>
 
               <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
-                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Follow-ups & Callbacks</h4>
+                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Follow-ups</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-xs text-slate-500">Auto Follow-ups</span>
                     <span className={`text-xs font-bold ${calendarConfig.followUpEnabled ? 'text-emerald-600' : 'text-slate-400'}`}>
-                      {calendarConfig.followUpEnabled ? `${calendarConfig.followUpMaxAttempts} attempts` : 'Disabled'}
+                      {calendarConfig.followUpEnabled ? `${calendarConfig.followUpMaxAttempts} attempts, every ${calendarConfig.followUpIntervalHours}h` : 'Disabled'}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Smart Follow-up</span>
-                    <span className={`text-xs font-bold ${calendarConfig.smartFollowUp ? 'text-purple-600' : 'text-slate-400'}`}>
-                      {calendarConfig.smartFollowUp ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Smart Callbacks</span>
-                    <span className={`text-xs font-bold ${calendarConfig.callbackEnabled ? 'text-emerald-600' : 'text-slate-400'}`}>
-                      {calendarConfig.callbackEnabled ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </div>
-                  {getAgentType() === 'appointment_confirmation' && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-xs text-slate-500">Rescheduling</span>
-                        <span className={`text-xs font-bold ${calendarConfig.allowRescheduling ? 'text-emerald-600' : 'text-slate-400'}`}>
-                          {calendarConfig.allowRescheduling ? 'Allowed' : 'Disabled'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-xs text-slate-500">No-Show Retry</span>
-                        <span className={`text-xs font-bold ${calendarConfig.noShowAutoRetry ? 'text-emerald-600' : 'text-slate-400'}`}>
-                          {calendarConfig.noShowAutoRetry ? `After ${calendarConfig.noShowRetryDelayHours}h` : 'Disabled'}
-                        </span>
-                      </div>
-                    </>
+                  {calendarConfig.followUpEnabled && (
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Smart Scheduling</span>
+                      <span className={`text-xs font-bold ${calendarConfig.smartFollowUp ? 'text-[var(--color-primary)]' : 'text-slate-400'}`}>
+                        {calendarConfig.smartFollowUp ? 'Enabled' : 'Off'}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
