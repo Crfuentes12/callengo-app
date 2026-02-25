@@ -9,6 +9,7 @@ import { AgentTemplate, Company, ContactList } from '@/types/supabase';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 import { BLAND_VOICES } from '@/lib/voices/bland-voices';
 import { determineGender, determineCategory } from '@/lib/voices/voice-utils';
+import CalendarConfigStep, { type CalendarStepConfig } from '@/components/agents/CalendarConfigStep';
 
 interface AgentConfigModalProps {
   agent: AgentTemplate;
@@ -187,7 +188,7 @@ const StatBar = ({ label, value, color }: { label: string; value: number; color:
 export default function AgentConfigModal({ agent, companyId, company, companySettings, onClose }: AgentConfigModalProps) {
   const router = useRouter();
   const supabase = createClient();
-  const [step, setStep] = useState<'preview' | 'contacts' | 'confirm'>('preview');
+  const [step, setStep] = useState<'preview' | 'contacts' | 'calendar' | 'confirm'>('preview');
   const [loading, setLoading] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [contactCount, setContactCount] = useState(0);
@@ -231,6 +232,38 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
       phone: company.phone_number || '',
     },
   });
+
+  // Calendar configuration state
+  const [calendarConfig, setCalendarConfig] = useState<CalendarStepConfig>({
+    timezone: 'America/New_York',
+    workingHoursStart: '09:00',
+    workingHoursEnd: '18:00',
+    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    excludeUSHolidays: true,
+    followUpEnabled: false,
+    followUpMaxAttempts: 3,
+    followUpIntervalHours: 24,
+    smartFollowUp: false,
+    callbackEnabled: true,
+    callbackMaxAttempts: 2,
+    calendarContextEnabled: true,
+    appointmentAvailabilityEnabled: true,
+    defaultMeetingDuration: 30,
+    allowRescheduling: true,
+    noShowAutoRetry: true,
+    noShowRetryDelayHours: 24,
+    preferredVideoProvider: 'none',
+    connectedIntegrations: [],
+  });
+
+  // Determine agent type for calendar step
+  const getAgentType = (): 'appointment_confirmation' | 'lead_qualification' | 'data_validation' | 'unknown' => {
+    const name = agent.name.toLowerCase();
+    if (name.includes('appointment') || name.includes('confirmation')) return 'appointment_confirmation';
+    if (name.includes('lead') && name.includes('qualification')) return 'lead_qualification';
+    if (name.includes('data') || name.includes('validation')) return 'data_validation';
+    return 'unknown';
+  };
 
   // Load contact lists on mount
   useEffect(() => {
@@ -492,15 +525,17 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   const handleStartCampaign = async () => {
     setLoading(true);
     try {
-      // Update settings with selected lists
+      // Update settings with selected lists and calendar config
       const finalSettings = {
         ...settings,
         selectedLists: selectedLists,
+        calendarConfig: calendarConfig,
       };
 
-      // Create agent run
-      const { data: run, error } = await supabase
-        .from('agent_runs')
+      // Create agent run - calendar config stored in settings JSONB
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: run, error } = await (supabase
+        .from('agent_runs') as any)
         .insert({
           company_id: companyId,
           agent_template_id: agent.id,
@@ -508,6 +543,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           status: 'draft',
           total_contacts: contactCount,
           settings: finalSettings,
+          follow_up_enabled: calendarConfig.followUpEnabled,
+          follow_up_max_attempts: calendarConfig.followUpMaxAttempts,
+          follow_up_interval_hours: calendarConfig.followUpIntervalHours,
+          voicemail_enabled: settings.voicemailEnabled,
         })
         .select()
         .single();
@@ -536,21 +575,35 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   };
 
   // Step indicator component
+  const stepLabels = ['Agent', 'Campaign', 'Calendar', 'Launch'];
   const StepIndicator = ({ currentStep }: { currentStep: number }) => (
-    <div className="flex items-center justify-center gap-3 mb-6">
-      {[1, 2, 3].map((stepNum) => (
+    <div className="flex items-center justify-center gap-2 mb-6">
+      {[1, 2, 3, 4].map((stepNum) => (
         <div key={stepNum} className="flex items-center">
-          <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-            stepNum === currentStep
-              ? `bg-gradient-to-r ${gradientColor} border-white shadow-lg scale-110`
-              : stepNum < currentStep
-              ? 'bg-emerald-600 border-emerald-400'
-              : 'bg-slate-200 border-slate-300'
-          }`}>
-            <span className={`font-bold text-sm ${stepNum === currentStep || stepNum < currentStep ? 'text-white' : 'text-slate-500'}`}>{stepNum}</span>
+          <div className="flex flex-col items-center gap-1">
+            <div className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all duration-300 ${
+              stepNum === currentStep
+                ? `bg-gradient-to-r ${gradientColor} border-white shadow-lg scale-110`
+                : stepNum < currentStep
+                ? 'bg-emerald-600 border-emerald-400'
+                : 'bg-slate-200 border-slate-300'
+            }`}>
+              {stepNum < currentStep ? (
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <span className={`font-bold text-xs ${stepNum === currentStep ? 'text-white' : 'text-slate-500'}`}>{stepNum}</span>
+              )}
+            </div>
+            <span className={`text-[10px] font-bold ${
+              stepNum === currentStep ? 'text-[var(--color-primary)]' : stepNum < currentStep ? 'text-emerald-600' : 'text-slate-400'
+            }`}>
+              {stepLabels[stepNum - 1]}
+            </span>
           </div>
-          {stepNum < 3 && (
-            <div className={`w-12 h-0.5 mx-1 transition-all duration-300 ${
+          {stepNum < 4 && (
+            <div className={`w-8 h-0.5 mx-1 mb-4 transition-all duration-300 ${
               stepNum < currentStep ? 'bg-emerald-400' : 'bg-slate-200'
             }`}></div>
           )}
@@ -562,7 +615,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   const getStepNumber = () => {
     if (step === 'preview') return 1;
     if (step === 'contacts') return 2;
-    if (step === 'confirm') return 3;
+    if (step === 'calendar') return 3;
+    if (step === 'confirm') return 4;
     return 1;
   };
 
@@ -1725,13 +1779,93 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   Back
                 </button>
                 <button
-                  onClick={() => setStep('confirm')}
+                  onClick={() => {
+                    // Sync follow-up settings from campaign step to calendar config
+                    setCalendarConfig(prev => ({
+                      ...prev,
+                      followUpEnabled: settings.followUpEnabled,
+                      followUpMaxAttempts: settings.followUpMaxAttempts,
+                      followUpIntervalHours: settings.followUpIntervalHours,
+                      smartFollowUp: settings.smartFollowUp,
+                      timezone: settings.timezone,
+                      workingHoursStart: settings.workingHoursStart,
+                      workingHoursEnd: settings.workingHoursEnd,
+                    }));
+                    setStep('calendar');
+                  }}
                   className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all duration-300`}
                 >
-                  Review & Launch
+                  Calendar Setup
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'calendar') {
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
+        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-100 backdrop-blur-sm border border-slate-200 text-slate-500 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+          >
+            <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Header */}
+          <div className="p-6 border-b border-slate-200">
+            <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">Calendar & Scheduling</h2>
+            <p className="text-sm text-slate-500 mt-1">Configure calendar integrations and scheduling for {agentName || agent.name}</p>
+          </div>
+
+          {/* Scrolleable content */}
+          <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
+            <StepIndicator currentStep={getStepNumber()} />
+
+            <CalendarConfigStep
+              companyId={companyId}
+              agentType={getAgentType()}
+              config={calendarConfig}
+              onConfigChange={setCalendarConfig}
+              gradientColor={gradientColor}
+              planSlug={companySettings?.plan_slug || 'free'}
+            />
+
+            {/* Action buttons */}
+            <div className="flex gap-3 mt-6 pt-6 border-t border-slate-200">
+              <button
+                onClick={() => setStep('contacts')}
+                className="flex-1 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 font-bold text-sm transition-all duration-300"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => {
+                  // Sync calendar config back to main settings
+                  setSettings(prev => ({
+                    ...prev,
+                    timezone: calendarConfig.timezone,
+                    workingHoursStart: calendarConfig.workingHoursStart,
+                    workingHoursEnd: calendarConfig.workingHoursEnd,
+                    followUpEnabled: calendarConfig.followUpEnabled,
+                    followUpMaxAttempts: calendarConfig.followUpMaxAttempts,
+                    followUpIntervalHours: calendarConfig.followUpIntervalHours,
+                    smartFollowUp: calendarConfig.smartFollowUp,
+                  }));
+                  setStep('confirm');
+                }}
+                className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all duration-300`}
+              >
+                Review & Launch
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1815,12 +1949,87 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-xs text-slate-500">Working Hours</span>
-                    <span className="text-sm font-bold text-slate-900">{settings.workingHoursStart} - {settings.workingHoursEnd}</span>
+                    <span className="text-sm font-bold text-slate-900">{calendarConfig.workingHoursStart} - {calendarConfig.workingHoursEnd}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-xs text-slate-500">Timezone</span>
-                    <span className="text-sm font-bold text-slate-900">{settings.timezone}</span>
+                    <span className="text-sm font-bold text-slate-900">{calendarConfig.timezone}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Working Days</span>
+                    <span className="text-sm font-bold text-slate-900">{calendarConfig.workingDays.length} days</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">US Holidays</span>
+                    <span className="text-sm font-bold text-slate-900">{calendarConfig.excludeUSHolidays ? 'Excluded' : 'Included'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Calendar & Integrations Summary */}
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
+                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Calendar Integrations</h4>
+                <div className="space-y-2">
+                  {calendarConfig.connectedIntegrations.length > 0 ? (
+                    calendarConfig.connectedIntegrations.map(int => (
+                      <div key={int} className="flex items-center gap-2">
+                        <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-xs font-medium text-slate-700 capitalize">{int.replace('_', ' ')}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-400">No calendars connected</p>
+                  )}
+                  {calendarConfig.preferredVideoProvider !== 'none' && (
+                    <div className="flex justify-between pt-2 border-t border-slate-200 mt-2">
+                      <span className="text-xs text-slate-500">Video Platform</span>
+                      <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{calendarConfig.preferredVideoProvider.replace('_', ' ')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
+                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Follow-ups & Callbacks</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Auto Follow-ups</span>
+                    <span className={`text-xs font-bold ${calendarConfig.followUpEnabled ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      {calendarConfig.followUpEnabled ? `${calendarConfig.followUpMaxAttempts} attempts` : 'Disabled'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Smart Follow-up</span>
+                    <span className={`text-xs font-bold ${calendarConfig.smartFollowUp ? 'text-purple-600' : 'text-slate-400'}`}>
+                      {calendarConfig.smartFollowUp ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Smart Callbacks</span>
+                    <span className={`text-xs font-bold ${calendarConfig.callbackEnabled ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      {calendarConfig.callbackEnabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                  {getAgentType() === 'appointment_confirmation' && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-500">Rescheduling</span>
+                        <span className={`text-xs font-bold ${calendarConfig.allowRescheduling ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          {calendarConfig.allowRescheduling ? 'Allowed' : 'Disabled'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-500">No-Show Retry</span>
+                        <span className={`text-xs font-bold ${calendarConfig.noShowAutoRetry ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          {calendarConfig.noShowAutoRetry ? `After ${calendarConfig.noShowRetryDelayHours}h` : 'Disabled'}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1828,7 +2037,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             {/* Action buttons */}
             <div className="flex gap-3">
               <button
-                onClick={() => setStep('contacts')}
+                onClick={() => setStep('calendar')}
                 className="flex-1 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 font-bold text-sm transition-all duration-300"
               >
                 Back

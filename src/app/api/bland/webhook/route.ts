@@ -2,6 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 import { createAgentCallback, createAgentFollowUp } from '@/lib/calendar/sync';
+import {
+  syncRescheduleAppointment,
+  syncConfirmAppointment,
+  syncHandleNoShow,
+  syncScheduleMeeting,
+  syncScheduleCallback,
+} from '@/lib/calendar/campaign-sync';
+import type { CalendarStepConfig } from '@/types/calendar';
 
 export async function POST(request: NextRequest) {
   try {
@@ -153,6 +161,161 @@ export async function POST(request: NextRequest) {
     } catch (calendarError) {
       // Don't fail the webhook if calendar event creation fails
       console.error('Failed to create calendar event (non-fatal):', calendarError);
+    }
+
+    // ================================================================
+    // CAMPAIGN-AWARE AGENT OPERATIONS
+    // Use the campaign's calendar config for intelligent scheduling
+    // ================================================================
+    try {
+      const agentRunId = metadata?.agent_run_id;
+      const agentTemplateSlug = metadata?.agent_template_slug;
+
+      if (agentRunId && completed) {
+        // Fetch the campaign's calendar config and agent template slug
+        const { data: agentRun } = await supabaseAdmin
+          .from('agent_runs')
+          .select('settings, agent_template_id, agent_templates(slug)')
+          .eq('id', agentRunId)
+          .single();
+
+        const runSettings = (agentRun?.settings as Record<string, unknown>) || {};
+        const calendarConfig = (runSettings.calendarConfig as Partial<CalendarStepConfig>) || {};
+        const templateSlug = (agentRun as Record<string, unknown>)?.agent_templates
+          ? ((agentRun as Record<string, unknown>).agent_templates as Record<string, string>)?.slug
+          : agentTemplateSlug;
+
+        // Get the call log ID for linking
+        const { data: callLogData } = await supabaseAdmin
+          .from('call_logs')
+          .select('id')
+          .eq('call_id', call_id)
+          .single();
+        const callLogId = callLogData?.id;
+
+        const contactName = contactId
+          ? await getContactName(contactId)
+          : to || 'Unknown';
+
+        // ---- Appointment Confirmation Agent ----
+        if (templateSlug === 'appointment-confirmation' && contactId) {
+          // Check if the transcript indicates confirmation, rescheduling, or no-show
+          const transcript = (concatenated_transcript || '').toLowerCase();
+          const appointmentConfirmed =
+            transcript.includes('confirm') ||
+            transcript.includes('i\'ll be there') ||
+            transcript.includes('yes') ||
+            metadata?.appointment_confirmed;
+          const needsReschedule =
+            transcript.includes('reschedule') ||
+            transcript.includes('move') ||
+            transcript.includes('different time') ||
+            transcript.includes('can\'t make it') ||
+            metadata?.needs_reschedule;
+          const isNoShow =
+            metadata?.no_show ||
+            (status === 'no_answer' && calendarConfig.noShowAutoRetry);
+
+          if (appointmentConfirmed && metadata?.calendar_event_id) {
+            await syncConfirmAppointment({
+              companyId,
+              eventId: metadata.calendar_event_id,
+              contactId,
+              agentRunId,
+              callLogId,
+              agentName: metadata?.agent_name,
+            });
+          } else if (needsReschedule && metadata?.calendar_event_id) {
+            // Use new time from metadata if agent extracted it, otherwise use next available
+            const newStart = metadata?.new_appointment_time;
+            const duration = calendarConfig.defaultMeetingDuration || 30;
+            if (newStart) {
+              const newEnd = new Date(new Date(newStart).getTime() + duration * 60000).toISOString();
+              await syncRescheduleAppointment({
+                companyId,
+                eventId: metadata.calendar_event_id,
+                contactId,
+                agentRunId,
+                callLogId,
+                newStartTime: newStart,
+                newEndTime: newEnd,
+                reason: metadata?.reschedule_reason || 'Contact requested reschedule',
+                videoProvider: calendarConfig.preferredVideoProvider || 'none',
+                agentName: metadata?.agent_name,
+              });
+            }
+          } else if (isNoShow && metadata?.calendar_event_id) {
+            await syncHandleNoShow({
+              companyId,
+              eventId: metadata.calendar_event_id,
+              contactId,
+              agentRunId,
+              callLogId,
+              calendarConfig,
+              agentName: metadata?.agent_name,
+            });
+          }
+        }
+
+        // ---- Lead Qualification Agent ----
+        if (templateSlug === 'lead-qualification' && contactId) {
+          const meetingRequested =
+            metadata?.meeting_scheduled ||
+            metadata?.meeting_requested;
+
+          if (meetingRequested && metadata?.meeting_time) {
+            const duration = calendarConfig.defaultMeetingDuration || 30;
+            const startTime = metadata.meeting_time;
+            const endTime = new Date(new Date(startTime).getTime() + duration * 60000).toISOString();
+
+            await syncScheduleMeeting({
+              companyId,
+              contactId,
+              contactName,
+              contactPhone: to,
+              contactEmail: metadata?.contact_email,
+              agentRunId,
+              callLogId,
+              startTime,
+              endTime,
+              title: `Meeting: ${contactName}`,
+              description: `Qualified lead meeting with ${contactName}`,
+              videoProvider: calendarConfig.preferredVideoProvider || 'none',
+              agentName: metadata?.agent_name,
+              meetingType: 'meeting',
+            });
+          }
+        }
+
+        // ---- Data Validation Agent (and all agents) ----
+        // Handle callback requests from any agent type
+        if (contactId && calendarConfig.callbackEnabled) {
+          const callbackRequested =
+            metadata?.callback_requested ||
+            metadata?.for_callback;
+
+          if (callbackRequested) {
+            const callbackDate = metadata?.callback_date
+              || new Date(Date.now() + (calendarConfig.followUpIntervalHours || 24) * 60 * 60 * 1000).toISOString();
+
+            await syncScheduleCallback({
+              companyId,
+              contactId,
+              contactName,
+              contactPhone: to,
+              agentRunId,
+              callLogId,
+              callbackDate,
+              reason: 'requested',
+              agentName: metadata?.agent_name,
+              notes: summary || undefined,
+            });
+          }
+        }
+      }
+    } catch (campaignCalendarError) {
+      // Don't fail the webhook if campaign calendar operations fail
+      console.error('Failed campaign calendar operation (non-fatal):', campaignCalendarError);
     }
 
     return NextResponse.json({
