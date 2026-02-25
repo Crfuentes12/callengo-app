@@ -463,10 +463,53 @@ tbody tr {
 }
 
 /* ============================================
-   AUTH PAGE - Glassmorphism & Animations
+   AUTH PAGE - Immersive Animated Background
    ============================================ */
 
-/* Glassmorphism card */
+/* Animated mesh gradient blobs - organic flowing movement */
+@keyframes authMesh1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(200px, -150px) scale(1.15); }
+  50% { transform: translate(-100px, 200px) scale(0.9); }
+  75% { transform: translate(150px, 80px) scale(1.05); }
+}
+
+@keyframes authMesh2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-250px, 120px) scale(0.95); }
+  50% { transform: translate(150px, -180px) scale(1.1); }
+  75% { transform: translate(-80px, -100px) scale(1); }
+}
+
+@keyframes authMesh3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(180px, 160px) scale(1.08); }
+  66% { transform: translate(-200px, -80px) scale(0.92); }
+}
+
+.auth-mesh-1 { animation: authMesh1 25s ease-in-out infinite; }
+.auth-mesh-2 { animation: authMesh2 30s ease-in-out infinite; }
+.auth-mesh-3 { animation: authMesh3 35s ease-in-out infinite; }
+
+/* Floating auth card with colored glow shadow */
+.auth-card {
+  background: white;
+  border-radius: 24px;
+  padding: 36px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 25px 80px -12px rgba(46, 58, 118, 0.35),
+    0 8px 24px -8px rgba(137, 56, 176, 0.12);
+}
+
+@media (max-width: 640px) {
+  .auth-card {
+    padding: 28px 24px;
+    border-radius: 20px;
+  }
+}
+
+/* Glassmorphism card (reusable) */
 .glass-card {
   background: rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(20px);
@@ -474,123 +517,35 @@ tbody tr {
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.glass-card-light {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
-}
-
-/* Auth dot grid pattern */
-.auth-dot-grid {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-
-/* Floating orb animations */
-@keyframes authFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.05); }
-  66% { transform: translate(-20px, 20px) scale(0.95); }
-}
-
-@keyframes authFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-40px, 30px) scale(1.03); }
-  66% { transform: translate(25px, -35px) scale(0.97); }
-}
-
-@keyframes authFloat3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(15px, 25px) scale(1.02); }
-}
-
-.auth-orb-1 {
-  animation: authFloat1 20s ease-in-out infinite;
-}
-
-.auth-orb-2 {
-  animation: authFloat2 25s ease-in-out infinite;
-}
-
-.auth-orb-3 {
-  animation: authFloat3 30s ease-in-out infinite;
-}
-
-/* Auth form input enhanced styling */
+/* Auth form input */
 .auth-input {
   width: 100%;
-  padding: 0.875rem 1rem 0.875rem 2.75rem;
+  padding: 0.6875rem 0.875rem 0.6875rem 2.375rem;
   background: white;
   border: 1.5px solid var(--color-neutral-200);
   border-radius: var(--radius-lg);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: var(--color-neutral-900);
   transition: all var(--transition-base);
   outline: none;
 }
 
-.auth-input::placeholder {
-  color: var(--color-neutral-400);
-}
-
-.auth-input:hover {
-  border-color: var(--color-neutral-300);
-}
-
+.auth-input::placeholder { color: var(--color-neutral-400); }
+.auth-input:hover { border-color: var(--color-neutral-300); }
 .auth-input:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(46, 58, 118, 0.1);
 }
-
-.auth-input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Social auth button */
-.social-auth-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.8125rem 1rem;
-  background: white;
-  border: 1.5px solid var(--color-neutral-200);
-  border-radius: var(--radius-lg);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-neutral-700);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.social-auth-btn:hover {
-  background: var(--color-neutral-50);
-  border-color: var(--color-neutral-300);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.social-auth-btn:active {
-  transform: scale(0.99);
-}
-
-.social-auth-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
+.auth-input:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Auth gradient submit button */
 .auth-submit-btn {
   width: 100%;
-  padding: 0.875rem 1.5rem;
+  padding: 0.6875rem 1.25rem;
   background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-mid), var(--color-gradient-end));
   color: white;
   font-weight: 600;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   border: none;
   border-radius: var(--radius-lg);
   cursor: pointer;
@@ -603,10 +558,7 @@ tbody tr {
   transform: translateY(-1px);
 }
 
-.auth-submit-btn:active {
-  transform: translateY(0);
-}
-
+.auth-submit-btn:active { transform: translateY(0); }
 .auth-submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
