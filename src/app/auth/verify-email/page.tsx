@@ -26,22 +26,22 @@ function VerifyEmailForm() {
 
   return (
     <div className="animate-fade-in text-center">
-      <div className="w-12 h-12 rounded-2xl gradient-bg flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[var(--color-primary)]/20 relative">
+      <div className="w-12 h-12 rounded-2xl gradient-bg flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[var(--color-accent)]/20 relative">
         <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-        <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center ring-2 ring-white">
+        <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center ring-2 ring-[#0f1629]">
           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v.01" /></svg>
         </div>
       </div>
 
-      <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Check your email</h1>
-      <p className="text-slate-400 text-sm mt-1">
-        Verification link sent to{email && <><br /><span className="text-slate-700 font-medium">{email}</span></>}
+      <h1 className="text-2xl font-bold text-white tracking-tight">Check your email</h1>
+      <p className="text-white/40 text-sm mt-1">
+        Verification link sent to{email && <><br /><span className="text-white/70 font-medium">{email}</span></>}
       </p>
 
-      <div className="mt-5 bg-slate-50 border border-slate-100 rounded-xl p-4 text-left">
+      <div className="mt-5 bg-white/[0.05] border border-white/10 rounded-xl p-4 text-left">
         <ol className="space-y-2">
           {['Open the email we sent', 'Click the verification link', 'Complete your company setup'].map((step, i) => (
-            <li key={i} className="flex items-center gap-2.5 text-xs text-slate-600">
+            <li key={i} className="flex items-center gap-2.5 text-xs text-white/50">
               <span className="w-5 h-5 rounded-full gradient-bg text-white text-[10px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
               {step}
             </li>
@@ -50,16 +50,16 @@ function VerifyEmailForm() {
       </div>
 
       {error && (
-        <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs">{error}</div>
+        <div className="mt-3 p-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-300 text-xs">{error}</div>
       )}
       {resent && (
-        <div className="mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-600 text-xs">Verification email resent!</div>
+        <div className="mt-3 p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-300 text-xs">Verification email resent!</div>
       )}
 
       <button
         onClick={handleResend}
         disabled={resending || !email}
-        className="mt-4 w-full py-2.5 text-xs text-[var(--color-primary)] font-semibold hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5 rounded-xl hover:bg-[var(--color-primary)]/5 border border-slate-200"
+        className="mt-4 w-full py-2.5 text-xs text-white/60 font-semibold hover:text-white/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5 rounded-xl bg-white/[0.05] border border-white/10 hover:bg-white/[0.08] hover:border-white/15"
       >
         {resending ? (
           <><svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Sending...</>
@@ -68,10 +68,10 @@ function VerifyEmailForm() {
         )}
       </button>
 
-      <p className="mt-3 text-[10px] text-slate-400">Check spam if you don&apos;t see it</p>
+      <p className="mt-3 text-[10px] text-white/20">Check spam if you don&apos;t see it</p>
 
-      <div className="mt-4 pt-4 border-t border-slate-100">
-        <Link href="/auth/login" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 font-medium transition-colors">
+      <div className="mt-4 pt-4 border-t border-white/10">
+        <Link href="/auth/login" className="inline-flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 font-medium transition-colors">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Back to sign in
         </Link>
@@ -82,7 +82,7 @@ function VerifyEmailForm() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--color-primary)]" /></div>}>
+    <Suspense fallback={<div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white/30" /></div>}>
       <VerifyEmailForm />
     </Suspense>
   );
