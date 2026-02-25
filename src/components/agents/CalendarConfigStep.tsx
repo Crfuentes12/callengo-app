@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { BiLogoZoom } from 'react-icons/bi';
-import { GoogleCalendarIcon, OutlookIcon } from '@/components/icons/BrandIcons';
+import { GoogleCalendarIcon, OutlookIcon, GoogleMeetIcon, TeamsIcon, SlackIcon } from '@/components/icons/BrandIcons';
 import type { CalendarStepConfig } from '@/types/calendar';
 
 // Re-export for consumers
@@ -17,6 +17,12 @@ interface IntegrationStatuses {
   google_calendar: { connected: boolean; email?: string };
   microsoft_outlook: { connected: boolean; email?: string };
   zoom: { connected: boolean; email?: string };
+  slack: { connected: boolean; team_name?: string; channel_name?: string };
+}
+
+interface SlackChannel {
+  id: string;
+  name: string;
 }
 
 interface CalendarConfigStepProps {
@@ -285,9 +291,12 @@ export default function CalendarConfigStep({
     google_calendar: { connected: false },
     microsoft_outlook: { connected: false },
     zoom: { connected: false },
+    slack: { connected: false },
   });
   const [loadingIntegrations, setLoadingIntegrations] = useState(true);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
+  const [slackChannels, setSlackChannels] = useState<SlackChannel[]>([]);
+  const [loadingSlackChannels, setLoadingSlackChannels] = useState(false);
 
   // Self-fetch plan slug from subscription API for reliability
   const [fetchedPlanSlug, setFetchedPlanSlug] = useState<string | null>(null);
@@ -327,22 +336,45 @@ export default function CalendarConfigStep({
       const res = await fetch('/api/integrations/status');
       if (res.ok) {
         const data = await res.json();
+        const slackData = data.all?.slack || { connected: false };
         setIntegrations({
           google_calendar: data.all?.google_calendar || { connected: false },
           microsoft_outlook: data.all?.microsoft_outlook || { connected: false },
           zoom: data.all?.zoom || { connected: false },
+          slack: slackData,
         });
 
         const connected: string[] = [];
         if (data.all?.google_calendar?.connected) connected.push('google_calendar');
         if (data.all?.microsoft_outlook?.connected) connected.push('microsoft_outlook');
         if (data.all?.zoom?.connected) connected.push('zoom');
+        if (slackData.connected) connected.push('slack');
         onConfigChange({ ...config, connectedIntegrations: connected });
+
+        // Fetch Slack channels if connected
+        if (slackData.connected) {
+          fetchSlackChannels();
+        }
       }
     } catch (err) {
       console.error('Error fetching integration status:', err);
     } finally {
       setLoadingIntegrations(false);
+    }
+  };
+
+  const fetchSlackChannels = async () => {
+    setLoadingSlackChannels(true);
+    try {
+      const res = await fetch('/api/integrations/slack/channels');
+      if (res.ok) {
+        const data = await res.json();
+        setSlackChannels(data.channels || []);
+      }
+    } catch {
+      // Slack channels fetch failed silently
+    } finally {
+      setLoadingSlackChannels(false);
     }
   };
 
@@ -617,23 +649,35 @@ export default function CalendarConfigStep({
         </div>
       </div>
 
-      {/* Follow-ups section */}
+      {/* Voicemail & Follow-ups */}
       <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
         <h3 className="text-xs font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
           <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
           </svg>
-          Automatic Follow-ups
+          Voicemail & Follow-ups
         </h3>
         <p className="text-[11px] text-slate-500 mb-3">
-          When a contact doesn&apos;t answer or asks to be called later, the agent will automatically retry the call. Follow-ups are internal retries and don&apos;t create calendar events.
+          Configure how the agent handles voicemails and retries. Follow-ups are internal call retries and don&apos;t create calendar events.
         </p>
 
         <div className="space-y-2.5">
+          {/* Voicemail toggle */}
+          <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Voicemail detection</p>
+              <p className="text-[11px] text-slate-400">Leave a message when voicemail is detected</p>
+            </div>
+            <ToggleSwitch
+              checked={config.voicemailEnabled}
+              onChange={val => update({ voicemailEnabled: val })}
+            />
+          </div>
+
           {/* Follow-ups toggle */}
           <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
             <div>
-              <p className="text-sm font-semibold text-slate-700">Enable follow-ups</p>
+              <p className="text-sm font-semibold text-slate-700">Automatic follow-ups</p>
               <p className="text-[11px] text-slate-400">Retry contacts who didn&apos;t answer</p>
             </div>
             <ToggleSwitch
@@ -717,10 +761,10 @@ export default function CalendarConfigStep({
 
           <div className="grid grid-cols-2 gap-2">
             {[
-              { key: 'none', label: 'No Video', desc: 'In-person or phone' },
-              { key: 'google_meet', label: 'Google Meet', desc: integrations.google_calendar.connected ? 'Ready' : 'Connect Google first' },
-              { key: 'zoom', label: 'Zoom', desc: integrations.zoom.connected ? 'Ready' : 'Connect Zoom first' },
-              { key: 'microsoft_teams', label: 'MS Teams', desc: isPremium ? (integrations.microsoft_outlook.connected ? 'Ready' : 'Connect Outlook first') : 'Business plan' },
+              { key: 'none', label: 'No Video', desc: 'In-person or phone', icon: null },
+              { key: 'google_meet', label: 'Google Meet', desc: integrations.google_calendar.connected ? 'Ready' : 'Connect Google first', icon: <GoogleMeetIcon className="w-4 h-4" /> },
+              { key: 'zoom', label: 'Zoom', desc: integrations.zoom.connected ? 'Ready' : 'Connect Zoom first', icon: <BiLogoZoom className="w-5 h-5 text-[#2D8CFF]" /> },
+              { key: 'microsoft_teams', label: 'Microsoft Teams', desc: isPremium ? (integrations.microsoft_outlook.connected ? 'Ready' : 'Connect Outlook first') : 'Business plan', icon: <TeamsIcon className="w-4 h-4" /> },
             ].map(opt => {
               const isDisabled =
                 (opt.key === 'zoom' && !integrations.zoom.connected) ||
@@ -737,8 +781,16 @@ export default function CalendarConfigStep({
                       : 'border-slate-200 bg-white hover:border-slate-300'
                   } ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
-                  <span className="text-xs font-bold text-slate-900 block">{opt.label}</span>
-                  <p className="text-[10px] text-slate-400">{opt.desc}</p>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    {opt.icon && <span className="flex-shrink-0">{opt.icon}</span>}
+                    {!opt.icon && (
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                    )}
+                    <span className="text-xs font-bold text-slate-900">{opt.label}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 pl-[22px]">{opt.desc}</p>
                 </button>
               );
             })}
@@ -778,6 +830,102 @@ export default function CalendarConfigStep({
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Slack Notifications - only if connected */}
+      {integrations.slack.connected && (
+        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+              <SlackIcon className="w-3.5 h-3.5" />
+              Slack Notifications
+            </h3>
+            <ToggleSwitch
+              checked={config.slackEnabled}
+              onChange={val => update({ slackEnabled: val })}
+            />
+          </div>
+          <p className="text-[11px] text-slate-500 mb-3">
+            Send campaign updates to a Slack channel.
+            {integrations.slack.team_name && (
+              <span className="font-medium text-slate-600"> Connected to {integrations.slack.team_name}.</span>
+            )}
+          </p>
+
+          {config.slackEnabled && (
+            <div className="space-y-3">
+              {/* Channel selector */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Channel</label>
+                {loadingSlackChannels ? (
+                  <div className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-400 text-sm">
+                    Loading channels...
+                  </div>
+                ) : slackChannels.length > 0 ? (
+                  <select
+                    value={config.slackChannelId}
+                    onChange={e => {
+                      const channel = slackChannels.find(c => c.id === e.target.value);
+                      update({
+                        slackChannelId: e.target.value,
+                        slackChannelName: channel?.name || '',
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                  >
+                    <option value="">Select a channel...</option>
+                    {slackChannels.map(ch => (
+                      <option key={ch.id} value={ch.id}>#{ch.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm">
+                    <p className="text-slate-500">
+                      {integrations.slack.channel_name ? (
+                        <>Default channel: <span className="font-medium text-slate-700">#{integrations.slack.channel_name}</span></>
+                      ) : (
+                        'No channels found. Make sure the bot is added to a channel.'
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Notification types */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-2">Notify on</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { key: 'slackNotifyOnCallCompleted' as const, label: 'Call completed', desc: 'When an agent finishes a call' },
+                    { key: 'slackNotifyOnAppointment' as const, label: 'New appointment', desc: 'When a meeting is scheduled' },
+                    { key: 'slackNotifyOnFollowUp' as const, label: 'Follow-up queued', desc: 'When a retry is scheduled' },
+                    { key: 'slackNotifyOnNoShow' as const, label: 'No-show detected', desc: 'When a contact doesn\'t show up' },
+                  ].map(notif => (
+                    <label
+                      key={notif.key}
+                      className={`flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer transition-all ${
+                        config[notif.key]
+                          ? 'border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={config[notif.key]}
+                        onChange={e => update({ [notif.key]: e.target.checked })}
+                        className="mt-0.5 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                      />
+                      <div>
+                        <span className="text-xs font-semibold text-slate-700 block">{notif.label}</span>
+                        <span className="text-[10px] text-slate-400">{notif.desc}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
