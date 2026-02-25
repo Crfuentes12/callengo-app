@@ -535,3 +535,45 @@ export function getCalendarFeatureAccess(planSlug: string): CalendarFeatureAcces
       return getCalendarFeatureAccess('free');
   }
 }
+
+// ============================================================================
+// CAMPAIGN CALENDAR CONFIGURATION
+// ============================================================================
+
+/**
+ * Calendar configuration for a campaign (stored in agent_runs.settings.calendarConfig).
+ * This is set during the calendar step of campaign creation and used by agents
+ * to make scheduling decisions during calls.
+ */
+export interface CalendarStepConfig {
+  // Timezone & work schedule
+  timezone: string;
+  workingHoursStart: string;
+  workingHoursEnd: string;
+  workingDays: string[];
+  excludeUSHolidays: boolean;
+
+  // Follow-ups & Callbacks
+  followUpEnabled: boolean;
+  followUpMaxAttempts: number;
+  followUpIntervalHours: number;
+  smartFollowUp: boolean;
+  callbackEnabled: boolean;
+  callbackMaxAttempts: number;
+
+  // Calendar awareness (always enabled by default)
+  calendarContextEnabled: boolean;
+
+  // Appointment Confirmation specific
+  appointmentAvailabilityEnabled: boolean;
+  defaultMeetingDuration: number;
+  allowRescheduling: boolean;
+  noShowAutoRetry: boolean;
+  noShowRetryDelayHours: number;
+
+  // Video conferencing preference
+  preferredVideoProvider: 'none' | 'google_meet' | 'zoom' | 'microsoft_teams';
+
+  // Connected integrations snapshot at campaign creation time
+  connectedIntegrations: string[];
+}

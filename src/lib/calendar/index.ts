@@ -7,3 +7,4 @@ export * from './slack';
 export * from './zoom';
 export * from './availability';
 export * from './sync';
+export * from './campaign-sync';
