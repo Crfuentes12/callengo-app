@@ -46,6 +46,7 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
     'Twilio BYOP integration',
     'Microsoft 365 Outlook & Teams',
     'Slack notifications',
+    'Salesforce CRM integration',
   ],
 
   teams: [
@@ -56,7 +57,7 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
     'Agent/campaign analytics',
     'Advanced retry logic',
     'Priority support',
-    'CRM integrations (Beta)',
+    'Salesforce CRM integration',
     'Auto-rotated numbers from Callengo pool',
     'Twilio BYOP integration',
     'Custom dialing pools',

@@ -37,6 +37,14 @@ export default async function Integrations() {
 
   const settings = (companySettings?.settings ?? {}) as Record<string, unknown>;
 
+  // Fetch Salesforce integration
+  const { data: sfIntegration } = await supabaseAdmin
+    .from('salesforce_integrations')
+    .select('id, sf_username, sf_display_name, sf_email, instance_url, last_synced_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+
   // Determine Twilio connection status
   const twilioConnected = !!settings.twilio_encrypted_key;
 
@@ -86,6 +94,14 @@ export default async function Integrations() {
         },
         twilio: {
           connected: twilioConnected,
+        },
+        salesforce: {
+          connected: !!sfIntegration,
+          email: sfIntegration?.sf_email || undefined,
+          username: sfIntegration?.sf_username || undefined,
+          displayName: sfIntegration?.sf_display_name || undefined,
+          lastSynced: sfIntegration?.last_synced_at || undefined,
+          integrationId: sfIntegration?.id || undefined,
         },
       }}
       planSlug={planSlug}

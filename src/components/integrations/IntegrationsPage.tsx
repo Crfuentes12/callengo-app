@@ -22,6 +22,7 @@ interface IntegrationsPageProps {
     zoom: { connected: boolean };
     slack: { connected: boolean; teamName?: string; channelName?: string };
     twilio: { connected: boolean };
+    salesforce: { connected: boolean; email?: string; username?: string; displayName?: string; lastSynced?: string; integrationId?: string };
   };
   planSlug: string;
   companyId: string;
@@ -396,13 +397,45 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'salesforce',
       provider: 'salesforce',
       name: 'Salesforce',
-      description: 'Sync contacts and call data with your Salesforce CRM. Automatically update lead status after calls.',
+      description: 'Sync contacts, leads, and call data with your Salesforce CRM. Import contacts and manage your org from Callengo.',
       icon: <FaSalesforce className="w-7 h-7" />,
       iconColor: 'text-[#00A1E0]',
       iconBg: 'bg-blue-50',
       requiredPlan: 'business',
-      status: 'coming_soon',
+      status: integrations.salesforce.connected ? 'connected' : 'available',
       category: 'crm',
+      connectUrl: '/api/integrations/salesforce/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/salesforce/disconnect',
+      syncUrl: '/api/integrations/salesforce/sync',
+      showSync: true,
+      connectedDetail: integrations.salesforce.connected ? (
+        <div className="text-xs text-slate-500 space-y-0.5 mt-2">
+          {integrations.salesforce.username && (
+            <p className="flex items-center gap-1.5">
+              <span className="text-slate-400">User:</span>
+              <span className="font-medium text-slate-600">{integrations.salesforce.displayName || integrations.salesforce.username}</span>
+            </p>
+          )}
+          {integrations.salesforce.email && (
+            <p className="flex items-center gap-1.5">
+              <span className="text-slate-400">Email:</span>
+              <span className="font-medium text-slate-600">{integrations.salesforce.email}</span>
+            </p>
+          )}
+          <p className="flex items-center gap-1.5">
+            <span className="text-slate-400">Last sync:</span>
+            <span className="font-medium text-slate-600">{formatLastSynced(integrations.salesforce.lastSynced)}</span>
+          </p>
+          <div className="pt-1">
+            <Link
+              href="/contacts/salesforce"
+              className="text-[var(--color-primary)] hover:underline font-medium"
+            >
+              Manage Salesforce Contacts &rarr;
+            </Link>
+          </div>
+        </div>
+      ) : undefined,
     },
     {
       id: 'hubspot',
