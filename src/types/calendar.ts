@@ -579,6 +579,8 @@ export interface CalendarStepConfig {
   slackEnabled: boolean;
   slackChannelId: string;
   slackChannelName: string;
+  slackChannelIds?: string[];
+  slackChannelNames?: string[];
   slackNotifyOnCallCompleted: boolean;
   slackNotifyOnAppointment: boolean;
   slackNotifyOnFollowUp: boolean;

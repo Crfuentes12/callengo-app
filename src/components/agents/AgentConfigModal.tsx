@@ -684,7 +684,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
     return (
       <>
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -699,159 +699,164 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
-            {/* Two column layout - Avatar + About */}
-            <div className="space-y-5">
-              {/* Agent Profile Section - Side by Side */}
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Left: Agent avatar */}
-                <div className="flex flex-col">
-                  <div className={`relative w-full aspect-square rounded-xl overflow-hidden border ${settings.voice ? `border-[var(--color-primary)]/30` : 'border-slate-200'} shadow-2xl transition-all duration-300`}>
-                    {/* Current image (base layer) */}
-                    <div className="absolute inset-0 z-10">
+            {/* Two column layout - Agent Card LEFT | Config RIGHT */}
+            <div className="grid md:grid-cols-[280px_1fr] gap-6">
+              {/* LEFT: Agent Card + Test + About */}
+              <div className="flex flex-col gap-4">
+                {/* Agent Photo Card */}
+                <div className={`relative w-full aspect-[3/4] rounded-xl overflow-hidden border ${settings.voice ? `border-[var(--color-primary)]/30` : 'border-slate-200'} shadow-lg transition-all duration-300`}>
+                  <div className="absolute inset-0 z-10">
+                    <Image
+                      src={avatarImage}
+                      alt={agentName || agent.name}
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+                  {isTransitioning && previousVoice && (
+                    <div className={`absolute inset-0 z-20 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
                       <Image
-                        src={avatarImage}
+                        src={getAvatarImage(agent.name, previousVoice)}
                         alt={agentName || agent.name}
                         fill
                         className="object-cover"
                         priority
                       />
                     </div>
-
-                    {/* Previous image (fading out during transition) */}
-                    {isTransitioning && previousVoice && (
-                      <div className={`absolute inset-0 z-20 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-                        <Image
-                          src={getAvatarImage(agent.name, previousVoice)}
-                          alt={agentName || agent.name}
-                          fill
-                          className="object-cover"
-                          priority
-                        />
-                      </div>
-                    )}
-
-                    <div className="absolute inset-0 z-30 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none"></div>
-
-                    {/* Agent name overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-black via-black/95 to-transparent pointer-events-none">
-                      <h2 className="text-xl font-bold text-white uppercase tracking-tight leading-tight mb-0.5">
-                        {agentName || agent.name}
-                      </h2>
-                      <p className="text-xs text-slate-300">
-                        {agentTitle}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Test Agent Button */}
-                  <button
-                    onClick={() => {
-                      console.log('🎯 Test Agent button clicked!');
-                      console.log('settings.testPhoneNumber:', settings.testPhoneNumber);
-                      console.log('settings.voice:', settings.voice);
-                      setTestPhoneNumber(settings.testPhoneNumber);
-                      setShowTestModal(true);
-                      console.log('✅ Modal should open now');
-                    }}
-                    disabled={!settings.voice}
-                    className={`mt-4 w-full px-4 py-3 gradient-bg text-white rounded-lg font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    Test Agent
-                  </button>
-                  {!settings.voice && (
-                    <p className="text-xs text-red-400 mt-2 text-center">
-                      Please select a voice to test the agent
-                    </p>
                   )}
+                  <div className="absolute inset-0 z-30 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none"></div>
+                  <div className="absolute bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-none">
+                    <h2 className="text-lg font-bold text-white uppercase tracking-tight leading-tight mb-0.5">
+                      {agentName || agent.name}
+                    </h2>
+                    <p className="text-[11px] text-slate-300">{agentTitle}</p>
+                  </div>
                 </div>
 
-                {/* Right: About this agent */}
-                <div className="flex flex-col space-y-4">
+                {/* Test Agent Button */}
+                <button
+                  onClick={() => {
+                    setTestPhoneNumber(settings.testPhoneNumber);
+                    setShowTestModal(true);
+                  }}
+                  disabled={!settings.voice}
+                  className={`w-full px-4 py-2.5 gradient-bg text-white rounded-lg font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  Test Agent
+                </button>
+                {!settings.voice && (
+                  <p className="text-[10px] text-red-400 text-center -mt-2">Select a voice first</p>
+                )}
+
+                {/* About this agent */}
+                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                  <h4 className="text-[11px] font-bold text-slate-900 uppercase mb-1.5 flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    About this agent
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    {agentInfo.description}
+                  </p>
+                </div>
+              </div>
+
+              {/* RIGHT: Agent Identity + Call Settings */}
+              <div className="flex flex-col gap-4">
+                {/* Agent Identity */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase">Agent Identity</h3>
+
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
-                      <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      About this agent
-                    </h3>
-                    <p className="text-sm text-slate-600 leading-relaxed">
-                      {agentInfo.description}
-                    </p>
-                  </div>
-
-                  {/* Agent Identity */}
-                  <div className="bg-slate-50 backdrop-blur-sm rounded-lg p-4 border border-slate-200 space-y-3">
-                    <h3 className="text-xs font-bold text-slate-900 uppercase mb-3">Agent Identity</h3>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
-                        Voice <span className="text-red-400">*</span>
+                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+                      Voice <span className="text-red-400">*</span>
+                    </label>
+                    <VoiceSelector
+                      selectedVoiceId={settings.voice}
+                      onVoiceSelect={(voiceId) => handleVoiceChange(voiceId)}
+                      variant="light"
+                    />
+                    {!settings.voice && (
+                      <p className="text-xs text-red-400 mt-1.5">Please select a voice to continue</p>
+                    )}
+                    {settings.voice && settings.voice !== companySettings?.default_voice && (
+                      <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={setAsDefaultVoice}
+                          onChange={e => setSetAsDefaultVoice(e.target.checked)}
+                          className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                        />
+                        <span className="text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">Set as default voice</span>
                       </label>
-                      <VoiceSelector
-                        selectedVoiceId={settings.voice}
-                        onVoiceSelect={(voiceId) => handleVoiceChange(voiceId)}
-                        variant="light"
-                      />
-                      {!settings.voice && (
-                        <p className="text-xs text-red-400 mt-2">Please select a voice to continue</p>
-                      )}
-                      {settings.voice && settings.voice !== companySettings?.default_voice && (
-                        <label className="flex items-center gap-2 mt-2 cursor-pointer group">
-                          <input
-                            type="checkbox"
-                            checked={setAsDefaultVoice}
-                            onChange={e => setSetAsDefaultVoice(e.target.checked)}
-                            className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-                          />
-                          <span className="text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">Set as default voice</span>
-                        </label>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Agent Name</label>
-                        <input
-                          type="text"
-                          placeholder={agent.name}
-                          value={agentName}
-                          onChange={(e) => setAgentName(e.target.value)}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none placeholder-slate-400"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Agent Title</label>
-                        <input
-                          type="text"
-                          placeholder="AI Sales Agent"
-                          value={agentTitle}
-                          onChange={(e) => setAgentTitle(e.target.value)}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none placeholder-slate-400"
-                        />
-                      </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Agent Name</label>
+                      <input
+                        type="text"
+                        placeholder={agent.name}
+                        value={agentName}
+                        onChange={(e) => setAgentName(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Agent Title</label>
+                      <input
+                        type="text"
+                        placeholder="AI Sales Agent"
+                        value={agentTitle}
+                        onChange={(e) => setAgentTitle(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-400"
+                      />
                     </div>
                   </div>
 
-                  {/* Call Settings - compact */}
-                  <div className="bg-slate-50 backdrop-blur-sm rounded-lg p-4 border border-slate-200">
-                    <h3 className="text-xs font-bold text-slate-900 uppercase mb-3 flex items-center justify-between">
-                      Call Settings
-                      {planLimits && (
-                        <span className="text-[10px] font-medium text-slate-400 normal-case">
-                          {planLimits.slug.charAt(0).toUpperCase() + planLimits.slug.slice(1)} plan
-                        </span>
-                      )}
-                    </h3>
+                  {/* AI Self-Identification - subtle toggle near identity */}
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-xs text-slate-600">Identify as AI at call start</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.complianceAiDisclosure}
+                        onChange={e => setSettings({ ...settings, complianceAiDisclosure: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Call Settings - wider layout, no truncation */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase mb-3 flex items-center justify-between">
+                    Call Settings
+                    {planLimits && (
+                      <span className="text-[10px] font-medium text-slate-400 normal-case">
+                        {planLimits.slug.charAt(0).toUpperCase() + planLimits.slug.slice(1)} plan
+                      </span>
+                    )}
+                  </h3>
+                  <div className="space-y-3">
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
-                          Duration
-                          {planLimits && <span className="text-[var(--color-primary)] ml-1">max {planLimits.maxCallDuration}m</span>}
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1 whitespace-nowrap">
+                          Max Duration
                         </label>
-                        <div className="flex items-center gap-1">
+                        <div className="relative">
                           <input
                             type="number"
                             min="1"
@@ -863,14 +868,17 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                               const max = planLimits?.maxCallDuration || 15;
                               setSettings({ ...settings, maxDuration: Math.min(val, max) });
                             }}
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                            className="w-full px-3 py-2 pr-10 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                           />
-                          <span className="text-[11px] text-slate-400">min</span>
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">min</span>
                         </div>
+                        {planLimits && (
+                          <p className="text-[10px] text-[var(--color-primary)] mt-0.5">max {planLimits.maxCallDuration}m</p>
+                        )}
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Interval</label>
-                        <div className="flex items-center gap-1">
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1 whitespace-nowrap">Interval</label>
+                        <div className="relative">
                           <input
                             type="number"
                             min="1"
@@ -878,16 +886,13 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                             step="1"
                             value={settings.intervalMinutes}
                             onChange={e => setSettings({ ...settings, intervalMinutes: Math.round(parseInt(e.target.value) || 5) })}
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                            className="w-full px-3 py-2 pr-10 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                           />
-                          <span className="text-[11px] text-slate-400">min</span>
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">min</span>
                         </div>
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
-                          Calls/Day
-                          {planLimits?.maxCallsPerDay && <span className="text-[var(--color-primary)] ml-1">max {planLimits.maxCallsPerDay}</span>}
-                        </label>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1 whitespace-nowrap">Calls/Day</label>
                         <input
                           type="number"
                           min="1"
@@ -901,20 +906,33 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           }}
                           className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
+                        {planLimits?.maxCallsPerDay && (
+                          <p className="text-[10px] text-[var(--color-primary)] mt-0.5">max {planLimits.maxCallsPerDay}</p>
+                        )}
                       </div>
                     </div>
                     {planLimits && (
-                      <p className="text-[10px] text-slate-400 mt-2">
+                      <p className="text-[10px] text-slate-400">
                         ~{Math.floor(planLimits.minutesIncluded / (settings.maxDuration || 5))} calls/month at {settings.maxDuration}min each ({planLimits.minutesIncluded} min included)
                       </p>
                     )}
+                  </div>
+                </div>
+
+                {/* Agent Stats - compact */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase mb-3">Agent Capabilities</h3>
+                  <div className="space-y-2">
+                    {Object.entries(stats).map(([key, value]) => (
+                      <StatBar key={key} label={key} value={value} color={gradientColor} />
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200">
               <button
                 onClick={onClose}
                 className="flex-1 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 font-bold text-sm transition-all duration-300"
@@ -1563,15 +1581,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   if (step === 'contacts') {
     const getContextPlaceholder = () => {
       const t = getAgentType();
-      if (t === 'appointment_confirmation') return 'Clinic name, doctor, location, cancellation policy...';
-      if (t === 'lead_qualification') return 'Product/service, qualifying criteria, tone...';
-      return 'What data to verify, privacy notice, next steps...';
-    };
-    const getContextLabel = () => {
-      const t = getAgentType();
-      if (t === 'appointment_confirmation') return 'Campaign Context';
-      if (t === 'lead_qualification') return 'Campaign Context';
-      return 'Campaign Context';
+      if (t === 'appointment_confirmation') return 'e.g. Confirm appointments for Dr. Smith at Downtown Clinic, offer rescheduling...';
+      if (t === 'lead_qualification') return 'e.g. Qualify leads for our Enterprise SaaS plan, ask about budget and timeline...';
+      return 'e.g. Verify email, phone, and address for all contacts, mention privacy policy...';
     };
 
     return (
@@ -1618,21 +1630,18 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     <div className="bg-white rounded-lg border border-slate-200 p-4">
                       <p className="text-sm text-slate-600 mb-2">You don&apos;t have any lists yet.</p>
                       <p className="text-[11px] text-slate-400 mb-3">
-                        Lists help you organize and segment contacts for better targeting. We recommend creating lists before launching campaigns, but you can also call all your contacts at once.
+                        Create lists to organize contacts for better targeting, or call all contacts at once.
                       </p>
-                      <div className="flex gap-2">
-                        <a
-                          href="/contacts"
-                          target="_blank"
-                          className="px-3 py-1.5 gradient-bg text-white rounded-lg text-xs font-bold hover:opacity-90 transition-all"
-                        >
-                          Create a List
-                        </a>
-                      </div>
+                      <a
+                        href="/contacts"
+                        target="_blank"
+                        className="px-3 py-1.5 gradient-bg text-white rounded-lg text-xs font-bold hover:opacity-90 transition-all inline-block"
+                      >
+                        Create a List
+                      </a>
                     </div>
                   ) : (
                     <>
-                      {/* All contacts option */}
                       <button
                         onClick={() => setSelectedLists([])}
                         className={`w-full p-3 rounded-lg border-2 transition-all text-left mb-2 ${
@@ -1652,10 +1661,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                             </div>
                             <div>
                               <p className="text-sm font-bold text-slate-900">All contacts</p>
-                              <p className="text-[11px] text-slate-400">Call everyone in your database (not recommended for large lists)</p>
+                              <p className="text-[11px] text-slate-400">Call everyone in your database</p>
                             </div>
                           </div>
-                          <span className="text-xs font-bold text-slate-500">{contactCount} contacts</span>
+                          <span className="text-xs font-bold text-slate-500">{contactCount}</span>
                         </div>
                       </button>
 
@@ -1696,50 +1705,52 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   )}
                 </div>
 
-                {/* Contact count + preview */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-xs font-bold text-slate-500 uppercase">
-                        Target Contacts
-                        {selectedLists.length > 0 && <span className="ml-1 text-[var(--color-primary)]">({selectedLists.length} list{selectedLists.length > 1 ? 's' : ''})</span>}
-                      </p>
-                      <p className="text-2xl font-bold text-slate-900">{contactCount}</p>
+                {/* Contact count - compact */}
+                {contactCount > 0 && (
+                  <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg gradient-bg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-slate-900">{contactCount} contacts</p>
+                        <p className="text-[11px] text-slate-500">
+                          {selectedLists.length > 0 ? `${selectedLists.length} list${selectedLists.length > 1 ? 's' : ''} selected` : 'All contacts'}
+                        </p>
+                      </div>
                     </div>
-                    <div className="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    {contactPreview.length > 0 && (
+                      <div className="flex -space-x-2">
+                        {contactPreview.slice(0, 4).map((c: any) => (
+                          <div key={c.id} className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-slate-500">{(c.contact_name || '?')[0].toUpperCase()}</span>
+                          </div>
+                        ))}
+                        {contactCount > 4 && (
+                          <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center">
+                            <span className="text-[9px] font-bold text-slate-400">+{contactCount - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Campaign Context with AI suggestions */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-slate-900 uppercase">Campaign Context</h3>
+                    <div className="relative group">
+                      <svg className="w-3.5 h-3.5 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-800 text-white text-[11px] rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-xl">
+                        <p className="leading-relaxed">Campaign context tells the AI agent what to say and how to behave during calls. Include specific details like company name, services, tone, and any special instructions.</p>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-slate-800"></div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Contact preview */}
-                  {contactPreview.length > 0 && (
-                    <div className="relative">
-                      <div className="space-y-1 max-h-32 overflow-hidden">
-                        {contactPreview.map((c: any) => (
-                          <div key={c.id} className="flex items-center justify-between bg-white rounded px-3 py-1.5 border border-slate-100">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                                <span className="text-[10px] font-bold text-slate-500">{(c.contact_name || '?')[0].toUpperCase()}</span>
-                              </div>
-                              <span className="text-xs font-medium text-slate-700 truncate">{c.contact_name || 'No name'}</span>
-                            </div>
-                            <span className="text-[11px] text-slate-400 font-mono ml-2">{c.phone_number}</span>
-                          </div>
-                        ))}
-                      </div>
-                      {contactCount > 5 && (
-                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-50 to-transparent pointer-events-none"></div>
-                      )}
-                      {contactCount > 5 && (
-                        <p className="text-[10px] text-slate-400 text-center mt-1">and {contactCount - 5} more contacts...</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Campaign Context + Company Info - combined */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-                  <h3 className="text-xs font-bold text-slate-900 uppercase">{getContextLabel()}</h3>
                   <textarea
                     placeholder={getContextPlaceholder()}
                     value={settings.customTask}
@@ -1747,6 +1758,92 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none placeholder-slate-300"
                     rows={3}
                   />
+
+                  {/* AI Suggestions */}
+                  <div>
+                    <button
+                      onClick={async () => {
+                        setSettings(prev => ({ ...prev, _loadingSuggestions: true } as any));
+                        try {
+                          const res = await fetch('/api/openai/context-suggestions', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              agentType: getAgentType(),
+                              companyName: settings.companyInfo.name,
+                              companyDescription: settings.companyInfo.description,
+                              companyWebsite: settings.companyInfo.website,
+                            }),
+                          });
+                          if (res.ok) {
+                            const data = await res.json();
+                            setSettings(prev => ({ ...prev, _suggestions: data.suggestions, _loadingSuggestions: false } as any));
+                          } else {
+                            setSettings(prev => ({ ...prev, _loadingSuggestions: false } as any));
+                          }
+                        } catch {
+                          setSettings(prev => ({ ...prev, _loadingSuggestions: false } as any));
+                        }
+                      }}
+                      disabled={(settings as any)._loadingSuggestions}
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors disabled:opacity-50"
+                    >
+                      {(settings as any)._loadingSuggestions ? (
+                        <>
+                          <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          AI Suggestions
+                        </>
+                      )}
+                    </button>
+                    {(settings as any)._suggestions && (settings as any)._suggestions.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {(settings as any)._suggestions.map((suggestion: string, idx: number) => (
+                          <button
+                            key={idx}
+                            onClick={() => setSettings(prev => ({ ...prev, customTask: suggestion }))}
+                            className="px-2.5 py-1.5 bg-white border border-[var(--color-primary)]/20 rounded-lg text-[11px] text-slate-600 hover:bg-[var(--color-primary)]/5 hover:border-[var(--color-primary)]/40 transition-all text-left"
+                          >
+                            {suggestion.length > 80 ? suggestion.slice(0, 80) + '...' : suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Company Summary - verify/edit with save option */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-slate-900 uppercase">Company Info</h3>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const s = createClient();
+                          await s.from('companies').update({
+                            name: settings.companyInfo.name,
+                            description: settings.companyInfo.description,
+                            website: settings.companyInfo.website,
+                          }).eq('id', companyId);
+                          alert('Company info saved!');
+                        } catch {
+                          alert('Failed to save.');
+                        }
+                      }}
+                      className="text-[11px] font-bold text-[var(--color-primary)] hover:underline"
+                    >
+                      Save to settings
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Company</label>
@@ -1767,6 +1864,16 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-300"
                       />
                     </div>
+                    <div className="col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Description</label>
+                      <input
+                        type="text"
+                        value={settings.companyInfo.description}
+                        onChange={e => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, description: e.target.value } })}
+                        placeholder="Brief description of your company..."
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-300"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1774,7 +1881,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
             {/* Action buttons */}
             {!loadingContacts && (
-              <div className="flex gap-3 mt-6 pt-6 border-t border-slate-200">
+              <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200">
                 <button
                   onClick={() => setStep('preview')}
                   className="flex-1 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 font-bold text-sm transition-all duration-300"
@@ -1821,6 +1928,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               onConfigChange={setCalendarConfig}
               gradientColor={gradientColor}
               planSlug={companySettings?.plan_slug || 'free'}
+              companySettings={companySettings}
             />
 
             {/* Action buttons */}
@@ -1871,14 +1979,17 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             </svg>
           </button>
 
-          {/* Scrolleable content */}
           <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
-            {/* Agent Summary Card */}
-            <div className="mb-6 bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
-              <div className="flex items-start gap-4">
-                <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-[var(--color-primary)]/30">
+            {/* Launch Card - visually attractive */}
+            <div className="relative mb-6 bg-gradient-to-br from-[var(--color-primary)]/5 via-white to-[var(--color-accent)]/5 rounded-2xl p-6 border border-[var(--color-primary)]/15 overflow-hidden">
+              {/* Decorative background */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[var(--color-primary)]/10 to-transparent rounded-bl-full"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--color-accent)]/10 to-transparent rounded-tr-full"></div>
+
+              <div className="relative flex items-center gap-5">
+                <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-[var(--color-primary)]/20 shadow-lg flex-shrink-0">
                   <Image
                     src={avatarImage}
                     alt={agentName || agent.name}
@@ -1886,155 +1997,105 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     className="object-cover"
                   />
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-slate-900 mb-1">{agentName || agent.name}</h3>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl font-bold text-slate-900 mb-0.5 truncate">{agentName || agent.name}</h3>
                   <p className="text-sm text-slate-500 mb-2">{agentTitle}</p>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">Voice:</span>
-                      <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{BLAND_VOICES.find(v => v.id === settings.voice)?.name || settings.voice}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">Contacts:</span>
-                      <span className="text-xs font-bold text-emerald-600">{contactCount}</span>
-                    </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-primary)]/10 rounded-full text-xs font-bold text-[var(--color-primary)]">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                      {BLAND_VOICES.find(v => v.id === settings.voice)?.name || 'Voice'}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-full text-xs font-bold text-emerald-600">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      {contactCount} contacts
+                    </span>
+                    {settings.complianceAiDisclosure && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-500">
+                        AI Disclosure On
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Configuration Summary */}
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
-              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
-                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Call Configuration</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Max Duration</span>
-                    <span className="text-sm font-bold text-slate-900">{settings.maxDuration} min</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Call Interval</span>
-                    <span className="text-sm font-bold text-slate-900">{settings.intervalMinutes} min</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Max Calls/Day</span>
-                    <span className="text-sm font-bold text-slate-900">{settings.maxCallsPerDay}</span>
-                  </div>
+            {/* Configuration Summary - symmetric grid */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {/* Call Config */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <h4 className="text-[11px] font-bold text-slate-900 uppercase mb-2.5">Call Settings</h4>
+                <div className="space-y-1.5">
+                  {[
+                    ['Duration', `${settings.maxDuration} min`],
+                    ['Interval', `${settings.intervalMinutes} min`],
+                    ['Max/Day', String(settings.maxCallsPerDay)],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between">
+                      <span className="text-[11px] text-slate-500">{label}</span>
+                      <span className="text-[11px] font-bold text-slate-900">{value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
-                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Schedule</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Working Hours</span>
-                    <span className="text-sm font-bold text-slate-900">{calendarConfig.workingHoursStart} - {calendarConfig.workingHoursEnd}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Timezone</span>
-                    <span className="text-sm font-bold text-slate-900">{calendarConfig.timezone}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Working Days</span>
-                    <span className="text-sm font-bold text-slate-900">{calendarConfig.workingDays.length} days</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">US Holidays</span>
-                    <span className="text-sm font-bold text-slate-900">{calendarConfig.excludeUSHolidays ? 'Excluded' : 'Included'}</span>
-                  </div>
+              {/* Schedule */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <h4 className="text-[11px] font-bold text-slate-900 uppercase mb-2.5">Schedule</h4>
+                <div className="space-y-1.5">
+                  {[
+                    ['Hours', `${calendarConfig.workingHoursStart} - ${calendarConfig.workingHoursEnd}`],
+                    ['Days', `${calendarConfig.workingDays.length} days/week`],
+                    ['Holidays', calendarConfig.excludeUSHolidays ? 'Excluded' : 'Included'],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between">
+                      <span className="text-[11px] text-slate-500">{label}</span>
+                      <span className="text-[11px] font-bold text-slate-900">{value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* Calendar & Integrations Summary */}
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
-              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
-                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Calendar Integrations</h4>
-                <div className="space-y-2">
+              {/* Integrations */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <h4 className="text-[11px] font-bold text-slate-900 uppercase mb-2.5">Integrations</h4>
+                <div className="space-y-1.5">
                   {calendarConfig.connectedIntegrations.length > 0 ? (
                     calendarConfig.connectedIntegrations.map(int => (
-                      <div key={int} className="flex items-center gap-2">
-                        <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className="text-xs font-medium text-slate-700 capitalize">{int.replace('_', ' ')}</span>
+                      <div key={int} className="flex items-center gap-1.5">
+                        <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        <span className="text-[11px] font-medium text-slate-700 capitalize">{int.replace('_', ' ')}</span>
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs text-slate-400">No calendars connected</p>
+                    <p className="text-[11px] text-slate-400">No integrations</p>
                   )}
                   {calendarConfig.preferredVideoProvider !== 'none' && (
-                    <div className="flex justify-between pt-2 border-t border-slate-200 mt-2">
-                      <span className="text-xs text-slate-500">Video Platform</span>
-                      <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{calendarConfig.preferredVideoProvider.replace('_', ' ')}</span>
+                    <div className="flex justify-between pt-1.5 border-t border-slate-200 mt-1.5">
+                      <span className="text-[11px] text-slate-500">Video</span>
+                      <span className="text-[11px] font-bold text-[var(--color-primary)] capitalize">{calendarConfig.preferredVideoProvider.replace('_', ' ')}</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
-                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Voicemail & Follow-ups</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Voicemail</span>
-                    <span className={`text-xs font-bold ${calendarConfig.voicemailEnabled ? 'text-emerald-600' : 'text-slate-400'}`}>
-                      {calendarConfig.voicemailEnabled ? 'Enabled' : 'Off'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Auto Follow-ups</span>
-                    <span className={`text-xs font-bold ${calendarConfig.followUpEnabled ? 'text-emerald-600' : 'text-slate-400'}`}>
-                      {calendarConfig.followUpEnabled ? `${calendarConfig.followUpMaxAttempts} attempts, every ${calendarConfig.followUpIntervalHours}h` : 'Disabled'}
-                    </span>
-                  </div>
-                  {calendarConfig.followUpEnabled && calendarConfig.smartFollowUp && (
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">Smart Scheduling</span>
-                      <span className="text-xs font-bold text-[var(--color-primary)]">Enabled</span>
+              {/* Features */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <h4 className="text-[11px] font-bold text-slate-900 uppercase mb-2.5">Features</h4>
+                <div className="space-y-1.5">
+                  {[
+                    ['Voicemail', calendarConfig.voicemailEnabled],
+                    ['Follow-ups', calendarConfig.followUpEnabled],
+                    ['Smart Scheduling', calendarConfig.smartFollowUp],
+                    ['Slack', calendarConfig.slackEnabled],
+                  ].map(([label, enabled]) => (
+                    <div key={label as string} className="flex justify-between">
+                      <span className="text-[11px] text-slate-500">{label as string}</span>
+                      <span className={`text-[11px] font-bold ${enabled ? 'text-emerald-600' : 'text-slate-300'}`}>
+                        {enabled ? 'On' : 'Off'}
+                      </span>
                     </div>
-                  )}
-                  {calendarConfig.slackEnabled && calendarConfig.slackChannelName && (
-                    <div className="flex justify-between pt-2 border-t border-slate-200 mt-2">
-                      <span className="text-xs text-slate-500">Slack Notifications</span>
-                      <span className="text-xs font-bold text-[var(--color-primary)]">#{calendarConfig.slackChannelName}</span>
-                    </div>
-                  )}
+                  ))}
                 </div>
-              </div>
-            </div>
-
-            {/* Compliance - required before launch */}
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-6">
-              <div className="space-y-2">
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.complianceAiDisclosure}
-                    onChange={e => setSettings({ ...settings, complianceAiDisclosure: e.target.checked })}
-                    className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-                  />
-                  <span className="text-xs text-slate-600">The agent will identify itself as AI at the start of each call</span>
-                </label>
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.complianceConsent}
-                    onChange={e => setSettings({ ...settings, complianceConsent: e.target.checked })}
-                    className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-                  />
-                  <span className="text-xs text-slate-600">All contacts have given prior consent to be contacted</span>
-                </label>
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.complianceAcceptTerms}
-                    onChange={e => setSettings({ ...settings, complianceAcceptTerms: e.target.checked })}
-                    className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-                  />
-                  <span className="text-xs text-slate-600">
-                    I accept Callengo&apos;s <a href="/terms" target="_blank" className="text-[var(--color-primary)] underline">terms</a> and <a href="/privacy" target="_blank" className="text-[var(--color-primary)] underline">privacy policy</a>
-                  </span>
-                </label>
               </div>
             </div>
 
@@ -2047,16 +2108,37 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 Back
               </button>
               <button
-                onClick={handleStartCampaign}
-                disabled={loading || !settings.complianceAcceptTerms}
-                className={`flex-1 px-5 py-3 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all duration-300 disabled:opacity-50 relative overflow-hidden`}
+                onClick={() => {
+                  setSettings(prev => ({ ...prev, complianceAcceptTerms: true }));
+                  handleStartCampaign();
+                }}
+                disabled={loading}
+                className={`flex-1 px-5 py-3 gradient-bg text-white rounded-xl hover:opacity-90 font-bold text-sm transition-all duration-300 disabled:opacity-50 relative overflow-hidden shadow-lg shadow-[var(--color-primary)]/20`}
               >
-                <span className="relative z-10">{loading ? 'Launching...' : 'Launch Campaign'}</span>
-                {!loading && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
-                )}
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                      Launching...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      Launch Campaign
+                    </>
+                  )}
+                </span>
               </button>
             </div>
+
+            {/* Inline compliance text - subtle */}
+            <p className="text-[10px] text-slate-400 text-center mt-3 leading-relaxed">
+              By launching this campaign you agree to Callengo&apos;s{' '}
+              <a href="/terms" target="_blank" className="text-[var(--color-primary)] hover:underline">terms of service</a>
+              {' '}and{' '}
+              <a href="/privacy" target="_blank" className="text-[var(--color-primary)] hover:underline">privacy policy</a>.
+              {' '}All contacts must have given prior consent to be contacted.
+            </p>
           </div>
         </div>
       </div>
