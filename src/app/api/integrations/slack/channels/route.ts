@@ -1,9 +1,10 @@
 // app/api/integrations/slack/channels/route.ts
-// Returns list of Slack channels for the company's active Slack integration
+// Returns list of Slack channels using the Slack access token from company_settings JSONB
 
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { getActiveSlackIntegration, listSlackChannels } from '@/lib/calendar/slack';
+import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
+import axios from 'axios';
 
 export async function GET() {
   try {
@@ -24,20 +25,48 @@ export async function GET() {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
-    const integration = await getActiveSlackIntegration(userData.company_id);
+    // Read Slack token from company_settings JSONB (the only place Slack data is stored)
+    const { data: companySettings } = await supabaseAdmin
+      .from('company_settings')
+      .select('settings')
+      .eq('company_id', userData.company_id)
+      .single();
 
-    if (!integration) {
+    const settings = (companySettings?.settings ?? {}) as Record<string, unknown>;
+    const accessToken = settings.slack_access_token as string | undefined;
+
+    if (!accessToken) {
       return NextResponse.json({ channels: [] });
     }
 
-    const channels = await listSlackChannels(integration);
+    // Fetch channels using the Slack API
+    const channels: { id: string; name: string }[] = [];
+    let cursor: string | undefined;
 
-    return NextResponse.json({
-      channels: channels.map(ch => ({
-        id: ch.id,
-        name: ch.name,
-      })),
-    });
+    do {
+      const response = await axios.get('https://slack.com/api/conversations.list', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        params: {
+          types: 'public_channel',
+          exclude_archived: true,
+          limit: 200,
+          ...(cursor && { cursor }),
+        },
+      });
+
+      if (!response.data.ok) {
+        console.error('Slack API error:', response.data.error);
+        break;
+      }
+
+      for (const ch of response.data.channels || []) {
+        channels.push({ id: ch.id, name: ch.name });
+      }
+
+      cursor = response.data.response_metadata?.next_cursor || undefined;
+    } while (cursor);
+
+    return NextResponse.json({ channels });
   } catch (error) {
     console.error('Error fetching Slack channels:', error);
     return NextResponse.json(
