@@ -55,7 +55,7 @@ export async function GET() {
         integrationId: undefined as string | undefined,
       },
       zoom: {
-        connected: !!settings.zoom_connected,
+        connected: true, // Server-to-Server OAuth — always available, no user auth needed
         email: (settings.zoom_user_email as string) || undefined,
       },
       slack: {

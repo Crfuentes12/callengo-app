@@ -264,24 +264,21 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'zoom',
       provider: 'zoom',
       name: 'Zoom',
-      description: 'Generate Zoom meeting links for your scheduled events. Auto-create meeting rooms for every call.',
+      description: 'Auto-generate Zoom meeting links for scheduled events. Always available — no setup required.',
       icon: <BiLogoZoom className="w-7 h-7" />,
       iconColor: 'text-[#2D8CFF]',
       iconBg: 'bg-blue-50',
       requiredPlan: 'free',
-      status: integrations.zoom.connected ? 'connected' : 'available',
+      status: 'connected',
       category: 'video',
-      connectUrl: '/api/integrations/zoom/connect',
-      connectMethod: 'post' as const,
-      disconnectUrl: '/api/integrations/zoom/disconnect',
-      connectedDetail: integrations.zoom.connected ? (
+      connectedDetail: (
         <div className="text-xs text-slate-500 mt-2">
           <p className="flex items-center gap-1.5">
             <span className="text-slate-400">Status:</span>
-            <span className="font-medium text-slate-600">Meeting link generation enabled</span>
+            <span className="font-medium text-emerald-600">Always available (Server-to-Server)</span>
           </p>
         </div>
-      ) : undefined,
+      ),
     },
     {
       id: 'google-sheets',

@@ -259,7 +259,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     smartFollowUp: additionalSettings.smart_followup_enabled ?? false,
     calendarContextEnabled: true,
     defaultMeetingDuration: 30,
-    preferredVideoProvider: 'none',
+    preferredVideoProvider: 'zoom',
     connectedIntegrations: [],
     slackEnabled: false,
     slackChannelId: '',
