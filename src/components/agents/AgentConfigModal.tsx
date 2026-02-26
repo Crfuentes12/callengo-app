@@ -213,6 +213,8 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const [contactPreview, setContactPreview] = useState<any[]>([]);
   const [setAsDefaultVoice, setSetAsDefaultVoice] = useState(false);
   const [planLimits, setPlanLimits] = useState<{ maxCallDuration: number; maxCallsPerDay: number | null; minutesIncluded: number; slug: string } | null>(null);
+  const [contextSuggestions, setContextSuggestions] = useState<{ title: string; detail: string }[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   // Pre-fill from company settings
   const additionalSettings = (companySettings?.settings as any) || {};
@@ -303,6 +305,29 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
       loadContactCount(false);
     }
   }, [selectedLists, step]);
+
+  // Auto-load AI context suggestions when entering contacts step
+  useEffect(() => {
+    if (step === 'contacts' && contextSuggestions.length === 0 && !loadingSuggestions) {
+      setLoadingSuggestions(true);
+      fetch('/api/openai/context-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentType: getAgentType(),
+          companyName: settings.companyInfo.name,
+          companyDescription: settings.companyInfo.description,
+          companyWebsite: settings.companyInfo.website,
+        }),
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data?.suggestions) setContextSuggestions(data.suggestions);
+        })
+        .catch(() => {})
+        .finally(() => setLoadingSuggestions(false));
+    }
+  }, [step]);
 
   // Call duration timer
   useEffect(() => {
@@ -699,8 +724,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
-            {/* Two column layout - Agent Card LEFT | Config RIGHT */}
-            <div className="grid md:grid-cols-[280px_1fr] gap-6">
+            {/* Two column layout - 50/50 */}
+            <div className="grid md:grid-cols-2 gap-6">
               {/* LEFT: Agent Card + Test + About */}
               <div className="flex flex-col gap-4">
                 {/* Agent Photo Card */}
@@ -919,15 +944,6 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </div>
                 </div>
 
-                {/* Agent Stats - compact */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <h3 className="text-xs font-bold text-slate-900 uppercase mb-3">Agent Capabilities</h3>
-                  <div className="space-y-2">
-                    {Object.entries(stats).map(([key, value]) => (
-                      <StatBar key={key} label={key} value={value} color={gradientColor} />
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -1759,65 +1775,32 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     rows={3}
                   />
 
-                  {/* AI Suggestions */}
-                  <div>
-                    <button
-                      onClick={async () => {
-                        setSettings(prev => ({ ...prev, _loadingSuggestions: true } as any));
-                        try {
-                          const res = await fetch('/api/openai/context-suggestions', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              agentType: getAgentType(),
-                              companyName: settings.companyInfo.name,
-                              companyDescription: settings.companyInfo.description,
-                              companyWebsite: settings.companyInfo.website,
-                            }),
-                          });
-                          if (res.ok) {
-                            const data = await res.json();
-                            setSettings(prev => ({ ...prev, _suggestions: data.suggestions, _loadingSuggestions: false } as any));
-                          } else {
-                            setSettings(prev => ({ ...prev, _loadingSuggestions: false } as any));
-                          }
-                        } catch {
-                          setSettings(prev => ({ ...prev, _loadingSuggestions: false } as any));
-                        }
-                      }}
-                      disabled={(settings as any)._loadingSuggestions}
-                      className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors disabled:opacity-50"
-                    >
-                      {(settings as any)._loadingSuggestions ? (
-                        <>
-                          <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                          AI Suggestions
-                        </>
-                      )}
-                    </button>
-                    {(settings as any)._suggestions && (settings as any)._suggestions.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {(settings as any)._suggestions.map((suggestion: string, idx: number) => (
-                          <button
-                            key={idx}
-                            onClick={() => setSettings(prev => ({ ...prev, customTask: suggestion }))}
-                            className="px-2.5 py-1.5 bg-white border border-[var(--color-primary)]/20 rounded-lg text-[11px] text-slate-600 hover:bg-[var(--color-primary)]/5 hover:border-[var(--color-primary)]/40 transition-all text-left"
-                          >
-                            {suggestion.length > 80 ? suggestion.slice(0, 80) + '...' : suggestion}
-                          </button>
+                  {/* AI Context Capsules - always visible */}
+                  <div className="flex flex-wrap gap-2">
+                    {loadingSuggestions ? (
+                      <>
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="h-8 w-32 bg-slate-200 rounded-full animate-pulse"></div>
                         ))}
-                      </div>
-                    )}
+                      </>
+                    ) : contextSuggestions.length > 0 ? (
+                      contextSuggestions.map((suggestion, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setSettings(prev => ({ ...prev, customTask: suggestion.detail }))}
+                          className="inline-flex items-center gap-1.5 pl-1.5 pr-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-semibold text-slate-700 hover:border-[var(--color-primary)]/40 hover:shadow-sm transition-all group"
+                        >
+                          <span className="w-5 h-5 rounded-full gradient-bg flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </span>
+                          <span className="group-hover:text-[var(--color-primary)] transition-colors">
+                            {suggestion.title}
+                          </span>
+                        </button>
+                      ))
+                    ) : null}
                   </div>
                 </div>
 
@@ -1866,12 +1849,12 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </div>
                     <div className="col-span-2">
                       <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Description</label>
-                      <input
-                        type="text"
+                      <textarea
                         value={settings.companyInfo.description}
                         onChange={e => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, description: e.target.value } })}
                         placeholder="Brief description of your company..."
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-300"
+                        rows={2}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-300 resize-none"
                       />
                     </div>
                   </div>
@@ -1984,10 +1967,6 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
             {/* Launch Card - visually attractive */}
             <div className="relative mb-6 bg-gradient-to-br from-[var(--color-primary)]/5 via-white to-[var(--color-accent)]/5 rounded-2xl p-6 border border-[var(--color-primary)]/15 overflow-hidden">
-              {/* Decorative background */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[var(--color-primary)]/10 to-transparent rounded-bl-full"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--color-accent)]/10 to-transparent rounded-tr-full"></div>
-
               <div className="relative flex items-center gap-5">
                 <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-[var(--color-primary)]/20 shadow-lg flex-shrink-0">
                   <Image
@@ -2133,11 +2112,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
             {/* Inline compliance text - subtle */}
             <p className="text-[10px] text-slate-400 text-center mt-3 leading-relaxed">
-              By launching this campaign you agree to Callengo&apos;s{' '}
-              <a href="/terms" target="_blank" className="text-[var(--color-primary)] hover:underline">terms of service</a>
-              {' '}and{' '}
-              <a href="/privacy" target="_blank" className="text-[var(--color-primary)] hover:underline">privacy policy</a>.
-              {' '}All contacts must have given prior consent to be contacted.
+              By launching, you agree to our Terms and Privacy Policy.
             </p>
           </div>
         </div>

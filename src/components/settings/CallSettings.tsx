@@ -125,14 +125,13 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
 
       const now = new Date();
       const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
       const { data: usage } = await supabase
         .from('usage_tracking')
         .select('minutes_used, minutes_included, period_start, period_end')
         .eq('company_id', companyId)
-        .gte('period_start', periodStart.toISOString())
-        .lte('period_end', periodEnd.toISOString())
+        .lte('period_start', now.toISOString())
+        .gte('period_end', now.toISOString())
         .single();
 
       const { data: calls } = await supabase
@@ -154,7 +153,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
         averageCallDuration: avgDuration,
         totalCalls: calls?.length || 0,
         periodStart: usage?.period_start || periodStart.toISOString(),
-        periodEnd: usage?.period_end || periodEnd.toISOString(),
+        periodEnd: usage?.period_end || new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString(),
       });
     } catch (error) {
       console.error('Error loading plan and usage:', error);
