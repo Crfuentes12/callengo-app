@@ -827,9 +827,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </label>
                   </div>
                   {!settings.complianceAiDisclosure && (
-                    <p className="text-[10px] text-amber-600 mt-1 px-1">
-                      This may be required in certain jurisdictions.{' '}
-                      <a href="https://callengo.com/compliance" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-700">Learn more</a>
+                    <p className="text-[9px] text-slate-400 mt-1 px-1 italic">
+                      This may be required in certain jurisdictions.
                     </p>
                   )}
                 </div>
@@ -919,17 +918,32 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       setShowTestModal(true);
                     }}
                     disabled={!settings.voice}
-                    className={`w-full mt-1 px-4 py-2.5 border-2 border-dashed rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                    className={`w-full mt-2 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden ${
                       settings.voice
-                        ? 'border-[var(--color-primary)]/30 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 hover:border-[var(--color-primary)]/50'
-                        : 'border-slate-200 text-slate-300 cursor-not-allowed'
+                        ? 'gradient-bg text-white shadow-lg shadow-[var(--color-primary)]/25 hover:shadow-xl hover:shadow-[var(--color-primary)]/30 hover:scale-[1.02] active:scale-[0.98]'
+                        : 'bg-slate-100 text-slate-300 cursor-not-allowed'
                     }`}
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    Test Agent
-                    {!settings.voice && <span className="text-[10px] font-normal">(select a voice first)</span>}
+                    <div className="px-4 py-3.5 flex items-center justify-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${settings.voice ? 'bg-white/20' : 'bg-slate-200'}`}>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                      </div>
+                      <div className="text-left">
+                        <span className="block text-sm font-bold">
+                          {settings.voice ? 'Test Your Agent Now' : 'Select a voice to test'}
+                        </span>
+                        {settings.voice && (
+                          <span className="block text-[10px] font-medium opacity-80">Receive a live demo call on your phone</span>
+                        )}
+                      </div>
+                      {settings.voice && (
+                        <svg className="w-4 h-4 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
+                    </div>
                   </button>
                 </div>
               </div>

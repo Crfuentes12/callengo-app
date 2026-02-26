@@ -215,12 +215,15 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     try {
       // Prepare settings with additional fields in JSON
       // Ensure integer columns are actually integers (prevents 22P02 error)
+      // IMPORTANT: Spread ALL existing JSONB settings first to preserve Slack, Zoom, and other integration data
+      const existingJsonSettings = (initialSettings.settings as Record<string, unknown>) || {};
       const updatedSettings = {
         default_voice: settings.default_voice,
         default_interval_minutes: Math.max(1, Math.round(Number(settings.default_interval_minutes) || 5)),
         default_max_duration: Math.max(1, Math.round(Number(settings.default_max_duration) || 5)),
         test_phone_number: settings.test_phone_number,
         settings: {
+          ...existingJsonSettings,
           timezone: settings.timezone,
           working_hours_start: settings.working_hours_start,
           working_hours_end: settings.working_hours_end,
@@ -233,9 +236,6 @@ export default function SettingsManager({ company: initialCompany, settings: ini
           followup_max_attempts: settings.followup_max_attempts,
           followup_interval_hours: settings.followup_interval_hours,
           smart_followup_enabled: settings.smart_followup_enabled,
-          ...((initialSettings.settings as any)?.slack_access_token ? { slack_access_token: (initialSettings.settings as any).slack_access_token } : {}),
-          ...((initialSettings.settings as any)?.slack_team_name ? { slack_team_name: (initialSettings.settings as any).slack_team_name } : {}),
-          ...((initialSettings.settings as any)?.slack_team_id ? { slack_team_id: (initialSettings.settings as any).slack_team_id } : {}),
         }
       };
 

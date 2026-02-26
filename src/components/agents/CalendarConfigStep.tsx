@@ -4,6 +4,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { BiLogoZoom } from 'react-icons/bi';
 import { GoogleCalendarIcon, OutlookIcon, GoogleMeetIcon, TeamsIcon, SlackIcon } from '@/components/icons/BrandIcons';
+import { createClient } from '@/lib/supabase/client';
 import type { CalendarStepConfig } from '@/types/calendar';
 
 // Re-export for consumers
@@ -303,10 +304,10 @@ export default function CalendarConfigStep({
 
   // Self-fetch plan slug from subscription API for reliability
   const [fetchedPlanSlug, setFetchedPlanSlug] = useState<string | null>(null);
+  const [planLoading, setPlanLoading] = useState(true);
   const planSlug = fetchedPlanSlug || propPlanSlug;
 
   const isPremium = ['business', 'teams', 'enterprise'].includes(planSlug);
-  const isStarter = ['starter', 'business', 'teams', 'enterprise'].includes(planSlug);
 
   const isAppointment = agentType === 'appointment_confirmation';
   const isLeadQual = agentType === 'lead_qualification';
@@ -323,6 +324,8 @@ export default function CalendarConfigStep({
         }
       } catch {
         // Fallback to prop-based plan slug
+      } finally {
+        setPlanLoading(false);
       }
     };
     fetchPlan();
@@ -442,30 +445,39 @@ export default function CalendarConfigStep({
     return 'schedule callbacks at convenient times and manage follow-up calls.';
   };
 
-  // Sync voicemail/follow-up settings to company settings
+  // Sync voicemail/follow-up settings to company settings (merges into existing JSONB)
   const syncSettingsToCompany = useCallback(async (partial: Partial<CalendarStepConfig>) => {
     setSavingToSettings(true);
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const supabase = createClient();
+      // First read existing settings to preserve all keys (Slack, Zoom, etc.)
+      const { data: current } = await supabase
+        .from('company_settings')
+        .select('settings')
+        .eq('company_id', companyId)
+        .single();
+
+      const existingSettings = (current?.settings as Record<string, unknown>) || {};
+
+      await supabase
+        .from('company_settings')
+        .update({
           settings: {
+            ...existingSettings,
             voicemail_enabled: partial.voicemailEnabled ?? config.voicemailEnabled,
-            follow_up_enabled: partial.followUpEnabled ?? config.followUpEnabled,
-            follow_up_max_attempts: partial.followUpMaxAttempts ?? config.followUpMaxAttempts,
-            follow_up_interval_hours: partial.followUpIntervalHours ?? config.followUpIntervalHours,
-            smart_follow_up: partial.smartFollowUp ?? config.smartFollowUp,
+            followup_enabled: partial.followUpEnabled ?? config.followUpEnabled,
+            followup_max_attempts: partial.followUpMaxAttempts ?? config.followUpMaxAttempts,
+            followup_interval_hours: partial.followUpIntervalHours ?? config.followUpIntervalHours,
+            smart_followup_enabled: partial.smartFollowUp ?? config.smartFollowUp,
           },
-        }),
-      });
-      if (!res.ok) console.error('Failed to sync settings');
+        })
+        .eq('company_id', companyId);
     } catch {
       // Silently fail - settings sync is best-effort
     } finally {
       setSavingToSettings(false);
     }
-  }, [config]);
+  }, [config, companyId]);
 
   return (
     <div className="space-y-5">
@@ -523,10 +535,10 @@ export default function CalendarConfigStep({
                   <span className="text-[11px] font-semibold text-slate-400">{connectingProvider === 'microsoft_outlook' ? 'Connecting...' : 'Connect Outlook'}</span>
                 </button>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200/50 rounded-lg">
-                  <OutlookIcon className="w-4 h-4 opacity-40" />
-                  <span className="text-[10px] font-bold text-amber-600">Business+</span>
-                </span>
+                <a href="/settings?tab=billing" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 border border-[var(--color-primary)]/20 rounded-lg hover:shadow-sm transition-all">
+                  <OutlookIcon className="w-4 h-4 opacity-50" />
+                  <span className="text-[9px] font-bold text-white bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] px-1.5 py-0.5 rounded-full">PRO</span>
+                </a>
               )}
 
               {/* Zoom - always on */}
@@ -547,57 +559,54 @@ export default function CalendarConfigStep({
                   <span className="text-[11px] font-semibold text-slate-400">Connect Slack</span>
                 </a>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200/50 rounded-lg">
-                  <SlackIcon className="w-4 h-4 opacity-40" />
-                  <span className="text-[10px] font-bold text-amber-600">Business+</span>
-                </span>
+                <a href="/settings?tab=billing" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 border border-[var(--color-primary)]/20 rounded-lg hover:shadow-sm transition-all">
+                  <SlackIcon className="w-4 h-4 opacity-50" />
+                  <span className="text-[9px] font-bold text-white bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] px-1.5 py-0.5 rounded-full">PRO</span>
+                </a>
               )}
             </div>
 
-            {/* Video Meeting Preference - inline grid */}
+            {/* Video Meeting Preference + Duration - inline */}
             {(isLeadQual || isAppointment) && (
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">Video meeting preference</label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {[
-                    { key: 'none', label: 'No Video', icon: <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>, disabled: false },
-                    { key: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: false },
-                    { key: 'google_meet', label: 'Google Meet', icon: <GoogleMeetIcon className="w-4 h-4" />, disabled: !integrations.google_calendar.connected },
-                    { key: 'microsoft_teams', label: 'Teams', icon: <TeamsIcon className="w-4 h-4" />, disabled: !isPremium || !integrations.microsoft_outlook.connected },
-                  ].map(opt => (
-                    <button
-                      key={opt.key}
-                      onClick={() => update({ preferredVideoProvider: opt.key as CalendarStepConfig['preferredVideoProvider'] })}
-                      disabled={opt.disabled}
-                      className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg border-2 transition-all text-left ${
-                        config.preferredVideoProvider === opt.key
-                          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
-                      } ${opt.disabled ? 'opacity-35 cursor-not-allowed' : ''}`}
+                <div className="flex items-center gap-1.5">
+                  <div className="flex-1 grid grid-cols-4 gap-1.5">
+                    {[
+                      { key: 'none', label: 'No Video', icon: <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>, disabled: false },
+                      { key: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: false },
+                      { key: 'google_meet', label: 'Meet', icon: <GoogleMeetIcon className="w-4 h-4" />, disabled: !integrations.google_calendar.connected },
+                      { key: 'microsoft_teams', label: 'Teams', icon: <TeamsIcon className="w-4 h-4" />, disabled: !isPremium || !integrations.microsoft_outlook.connected },
+                    ].map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => update({ preferredVideoProvider: opt.key as CalendarStepConfig['preferredVideoProvider'] })}
+                        disabled={opt.disabled}
+                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg border-2 transition-all text-left ${
+                          config.preferredVideoProvider === opt.key
+                            ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        } ${opt.disabled ? 'opacity-35 cursor-not-allowed' : ''}`}
+                      >
+                        {opt.icon}
+                        <span className="text-[11px] font-bold text-slate-700">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {config.preferredVideoProvider !== 'none' && (
+                    <select
+                      value={config.defaultMeetingDuration}
+                      onChange={e => update({ defaultMeetingDuration: parseInt(e.target.value) })}
+                      className="w-24 px-2 py-2 bg-white border-2 border-slate-200 rounded-lg text-slate-900 text-sm font-bold focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                     >
-                      {opt.icon}
-                      <span className="text-[11px] font-bold text-slate-700">{opt.label}</span>
-                    </button>
-                  ))}
+                      <option value={15}>15m</option>
+                      <option value={30}>30m</option>
+                      <option value={45}>45m</option>
+                      <option value={60}>1hr</option>
+                      <option value={90}>1.5h</option>
+                    </select>
+                  )}
                 </div>
-              </div>
-            )}
-
-            {/* Meeting duration - inline with video */}
-            {(isLeadQual || isAppointment) && config.preferredVideoProvider !== 'none' && (
-              <div className="flex items-center gap-3">
-                <label className="text-[11px] font-bold text-slate-500 uppercase whitespace-nowrap">Meeting duration</label>
-                <select
-                  value={config.defaultMeetingDuration}
-                  onChange={e => update({ defaultMeetingDuration: parseInt(e.target.value) })}
-                  className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                >
-                  <option value={15}>15 min</option>
-                  <option value={30}>30 min</option>
-                  <option value={45}>45 min</option>
-                  <option value={60}>1 hour</option>
-                  <option value={90}>1.5 hours</option>
-                </select>
               </div>
             )}
           </>
@@ -780,7 +789,7 @@ export default function CalendarConfigStep({
         </div>
       </div>
 
-      {/* Call Features - plan gated */}
+      {/* Call Features - with skeleton while plan loads */}
       <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[11px] font-bold text-slate-900 uppercase">Call Features</h3>
@@ -792,85 +801,97 @@ export default function CalendarConfigStep({
           )}
         </div>
 
-        <div className="space-y-2">
-          {/* Voicemail - Starter+ */}
-          <div className={`flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200 ${!isStarter ? 'opacity-60' : ''}`}>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                Voicemail detection
-                {!isStarter && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">STARTER+</span>}
-              </p>
-              <p className="text-[11px] text-slate-400">
-                {isStarter ? 'Leave a message when voicemail is detected' : 'Upgrade to Starter to enable voicemail detection'}
-              </p>
-            </div>
-            {isStarter ? (
+        {planLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex items-center justify-between bg-white rounded-lg px-3 py-3 border border-slate-200 animate-pulse">
+                <div className="space-y-1.5 flex-1">
+                  <div className="h-3.5 bg-slate-200 rounded w-1/3"></div>
+                  <div className="h-2.5 bg-slate-100 rounded w-2/3"></div>
+                </div>
+                <div className="w-10 h-5 bg-slate-200 rounded-full ml-4"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {/* Voicemail - available for all plans */}
+            <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-700">Voicemail detection</p>
+                <p className="text-[11px] text-slate-400">Leave a message when voicemail is detected</p>
+              </div>
               <ToggleSwitch
                 checked={config.voicemailEnabled}
                 onChange={val => { update({ voicemailEnabled: val }); syncSettingsToCompany({ voicemailEnabled: val }); }}
               />
-            ) : (
-              <a href="/settings?tab=billing" className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition-colors whitespace-nowrap">Upgrade</a>
-            )}
-          </div>
-
-          {/* Follow-ups - Starter+ */}
-          <div className={`flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200 ${!isStarter ? 'opacity-60' : ''}`}>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                Automatic follow-ups
-                {!isStarter && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">STARTER+</span>}
-              </p>
-              <p className="text-[11px] text-slate-400">
-                {isStarter ? 'Retry contacts who didn\'t answer' : 'Upgrade to Starter to enable automatic follow-ups'}
-              </p>
             </div>
-            {isStarter ? (
+
+            {/* Follow-ups - available for all plans */}
+            <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-700">Automatic follow-ups</p>
+                <p className="text-[11px] text-slate-400">Retry contacts who didn&apos;t answer</p>
+              </div>
               <ToggleSwitch
                 checked={config.followUpEnabled}
                 onChange={val => { update({ followUpEnabled: val }); syncSettingsToCompany({ followUpEnabled: val }); }}
               />
-            ) : (
-              <a href="/settings?tab=billing" className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition-colors whitespace-nowrap">Upgrade</a>
+            </div>
+
+            {/* Follow-up config (if enabled) */}
+            {config.followUpEnabled && (
+              <div className="grid grid-cols-2 gap-2 pl-3 border-l-2 border-[var(--color-primary)]/20">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Max Attempts</label>
+                  <input type="number" min="1" max="10" value={config.followUpMaxAttempts}
+                    onChange={e => update({ followUpMaxAttempts: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Interval (hours)</label>
+                  <input type="number" min="1" max="168" value={config.followUpIntervalHours}
+                    onChange={e => update({ followUpIntervalHours: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
+                </div>
+              </div>
             )}
-          </div>
 
-          {/* Follow-up config (if enabled and has plan) */}
-          {config.followUpEnabled && isStarter && (
-            <div className="grid grid-cols-2 gap-2 pl-3 border-l-2 border-[var(--color-primary)]/20">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Max Attempts</label>
-                <input type="number" min="1" max="10" value={config.followUpMaxAttempts}
-                  onChange={e => update({ followUpMaxAttempts: parseInt(e.target.value) || 1 })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Interval (hours)</label>
-                <input type="number" min="1" max="168" value={config.followUpIntervalHours}
-                  onChange={e => update({ followUpIntervalHours: parseInt(e.target.value) || 1 })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
-              </div>
-            </div>
-          )}
-
-          {/* Smart Scheduling - Business+ */}
-          <div className={`flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200 ${!isPremium ? 'opacity-60' : ''}`}>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                Smart scheduling
-                {!isPremium && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">BUSINESS+</span>}
-              </p>
-              <p className="text-[11px] text-slate-400">
-                {isPremium ? 'Auto-schedule calls when contacts request a specific time' : 'Upgrade to Business to enable smart scheduling'}
-              </p>
-            </div>
+            {/* Smart Scheduling - Business+ with enticing CTA */}
             {isPremium ? (
-              <ToggleSwitch checked={config.smartFollowUp} onChange={val => update({ smartFollowUp: val })} />
+              <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-700">Smart scheduling</p>
+                  <p className="text-[11px] text-slate-400">Auto-schedule calls when contacts request a specific time</p>
+                </div>
+                <ToggleSwitch checked={config.smartFollowUp} onChange={val => update({ smartFollowUp: val })} />
+              </div>
             ) : (
-              <a href="/settings?tab=billing" className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition-colors whitespace-nowrap">Upgrade</a>
+              <div className="relative overflow-hidden rounded-xl border border-[var(--color-primary)]/20 bg-gradient-to-r from-[var(--color-primary)]/5 via-white to-[var(--color-accent)]/5">
+                <div className="px-3 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center flex-shrink-0 shadow-md">
+                    <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                      Smart scheduling
+                      <span className="text-[9px] font-bold text-white bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] px-1.5 py-0.5 rounded-full">PRO</span>
+                    </p>
+                    <p className="text-[11px] text-slate-500">AI auto-schedules callbacks at the perfect time</p>
+                  </div>
+                  <a
+                    href="/settings?tab=billing"
+                    className="flex-shrink-0 px-3 py-1.5 gradient-bg text-white text-[11px] font-bold rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all"
+                  >
+                    Unlock
+                  </a>
+                </div>
+              </div>
             )}
           </div>
-        </div>
+        )}
       </div>
 
       {/* Footer note */}
