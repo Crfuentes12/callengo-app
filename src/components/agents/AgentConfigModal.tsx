@@ -724,8 +724,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
-            {/* Agent header - photo + name + test button */}
-            <div className="flex items-center gap-4 mb-5">
+            {/* Agent header - photo + name + description */}
+            <div className="flex items-start gap-4 mb-5">
               <div className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 ${settings.voice ? 'border-[var(--color-primary)]/30' : 'border-slate-200'} shadow-md flex-shrink-0 transition-all`}>
                 <Image
                   src={avatarImage}
@@ -748,26 +748,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg font-bold text-slate-900 truncate">{agentName || agent.name}</h2>
-                <p className="text-xs text-slate-500">{agentTitle}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{agentInfo.description}</p>
+                <p className="text-xs text-slate-500 mb-1">{agentTitle}</p>
+                <p className="text-[11px] text-slate-400 leading-relaxed">{agentInfo.description}</p>
               </div>
-              <button
-                onClick={() => {
-                  setTestPhoneNumber(settings.testPhoneNumber);
-                  setShowTestModal(true);
-                }}
-                disabled={!settings.voice}
-                className={`px-4 py-2 gradient-bg text-white rounded-lg font-semibold text-sm transition-all flex items-center gap-2 flex-shrink-0 ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                Test Agent
-              </button>
             </div>
-            {!settings.voice && (
-              <p className="text-[10px] text-red-400 text-right -mt-4 mb-3">Select a voice first</p>
-            )}
 
             {/* Two column layout - Identity + Call Settings */}
             <div className="grid md:grid-cols-2 gap-4">
@@ -824,22 +808,30 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 </div>
 
                 {/* AI Self-Identification */}
-                <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-xs text-slate-600">Identify as AI at call start</span>
+                <div>
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-xs text-slate-600">Identify as AI at call start</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.complianceAiDisclosure}
+                        onChange={e => setSettings({ ...settings, complianceAiDisclosure: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                    </label>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.complianceAiDisclosure}
-                      onChange={e => setSettings({ ...settings, complianceAiDisclosure: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                  </label>
+                  {!settings.complianceAiDisclosure && (
+                    <p className="text-[10px] text-amber-600 mt-1 px-1">
+                      This may be required in certain jurisdictions.{' '}
+                      <a href="https://callengo.com/compliance" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-700">Learn more</a>
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -919,6 +911,26 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       ~{Math.floor(planLimits.minutesIncluded / (settings.maxDuration || 5))} calls/month at {settings.maxDuration}min each ({planLimits.minutesIncluded} min included)
                     </p>
                   )}
+
+                  {/* Test Agent CTA */}
+                  <button
+                    onClick={() => {
+                      setTestPhoneNumber(settings.testPhoneNumber);
+                      setShowTestModal(true);
+                    }}
+                    disabled={!settings.voice}
+                    className={`w-full mt-1 px-4 py-2.5 border-2 border-dashed rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                      settings.voice
+                        ? 'border-[var(--color-primary)]/30 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 hover:border-[var(--color-primary)]/50'
+                        : 'border-slate-200 text-slate-300 cursor-not-allowed'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Test Agent
+                    {!settings.voice && <span className="text-[10px] font-normal">(select a voice first)</span>}
+                  </button>
                 </div>
               </div>
             </div>
