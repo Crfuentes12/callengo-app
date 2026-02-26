@@ -23,32 +23,29 @@ export async function POST(request: NextRequest) {
       companyWebsite && `Website: ${companyWebsite}`,
     ].filter(Boolean).join('\n');
 
-    const prompt = `You are helping a user write campaign context instructions for an AI calling agent.
+    const prompt = `You are helping a user create campaign context for an AI calling agent.
 
 AGENT TYPE: ${agentType}
 ${companyContext ? `\nCOMPANY INFO:\n${companyContext}` : ''}
 
-Generate exactly 3 short, specific campaign context suggestions that would help the AI agent perform better calls. Each suggestion should be a complete, ready-to-use context paragraph (2-3 sentences max) that the user can click to auto-fill.
+Generate exactly 3 campaign context suggestions. Each suggestion has:
+- A SHORT catchy title (2-4 words max) that describes the campaign context like a label. Examples: "ISO Appointment", "Website Lead", "Chicago Clinic", "Surgeon Follow-up", "Pending Credits", "Annual Checkup", "Demo Request", "Trial Expired"
+- A detailed context paragraph (2-4 sentences) that the AI agent will use during calls. This is the actual instruction text.
 
-The suggestions should be different approaches:
-1. A professional/formal tone context
-2. A friendly/casual tone context
-3. A detailed/specific context with example data points
+The title should be industry-specific and instantly recognizable. The detail should be a complete, actionable instruction for the AI agent.
 
-${agentType === 'appointment_confirmation' ? 'Focus on appointment details, cancellation policies, rescheduling options, location info.' : ''}
-${agentType === 'lead_qualification' ? 'Focus on qualifying criteria, product/service details, ideal customer profile, budget ranges.' : ''}
-${agentType === 'data_validation' ? 'Focus on which data fields to verify, privacy notices, what to do with updated information.' : ''}
+${agentType === 'appointment_confirmation' ? 'Focus on appointment types, clinic/office details, policies, locations.' : ''}
+${agentType === 'lead_qualification' ? 'Focus on lead sources, product tiers, qualification criteria, deal stages.' : ''}
+${agentType === 'data_validation' ? 'Focus on data fields to verify, compliance notes, update procedures.' : ''}
 
 Respond in JSON format:
-{ "suggestions": ["suggestion1", "suggestion2", "suggestion3"] }
-
-Keep each suggestion under 150 characters. Make them specific and actionable, not generic.`;
+{ "suggestions": [{ "title": "Short Title", "detail": "Detailed context paragraph..." }, ...] }`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.8,
-      max_tokens: 500,
+      max_tokens: 800,
       response_format: { type: 'json_object' },
     });
 
