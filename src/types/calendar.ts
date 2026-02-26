@@ -553,6 +553,9 @@ export interface CalendarStepConfig {
   workingDays: string[];
   excludeUSHolidays: boolean;
 
+  // Voicemail handling
+  voicemailEnabled: boolean;
+
   // Follow-ups (retrying calls - does NOT create calendar events)
   followUpEnabled: boolean;
   followUpMaxAttempts: number;
@@ -571,6 +574,15 @@ export interface CalendarStepConfig {
 
   // Connected integrations snapshot at campaign creation time
   connectedIntegrations: string[];
+
+  // Slack notifications
+  slackEnabled: boolean;
+  slackChannelId: string;
+  slackChannelName: string;
+  slackNotifyOnCallCompleted: boolean;
+  slackNotifyOnAppointment: boolean;
+  slackNotifyOnFollowUp: boolean;
+  slackNotifyOnNoShow: boolean;
 
   // Legacy compat fields (kept for backward compatibility with existing campaigns)
   callbackEnabled?: boolean;

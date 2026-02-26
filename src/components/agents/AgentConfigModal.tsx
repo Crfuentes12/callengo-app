@@ -209,20 +209,25 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const hasAnalyzedRef = useRef(false); // Track if call has been analyzed
   const [callAnalysis, setCallAnalysis] = useState<any>(null);
   const [analyzingCall, setAnalyzingCall] = useState(false);
+  const [listContactCounts, setListContactCounts] = useState<Record<string, number>>({});
+  const [contactPreview, setContactPreview] = useState<any[]>([]);
+
+  // Pre-fill from company settings
+  const additionalSettings = (companySettings?.settings as any) || {};
   const [settings, setSettings] = useState({
-    voice: companySettings?.default_voice || '', // Pre-fill with default voice from Settings
-    maxDuration: 5,
-    intervalMinutes: 5,
-    maxCallsPerDay: 100,
-    workingHoursStart: '09:00',
-    workingHoursEnd: '18:00',
-    timezone: 'America/New_York',
+    voice: companySettings?.default_voice || '',
+    maxDuration: companySettings?.default_max_duration || 5,
+    intervalMinutes: companySettings?.default_interval_minutes || 5,
+    maxCallsPerDay: additionalSettings.max_calls_per_day || 100,
+    workingHoursStart: additionalSettings.working_hours_start || '09:00',
+    workingHoursEnd: additionalSettings.working_hours_end || '18:00',
+    timezone: additionalSettings.timezone || 'America/New_York',
     customTask: '',
     selectedLists: [] as string[],
     testPhoneNumber: companySettings?.test_phone_number || '',
     voicemailEnabled: false,
     followUpEnabled: false,
-    followUpMaxAttempts: 1,
+    followUpMaxAttempts: 3,
     followUpIntervalHours: 24,
     smartFollowUp: false,
     companyInfo: {
@@ -231,15 +236,19 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
       website: company.website || '',
       phone: company.phone_number || '',
     },
+    complianceAiDisclosure: false,
+    complianceConsent: false,
+    complianceAcceptTerms: false,
   });
 
-  // Calendar configuration state
+  // Calendar configuration state - pre-fill from company settings
   const [calendarConfig, setCalendarConfig] = useState<CalendarStepConfig>({
-    timezone: 'America/New_York',
-    workingHoursStart: '09:00',
-    workingHoursEnd: '18:00',
+    timezone: additionalSettings.timezone || 'America/New_York',
+    workingHoursStart: additionalSettings.working_hours_start || '09:00',
+    workingHoursEnd: additionalSettings.working_hours_end || '18:00',
     workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
     excludeUSHolidays: true,
+    voicemailEnabled: false,
     followUpEnabled: false,
     followUpMaxAttempts: 3,
     followUpIntervalHours: 24,
@@ -248,6 +257,13 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     defaultMeetingDuration: 30,
     preferredVideoProvider: 'none',
     connectedIntegrations: [],
+    slackEnabled: false,
+    slackChannelId: '',
+    slackChannelName: '',
+    slackNotifyOnCallCompleted: true,
+    slackNotifyOnAppointment: true,
+    slackNotifyOnFollowUp: false,
+    slackNotifyOnNoShow: true,
   });
 
   // Determine agent type for calendar step
@@ -328,19 +344,44 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const loadContactCount = async (showLoading = false) => {
     if (showLoading) setLoadingContacts(true);
     try {
+      // Get total count based on selection
       let query = supabase
         .from('contacts')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', companyId)
-        .eq('status', 'Pending');
+        .eq('company_id', companyId);
 
-      // Filter by selected lists if any
       if (selectedLists.length > 0) {
         query = query.in('list_id', selectedLists);
       }
 
       const { count } = await query;
       setContactCount(count || 0);
+
+      // Load per-list counts
+      const counts: Record<string, number> = {};
+      for (const list of contactLists) {
+        const { count: listCount } = await supabase
+          .from('contacts')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', companyId)
+          .eq('list_id', list.id);
+        counts[list.id] = listCount || 0;
+      }
+      setListContactCounts(counts);
+
+      // Load contact preview (first 5 contacts from selection)
+      let previewQuery = supabase
+        .from('contacts')
+        .select('id, contact_name, phone_number, email, company_name, list_id, status')
+        .eq('company_id', companyId)
+        .limit(5);
+
+      if (selectedLists.length > 0) {
+        previewQuery = previewQuery.in('list_id', selectedLists);
+      }
+
+      const { data: preview } = await previewQuery;
+      setContactPreview(preview || []);
     } finally {
       setLoadingContacts(false);
     }
@@ -540,7 +581,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           follow_up_enabled: calendarConfig.followUpEnabled,
           follow_up_max_attempts: calendarConfig.followUpMaxAttempts,
           follow_up_interval_hours: calendarConfig.followUpIntervalHours,
-          voicemail_enabled: settings.voicemailEnabled,
+          voicemail_enabled: calendarConfig.voicemailEnabled,
         })
         .select()
         .single();
@@ -758,6 +799,52 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </div>
                 </div>
               </div>
+
+              {/* Call Settings */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <h3 className="text-xs font-bold text-slate-900 uppercase mb-3">Call Settings</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Max Duration</label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="1"
+                        max="15"
+                        value={settings.maxDuration}
+                        onChange={e => setSettings({ ...settings, maxDuration: parseInt(e.target.value) || 5 })}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                      />
+                      <span className="text-[11px] text-slate-400 whitespace-nowrap">min</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Call Interval</label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={settings.intervalMinutes}
+                        onChange={e => setSettings({ ...settings, intervalMinutes: parseInt(e.target.value) || 5 })}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                      />
+                      <span className="text-[11px] text-slate-400 whitespace-nowrap">min</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Max Calls/Day</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={settings.maxCallsPerDay}
+                      onChange={e => setSettings({ ...settings, maxCallsPerDay: parseInt(e.target.value) || 100 })}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Action buttons */}
@@ -777,7 +864,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 disabled={!settings.voice}
                 className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg font-semibold text-sm transition-all duration-300 relative overflow-hidden ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
               >
-                <span className="relative z-10">Deploy Agent</span>
+                <span className="relative z-10">Configure Campaign</span>
               </button>
             </div>
           </div>
@@ -1408,363 +1495,302 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   }
 
   if (step === 'contacts') {
+    // Get agent-specific context placeholder
+    const getContextPlaceholder = () => {
+      const t = getAgentType();
+      if (t === 'appointment_confirmation') return 'e.g., "We are Valley Health Clinic confirming appointments for Dr. Sarah Johnson at our downtown location. The agent should mention the specific appointment type (consultation, follow-up, etc.) and our cancellation policy of 24h notice..."';
+      if (t === 'lead_qualification') return 'e.g., "We sell enterprise SaaS for logistics companies. The agent should ask about fleet size, current software, timeline, and budget range. Our tone is consultative, not pushy. Mention our 30-day free trial..."';
+      return 'e.g., "We are updating our customer records for compliance. The agent should verify full name, mailing address, email, and phone number. Explain that we use this data to improve service and that all data is handled securely..."';
+    };
+    const getContextLabel = () => {
+      const t = getAgentType();
+      if (t === 'appointment_confirmation') return 'Campaign Context (clinic, department, doctor, location, appointment types, etc.)';
+      if (t === 'lead_qualification') return 'Campaign Context (product/service, sales pitch, qualifying criteria, tone, etc.)';
+      return 'Campaign Context (purpose, data usage, privacy details, verification steps, etc.)';
+    };
+
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
         <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
-          {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-100 backdrop-blur-sm border border-slate-200 text-slate-500 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
             <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
-          {/* Header */}
           <div className="p-6 border-b border-slate-200">
-            <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">Campaign Configuration</h2>
-            <p className="text-sm text-slate-500 mt-1">Configure deployment settings for {agentName || agent.name}</p>
+            <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">Campaign Setup</h2>
+            <p className="text-sm text-slate-500 mt-1">Select your audience and provide context for {agentName || agent.name}</p>
           </div>
 
-          {/* Scrolleable content */}
           <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
-            {/* Agent summary from step 1 */}
-            <div className="mb-6 bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
-              <div className="flex items-center gap-4">
-                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-300">
-                  <Image
-                    src={avatarImage}
-                    alt={agentName || agent.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-slate-900">{agentName || agent.name}</p>
-                  <p className="text-xs text-slate-500">{agentTitle}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-slate-500">Voice:</span>
-                    <span className="text-xs font-bold text-[var(--color-primary)] capitalize">{BLAND_VOICES.find(v => v.id === settings.voice)?.name || settings.voice}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {loadingContacts ? (
-              <div className="space-y-6">
-                {/* Loading skeleton */}
-                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200 animate-pulse">
+              <div className="space-y-4">
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 animate-pulse">
                   <div className="h-4 bg-slate-200 rounded w-1/3 mb-4"></div>
                   <div className="space-y-3">
-                    <div className="h-16 bg-slate-200 rounded"></div>
-                    <div className="h-16 bg-slate-200 rounded"></div>
-                    <div className="h-16 bg-slate-200 rounded"></div>
+                    <div className="h-14 bg-slate-200 rounded"></div>
+                    <div className="h-14 bg-slate-200 rounded"></div>
                   </div>
                 </div>
-                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200 animate-pulse">
-                  <div className="h-24 bg-slate-200 rounded"></div>
-                </div>
-              </div>
-            ) : contactCount === 0 ? (
-              <div className="text-center py-12 bg-amber-50 rounded-xl border border-amber-200">
-                <svg className="w-16 h-16 text-amber-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <p className="text-amber-600 font-bold mb-2 text-lg">No Contacts Available</p>
-                <p className="text-sm text-amber-500 mb-6">Import contacts first to start calling</p>
-                <a
-                  href="/dashboard/contacts"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-bold transition-all"
-                >
-                  Go to Contacts
-                </a>
               </div>
             ) : (
-              <div className="space-y-6">
-                {/* Contact Lists Selector */}
-                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase">Select Contact Lists</h3>
+              <div className="space-y-5">
+                {/* Contact Lists */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-bold text-slate-900 uppercase">Select Contact Lists</h3>
                     <a
-                      href="/dashboard/contacts"
+                      href="/contacts"
                       target="_blank"
-                      className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary)] font-bold transition-colors"
+                      className="text-xs text-[var(--color-primary)] font-bold hover:underline"
                     >
-                      Manage Lists →
+                      Manage Lists
                     </a>
                   </div>
 
                   {contactLists.length === 0 ? (
-                    <div className="text-center py-6 bg-white rounded-lg border border-slate-200">
-                      <p className="text-sm text-slate-500 mb-3">No contact lists found</p>
-                      <a
-                        href="/dashboard/contacts"
-                        target="_blank"
-                        className="inline-flex items-center gap-2 px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90 font-bold text-sm transition-all"
-                      >
-                        Create First List
-                      </a>
+                    <div className="bg-white rounded-lg border border-slate-200 p-4">
+                      <p className="text-sm text-slate-600 mb-2">You don&apos;t have any lists yet.</p>
+                      <p className="text-[11px] text-slate-400 mb-3">
+                        Lists help you organize and segment contacts for better targeting. We recommend creating lists before launching campaigns, but you can also call all your contacts at once.
+                      </p>
+                      <div className="flex gap-2">
+                        <a
+                          href="/contacts"
+                          target="_blank"
+                          className="px-3 py-1.5 gradient-bg text-white rounded-lg text-xs font-bold hover:opacity-90 transition-all"
+                        >
+                          Create a List
+                        </a>
+                      </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {contactLists.map((list) => (
-                        <button
-                          key={list.id}
-                          onClick={() => toggleListSelection(list.id)}
-                          className={`w-full p-3 rounded-lg border-2 transition-all duration-300 text-left ${
-                            selectedLists.includes(list.id)
-                              ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)] shadow-lg'
-                              : 'bg-white border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                                  selectedLists.includes(list.id)
-                                    ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
-                                    : 'border-slate-300'
-                                }`}
-                              >
-                                {selectedLists.includes(list.id) && (
-                                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-slate-900">{list.name}</p>
-                                {list.description && (
-                                  <p className="text-xs text-slate-500 mt-0.5">{list.description}</p>
-                                )}
-                              </div>
+                    <>
+                      {/* All contacts option */}
+                      <button
+                        onClick={() => setSelectedLists([])}
+                        className={`w-full p-3 rounded-lg border-2 transition-all text-left mb-2 ${
+                          selectedLists.length === 0
+                            ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)] shadow-sm'
+                            : 'bg-white border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
+                              selectedLists.length === 0 ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'border-slate-300'
+                            }`}>
+                              {selectedLists.length === 0 && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                              )}
                             </div>
-                            {list.color && (
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: list.color }}
-                              />
-                            )}
+                            <div>
+                              <p className="text-sm font-bold text-slate-900">All contacts</p>
+                              <p className="text-[11px] text-slate-400">Call everyone in your database (not recommended for large lists)</p>
+                            </div>
                           </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {selectedLists.length > 0 && (
-                    <p className="text-xs text-slate-500 mt-3">
-                      {selectedLists.length} list{selectedLists.length > 1 ? 's' : ''} selected
-                    </p>
+                          <span className="text-xs font-bold text-slate-500">{contactCount} contacts</span>
+                        </div>
+                      </button>
+
+                      <div className="space-y-1.5">
+                        {contactLists.map((list) => (
+                          <button
+                            key={list.id}
+                            onClick={() => toggleListSelection(list.id)}
+                            className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                              selectedLists.includes(list.id)
+                                ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)] shadow-sm'
+                                : 'bg-white border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                                  selectedLists.includes(list.id) ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'border-slate-300'
+                                }`}>
+                                  {selectedLists.includes(list.id) && (
+                                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {list.color && <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: list.color }} />}
+                                  <div>
+                                    <p className="text-sm font-bold text-slate-900">{list.name}</p>
+                                    {list.description && <p className="text-[11px] text-slate-400">{list.description}</p>}
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-xs font-bold text-slate-500">{listContactCounts[list.id] ?? '...'}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
 
-                {/* Contacts Info */}
-                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
-                  <div className="flex items-center justify-between">
+                {/* Contact count + preview */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="text-xs font-bold text-slate-500 uppercase mb-1">
+                      <p className="text-xs font-bold text-slate-500 uppercase">
                         Target Contacts
-                        {selectedLists.length > 0 && (
-                          <span className="ml-2 text-[var(--color-primary)]">(from selected lists)</span>
-                        )}
+                        {selectedLists.length > 0 && <span className="ml-1 text-[var(--color-primary)]">({selectedLists.length} list{selectedLists.length > 1 ? 's' : ''})</span>}
                       </p>
-                      <p className="text-3xl font-bold text-slate-900">{contactCount}</p>
+                      <p className="text-2xl font-bold text-slate-900">{contactCount}</p>
                     </div>
-                    <div className="w-14 h-14 rounded-xl gradient-bg flex items-center justify-center">
-                      <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
+                    <div className="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                     </div>
                   </div>
+
+                  {/* Contact preview */}
+                  {contactPreview.length > 0 && (
+                    <div className="relative">
+                      <div className="space-y-1 max-h-32 overflow-hidden">
+                        {contactPreview.map((c: any) => (
+                          <div key={c.id} className="flex items-center justify-between bg-white rounded px-3 py-1.5 border border-slate-100">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-[10px] font-bold text-slate-500">{(c.contact_name || '?')[0].toUpperCase()}</span>
+                              </div>
+                              <span className="text-xs font-medium text-slate-700 truncate">{c.contact_name || 'No name'}</span>
+                            </div>
+                            <span className="text-[11px] text-slate-400 font-mono ml-2">{c.phone_number}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {contactCount > 5 && (
+                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-50 to-transparent pointer-events-none"></div>
+                      )}
+                      {contactCount > 5 && (
+                        <p className="text-[10px] text-slate-400 text-center mt-1">and {contactCount - 5} more contacts...</p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* Company Info (Editable) */}
-                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Company Information</h3>
-                  <div className="space-y-3">
+                {/* Campaign Context */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase mb-1">{getContextLabel()}</h3>
+                  <p className="text-[11px] text-slate-400 mb-2">
+                    Help the agent understand what it&apos;s calling about. The more context you provide, the more natural and effective the conversations will be.
+                  </p>
+                  <textarea
+                    placeholder={getContextPlaceholder()}
+                    value={settings.customTask}
+                    onChange={e => setSettings({ ...settings, customTask: e.target.value })}
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none placeholder-slate-300"
+                    rows={4}
+                  />
+                </div>
+
+                {/* Company Info */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase mb-3">Company Information</h3>
+                  <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Company Name</label>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Company Name</label>
                       <input
                         type="text"
                         value={settings.companyInfo.name}
-                        onChange={(e) => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, name: e.target.value } })}
+                        onChange={e => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, name: e.target.value } })}
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Description</label>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Website</label>
+                      <input
+                        type="text"
+                        value={settings.companyInfo.website}
+                        onChange={e => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, website: e.target.value } })}
+                        placeholder="https://..."
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-300"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Description</label>
                       <textarea
                         value={settings.companyInfo.description}
-                        onChange={(e) => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, description: e.target.value } })}
+                        onChange={e => setSettings({ ...settings, companyInfo: { ...settings.companyInfo, description: e.target.value } })}
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none"
-                        rows={3}
+                        rows={2}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Custom Task Instructions */}
-                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Custom Instructions</h3>
-                  <textarea
-                    placeholder="Add specific instructions or context for this campaign..."
-                    value={settings.customTask}
-                    onChange={(e) => setSettings({ ...settings, customTask: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none placeholder-slate-400"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  {/* Voice & Call Settings */}
-                  <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Call Settings</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Voice</label>
-                        <VoiceSelector
-                          selectedVoiceId={settings.voice}
-                          onVoiceSelect={(voiceId) => setSettings({ ...settings, voice: voiceId })}
-                          variant="light"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Max Duration (min)</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="15"
-                          value={settings.maxDuration}
-                          onChange={(e) => setSettings({ ...settings, maxDuration: parseInt(e.target.value) })}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Call Interval (min)</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="60"
-                          value={settings.intervalMinutes}
-                          onChange={(e) => setSettings({ ...settings, intervalMinutes: parseInt(e.target.value) })}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                        />
-                      </div>
+                {/* Compliance & Regulatory */}
+                <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-xl p-4 border border-blue-200/40">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800 mb-0.5">Compliance & Regulations</h3>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        Different countries have specific regulations for automated calls. Make sure you&apos;re compliant with your region&apos;s telemarketing laws. We&apos;re here to help you get it right!
+                      </p>
                     </div>
                   </div>
 
-                  {/* Schedule & Limits */}
-                  <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Schedule & Limits</h3>
-                    <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label className="flex items-start gap-2.5 bg-white/60 rounded-lg px-3 py-2.5 border border-blue-100 cursor-pointer hover:bg-white/80 transition-all">
+                      <input
+                        type="checkbox"
+                        checked={settings.complianceAiDisclosure}
+                        onChange={e => setSettings({ ...settings, complianceAiDisclosure: e.target.checked })}
+                        className="mt-0.5 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                      />
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Max Calls/Day</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="1000"
-                          value={settings.maxCallsPerDay}
-                          onChange={(e) => setSettings({ ...settings, maxCallsPerDay: parseInt(e.target.value) })}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                        />
+                        <p className="text-xs font-semibold text-slate-700">AI disclosure</p>
+                        <p className="text-[10px] text-slate-400">The agent will identify itself as an AI assistant at the start of each call (required in some regions like the EU and certain US states)</p>
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Timezone</label>
-                        <select
-                          value={settings.timezone}
-                          onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                        >
-                          <option value="America/New_York">Eastern Time (ET)</option>
-                          <option value="America/Chicago">Central Time (CT)</option>
-                          <option value="America/Denver">Mountain Time (MT)</option>
-                          <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                          <option value="America/Anchorage">Alaska Time (AKT)</option>
-                          <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
-                          <option value="Europe/London">London (GMT)</option>
-                          <option value="Europe/Paris">Paris (CET)</option>
-                          <option value="Asia/Tokyo">Tokyo (JST)</option>
-                          <option value="Asia/Dubai">Dubai (GST)</option>
-                          <option value="Australia/Sydney">Sydney (AEDT)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Start Time</label>
-                        <input
-                          type="time"
-                          value={settings.workingHoursStart}
-                          onChange={(e) => setSettings({ ...settings, workingHoursStart: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">End Time</label>
-                        <input
-                          type="time"
-                          value={settings.workingHoursEnd}
-                          onChange={(e) => setSettings({ ...settings, workingHoursEnd: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                    </label>
 
-                {/* Voicemail & Follow-up Options */}
-                <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-5 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase mb-4">Voicemail & Follow-ups</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
+                    <label className="flex items-start gap-2.5 bg-white/60 rounded-lg px-3 py-2.5 border border-blue-100 cursor-pointer hover:bg-white/80 transition-all">
+                      <input
+                        type="checkbox"
+                        checked={settings.complianceConsent}
+                        onChange={e => setSettings({ ...settings, complianceConsent: e.target.checked })}
+                        className="mt-0.5 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                      />
                       <div>
-                        <p className="text-sm font-semibold text-slate-700">Voicemail Detection</p>
-                        <p className="text-xs text-slate-500">Leave a message when voicemail is detected</p>
+                        <p className="text-xs font-semibold text-slate-700">Consent verification</p>
+                        <p className="text-[10px] text-slate-400">I confirm that all contacts in this campaign have given prior consent to be contacted</p>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked={settings.voicemailEnabled} onChange={(e) => setSettings({ ...settings, voicemailEnabled: e.target.checked })} className="sr-only peer" />
-                        <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                      </label>
-                    </div>
-                    <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200">
+                    </label>
+
+                    <label className="flex items-start gap-2.5 bg-white/60 rounded-lg px-3 py-2.5 border border-blue-100 cursor-pointer hover:bg-white/80 transition-all">
+                      <input
+                        type="checkbox"
+                        checked={settings.complianceAcceptTerms}
+                        onChange={e => setSettings({ ...settings, complianceAcceptTerms: e.target.checked })}
+                        className="mt-0.5 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                      />
                       <div>
-                        <p className="text-sm font-semibold text-slate-700">Automatic Follow-ups</p>
-                        <p className="text-xs text-slate-500">Retry contacts that didn&apos;t answer</p>
+                        <p className="text-xs font-semibold text-slate-700">Terms of use</p>
+                        <p className="text-[10px] text-slate-400">
+                          I&apos;ve read and accept Callengo&apos;s <a href="/terms" target="_blank" className="text-[var(--color-primary)] underline">terms of service</a> and <a href="/privacy" target="_blank" className="text-[var(--color-primary)] underline">privacy policy</a>. I understand that Callengo is not responsible for misuse or non-compliance with local regulations.
+                        </p>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked={settings.followUpEnabled} onChange={(e) => setSettings({ ...settings, followUpEnabled: e.target.checked })} className="sr-only peer" />
-                        <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                      </label>
-                    </div>
-                    {settings.followUpEnabled && (
-                      <div className="grid grid-cols-2 gap-3 pl-2 border-l-2 border-[var(--color-primary)]/20">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Max Attempts</label>
-                          <input type="number" min="1" max="10" value={settings.followUpMaxAttempts} onChange={(e) => setSettings({ ...settings, followUpMaxAttempts: parseInt(e.target.value) })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Interval (hours)</label>
-                          <input type="number" min="1" max="168" value={settings.followUpIntervalHours} onChange={(e) => setSettings({ ...settings, followUpIntervalHours: parseInt(e.target.value) })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
-                        </div>
-                        <div className="col-span-2 flex items-center justify-between bg-purple-50 rounded-lg px-4 py-3 border border-purple-200">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-700">Smart Follow-up</p>
-                            <p className="text-xs text-slate-500">Schedule callbacks at times requested by contacts</p>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" checked={settings.smartFollowUp} onChange={(e) => setSettings({ ...settings, smartFollowUp: e.target.checked })} className="sr-only peer" />
-                            <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-                          </label>
-                        </div>
-                      </div>
-                    )}
+                    </label>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Action buttons */}
-            {!loadingContacts && contactCount > 0 && (
+            {!loadingContacts && (
               <div className="flex gap-3 mt-6 pt-6 border-t border-slate-200">
                 <button
                   onClick={() => setStep('preview')}
@@ -1774,22 +1800,12 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 </button>
                 <button
                   onClick={() => {
-                    // Sync follow-up settings from campaign step to calendar config
-                    setCalendarConfig(prev => ({
-                      ...prev,
-                      followUpEnabled: settings.followUpEnabled,
-                      followUpMaxAttempts: settings.followUpMaxAttempts,
-                      followUpIntervalHours: settings.followUpIntervalHours,
-                      smartFollowUp: settings.smartFollowUp,
-                      timezone: settings.timezone,
-                      workingHoursStart: settings.workingHoursStart,
-                      workingHoursEnd: settings.workingHoursEnd,
-                    }));
                     setStep('calendar');
                   }}
-                  className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all duration-300`}
+                  disabled={contactCount === 0 || !settings.complianceAcceptTerms}
+                  className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg font-semibold text-sm transition-all duration-300 ${contactCount === 0 || !settings.complianceAcceptTerms ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
                 >
-                  Calendar Setup
+                  Calendar & Scheduling
                 </button>
               </div>
             )}
@@ -1988,20 +2004,30 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               </div>
 
               <div className="bg-slate-50 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
-                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Follow-ups</h4>
+                <h4 className="text-xs font-bold text-slate-900 uppercase mb-3">Voicemail & Follow-ups</h4>
                 <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Voicemail</span>
+                    <span className={`text-xs font-bold ${calendarConfig.voicemailEnabled ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      {calendarConfig.voicemailEnabled ? 'Enabled' : 'Off'}
+                    </span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-xs text-slate-500">Auto Follow-ups</span>
                     <span className={`text-xs font-bold ${calendarConfig.followUpEnabled ? 'text-emerald-600' : 'text-slate-400'}`}>
                       {calendarConfig.followUpEnabled ? `${calendarConfig.followUpMaxAttempts} attempts, every ${calendarConfig.followUpIntervalHours}h` : 'Disabled'}
                     </span>
                   </div>
-                  {calendarConfig.followUpEnabled && (
+                  {calendarConfig.followUpEnabled && calendarConfig.smartFollowUp && (
                     <div className="flex justify-between">
                       <span className="text-xs text-slate-500">Smart Scheduling</span>
-                      <span className={`text-xs font-bold ${calendarConfig.smartFollowUp ? 'text-[var(--color-primary)]' : 'text-slate-400'}`}>
-                        {calendarConfig.smartFollowUp ? 'Enabled' : 'Off'}
-                      </span>
+                      <span className="text-xs font-bold text-[var(--color-primary)]">Enabled</span>
+                    </div>
+                  )}
+                  {calendarConfig.slackEnabled && calendarConfig.slackChannelName && (
+                    <div className="flex justify-between pt-2 border-t border-slate-200 mt-2">
+                      <span className="text-xs text-slate-500">Slack Notifications</span>
+                      <span className="text-xs font-bold text-[var(--color-primary)]">#{calendarConfig.slackChannelName}</span>
                     </div>
                   )}
                 </div>
