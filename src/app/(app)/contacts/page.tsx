@@ -1,6 +1,6 @@
 // app/(app)/contacts/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdminRaw } from '@/lib/supabase/service';
 import ContactsManager from '@/components/contacts/ContactsManager';
 import SalesforceContactsBanner from '@/components/contacts/SalesforceContactsBanner';
 
@@ -51,7 +51,7 @@ export default async function ContactsPage() {
   // Check Salesforce connection
   let sfConnected = false;
   if (hasSalesforceAccess) {
-    const { data: sfIntegration } = await supabaseAdmin
+    const { data: sfIntegration } = await supabaseAdminRaw
       .from('salesforce_integrations')
       .select('id')
       .eq('company_id', companyId)

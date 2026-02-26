@@ -1,6 +1,6 @@
 // app/(app)/integrations/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import IntegrationsPage from '@/components/integrations/IntegrationsPage';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +38,7 @@ export default async function Integrations() {
   const settings = (companySettings?.settings ?? {}) as Record<string, unknown>;
 
   // Fetch Salesforce integration
-  const { data: sfIntegration } = await supabaseAdmin
+  const { data: sfIntegration } = await supabaseAdminRaw
     .from('salesforce_integrations')
     .select('id, sf_username, sf_display_name, sf_email, instance_url, last_synced_at')
     .eq('company_id', companyId)

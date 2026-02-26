@@ -1,6 +1,6 @@
 // app/(app)/contacts/salesforce/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdminRaw } from '@/lib/supabase/service';
 import SalesforceContactsPage from '@/components/contacts/SalesforceContactsPage';
 import { redirect } from 'next/navigation';
 
@@ -35,7 +35,7 @@ export default async function SalesforceContacts() {
   const hasSalesforceAccess = ['business', 'teams', 'enterprise'].includes(planSlug);
 
   // Check Salesforce connection
-  const { data: sfIntegration } = await supabaseAdmin
+  const { data: sfIntegration } = await supabaseAdminRaw
     .from('salesforce_integrations')
     .select('id, sf_username, sf_display_name, sf_email, sf_org_id, instance_url, last_synced_at')
     .eq('company_id', companyId)

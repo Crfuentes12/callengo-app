@@ -1,6 +1,6 @@
 // app/(app)/team/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdminRaw } from '@/lib/supabase/service';
 import TeamSettings from '@/components/settings/TeamSettings';
 import SalesforceOrgMembers from '@/components/settings/SalesforceOrgMembers';
 
@@ -34,7 +34,7 @@ export default async function TeamPage() {
   let sfConnected = false;
   const hasSalesforceAccess = ['business', 'teams', 'enterprise'].includes(planSlug);
   if (hasSalesforceAccess) {
-    const { data: sfIntegration } = await supabaseAdmin
+    const { data: sfIntegration } = await supabaseAdminRaw
       .from('salesforce_integrations')
       .select('id')
       .eq('company_id', companyId)
