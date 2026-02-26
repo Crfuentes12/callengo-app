@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
     const companyName = company?.name || 'your team';
 
     // Check subscription plan supports team members
-    const { data: subscription } = await supabaseAdmin
+    // Use untyped client because max_seats/extra_seat_price are new columns not yet in Database type
+    const { data: subscription } = await supabaseAdminRaw
       .from('company_subscriptions')
       .select('*, subscription_plans(slug, max_seats, extra_seat_price)')
       .eq('company_id', userData.company_id)
