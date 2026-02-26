@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 
 /**
  * POST /api/team/remove
@@ -70,8 +70,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Remove the user from the company by setting company_id to null
-    // and resetting their role
-    const { error: updateError } = await supabaseAdmin
+    // and resetting their role (use untyped client because typed client doesn't allow null for company_id)
+    const { error: updateError } = await supabaseAdminRaw
       .from('users')
       .update({
         company_id: null,
