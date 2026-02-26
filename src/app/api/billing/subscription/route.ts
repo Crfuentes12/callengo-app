@@ -45,11 +45,13 @@ export async function GET(request: NextRequest) {
     // Fetch current period usage
     let usage = null;
     if (subscription) {
+      const now = new Date().toISOString();
       const { data: usageData, error: usageError } = await supabase
         .from('usage_tracking')
         .select('*')
         .eq('company_id', companyId)
-        .gte('period_end', new Date().toISOString())
+        .lte('period_start', now)
+        .gte('period_end', now)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();

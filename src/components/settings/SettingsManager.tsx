@@ -207,16 +207,17 @@ export default function SettingsManager({ company: initialCompany, settings: ini
 
     try {
       // Prepare settings with additional fields in JSON
+      // Ensure integer columns are actually integers (prevents 22P02 error)
       const updatedSettings = {
         default_voice: settings.default_voice,
-        default_interval_minutes: settings.default_interval_minutes,
-        default_max_duration: settings.default_max_duration,
+        default_interval_minutes: Math.max(1, Math.round(Number(settings.default_interval_minutes) || 5)),
+        default_max_duration: Math.max(1, Math.round(Number(settings.default_max_duration) || 5)),
         test_phone_number: settings.test_phone_number,
         settings: {
           timezone: settings.timezone,
           working_hours_start: settings.working_hours_start,
           working_hours_end: settings.working_hours_end,
-          max_calls_per_day: settings.max_calls_per_day,
+          max_calls_per_day: Math.max(1, Math.round(Number(settings.max_calls_per_day) || 100)),
           language: settings.language,
         }
       };
