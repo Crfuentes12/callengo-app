@@ -68,6 +68,13 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     working_hours_end: additionalSettings.working_hours_end || '18:00',
     max_calls_per_day: additionalSettings.max_calls_per_day || 100,
     language: additionalSettings.language || 'en-US',
+    working_days: additionalSettings.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    exclude_holidays: additionalSettings.exclude_holidays ?? true,
+    voicemail_enabled: additionalSettings.voicemail_enabled ?? false,
+    followup_enabled: additionalSettings.followup_enabled ?? false,
+    followup_max_attempts: additionalSettings.followup_max_attempts || 3,
+    followup_interval_hours: additionalSettings.followup_interval_hours || 24,
+    smart_followup_enabled: additionalSettings.smart_followup_enabled ?? false,
   });
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,6 +226,16 @@ export default function SettingsManager({ company: initialCompany, settings: ini
           working_hours_end: settings.working_hours_end,
           max_calls_per_day: Math.max(1, Math.round(Number(settings.max_calls_per_day) || 100)),
           language: settings.language,
+          working_days: settings.working_days,
+          exclude_holidays: settings.exclude_holidays,
+          voicemail_enabled: settings.voicemail_enabled,
+          followup_enabled: settings.followup_enabled,
+          followup_max_attempts: settings.followup_max_attempts,
+          followup_interval_hours: settings.followup_interval_hours,
+          smart_followup_enabled: settings.smart_followup_enabled,
+          ...((initialSettings.settings as any)?.slack_access_token ? { slack_access_token: (initialSettings.settings as any).slack_access_token } : {}),
+          ...((initialSettings.settings as any)?.slack_team_name ? { slack_team_name: (initialSettings.settings as any).slack_team_name } : {}),
+          ...((initialSettings.settings as any)?.slack_team_id ? { slack_team_id: (initialSettings.settings as any).slack_team_id } : {}),
         }
       };
 

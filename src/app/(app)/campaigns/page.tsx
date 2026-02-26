@@ -55,6 +55,13 @@ export default async function CampaignsPage() {
     .eq('id', userData!.company_id)
     .single();
 
+  // Get company settings for campaign defaults
+  const { data: companySettings } = await supabase
+    .from('company_settings')
+    .select('*')
+    .eq('company_id', userData!.company_id)
+    .single();
+
   return (
     <CampaignsOverview
       campaigns={campaigns || []}
@@ -63,6 +70,7 @@ export default async function CampaignsPage() {
       voicemailStats={voicemailStats || []}
       agentTemplates={agentTemplates || []}
       company={company!}
+      companySettings={companySettings}
     />
   );
 }
