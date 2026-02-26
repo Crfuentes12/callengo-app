@@ -229,11 +229,11 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     customTask: '',
     selectedLists: [] as string[],
     testPhoneNumber: companySettings?.test_phone_number || '',
-    voicemailEnabled: false,
-    followUpEnabled: false,
-    followUpMaxAttempts: 3,
-    followUpIntervalHours: 24,
-    smartFollowUp: false,
+    voicemailEnabled: additionalSettings.voicemail_enabled ?? false,
+    followUpEnabled: additionalSettings.followup_enabled ?? false,
+    followUpMaxAttempts: additionalSettings.followup_max_attempts || 3,
+    followUpIntervalHours: additionalSettings.followup_interval_hours || 24,
+    smartFollowUp: additionalSettings.smart_followup_enabled ?? false,
     companyInfo: {
       name: company.name,
       description: company.description || '',
@@ -250,13 +250,13 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     timezone: additionalSettings.timezone || 'America/New_York',
     workingHoursStart: additionalSettings.working_hours_start || '09:00',
     workingHoursEnd: additionalSettings.working_hours_end || '18:00',
-    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    excludeUSHolidays: true,
-    voicemailEnabled: false,
-    followUpEnabled: false,
-    followUpMaxAttempts: 3,
-    followUpIntervalHours: 24,
-    smartFollowUp: false,
+    workingDays: additionalSettings.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    excludeUSHolidays: additionalSettings.exclude_holidays ?? true,
+    voicemailEnabled: additionalSettings.voicemail_enabled ?? false,
+    followUpEnabled: additionalSettings.followup_enabled ?? false,
+    followUpMaxAttempts: additionalSettings.followup_max_attempts || 3,
+    followUpIntervalHours: additionalSettings.followup_interval_hours || 24,
+    smartFollowUp: additionalSettings.smart_followup_enabled ?? false,
     calendarContextEnabled: true,
     defaultMeetingDuration: 30,
     preferredVideoProvider: 'none',
@@ -724,226 +724,202 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
-            {/* Two column layout - 50/50 */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* LEFT: Agent Card + Test + About */}
-              <div className="flex flex-col gap-4">
-                {/* Agent Photo Card */}
-                <div className={`relative w-full aspect-[3/4] rounded-xl overflow-hidden border ${settings.voice ? `border-[var(--color-primary)]/30` : 'border-slate-200'} shadow-lg transition-all duration-300`}>
-                  <div className="absolute inset-0 z-10">
+            {/* Agent header - photo + name + test button */}
+            <div className="flex items-center gap-4 mb-5">
+              <div className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 ${settings.voice ? 'border-[var(--color-primary)]/30' : 'border-slate-200'} shadow-md flex-shrink-0 transition-all`}>
+                <Image
+                  src={avatarImage}
+                  alt={agentName || agent.name}
+                  fill
+                  className="object-cover"
+                  priority
+                />
+                {isTransitioning && previousVoice && (
+                  <div className={`absolute inset-0 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
                     <Image
-                      src={avatarImage}
+                      src={getAvatarImage(agent.name, previousVoice)}
                       alt={agentName || agent.name}
                       fill
                       className="object-cover"
                       priority
                     />
                   </div>
-                  {isTransitioning && previousVoice && (
-                    <div className={`absolute inset-0 z-20 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-                      <Image
-                        src={getAvatarImage(agent.name, previousVoice)}
-                        alt={agentName || agent.name}
-                        fill
-                        className="object-cover"
-                        priority
-                      />
-                    </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-slate-900 truncate">{agentName || agent.name}</h2>
+                <p className="text-xs text-slate-500">{agentTitle}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{agentInfo.description}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setTestPhoneNumber(settings.testPhoneNumber);
+                  setShowTestModal(true);
+                }}
+                disabled={!settings.voice}
+                className={`px-4 py-2 gradient-bg text-white rounded-lg font-semibold text-sm transition-all flex items-center gap-2 flex-shrink-0 ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Test Agent
+              </button>
+            </div>
+            {!settings.voice && (
+              <p className="text-[10px] text-red-400 text-right -mt-4 mb-3">Select a voice first</p>
+            )}
+
+            {/* Two column layout - Identity + Call Settings */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* LEFT: Agent Identity */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                <h3 className="text-xs font-bold text-slate-900 uppercase">Agent Identity</h3>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+                    Voice <span className="text-red-400">*</span>
+                  </label>
+                  <VoiceSelector
+                    selectedVoiceId={settings.voice}
+                    onVoiceSelect={(voiceId) => handleVoiceChange(voiceId)}
+                    variant="light"
+                  />
+                  {!settings.voice && (
+                    <p className="text-xs text-red-400 mt-1.5">Please select a voice to continue</p>
                   )}
-                  <div className="absolute inset-0 z-30 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none"></div>
-                  <div className="absolute bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-none">
-                    <h2 className="text-lg font-bold text-white uppercase tracking-tight leading-tight mb-0.5">
-                      {agentName || agent.name}
-                    </h2>
-                    <p className="text-[11px] text-slate-300">{agentTitle}</p>
+                  {settings.voice && settings.voice !== companySettings?.default_voice && (
+                    <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={setAsDefaultVoice}
+                        onChange={e => setSetAsDefaultVoice(e.target.checked)}
+                        className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                      />
+                      <span className="text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">Set as default voice</span>
+                    </label>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Agent Name</label>
+                    <input
+                      type="text"
+                      placeholder={agent.name}
+                      value={agentName}
+                      onChange={(e) => setAgentName(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Agent Title</label>
+                    <input
+                      type="text"
+                      placeholder="AI Sales Agent"
+                      value={agentTitle}
+                      onChange={(e) => setAgentTitle(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-400"
+                    />
                   </div>
                 </div>
 
-                {/* Test Agent Button */}
-                <button
-                  onClick={() => {
-                    setTestPhoneNumber(settings.testPhoneNumber);
-                    setShowTestModal(true);
-                  }}
-                  disabled={!settings.voice}
-                  className={`w-full px-4 py-2.5 gradient-bg text-white rounded-lg font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  Test Agent
-                </button>
-                {!settings.voice && (
-                  <p className="text-[10px] text-red-400 text-center -mt-2">Select a voice first</p>
-                )}
-
-                {/* About this agent */}
-                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                  <h4 className="text-[11px] font-bold text-slate-900 uppercase mb-1.5 flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {/* AI Self-Identification */}
+                <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    About this agent
-                  </h4>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    {agentInfo.description}
-                  </p>
+                    <span className="text-xs text-slate-600">Identify as AI at call start</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.complianceAiDisclosure}
+                      onChange={e => setSettings({ ...settings, complianceAiDisclosure: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                  </label>
                 </div>
               </div>
 
-              {/* RIGHT: Agent Identity + Call Settings */}
-              <div className="flex flex-col gap-4">
-                {/* Agent Identity */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-                  <h3 className="text-xs font-bold text-slate-900 uppercase">Agent Identity</h3>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
-                      Voice <span className="text-red-400">*</span>
-                    </label>
-                    <VoiceSelector
-                      selectedVoiceId={settings.voice}
-                      onVoiceSelect={(voiceId) => handleVoiceChange(voiceId)}
-                      variant="light"
-                    />
-                    {!settings.voice && (
-                      <p className="text-xs text-red-400 mt-1.5">Please select a voice to continue</p>
-                    )}
-                    {settings.voice && settings.voice !== companySettings?.default_voice && (
-                      <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          checked={setAsDefaultVoice}
-                          onChange={e => setSetAsDefaultVoice(e.target.checked)}
-                          className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-                        />
-                        <span className="text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">Set as default voice</span>
+              {/* RIGHT: Call Settings */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <h3 className="text-xs font-bold text-slate-900 uppercase mb-3 flex items-center justify-between">
+                  Call Settings
+                  {planLimits && (
+                    <span className="text-[10px] font-medium text-slate-400 normal-case">
+                      {planLimits.slug.charAt(0).toUpperCase() + planLimits.slug.slice(1)} plan
+                    </span>
+                  )}
+                </h3>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1 whitespace-nowrap">
+                        Max Duration
                       </label>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Agent Name</label>
-                      <input
-                        type="text"
-                        placeholder={agent.name}
-                        value={agentName}
-                        onChange={(e) => setAgentName(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Agent Title</label>
-                      <input
-                        type="text"
-                        placeholder="AI Sales Agent"
-                        value={agentTitle}
-                        onChange={(e) => setAgentTitle(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none placeholder-slate-400"
-                      />
-                    </div>
-                  </div>
-
-                  {/* AI Self-Identification - subtle toggle near identity */}
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-xs text-slate-600">Identify as AI at call start</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={settings.complianceAiDisclosure}
-                        onChange={e => setSettings({ ...settings, complianceAiDisclosure: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Call Settings - wider layout, no truncation */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <h3 className="text-xs font-bold text-slate-900 uppercase mb-3 flex items-center justify-between">
-                    Call Settings
-                    {planLimits && (
-                      <span className="text-[10px] font-medium text-slate-400 normal-case">
-                        {planLimits.slug.charAt(0).toUpperCase() + planLimits.slug.slice(1)} plan
-                      </span>
-                    )}
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1 whitespace-nowrap">
-                          Max Duration
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            min="1"
-                            max={planLimits?.maxCallDuration || 15}
-                            step="1"
-                            value={settings.maxDuration}
-                            onChange={e => {
-                              const val = Math.round(parseInt(e.target.value) || 5);
-                              const max = planLimits?.maxCallDuration || 15;
-                              setSettings({ ...settings, maxDuration: Math.min(val, max) });
-                            }}
-                            className="w-full px-3 py-2 pr-10 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">min</span>
-                        </div>
-                        {planLimits && (
-                          <p className="text-[10px] text-[var(--color-primary)] mt-0.5">max {planLimits.maxCallDuration}m</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1 whitespace-nowrap">Interval</label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            min="1"
-                            max="60"
-                            step="1"
-                            value={settings.intervalMinutes}
-                            onChange={e => setSettings({ ...settings, intervalMinutes: Math.round(parseInt(e.target.value) || 5) })}
-                            className="w-full px-3 py-2 pr-10 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">min</span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1 whitespace-nowrap">Calls/Day</label>
+                      <div className="relative">
                         <input
                           type="number"
                           min="1"
-                          max={planLimits?.maxCallsPerDay || 1000}
+                          max={planLimits?.maxCallDuration || 15}
                           step="1"
-                          value={settings.maxCallsPerDay}
+                          value={settings.maxDuration}
                           onChange={e => {
-                            const val = Math.round(parseInt(e.target.value) || 100);
-                            const max = planLimits?.maxCallsPerDay || 1000;
-                            setSettings({ ...settings, maxCallsPerDay: Math.min(val, max) });
+                            const val = Math.round(parseInt(e.target.value) || 5);
+                            const max = planLimits?.maxCallDuration || 15;
+                            setSettings({ ...settings, maxDuration: Math.min(val, max) });
                           }}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                          className="w-full px-3 py-2 pr-10 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
-                        {planLimits?.maxCallsPerDay && (
-                          <p className="text-[10px] text-[var(--color-primary)] mt-0.5">max {planLimits.maxCallsPerDay}</p>
-                        )}
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">min</span>
+                      </div>
+                      {planLimits && (
+                        <p className="text-[10px] text-[var(--color-primary)] mt-0.5">max {planLimits.maxCallDuration}m</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1 whitespace-nowrap">Interval</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          step="1"
+                          value={settings.intervalMinutes}
+                          onChange={e => setSettings({ ...settings, intervalMinutes: Math.round(parseInt(e.target.value) || 5) })}
+                          className="w-full px-3 py-2 pr-10 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">min</span>
                       </div>
                     </div>
-                    {planLimits && (
-                      <p className="text-[10px] text-slate-400">
-                        ~{Math.floor(planLimits.minutesIncluded / (settings.maxDuration || 5))} calls/month at {settings.maxDuration}min each ({planLimits.minutesIncluded} min included)
-                      </p>
-                    )}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1 whitespace-nowrap">Calls/Day</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max={planLimits?.maxCallsPerDay || 1000}
+                        step="1"
+                        value={settings.maxCallsPerDay}
+                        onChange={e => {
+                          const val = Math.round(parseInt(e.target.value) || 100);
+                          const max = planLimits?.maxCallsPerDay || 1000;
+                          setSettings({ ...settings, maxCallsPerDay: Math.min(val, max) });
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                      />
+                      {planLimits?.maxCallsPerDay && (
+                        <p className="text-[10px] text-[var(--color-primary)] mt-0.5">max {planLimits.maxCallsPerDay}</p>
+                      )}
+                    </div>
                   </div>
+                  {planLimits && (
+                    <p className="text-[10px] text-slate-400">
+                      ~{Math.floor(planLimits.minutesIncluded / (settings.maxDuration || 5))} calls/month at {settings.maxDuration}min each ({planLimits.minutesIncluded} min included)
+                    </p>
+                  )}
                 </div>
-
               </div>
             </div>
 

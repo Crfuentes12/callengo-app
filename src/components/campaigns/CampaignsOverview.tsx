@@ -47,6 +47,7 @@ interface CampaignsOverviewProps {
   voicemailStats: VoicemailStat[];
   agentTemplates: AgentTemplate[];
   company: Company;
+  companySettings?: any;
 }
 
 type FilterStatus = 'all' | 'active' | 'completed' | 'paused' | 'failed';
@@ -58,6 +59,7 @@ export default function CampaignsOverview({
   voicemailStats,
   agentTemplates,
   company,
+  companySettings,
 }: CampaignsOverviewProps) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -387,6 +389,7 @@ export default function CampaignsOverview({
           agent={selectedAgent}
           companyId={companyId}
           company={company}
+          companySettings={companySettings}
           onClose={() => {
             setShowConfigModal(false);
             setSelectedAgent(null);

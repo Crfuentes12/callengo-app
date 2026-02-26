@@ -397,10 +397,16 @@ export default function CalendarConfigStep({
           break;
       }
 
-      const res = await fetch(endpoint);
+      // Zoom uses Server-to-Server OAuth (POST), others use redirect flow (GET)
+      const isZoom = provider === 'zoom';
+      const res = await fetch(endpoint, isZoom ? { method: 'POST' } : undefined);
       if (res.ok) {
         const data = await res.json();
-        if (data.url) {
+        if (isZoom && data.success) {
+          // Zoom connected via server-to-server - just refresh status
+          setConnectingProvider(null);
+          fetchIntegrationStatus();
+        } else if (data.url) {
           const popup = window.open(data.url, `connect_${provider}`, 'width=600,height=700,scrollbars=yes');
 
           const checkClosed = setInterval(() => {
