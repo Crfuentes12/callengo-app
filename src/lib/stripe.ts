@@ -213,20 +213,16 @@ export async function reportUsage(params: {
   } = params;
 
   try {
-    // Use subscription item usage records (works with metered billing)
-    const usageRecord = await stripe.subscriptionItems.createUsageRecord(
-      subscriptionItemId,
-      {
-        quantity,
-        timestamp,
-        action,
-      }
+    // Use rawRequest since createUsageRecord was removed in Stripe SDK v20+
+    const usageRecord = await stripe.rawRequest(
+      'POST',
+      `/v1/subscription_items/${subscriptionItemId}/usage_records`,
+      { quantity, timestamp, action }
     );
 
     console.log('Usage reported to Stripe:', {
       subscriptionItemId,
       quantity,
-      recordId: usageRecord.id,
     });
 
     return usageRecord;

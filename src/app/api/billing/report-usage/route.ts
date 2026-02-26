@@ -95,7 +95,6 @@ export async function POST(req: NextRequest) {
       .from('usage_tracking')
       .update({
         minutes_used: newMinutesUsed,
-        overage_minutes: overageMinutes,
         total_cost: overageCost,
         updated_at: new Date().toISOString(),
       })

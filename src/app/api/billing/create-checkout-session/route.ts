@@ -107,6 +107,12 @@ export async function POST(req: NextRequest) {
     } else {
       // For EUR/GBP, need to fetch from Stripe API
       try {
+        if (!plan.stripe_product_id) {
+          return NextResponse.json(
+            { error: 'Stripe product not configured for this plan' },
+            { status: 500 }
+          );
+        }
         const stripe = (await import('@/lib/stripe')).stripe;
         const prices = await stripe.prices.list({
           product: plan.stripe_product_id,

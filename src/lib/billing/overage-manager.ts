@@ -89,9 +89,9 @@ export async function enableOverage(params: {
     }
 
     // Add metered price to subscription
-    const stripeSubscription = await stripe.subscriptions.retrieve(
-      subscription.stripe_subscription_id
-    );
+    // stripe_subscription_id is guaranteed non-null here (isFreeOrTrialPlan returned early above)
+    const stripeSubId = subscription.stripe_subscription_id!;
+    const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubId);
 
     // Check if metered item already exists
     const existingMeteredItem = stripeSubscription.items.data.find(
@@ -103,7 +103,7 @@ export async function enableOverage(params: {
     if (!existingMeteredItem) {
       // Add metered billing item to subscription
       const updatedSubscription = await stripe.subscriptions.update(
-        subscription.stripe_subscription_id,
+        stripeSubId,
         {
           items: [
             ...stripeSubscription.items.data.map((item) => ({ id: item.id })),
@@ -197,7 +197,7 @@ export async function disableOverage(companyId: string): Promise<void> {
       .from('company_subscriptions')
       .update({
         overage_enabled: false,
-        overage_budget: null,
+        overage_budget: 0,
         overage_spent: 0,
         stripe_subscription_item_id: null,
         last_overage_alert_at: null,

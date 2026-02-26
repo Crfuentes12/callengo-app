@@ -289,7 +289,6 @@ export async function resetUsageForNewPeriod(companyId: string): Promise<void> {
       period_end: periodEnd.toISOString(),
       minutes_used: 0,
       minutes_included: subscription.subscription_plans?.minutes_included || 0,
-      overage_minutes: 0,
       total_cost: 0,
     });
 

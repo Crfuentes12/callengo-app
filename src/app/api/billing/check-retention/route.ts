@@ -178,9 +178,13 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active')
       .single();
 
-    if (!subscription?.stripe_subscription_id) {
+    if (!subscription?.stripe_subscription_id || !subscription?.stripe_customer_id) {
       return NextResponse.json({ error: 'No active Stripe subscription' }, { status: 400 });
     }
+
+    // Extract as non-null after guard
+    const stripeSubId = subscription.stripe_subscription_id;
+    const stripeCustomerId = subscription.stripe_customer_id;
 
     // Get retention record
     const { data: retentionData } = await supabaseAdminRaw
@@ -200,7 +204,7 @@ export async function POST(req: NextRequest) {
     let paidMonthsSinceLastRedemption = 0;
     try {
       const invoices = await stripe.invoices.list({
-        customer: subscription.stripe_customer_id!,
+        customer: stripeCustomerId,
         status: 'paid',
         limit: 100,
       });
@@ -239,7 +243,7 @@ export async function POST(req: NextRequest) {
       couponId = coupon.id;
 
       // Apply coupon to the subscription via discounts array
-      await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+      await stripe.subscriptions.update(stripeSubId, {
         discounts: [{ coupon: coupon.id }],
       });
     } catch (e) {
