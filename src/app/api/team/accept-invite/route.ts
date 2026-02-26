@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     // Check if invitation has expired
     if (new Date(invitation.expires_at) < new Date()) {
-      await supabaseAdmin
+      await supabaseAdminRaw
         .from('team_invitations')
         .update({ status: 'expired' })
         .eq('id', invitation.id);
