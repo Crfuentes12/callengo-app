@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
             period_start: subscription.current_period_start,
             period_end: subscription.current_period_end,
             minutes_used: 0,
-            minutes_included: subscription.plan.minutes_included,
+            minutes_included: subscription.plan?.minutes_included ?? 0,
           })
           .select()
           .single();

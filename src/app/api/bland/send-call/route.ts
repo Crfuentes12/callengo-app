@@ -1,9 +1,18 @@
 // app/api/bland/send-call/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate the user
+    const supabase = await createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const {
       phone_number,
@@ -26,6 +35,17 @@ export async function POST(request: NextRequest) {
         { error: 'phone_number, task, and company_id are required' },
         { status: 400 }
       );
+    }
+
+    // Verify user belongs to the specified company
+    const { data: userData } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData || userData.company_id !== company_id) {
+      return NextResponse.json({ error: 'Unauthorized for this company' }, { status: 403 });
     }
 
     // Get company-specific API key or use default

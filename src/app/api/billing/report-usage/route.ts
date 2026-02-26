@@ -10,10 +10,21 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerClient();
 
-    // Get current user (this could also be called by a system service)
+    // Verify authentication - either user session or service role
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    // Check for internal service key header as alternative auth for server-to-server calls
+    const serviceKey = req.headers.get('x-service-key');
+    const isServiceCall = serviceKey === process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!user && !isServiceCall) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
     const body = await req.json();
     const { companyId, minutes, callId } = body;
@@ -25,8 +36,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify user has access to this company (if authenticated)
-    if (user) {
+    // Verify user has access to this company (if user-authenticated, not service call)
+    if (user && !isServiceCall) {
       const { data: userData } = await supabase
         .from('users')
         .select('company_id')
@@ -84,7 +95,6 @@ export async function POST(req: NextRequest) {
       .from('usage_tracking')
       .update({
         minutes_used: newMinutesUsed,
-        overage_minutes: overageMinutes,
         total_cost: overageCost,
         updated_at: new Date().toISOString(),
       })

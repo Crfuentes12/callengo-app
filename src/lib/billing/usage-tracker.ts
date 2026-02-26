@@ -3,12 +3,7 @@
  * Automatically tracks and reports usage to Stripe
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabaseAdmin as supabase } from '@/lib/supabase/service';
 
 export interface UsageReport {
   companyId: string;
@@ -294,7 +289,6 @@ export async function resetUsageForNewPeriod(companyId: string): Promise<void> {
       period_end: periodEnd.toISOString(),
       minutes_used: 0,
       minutes_included: subscription.subscription_plans?.minutes_included || 0,
-      overage_minutes: 0,
       total_cost: 0,
     });
 

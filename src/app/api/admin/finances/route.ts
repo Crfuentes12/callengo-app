@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (!userData || userData.role !== 'admin') {
+    if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
