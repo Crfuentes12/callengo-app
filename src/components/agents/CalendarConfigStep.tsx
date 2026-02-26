@@ -484,64 +484,217 @@ export default function CalendarConfigStep({
         </div>
       </div>
 
-      {/* Integrations - compact inline */}
-      <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-[11px] font-bold text-slate-900 uppercase">Integrations</h3>
-        </div>
+      {/* Integrations & Meetings - combined section */}
+      <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+        <h3 className="text-[11px] font-bold text-slate-900 uppercase">Integrations & Meetings</h3>
+
         {loadingIntegrations ? (
           <div className="flex gap-2">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3, 4].map(i => (
               <div key={i} className="h-8 flex-1 bg-slate-200 rounded-lg animate-pulse"></div>
             ))}
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {/* Google Calendar */}
-            {integrations.google_calendar.connected ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <GoogleCalendarIcon className="w-4 h-4" />
-                <span className="text-[11px] font-semibold text-emerald-700">Google</span>
-              </span>
-            ) : (
-              <button onClick={() => handleConnect('google_calendar')} disabled={!!connectingProvider} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-all disabled:opacity-50">
-                <GoogleCalendarIcon className="w-4 h-4 opacity-50" />
-                <span className="text-[11px] font-semibold text-slate-400">{connectingProvider === 'google_calendar' ? '...' : 'Google'}</span>
-              </button>
-            )}
+          <>
+            {/* Integration pills row */}
+            <div className="flex flex-wrap gap-2">
+              {/* Google Calendar */}
+              {integrations.google_calendar.connected ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <GoogleCalendarIcon className="w-4 h-4" />
+                  <span className="text-[11px] font-semibold text-emerald-700">Google Calendar</span>
+                </span>
+              ) : (
+                <button onClick={() => handleConnect('google_calendar')} disabled={!!connectingProvider} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-all disabled:opacity-50">
+                  <GoogleCalendarIcon className="w-4 h-4 opacity-40" />
+                  <span className="text-[11px] font-semibold text-slate-400">{connectingProvider === 'google_calendar' ? 'Connecting...' : 'Connect Google'}</span>
+                </button>
+              )}
 
-            {/* Microsoft Outlook */}
-            {integrations.microsoft_outlook.connected ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <OutlookIcon className="w-4 h-4" />
-                <span className="text-[11px] font-semibold text-emerald-700">Outlook</span>
-              </span>
-            ) : isPremium ? (
-              <button onClick={() => handleConnect('microsoft_outlook')} disabled={!!connectingProvider} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-all disabled:opacity-50">
-                <OutlookIcon className="w-4 h-4 opacity-50" />
-                <span className="text-[11px] font-semibold text-slate-400">{connectingProvider === 'microsoft_outlook' ? '...' : 'Outlook'}</span>
-              </button>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 border border-slate-200 rounded-lg opacity-50">
-                <OutlookIcon className="w-4 h-4" />
-                <span className="text-[10px] font-bold text-slate-400">Business+</span>
-              </span>
-            )}
+              {/* Microsoft Outlook - Business+ */}
+              {integrations.microsoft_outlook.connected ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <OutlookIcon className="w-4 h-4" />
+                  <span className="text-[11px] font-semibold text-emerald-700">Outlook</span>
+                </span>
+              ) : isPremium ? (
+                <button onClick={() => handleConnect('microsoft_outlook')} disabled={!!connectingProvider} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-all disabled:opacity-50">
+                  <OutlookIcon className="w-4 h-4 opacity-40" />
+                  <span className="text-[11px] font-semibold text-slate-400">{connectingProvider === 'microsoft_outlook' ? 'Connecting...' : 'Connect Outlook'}</span>
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200/50 rounded-lg">
+                  <OutlookIcon className="w-4 h-4 opacity-40" />
+                  <span className="text-[10px] font-bold text-amber-600">Business+</span>
+                </span>
+              )}
 
-            {/* Zoom - always available (Server-to-Server) */}
-            {(isLeadQual || isAppointment) && (
+              {/* Zoom - always on */}
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
                 <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />
                 <span className="text-[11px] font-semibold text-emerald-700">Zoom</span>
               </span>
+
+              {/* Slack - always visible */}
+              {integrations.slack.connected ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <SlackIcon className="w-4 h-4" />
+                  <span className="text-[11px] font-semibold text-emerald-700">Slack</span>
+                </span>
+              ) : isPremium ? (
+                <a href="/integrations" target="_blank" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-all">
+                  <SlackIcon className="w-4 h-4 opacity-40" />
+                  <span className="text-[11px] font-semibold text-slate-400">Connect Slack</span>
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200/50 rounded-lg">
+                  <SlackIcon className="w-4 h-4 opacity-40" />
+                  <span className="text-[10px] font-bold text-amber-600">Business+</span>
+                </span>
+              )}
+            </div>
+
+            {/* Video Meeting Preference - inline grid */}
+            {(isLeadQual || isAppointment) && (
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">Video meeting preference</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[
+                    { key: 'none', label: 'No Video', icon: <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>, disabled: false },
+                    { key: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: false },
+                    { key: 'google_meet', label: 'Google Meet', icon: <GoogleMeetIcon className="w-4 h-4" />, disabled: !integrations.google_calendar.connected },
+                    { key: 'microsoft_teams', label: 'Teams', icon: <TeamsIcon className="w-4 h-4" />, disabled: !isPremium || !integrations.microsoft_outlook.connected },
+                  ].map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => update({ preferredVideoProvider: opt.key as CalendarStepConfig['preferredVideoProvider'] })}
+                      disabled={opt.disabled}
+                      className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg border-2 transition-all text-left ${
+                        config.preferredVideoProvider === opt.key
+                          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      } ${opt.disabled ? 'opacity-35 cursor-not-allowed' : ''}`}
+                    >
+                      {opt.icon}
+                      <span className="text-[11px] font-bold text-slate-700">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
-            {/* Slack indicator */}
-            {integrations.slack.connected && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <SlackIcon className="w-4 h-4" />
-                <span className="text-[11px] font-semibold text-emerald-700">Slack</span>
-              </span>
+            {/* Meeting duration - inline with video */}
+            {(isLeadQual || isAppointment) && config.preferredVideoProvider !== 'none' && (
+              <div className="flex items-center gap-3">
+                <label className="text-[11px] font-bold text-slate-500 uppercase whitespace-nowrap">Meeting duration</label>
+                <select
+                  value={config.defaultMeetingDuration}
+                  onChange={e => update({ defaultMeetingDuration: parseInt(e.target.value) })}
+                  className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                >
+                  <option value={15}>15 min</option>
+                  <option value={30}>30 min</option>
+                  <option value={45}>45 min</option>
+                  <option value={60}>1 hour</option>
+                  <option value={90}>1.5 hours</option>
+                </select>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Slack notification config - inline if connected and enabled */}
+        {integrations.slack.connected && (
+          <div className="border-t border-slate-200 pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <SlackIcon className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-bold text-slate-700 uppercase">Slack Notifications</span>
+                {integrations.slack.team_name && (
+                  <span className="text-[10px] text-slate-400">({integrations.slack.team_name})</span>
+                )}
+              </div>
+              <ToggleSwitch
+                checked={config.slackEnabled}
+                onChange={val => update({ slackEnabled: val })}
+              />
+            </div>
+
+            {config.slackEnabled && (
+              <div className="space-y-2">
+                {/* Channel selector */}
+                {loadingSlackChannels ? (
+                  <div className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-400 text-sm animate-pulse">Loading channels...</div>
+                ) : slackChannels.length > 0 ? (
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap gap-1.5">
+                      {(config.slackChannelIds || (config.slackChannelId ? [config.slackChannelId] : [])).map(chId => {
+                        const ch = slackChannels.find(c => c.id === chId);
+                        return ch ? (
+                          <span key={chId} className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-md text-xs font-medium text-[var(--color-primary)]">
+                            #{ch.name}
+                            <button
+                              onClick={() => {
+                                const ids = (config.slackChannelIds || []).filter(id => id !== chId);
+                                const names = ids.map(id => slackChannels.find(c => c.id === id)?.name || '').filter(Boolean);
+                                update({ slackChannelIds: ids, slackChannelNames: names, slackChannelId: ids[0] || '', slackChannelName: names[0] || '' });
+                              }}
+                              className="text-[var(--color-primary)] hover:text-red-500 transition-colors"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                    <select
+                      value=""
+                      onChange={e => {
+                        if (!e.target.value) return;
+                        const channel = slackChannels.find(c => c.id === e.target.value);
+                        if (!channel) return;
+                        const currentIds = config.slackChannelIds || (config.slackChannelId ? [config.slackChannelId] : []);
+                        if (currentIds.includes(channel.id)) return;
+                        const newIds = [...currentIds, channel.id];
+                        const newNames = newIds.map(id => slackChannels.find(c => c.id === id)?.name || '').filter(Boolean);
+                        update({ slackChannelIds: newIds, slackChannelNames: newNames, slackChannelId: newIds[0] || '', slackChannelName: newNames[0] || '' });
+                      }}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                    >
+                      <option value="">Add a channel...</option>
+                      {slackChannels.filter(ch => !(config.slackChannelIds || []).includes(ch.id)).map(ch => (
+                        <option key={ch.id} value={ch.id}>#{ch.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-500 bg-white rounded-lg px-3 py-2 border border-slate-200">
+                    {integrations.slack.channel_name ? `Default: #${integrations.slack.channel_name}` : 'No channels found'}
+                  </p>
+                )}
+
+                {/* Notification types */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { key: 'slackNotifyOnCallCompleted' as const, label: 'Calls' },
+                    { key: 'slackNotifyOnAppointment' as const, label: 'Appointments' },
+                    { key: 'slackNotifyOnFollowUp' as const, label: 'Follow-ups' },
+                    { key: 'slackNotifyOnNoShow' as const, label: 'No-shows' },
+                  ].map(notif => (
+                    <button
+                      key={notif.key}
+                      onClick={() => update({ [notif.key]: !config[notif.key] })}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border ${
+                        config[notif.key]
+                          ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30 text-[var(--color-primary)]'
+                          : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
+                      }`}
+                    >
+                      {notif.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -627,15 +780,10 @@ export default function CalendarConfigStep({
         </div>
       </div>
 
-      {/* Voicemail & Follow-ups */}
+      {/* Call Features - plan gated */}
       <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-            <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-            Voicemail & Follow-ups
-          </h3>
+          <h3 className="text-[11px] font-bold text-slate-900 uppercase">Call Features</h3>
           {savingToSettings && (
             <span className="text-[10px] text-slate-400 flex items-center gap-1">
               <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
@@ -644,294 +792,86 @@ export default function CalendarConfigStep({
           )}
         </div>
 
-        <div className="space-y-2.5">
-          {/* Voicemail toggle */}
-          <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
-            <div>
-              <p className="text-sm font-semibold text-slate-700">Voicemail detection</p>
-              <p className="text-[11px] text-slate-400">Leave a message when voicemail is detected</p>
+        <div className="space-y-2">
+          {/* Voicemail - Starter+ */}
+          <div className={`flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200 ${!isStarter ? 'opacity-60' : ''}`}>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                Voicemail detection
+                {!isStarter && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">STARTER+</span>}
+              </p>
+              <p className="text-[11px] text-slate-400">
+                {isStarter ? 'Leave a message when voicemail is detected' : 'Upgrade to Starter to enable voicemail detection'}
+              </p>
             </div>
-            <ToggleSwitch
-              checked={config.voicemailEnabled}
-              onChange={val => {
-                update({ voicemailEnabled: val });
-                syncSettingsToCompany({ voicemailEnabled: val });
-              }}
-            />
+            {isStarter ? (
+              <ToggleSwitch
+                checked={config.voicemailEnabled}
+                onChange={val => { update({ voicemailEnabled: val }); syncSettingsToCompany({ voicemailEnabled: val }); }}
+              />
+            ) : (
+              <a href="/settings?tab=billing" className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition-colors whitespace-nowrap">Upgrade</a>
+            )}
           </div>
 
-          {/* Follow-ups toggle */}
-          <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
-            <div>
-              <p className="text-sm font-semibold text-slate-700">Automatic follow-ups</p>
-              <p className="text-[11px] text-slate-400">Retry contacts who didn&apos;t answer</p>
+          {/* Follow-ups - Starter+ */}
+          <div className={`flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200 ${!isStarter ? 'opacity-60' : ''}`}>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                Automatic follow-ups
+                {!isStarter && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">STARTER+</span>}
+              </p>
+              <p className="text-[11px] text-slate-400">
+                {isStarter ? 'Retry contacts who didn\'t answer' : 'Upgrade to Starter to enable automatic follow-ups'}
+              </p>
             </div>
-            <ToggleSwitch
-              checked={config.followUpEnabled}
-              onChange={val => {
-                update({ followUpEnabled: val });
-                syncSettingsToCompany({ followUpEnabled: val });
-              }}
-            />
+            {isStarter ? (
+              <ToggleSwitch
+                checked={config.followUpEnabled}
+                onChange={val => { update({ followUpEnabled: val }); syncSettingsToCompany({ followUpEnabled: val }); }}
+              />
+            ) : (
+              <a href="/settings?tab=billing" className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition-colors whitespace-nowrap">Upgrade</a>
+            )}
           </div>
 
-          {config.followUpEnabled && (
+          {/* Follow-up config (if enabled and has plan) */}
+          {config.followUpEnabled && isStarter && (
             <div className="grid grid-cols-2 gap-2 pl-3 border-l-2 border-[var(--color-primary)]/20">
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Max Attempts</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={config.followUpMaxAttempts}
+                <input type="number" min="1" max="10" value={config.followUpMaxAttempts}
                   onChange={e => update({ followUpMaxAttempts: parseInt(e.target.value) || 1 })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                />
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
               </div>
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Interval (hours)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="168"
-                  value={config.followUpIntervalHours}
+                <input type="number" min="1" max="168" value={config.followUpIntervalHours}
                   onChange={e => update({ followUpIntervalHours: parseInt(e.target.value) || 1 })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                />
-              </div>
-
-              {/* Smart Follow-up - Business+ only */}
-              <div className="col-span-2 bg-white rounded-lg px-3 py-2.5 border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                      Smart scheduling
-                      {!isPremium && (
-                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">BUSINESS</span>
-                      )}
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      {isPremium
-                        ? 'When a contact asks to be called at a specific time, the agent schedules it automatically.'
-                        : 'Upgrade to Business to auto-schedule calls when contacts request a specific time.'}
-                    </p>
-                  </div>
-                  <ToggleSwitch
-                    checked={config.smartFollowUp}
-                    onChange={val => update({ smartFollowUp: val })}
-                    disabled={!isPremium}
-                  />
-                </div>
-                {!isPremium && isStarter && (
-                  <p className="text-[10px] text-amber-600 mt-1.5 bg-amber-50 rounded px-2 py-1">
-                    Without smart scheduling, call preferences are recorded but retries follow the default interval above.
-                  </p>
-                )}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
               </div>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Video meeting preference - only for agents that schedule meetings */}
-      {(isLeadQual || isAppointment) && (
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-          <h3 className="text-xs font-bold text-slate-900 uppercase mb-1 flex items-center gap-2">
-            <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            Video Meeting Preference
-          </h3>
-          <p className="text-[11px] text-slate-500 mb-3">
-            {isLeadQual
-              ? 'When scheduling meetings, the agent sends an invite with your preferred platform.'
-              : 'When rescheduling to a video call, the agent uses your preferred platform.'}
-          </p>
-
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { key: 'none', label: 'No Video', desc: 'In-person or phone', icon: null },
-              { key: 'google_meet', label: 'Google Meet', desc: integrations.google_calendar.connected ? 'Ready' : 'Connect Google first', icon: <GoogleMeetIcon className="w-4 h-4" /> },
-              { key: 'zoom', label: 'Zoom', desc: 'Always available', icon: <BiLogoZoom className="w-5 h-5 text-[#2D8CFF]" /> },
-              { key: 'microsoft_teams', label: 'Microsoft Teams', desc: isPremium ? (integrations.microsoft_outlook.connected ? 'Ready' : 'Connect Outlook first') : 'Business plan', icon: <TeamsIcon className="w-4 h-4" /> },
-            ].map(opt => {
-              const isDisabled =
-                (opt.key === 'microsoft_teams' && (!isPremium || !integrations.microsoft_outlook.connected)) ||
-                (opt.key === 'google_meet' && !integrations.google_calendar.connected);
-              return (
-                <button
-                  key={opt.key}
-                  onClick={() => update({ preferredVideoProvider: opt.key as CalendarStepConfig['preferredVideoProvider'] })}
-                  disabled={isDisabled}
-                  className={`p-2.5 rounded-lg border-2 transition-all text-left ${
-                    config.preferredVideoProvider === opt.key
-                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  } ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-                >
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    {opt.icon && <span className="flex-shrink-0">{opt.icon}</span>}
-                    {!opt.icon && (
-                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                      </svg>
-                    )}
-                    <span className="text-xs font-bold text-slate-900">{opt.label}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 pl-[22px]">{opt.desc}</p>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Meeting duration */}
-          <div className="mt-3">
-            <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Default meeting duration</label>
-            <select
-              value={config.defaultMeetingDuration}
-              onChange={e => update({ defaultMeetingDuration: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-            >
-              <option value={15}>15 minutes</option>
-              <option value={30}>30 minutes</option>
-              <option value={45}>45 minutes</option>
-              <option value={60}>1 hour</option>
-              <option value={90}>1.5 hours</option>
-            </select>
-          </div>
-        </div>
-      )}
-
-      {/* Upsell for Starter plan users */}
-      {isStarter && !isPremium && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200/50">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-800 mb-0.5">Unlock smart scheduling</p>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                Upgrade to <span className="font-bold">Business</span> to let your agent automatically schedule calls at times your contacts request, connect Microsoft 365, and use advanced scheduling features.
+          {/* Smart Scheduling - Business+ */}
+          <div className={`flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200 ${!isPremium ? 'opacity-60' : ''}`}>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                Smart scheduling
+                {!isPremium && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">BUSINESS+</span>}
+              </p>
+              <p className="text-[11px] text-slate-400">
+                {isPremium ? 'Auto-schedule calls when contacts request a specific time' : 'Upgrade to Business to enable smart scheduling'}
               </p>
             </div>
+            {isPremium ? (
+              <ToggleSwitch checked={config.smartFollowUp} onChange={val => update({ smartFollowUp: val })} />
+            ) : (
+              <a href="/settings?tab=billing" className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition-colors whitespace-nowrap">Upgrade</a>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Slack Notifications - simplified, multi-channel */}
-      {integrations.slack.connected && (
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-              <SlackIcon className="w-3.5 h-3.5" />
-              Slack
-              {integrations.slack.team_name && (
-                <span className="text-[10px] font-medium text-slate-400 normal-case">({integrations.slack.team_name})</span>
-              )}
-            </h3>
-            <ToggleSwitch
-              checked={config.slackEnabled}
-              onChange={val => update({ slackEnabled: val })}
-            />
-          </div>
-
-          {config.slackEnabled && (
-            <div className="space-y-3">
-              {/* Multi-channel selector */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Channels</label>
-                {loadingSlackChannels ? (
-                  <div className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-400 text-sm animate-pulse">Loading...</div>
-                ) : slackChannels.length > 0 ? (
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap gap-1.5">
-                      {(config.slackChannelIds || (config.slackChannelId ? [config.slackChannelId] : [])).map(chId => {
-                        const ch = slackChannels.find(c => c.id === chId);
-                        return ch ? (
-                          <span key={chId} className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-md text-xs font-medium text-[var(--color-primary)]">
-                            #{ch.name}
-                            <button
-                              onClick={() => {
-                                const ids = (config.slackChannelIds || []).filter(id => id !== chId);
-                                const names = ids.map(id => slackChannels.find(c => c.id === id)?.name || '').filter(Boolean);
-                                update({
-                                  slackChannelIds: ids,
-                                  slackChannelNames: names,
-                                  slackChannelId: ids[0] || '',
-                                  slackChannelName: names[0] || '',
-                                });
-                              }}
-                              className="text-[var(--color-primary)] hover:text-red-500 transition-colors"
-                            >
-                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                          </span>
-                        ) : null;
-                      })}
-                    </div>
-                    <select
-                      value=""
-                      onChange={e => {
-                        if (!e.target.value) return;
-                        const channel = slackChannels.find(c => c.id === e.target.value);
-                        if (!channel) return;
-                        const currentIds = config.slackChannelIds || (config.slackChannelId ? [config.slackChannelId] : []);
-                        if (currentIds.includes(channel.id)) return;
-                        const newIds = [...currentIds, channel.id];
-                        const newNames = newIds.map(id => slackChannels.find(c => c.id === id)?.name || '').filter(Boolean);
-                        update({
-                          slackChannelIds: newIds,
-                          slackChannelNames: newNames,
-                          slackChannelId: newIds[0] || '',
-                          slackChannelName: newNames[0] || '',
-                        });
-                      }}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                    >
-                      <option value="">Add a channel...</option>
-                      {slackChannels
-                        .filter(ch => !(config.slackChannelIds || []).includes(ch.id))
-                        .map(ch => (
-                          <option key={ch.id} value={ch.id}>#{ch.name}</option>
-                        ))
-                      }
-                    </select>
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-slate-500 bg-white rounded-lg px-3 py-2 border border-slate-200">
-                    {integrations.slack.channel_name ? `Default: #${integrations.slack.channel_name}` : 'No channels found'}
-                  </p>
-                )}
-              </div>
-
-              {/* Notification types - compact */}
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { key: 'slackNotifyOnCallCompleted' as const, label: 'Calls' },
-                  { key: 'slackNotifyOnAppointment' as const, label: 'Appointments' },
-                  { key: 'slackNotifyOnFollowUp' as const, label: 'Follow-ups' },
-                  { key: 'slackNotifyOnNoShow' as const, label: 'No-shows' },
-                ].map(notif => (
-                  <button
-                    key={notif.key}
-                    onClick={() => update({ [notif.key]: !config[notif.key] })}
-                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
-                      config[notif.key]
-                        ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30 text-[var(--color-primary)]'
-                        : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
-                    }`}
-                  >
-                    {notif.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      </div>
 
       {/* Footer note */}
       <p className="text-[11px] text-slate-400 leading-relaxed px-1">
