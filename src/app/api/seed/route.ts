@@ -85,6 +85,7 @@ export async function POST() {
     await supabaseAdmin.from('voicemail_logs').delete().eq('company_id', companyId);
     await supabaseAdmin.from('follow_up_queue').delete().eq('company_id', companyId);
     await supabaseAdmin.from('call_queue').delete().eq('company_id', companyId);
+    await supabaseAdmin.from('calendar_events').delete().eq('company_id', companyId);
     await supabaseAdmin.from('call_logs').delete().eq('company_id', companyId);
     await supabaseAdmin.from('notifications').delete().eq('company_id', companyId);
     await supabaseAdmin.from('agent_runs').delete().eq('company_id', companyId);
@@ -92,6 +93,8 @@ export async function POST() {
     await supabaseAdmin.from('contacts').delete().eq('company_id', companyId);
     await supabaseAdmin.from('contact_lists').delete().eq('company_id', companyId);
     await supabaseAdmin.from('usage_tracking').delete().eq('company_id', companyId);
+    // Clean AI conversations (user-scoped, need userId)
+    await supabaseAdmin.from('ai_conversations').delete().eq('company_id', companyId);
 
     // ── 2. Generate all mock data ──
     const contactLists = generateContactLists(companyId);
@@ -230,6 +233,7 @@ export async function DELETE() {
     await supabaseAdmin.from('voicemail_logs').delete().eq('company_id', companyId);
     await supabaseAdmin.from('follow_up_queue').delete().eq('company_id', companyId);
     await supabaseAdmin.from('call_queue').delete().eq('company_id', companyId);
+    await supabaseAdmin.from('calendar_events').delete().eq('company_id', companyId);
     await supabaseAdmin.from('call_logs').delete().eq('company_id', companyId);
     await supabaseAdmin.from('notifications').delete().eq('company_id', companyId);
     await supabaseAdmin.from('agent_runs').delete().eq('company_id', companyId);
@@ -237,6 +241,7 @@ export async function DELETE() {
     await supabaseAdmin.from('contacts').delete().eq('company_id', companyId);
     await supabaseAdmin.from('contact_lists').delete().eq('company_id', companyId);
     await supabaseAdmin.from('usage_tracking').delete().eq('company_id', companyId);
+    await supabaseAdmin.from('ai_conversations').delete().eq('company_id', companyId);
 
     return NextResponse.json({
       success: true,
