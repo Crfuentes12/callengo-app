@@ -528,19 +528,12 @@ export default function CalendarConfigStep({
               </span>
             )}
 
-            {/* Zoom */}
+            {/* Zoom - always available (Server-to-Server) */}
             {(isLeadQual || isAppointment) && (
-              integrations.zoom.connected ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
-                  <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />
-                  <span className="text-[11px] font-semibold text-emerald-700">Zoom</span>
-                </span>
-              ) : (
-                <button onClick={() => handleConnect('zoom')} disabled={!!connectingProvider} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-all disabled:opacity-50">
-                  <BiLogoZoom className="w-4 h-4 text-slate-400" />
-                  <span className="text-[11px] font-semibold text-slate-400">{connectingProvider === 'zoom' ? '...' : 'Zoom'}</span>
-                </button>
-              )
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />
+                <span className="text-[11px] font-semibold text-emerald-700">Zoom</span>
+              </span>
             )}
 
             {/* Slack indicator */}
@@ -759,11 +752,10 @@ export default function CalendarConfigStep({
             {[
               { key: 'none', label: 'No Video', desc: 'In-person or phone', icon: null },
               { key: 'google_meet', label: 'Google Meet', desc: integrations.google_calendar.connected ? 'Ready' : 'Connect Google first', icon: <GoogleMeetIcon className="w-4 h-4" /> },
-              { key: 'zoom', label: 'Zoom', desc: integrations.zoom.connected ? 'Ready' : 'Connect Zoom first', icon: <BiLogoZoom className="w-5 h-5 text-[#2D8CFF]" /> },
+              { key: 'zoom', label: 'Zoom', desc: 'Always available', icon: <BiLogoZoom className="w-5 h-5 text-[#2D8CFF]" /> },
               { key: 'microsoft_teams', label: 'Microsoft Teams', desc: isPremium ? (integrations.microsoft_outlook.connected ? 'Ready' : 'Connect Outlook first') : 'Business plan', icon: <TeamsIcon className="w-4 h-4" /> },
             ].map(opt => {
               const isDisabled =
-                (opt.key === 'zoom' && !integrations.zoom.connected) ||
                 (opt.key === 'microsoft_teams' && (!isPremium || !integrations.microsoft_outlook.connected)) ||
                 (opt.key === 'google_meet' && !integrations.google_calendar.connected);
               return (
