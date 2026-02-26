@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 
 /**
  * POST /api/team/invite
  * Send a team invitation. Requires owner or admin role.
  * Only available on Business plan and above.
+ * Sends an actual invitation email via Supabase Auth.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
     // Get user data with company info
     const { data: userData } = await supabase
       .from('users')
-      .select('company_id, role')
+      .select('company_id, role, full_name')
       .eq('id', user.id)
       .single();
 
@@ -41,6 +42,15 @@ export async function POST(req: NextRequest) {
     if (userData.role !== 'owner' && userData.role !== 'admin') {
       return NextResponse.json({ error: 'Only owners and admins can invite team members' }, { status: 403 });
     }
+
+    // Get company name for the invitation email
+    const { data: company } = await supabaseAdmin
+      .from('companies')
+      .select('name')
+      .eq('id', userData.company_id)
+      .single();
+
+    const companyName = company?.name || 'your team';
 
     // Check subscription plan supports team members
     const { data: subscription } = await supabaseAdmin
@@ -70,13 +80,11 @@ export async function POST(req: NextRequest) {
 
     // Check seat limits (max_seats: -1 means unlimited)
     if (plan.max_seats !== -1) {
-      // Count current members
       const { count: memberCount } = await supabaseAdmin
         .from('users')
         .select('id', { count: 'exact', head: true })
         .eq('company_id', userData.company_id);
 
-      // Count pending invitations
       const { count: inviteCount } = await supabaseAdmin
         .from('team_invitations')
         .select('id', { count: 'exact', head: true })
@@ -88,7 +96,6 @@ export async function POST(req: NextRequest) {
       if (totalSeats >= plan.max_seats) {
         if (plan.extra_seat_price) {
           // Teams plan allows extra seats for a fee - let it through
-          // The billing will be handled separately
         } else {
           return NextResponse.json(
             { error: `All ${plan.max_seats} seats are used. Upgrade your plan to add more team members.` },
@@ -111,7 +118,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if there's already a pending invitation
-    const { data: existingInvite } = await supabaseAdmin
+    const { data: existingInvite } = await supabaseAdminRaw
       .from('team_invitations')
       .select('id')
       .eq('company_id', userData.company_id)
@@ -123,8 +130,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'An invitation has already been sent to this email' }, { status: 409 });
     }
 
-    // Create the invitation
-    const { data: invitation, error: inviteError } = await supabaseAdmin
+    // Create the invitation record
+    const { data: invitation, error: inviteError } = await supabaseAdminRaw
       .from('team_invitations')
       .insert({
         company_id: userData.company_id,
@@ -140,9 +147,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 });
     }
 
-    // TODO: Send invitation email via Supabase Auth or email service
-    // For now, the invitation is created in the database and can be
-    // accepted when the user signs up with this email
+    // Send the actual invitation email via Supabase Auth
+    // This uses Supabase's built-in email system to invite the user.
+    // When the user clicks the link, they'll be redirected to the app's
+    // auth callback which will handle accepting the team invitation.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const redirectTo = `${appUrl}/auth/callback?invite_token=${invitation.token}&type=team_invite`;
+
+    const { data: inviteData, error: emailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      email.toLowerCase(),
+      {
+        redirectTo,
+        data: {
+          invited_to_company: userData.company_id,
+          invited_role: role,
+          invite_token: invitation.token,
+          company_name: companyName,
+          invited_by_name: userData.full_name || user.email,
+        },
+      }
+    );
+
+    if (emailError) {
+      // If the user already has an account, the invite will fail.
+      // In that case, we still have the DB record - we need to notify them differently.
+      if (emailError.message?.includes('already been registered') ||
+          emailError.message?.includes('already exists')) {
+        // User already has a Supabase Auth account - they just need to accept the invite
+        // The invitation is in the DB with a token they can use
+        console.log(`User ${email} already exists in auth, invitation saved in DB for manual acceptance`);
+
+        return NextResponse.json({
+          success: true,
+          existing_user: true,
+          invitation: {
+            id: invitation.id,
+            email: invitation.email,
+            role: invitation.role,
+            status: invitation.status,
+          },
+          message: `Invitation created for existing user. They can accept it from their Team page.`,
+        });
+      }
+
+      // For other errors, log but don't fail - the DB record exists
+      console.error('Error sending invitation email:', emailError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -152,6 +202,7 @@ export async function POST(req: NextRequest) {
         role: invitation.role,
         status: invitation.status,
       },
+      email_sent: !emailError,
     });
   } catch (error) {
     console.error('Error in team invite:', error);

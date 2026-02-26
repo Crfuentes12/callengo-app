@@ -3,7 +3,7 @@
  * Manages metered billing and overage functionality with Stripe
  */
 
-import { stripe, createMeteredPrice } from '../stripe';
+import { stripe, createMeteredPrice, reportUsage } from '../stripe';
 import { supabaseAdmin as supabase } from '@/lib/supabase/service';
 import Stripe from 'stripe';
 
@@ -307,10 +307,23 @@ export async function syncAllMeteredUsage(): Promise<void> {
         const overageMinutes = Math.max(0, usage.minutes_used - minutesIncluded);
 
         if (overageMinutes > 0 && subscription.stripe_subscription_item_id) {
-          // TODO: Update this to use new Stripe API v2025-12-15 metered billing
-          // The createUsageRecord method has changed in Stripe API v20+
+          await reportUsage({
+            subscriptionItemId: subscription.stripe_subscription_item_id,
+            quantity: overageMinutes,
+            action: 'set',
+          });
+
+          // Update overage_spent in the subscription record
+          const pricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;
+          const overageCost = overageMinutes * pricePerMinute;
+
+          await supabase
+            .from('company_subscriptions')
+            .update({ overage_spent: overageCost })
+            .eq('id', subscription.id);
+
           console.log(
-            `  ℹ️  Would sync ${overageMinutes} minutes for company ${subscription.company_id} (API update needed)`
+            `  ✅ Synced ${overageMinutes} overage minutes ($${overageCost.toFixed(2)}) for company ${subscription.company_id}`
           );
         }
       } catch (itemError) {

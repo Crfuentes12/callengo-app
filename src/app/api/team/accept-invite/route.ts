@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 
 /**
  * POST /api/team/accept-invite
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Find the invitation by token
-    const { data: invitation } = await supabaseAdmin
+    const { data: invitation } = await supabaseAdminRaw
       .from('team_invitations')
       .select('*, companies(name)')
       .eq('token', token)
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Mark invitation as accepted
-    await supabaseAdmin
+    await supabaseAdminRaw
       .from('team_invitations')
       .update({
         status: 'accepted',

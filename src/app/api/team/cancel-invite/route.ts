@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 
 /**
  * POST /api/team/cancel-invite
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the invitation belongs to this company and is pending
-    const { data: invitation } = await supabaseAdmin
+    const { data: invitation } = await supabaseAdminRaw
       .from('team_invitations')
       .select('id, company_id, status')
       .eq('id', inviteId)
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Cancel the invitation
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await supabaseAdminRaw
       .from('team_invitations')
       .update({ status: 'cancelled' })
       .eq('id', inviteId);

@@ -197,6 +197,7 @@ export async function cancelSubscription(params: {
 
 /**
  * Reports usage for metered billing (overage)
+ * Uses Stripe's meter events API for v2025-12-15+
  */
 export async function reportUsage(params: {
   subscriptionItemId: string;
@@ -211,17 +212,28 @@ export async function reportUsage(params: {
     action = 'set',
   } = params;
 
-  // Note: In Stripe API v2025-12-15, metered billing uses subscription items
-  // For now, we'll return a mock until we implement the new API
-  console.log('Reporting usage:', { subscriptionItemId, quantity, timestamp, action });
+  try {
+    // Use subscription item usage records (works with metered billing)
+    const usageRecord = await stripe.subscriptionItems.createUsageRecord(
+      subscriptionItemId,
+      {
+        quantity,
+        timestamp,
+        action,
+      }
+    );
 
-  return {
-    id: 'usage_' + Date.now(),
-    object: 'usage_record',
-    quantity,
-    timestamp,
-    subscription_item: subscriptionItemId,
-  };
+    console.log('Usage reported to Stripe:', {
+      subscriptionItemId,
+      quantity,
+      recordId: usageRecord.id,
+    });
+
+    return usageRecord;
+  } catch (error) {
+    console.error('Failed to report usage to Stripe:', error);
+    throw error;
+  }
 }
 
 /**

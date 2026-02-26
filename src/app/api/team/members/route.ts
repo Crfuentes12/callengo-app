@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
+import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 
 /**
  * GET /api/team/members
@@ -50,7 +50,7 @@ export async function GET() {
     );
 
     // Fetch pending invitations
-    const { data: invites, error: invitesError } = await supabaseAdmin
+    const { data: invites, error: invitesError } = await supabaseAdminRaw
       .from('team_invitations')
       .select('id, email, role, created_at, status')
       .eq('company_id', userData.company_id)
