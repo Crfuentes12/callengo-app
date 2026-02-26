@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
         .select('id', { count: 'exact', head: true })
         .eq('company_id', userData.company_id);
 
-      const { count: inviteCount } = await supabaseAdmin
+      const { count: inviteCount } = await supabaseAdminRaw
         .from('team_invitations')
         .select('id', { count: 'exact', head: true })
         .eq('company_id', userData.company_id)
