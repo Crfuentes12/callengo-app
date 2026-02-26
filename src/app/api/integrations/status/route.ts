@@ -31,6 +31,14 @@ export async function GET() {
       .eq('company_id', userData.company_id)
       .eq('is_active', true);
 
+    // Get Salesforce integration
+    const { data: sfIntegration } = await supabaseAdmin
+      .from('salesforce_integrations')
+      .select('id, sf_username, sf_display_name, sf_email, sf_org_id, instance_url, last_synced_at')
+      .eq('company_id', userData.company_id)
+      .eq('is_active', true)
+      .maybeSingle();
+
     // Get company settings for Slack, Zoom, Twilio
     const { data: companySettings } = await supabaseAdmin
       .from('company_settings')
@@ -65,6 +73,15 @@ export async function GET() {
       },
       twilio: {
         connected: !!(settings.twilio_account_sid || settings.phone_numbers),
+      },
+      salesforce: {
+        connected: !!sfIntegration,
+        email: sfIntegration?.sf_email || undefined,
+        username: sfIntegration?.sf_username || undefined,
+        displayName: sfIntegration?.sf_display_name || undefined,
+        instanceUrl: sfIntegration?.instance_url || undefined,
+        lastSynced: sfIntegration?.last_synced_at || undefined,
+        integrationId: sfIntegration?.id || undefined,
       },
     };
 
