@@ -330,8 +330,13 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const usagePercent = usage ? Math.min((usage.minutes_used / usage.minutes_included) * 100, 100) : 0;
   const getApproxCalls = (minutes: number, avgDuration: number = 3) => Math.floor(minutes / avgDuration);
 
+  // Plan tier ordering for filtering higher tiers only
+  const PLAN_TIER_ORDER: Record<string, number> = { free: 0, starter: 1, business: 2, teams: 3, enterprise: 4 };
+  const currentTier = PLAN_TIER_ORDER[currentPlan?.slug || 'free'] ?? 0;
+  const higherPlans = plans.filter(p => (PLAN_TIER_ORDER[p.slug] ?? 0) > currentTier);
+
   // ══════════════════════════════════════════════════
-  //  PAID PLAN VIEW — Management only, no plan grid
+  //  PAID PLAN VIEW — Management + upgrade options
   // ══════════════════════════════════════════════════
   if (isPaidPlan && subscription) {
     const planFeatures = getPlanFeatures(currentPlan.slug);
@@ -483,6 +488,80 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             </table>
           </div>
         </div>
+
+        {/* ── Upgrade Plan (only show higher tiers) ── */}
+        {higherPlans.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Upgrade Your Plan</h3>
+                <p className="text-sm text-slate-500">Unlock more features and capacity</p>
+              </div>
+              <div className="inline-flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
+                <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>Monthly</button>
+                <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+                  Annual<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 12%</span>
+                </button>
+              </div>
+            </div>
+
+            <div className={`grid gap-4 ${higherPlans.length === 1 ? 'grid-cols-1 max-w-md' : higherPlans.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+              {higherPlans.map((plan) => {
+                const isEnterprise = plan.slug === 'enterprise';
+                const isRecommended = higherPlans.length > 1 && plan === higherPlans[0];
+                const monthlyPrice = billingCycle === 'monthly' ? plan.price_monthly : plan.price_annual;
+                const yearlyTotal = plan.price_annual * 12;
+                const discountPercent = !isEnterprise && billingCycle === 'annual' ? Math.round(((plan.price_monthly * 12 - yearlyTotal) / (plan.price_monthly * 12)) * 100) : 0;
+
+                return (
+                  <div key={plan.id} className="relative flex pt-6">
+                    {isRecommended && (
+                      <div className="absolute -top-0 left-1/2 -translate-x-1/2 z-10">
+                        <div className="gradient-bg text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">RECOMMENDED</div>
+                      </div>
+                    )}
+                    <div className={`rounded-xl p-5 transition-all flex flex-col h-full w-full ${isRecommended ? 'border-2 border-[var(--color-primary)] bg-white shadow-xl shadow-[var(--color-primary)]/10' : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'}`}>
+                      <div className="mb-3">
+                        <h4 className="text-lg font-bold text-slate-900 mb-1">{plan.name}</h4>
+                        <p className="text-xs text-slate-600">{plan.description}</p>
+                      </div>
+                      <div className="mb-4 pb-4 border-b border-slate-100">
+                        <div className="flex items-baseline gap-1">
+                          {isEnterprise && <span className="text-xs text-slate-500 font-medium">From</span>}
+                          <span className="text-3xl font-bold text-slate-900">{formatPrice(monthlyPrice)}</span>
+                          {!isEnterprise && <span className="text-sm text-slate-500">/mo</span>}
+                        </div>
+                        {!isEnterprise && billingCycle === 'annual' && <div className="text-xs text-slate-500 mt-1">{formatPrice(yearlyTotal)}/year</div>}
+                        {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
+                          <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">Save {discountPercent}%</div>
+                        )}
+                      </div>
+                      <div className="flex-grow mb-4">
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">What&apos;s included</p>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.minutes_included.toLocaleString()}</strong> min/month</span></div>
+                          <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_call_duration} min</strong> max call duration</span></div>
+                          <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_concurrent_calls}</strong> concurrent calls</span></div>
+                          <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_users === -1 ? 'Unlimited' : plan.max_users}</strong> users</span></div>
+                          {getPlanFeatures(plan.slug).slice(0, 5).map((feature, idx) => (
+                            <div key={idx} className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700">{feature}</span></div>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleChangePlan(plan.id)}
+                        disabled={changing}
+                        className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto ${isRecommended ? 'gradient-bg text-white hover:opacity-90 shadow-md' : isEnterprise ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white hover:from-purple-700 hover:to-fuchsia-700' : 'bg-slate-800 text-white hover:bg-slate-900'}`}
+                      >
+                        {changing ? 'Processing...' : isEnterprise ? 'Contact Sales' : `Upgrade to ${plan.name}`}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Billing & Account Details (expandable, deeply buried) ── */}
         <div className="border-t border-slate-100 pt-6">
@@ -1065,7 +1144,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {plans.filter(p => p.slug !== 'free').map((plan) => {
+            {higherPlans.map((plan) => {
               const isEnterprise = plan.slug === 'enterprise';
               const isPopular = plan.slug === 'business';
               const monthlyPrice = billingCycle === 'monthly' ? plan.price_monthly : plan.price_annual;

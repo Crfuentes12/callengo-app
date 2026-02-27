@@ -587,7 +587,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                           ? '/contacts/salesforce'
                           : hasSalesforceAccess
                             ? '/api/integrations/salesforce/connect?return_to=/contacts/salesforce'
-                            : '/billing'
+                            : '/settings?tab=billing'
                       }
                       className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
                     >

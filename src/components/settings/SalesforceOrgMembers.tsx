@@ -102,7 +102,7 @@ export default function SalesforceOrgMembers({
           Connect Salesforce on Business plan or higher to preview your organization&apos;s members and invite them directly to Callengo.
         </p>
         <Link
-          href="/billing"
+          href="/settings?tab=billing"
           className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-amber-700 bg-white border border-amber-300 hover:bg-amber-50 transition-all"
         >
           Upgrade to Business

@@ -20,7 +20,7 @@ const PAGE_ROUTES: Record<string, string> = {
   'Analytics': '/analytics',
   'Integrations': '/integrations',
   'Settings': '/settings',
-  'Billing': '/billing',
+  'Billing': '/settings?tab=billing',
 };
 
 // Convert bold page names like **Campaigns** into markdown links if the AI didn't already

@@ -284,7 +284,7 @@ export default function SalesforceContactsPage({
           </Link>
           <p className="text-xs text-slate-400 mt-4">
             Requires Business plan or higher.{' '}
-            <Link href="/billing" className="text-[var(--color-primary)] hover:underline">
+            <Link href="/settings?tab=billing" className="text-[var(--color-primary)] hover:underline">
               Upgrade plan
             </Link>
           </p>
