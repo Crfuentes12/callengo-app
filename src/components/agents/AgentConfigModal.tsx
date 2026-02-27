@@ -213,6 +213,8 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const [contactPreview, setContactPreview] = useState<any[]>([]);
   const [setAsDefaultVoice, setSetAsDefaultVoice] = useState(false);
   const [planLimits, setPlanLimits] = useState<{ maxCallDuration: number; maxCallsPerDay: number | null; minutesIncluded: number; slug: string } | null>(null);
+  const [overageData, setOverageData] = useState<{ enabled: boolean; budget: number; spent: number; pricePerMinute: number; subscriptionId: string } | null>(null);
+  const [togglingOverage, setTogglingOverage] = useState(false);
   const [contextSuggestions, setContextSuggestions] = useState<{ title: string; detail: string }[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
@@ -282,7 +284,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   // Load contact lists and plan limits on mount
   useEffect(() => {
     loadContactLists();
-    // Fetch plan limits
+    // Fetch plan limits and overage data
     fetch('/api/billing/subscription')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -293,6 +295,13 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
             maxCallsPerDay: p.max_calls_per_day,
             minutesIncluded: p.minutes_included || 0,
             slug: p.slug || 'free',
+          });
+          setOverageData({
+            enabled: data.subscription.overage_enabled ?? false,
+            budget: data.subscription.overage_budget ?? 0,
+            spent: data.subscription.overage_spent ?? 0,
+            pricePerMinute: p.price_per_extra_minute ?? 0,
+            subscriptionId: data.subscription.id,
           });
         }
       })
@@ -1861,6 +1870,66 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </div>
                   </div>
                 </div>
+
+                {/* Overage Billing Toggle */}
+                {overageData && planLimits && (
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xs font-bold text-slate-900 uppercase">Auto-Overage Billing</h3>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Continue calls beyond your {planLimits.minutesIncluded.toLocaleString()} included minutes</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          setTogglingOverage(true);
+                          try {
+                            const newEnabled = !overageData.enabled;
+                            const res = await fetch('/api/billing/update-overage', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                companyId,
+                                subscriptionId: overageData.subscriptionId,
+                                enabled: newEnabled,
+                                budget: newEnabled ? (overageData.budget || 50) : 0,
+                              }),
+                            });
+                            if (res.ok) {
+                              setOverageData(prev => prev ? { ...prev, enabled: newEnabled, budget: newEnabled ? (prev.budget || 50) : 0 } : prev);
+                            }
+                          } catch {
+                            // silently fail
+                          } finally {
+                            setTogglingOverage(false);
+                          }
+                        }}
+                        disabled={togglingOverage}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${overageData.enabled ? 'bg-green-500' : 'bg-slate-300'} ${togglingOverage ? 'opacity-50' : ''}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${overageData.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    {overageData.enabled && (
+                      <div className="space-y-2 pt-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500">Rate</span>
+                          <span className="font-semibold text-slate-700">${overageData.pricePerMinute.toFixed(2)}/min</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500">Budget limit</span>
+                          <span className="font-semibold text-slate-700">${overageData.budget.toFixed(0)}</span>
+                        </div>
+                        {overageData.spent > 0 && (
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-500">Spent this period</span>
+                            <span className="font-semibold text-slate-700">${overageData.spent.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <p className="text-[10px] text-slate-400 pt-1">Manage budget in Settings → Billing</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
