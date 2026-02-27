@@ -124,6 +124,7 @@ export interface Contact {
   tags: string[] | null;
   list_id: string | null;
   custom_fields: Record<string, unknown> | null;
+  source: string | null;
   created_at: string;
   updated_at: string;
 }

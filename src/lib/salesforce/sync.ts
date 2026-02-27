@@ -220,19 +220,20 @@ export async function syncSelectedSalesforceContacts(
           .eq('sf_contact_id', sfContact.Id)
           .maybeSingle();
 
+        const phoneNumber = sfContact.Phone || sfContact.MobilePhone || '';
         const contactData = {
           company_id: integration.company_id,
-          first_name: sfContact.FirstName || '',
-          last_name: sfContact.LastName || '',
-          full_name: sfContact.Name || `${sfContact.FirstName || ''} ${sfContact.LastName || ''}`.trim(),
+          contact_name: sfContact.Name || `${sfContact.FirstName || ''} ${sfContact.LastName || ''}`.trim(),
           email: sfContact.Email || null,
-          phone: sfContact.Phone || sfContact.MobilePhone || null,
-          title: sfContact.Title || null,
-          company_name: sfContact.Account?.Name || null,
-          source: 'salesforce' as const,
+          phone_number: phoneNumber,
+          company_name: sfContact.Account?.Name || 'Unknown',
+          source: 'salesforce',
           tags: ['salesforce-import'],
           custom_fields: {
             sf_contact_id: sfContact.Id,
+            sf_first_name: sfContact.FirstName,
+            sf_last_name: sfContact.LastName,
+            sf_title: sfContact.Title,
             sf_department: sfContact.Department,
             sf_account_id: sfContact.AccountId,
             sf_mailing_city: sfContact.MailingCity,
@@ -251,8 +252,8 @@ export async function syncSelectedSalesforceContacts(
             const { data: byEmail } = await supabaseAdmin.from('contacts').select('id').eq('company_id', integration.company_id).eq('email', sfContact.Email).maybeSingle();
             if (byEmail) duplicateId = byEmail.id;
           }
-          if (!duplicateId && (sfContact.Phone || sfContact.MobilePhone)) {
-            const { data: byPhone } = await supabaseAdmin.from('contacts').select('id').eq('company_id', integration.company_id).eq('phone', (sfContact.Phone || sfContact.MobilePhone)!).maybeSingle();
+          if (!duplicateId && phoneNumber) {
+            const { data: byPhone } = await supabaseAdmin.from('contacts').select('id').eq('company_id', integration.company_id).eq('phone_number', phoneNumber).maybeSingle();
             if (byPhone) duplicateId = byPhone.id;
           }
 
@@ -322,19 +323,20 @@ export async function syncSelectedSalesforceLeads(
           .eq('sf_lead_id', sfLead.Id)
           .maybeSingle();
 
+        const phoneNumber = sfLead.Phone || sfLead.MobilePhone || '';
         const contactData = {
           company_id: integration.company_id,
-          first_name: sfLead.FirstName || '',
-          last_name: sfLead.LastName || '',
-          full_name: sfLead.Name || `${sfLead.FirstName || ''} ${sfLead.LastName || ''}`.trim(),
+          contact_name: sfLead.Name || `${sfLead.FirstName || ''} ${sfLead.LastName || ''}`.trim(),
           email: sfLead.Email || null,
-          phone: sfLead.Phone || sfLead.MobilePhone || null,
-          title: sfLead.Title || null,
-          company_name: sfLead.Company || null,
-          source: 'salesforce' as const,
+          phone_number: phoneNumber,
+          company_name: sfLead.Company || 'Unknown',
+          source: 'salesforce',
           tags: ['salesforce-import', 'salesforce-lead'],
           custom_fields: {
             sf_lead_id: sfLead.Id,
+            sf_first_name: sfLead.FirstName,
+            sf_last_name: sfLead.LastName,
+            sf_title: sfLead.Title,
             sf_lead_status: sfLead.Status,
             sf_lead_source: sfLead.LeadSource,
           },
@@ -419,19 +421,20 @@ export async function syncSalesforceContactsToCallengo(
           .eq('sf_contact_id', sfContact.Id)
           .maybeSingle();
 
+        const phoneNumber = sfContact.Phone || sfContact.MobilePhone || '';
         const contactData = {
           company_id: integration.company_id,
-          first_name: sfContact.FirstName || '',
-          last_name: sfContact.LastName || '',
-          full_name: sfContact.Name || `${sfContact.FirstName || ''} ${sfContact.LastName || ''}`.trim(),
+          contact_name: sfContact.Name || `${sfContact.FirstName || ''} ${sfContact.LastName || ''}`.trim(),
           email: sfContact.Email || null,
-          phone: sfContact.Phone || sfContact.MobilePhone || null,
-          title: sfContact.Title || null,
-          company_name: sfContact.Account?.Name || null,
-          source: 'salesforce' as const,
+          phone_number: phoneNumber,
+          company_name: sfContact.Account?.Name || 'Unknown',
+          source: 'salesforce',
           tags: ['salesforce-import'],
           custom_fields: {
             sf_contact_id: sfContact.Id,
+            sf_first_name: sfContact.FirstName,
+            sf_last_name: sfContact.LastName,
+            sf_title: sfContact.Title,
             sf_department: sfContact.Department,
             sf_account_id: sfContact.AccountId,
             sf_mailing_city: sfContact.MailingCity,
@@ -466,13 +469,12 @@ export async function syncSalesforceContactsToCallengo(
             if (byEmail) duplicateId = byEmail.id;
           }
 
-          if (!duplicateId && (sfContact.Phone || sfContact.MobilePhone)) {
-            const phone = sfContact.Phone || sfContact.MobilePhone;
+          if (!duplicateId && phoneNumber) {
             const { data: byPhone } = await supabaseAdmin
               .from('contacts')
               .select('id')
               .eq('company_id', integration.company_id)
-              .eq('phone', phone!)
+              .eq('phone_number', phoneNumber)
               .maybeSingle();
             if (byPhone) duplicateId = byPhone.id;
           }
@@ -562,19 +564,20 @@ export async function syncSalesforceLeadsToCallengo(
           .eq('sf_lead_id', sfLead.Id)
           .maybeSingle();
 
+        const phoneNumber = sfLead.Phone || sfLead.MobilePhone || '';
         const contactData = {
           company_id: integration.company_id,
-          first_name: sfLead.FirstName || '',
-          last_name: sfLead.LastName || '',
-          full_name: sfLead.Name || `${sfLead.FirstName || ''} ${sfLead.LastName || ''}`.trim(),
+          contact_name: sfLead.Name || `${sfLead.FirstName || ''} ${sfLead.LastName || ''}`.trim(),
           email: sfLead.Email || null,
-          phone: sfLead.Phone || sfLead.MobilePhone || null,
-          title: sfLead.Title || null,
-          company_name: sfLead.Company || null,
-          source: 'salesforce' as const,
+          phone_number: phoneNumber,
+          company_name: sfLead.Company || 'Unknown',
+          source: 'salesforce',
           tags: ['salesforce-import', 'salesforce-lead'],
           custom_fields: {
             sf_lead_id: sfLead.Id,
+            sf_first_name: sfLead.FirstName,
+            sf_last_name: sfLead.LastName,
+            sf_title: sfLead.Title,
             sf_lead_status: sfLead.Status,
             sf_lead_source: sfLead.LeadSource,
           },

@@ -195,6 +195,7 @@ export type Database = {
           tags: string[] | null
           list_id: string | null
           custom_fields: Json | null
+          source: string | null
           created_at: string
           updated_at: string
         }
@@ -227,6 +228,7 @@ export type Database = {
           tags?: string[] | null
           list_id?: string | null
           custom_fields?: Json | null
+          source?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -259,6 +261,7 @@ export type Database = {
           tags?: string[] | null
           list_id?: string | null
           custom_fields?: Json | null
+          source?: string | null
           created_at?: string
           updated_at?: string
         }

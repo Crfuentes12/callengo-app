@@ -176,7 +176,7 @@ export interface SalesforceSyncLog {
   id: string;
   company_id: string;
   integration_id: string;
-  sync_type: 'full' | 'incremental' | 'contacts' | 'leads' | 'events' | 'users';
+  sync_type: 'full' | 'incremental' | 'selective' | 'contacts' | 'leads' | 'events' | 'users';
   sync_direction: 'inbound' | 'outbound' | 'bidirectional';
   records_created: number;
   records_updated: number;
@@ -184,7 +184,7 @@ export interface SalesforceSyncLog {
   errors: unknown[];
   started_at: string;
   completed_at: string | null;
-  status: 'running' | 'completed' | 'failed';
+  status: 'running' | 'completed' | 'completed_with_errors' | 'failed';
   error_message: string | null;
   created_at: string;
 }
@@ -225,7 +225,7 @@ export interface SalesforceIntegrationStatus {
 
 export interface SalesforceSyncRequest {
   integration_id: string;
-  sync_type?: 'full' | 'contacts' | 'leads' | 'events' | 'users';
+  sync_type?: 'full' | 'selective' | 'contacts' | 'leads' | 'events' | 'users';
 }
 
 export interface SalesforceSyncResult {
