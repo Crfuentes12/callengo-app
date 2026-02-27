@@ -23,11 +23,18 @@ async function querySalesforce<T>(
 ): Promise<SalesforceQueryResponse<T>> {
   const client = await getSalesforceClient(integration);
   const encodedQuery = encodeURIComponent(soql);
-  const res = await client.fetch(`/services/data/v59.0/query?q=${encodedQuery}`);
+
+  let res: Response;
+  try {
+    res = await client.fetch(`/services/data/v59.0/query?q=${encodedQuery}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown network error';
+    throw new Error(`Salesforce API request failed (instance: ${integration.instance_url}): ${msg}`);
+  }
 
   if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`Salesforce query failed: ${res.status} ${errBody}`);
+    const errBody = await res.text().catch(() => '(could not read error body)');
+    throw new Error(`Salesforce query failed (${res.status}): ${errBody}`);
   }
 
   return res.json() as Promise<SalesforceQueryResponse<T>>;

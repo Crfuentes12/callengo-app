@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { fetchSalesforceUsers } from '@/lib/salesforce';
-import type { SalesforceIntegration, SalesforceOrgMember } from '@/types/salesforce';
+import type { SalesforceIntegration, SalesforceOrgMember, SalesforceUser } from '@/types/salesforce';
 
 export async function GET() {
   try {
@@ -42,7 +42,20 @@ export async function GET() {
     }
 
     const sfIntegration = integration as unknown as SalesforceIntegration;
-    const sfUsers = await fetchSalesforceUsers(sfIntegration);
+
+    let sfUsers: SalesforceUser[] = [];
+    try {
+      sfUsers = await fetchSalesforceUsers(sfIntegration);
+    } catch (err) {
+      console.error('Error fetching Salesforce users:', err);
+      // Return empty result instead of 500
+      return NextResponse.json({
+        members: [],
+        total: 0,
+        already_connected: 0,
+        warning: 'Could not fetch users from Salesforce. The connection may need to be refreshed.',
+      });
+    }
 
     // Fetch existing Callengo team members to check overlap
     const { data: callengoUsers } = await supabaseAdmin
@@ -51,25 +64,27 @@ export async function GET() {
       .eq('company_id', userData.company_id);
 
     const callengoEmailMap = new Map(
-      (callengoUsers || []).map((u: { id: string; email: string }) => [u.email.toLowerCase(), u.id])
+      (callengoUsers || []).map((u: { id: string; email: string }) => [u.email?.toLowerCase(), u.id])
     );
 
     // Map SF users to OrgMember format
-    const orgMembers: SalesforceOrgMember[] = sfUsers.map((sfUser) => {
-      const callengoUserId = callengoEmailMap.get(sfUser.Email.toLowerCase());
-      return {
-        sf_user_id: sfUser.Id,
-        username: sfUser.Username,
-        name: sfUser.Name,
-        email: sfUser.Email,
-        is_active: sfUser.IsActive,
-        profile_name: sfUser.Profile?.Name || undefined,
-        role_name: sfUser.UserRole?.Name || undefined,
-        photo_url: sfUser.SmallPhotoUrl || undefined,
-        already_in_callengo: !!callengoUserId,
-        callengo_user_id: callengoUserId || undefined,
-      };
-    });
+    const orgMembers: SalesforceOrgMember[] = sfUsers
+      .filter((sfUser) => sfUser.Email)
+      .map((sfUser) => {
+        const callengoUserId = callengoEmailMap.get(sfUser.Email.toLowerCase());
+        return {
+          sf_user_id: sfUser.Id,
+          username: sfUser.Username,
+          name: sfUser.Name,
+          email: sfUser.Email,
+          is_active: sfUser.IsActive,
+          profile_name: sfUser.Profile?.Name || undefined,
+          role_name: sfUser.UserRole?.Name || undefined,
+          photo_url: sfUser.SmallPhotoUrl || undefined,
+          already_in_callengo: !!callengoUserId,
+          callengo_user_id: callengoUserId || undefined,
+        };
+      });
 
     return NextResponse.json({
       members: orgMembers,

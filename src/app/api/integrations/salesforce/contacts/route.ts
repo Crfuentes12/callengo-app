@@ -49,26 +49,44 @@ export async function GET(request: NextRequest) {
 
     let contacts: unknown[] = [];
     let leads: unknown[] = [];
+    const warnings: string[] = [];
 
     if (type === 'all' || type === 'contacts') {
-      contacts = await fetchSalesforceContacts(sfIntegration, { limit });
+      try {
+        contacts = await fetchSalesforceContacts(sfIntegration, { limit });
+      } catch (err) {
+        console.error('Error fetching Salesforce contacts:', err);
+        warnings.push('Could not fetch contacts from Salesforce');
+      }
     }
 
     if (type === 'all' || type === 'leads') {
-      leads = await fetchSalesforceLeads(sfIntegration, { limit });
+      try {
+        leads = await fetchSalesforceLeads(sfIntegration, { limit });
+      } catch (err) {
+        console.error('Error fetching Salesforce leads:', err);
+        warnings.push('Could not fetch leads from Salesforce');
+      }
     }
 
-    // Get mappings to show sync status
-    const { data: mappings } = await supabaseAdmin
-      .from('salesforce_contact_mappings')
-      .select('sf_contact_id, sf_lead_id, callengo_contact_id, last_synced_at')
-      .eq('integration_id', sfIntegration.id);
+    // Get mappings to show sync status (table may not exist yet)
+    let mappings: unknown[] = [];
+    try {
+      const { data } = await supabaseAdmin
+        .from('salesforce_contact_mappings')
+        .select('sf_contact_id, sf_lead_id, callengo_contact_id, last_synced_at')
+        .eq('integration_id', sfIntegration.id);
+      mappings = data || [];
+    } catch {
+      // Table may not exist yet, that's fine
+    }
 
     return NextResponse.json({
       contacts,
       leads,
-      mappings: mappings || [],
+      mappings,
       instance_url: sfIntegration.instance_url,
+      ...(warnings.length > 0 ? { warnings } : {}),
     });
   } catch (error) {
     console.error('Error fetching Salesforce contacts:', error);
