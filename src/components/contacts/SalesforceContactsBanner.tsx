@@ -81,7 +81,7 @@ export default function SalesforceContactsBanner({
         </div>
       </div>
       <Link
-        href="/billing"
+        href="/settings?tab=billing"
         className="px-4 py-2 rounded-lg text-sm font-semibold text-amber-700 bg-white border border-amber-300 hover:bg-amber-50 transition-all"
       >
         Upgrade to Business

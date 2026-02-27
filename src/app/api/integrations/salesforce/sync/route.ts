@@ -1,13 +1,19 @@
 // app/api/integrations/salesforce/sync/route.ts
 // Triggers a Salesforce data sync (contacts + leads)
+// Supports both full sync and selective sync (by Salesforce IDs)
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
-import { syncSalesforceContactsToCallengo, syncSalesforceLeadsToCallengo } from '@/lib/salesforce';
+import {
+  syncSalesforceContactsToCallengo,
+  syncSalesforceLeadsToCallengo,
+  syncSelectedSalesforceContacts,
+  syncSelectedSalesforceLeads,
+} from '@/lib/salesforce';
 import type { SalesforceIntegration } from '@/types/salesforce';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -26,6 +32,19 @@ export async function POST() {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
+    // Parse optional body for selective sync
+    let ids: string[] | undefined;
+    let type: 'contacts' | 'leads' | undefined;
+    try {
+      const body = await request.json();
+      if (body.ids && Array.isArray(body.ids) && body.ids.length > 0) {
+        ids = body.ids;
+        type = body.type === 'leads' ? 'leads' : 'contacts';
+      }
+    } catch {
+      // No body or invalid JSON = full sync
+    }
+
     // Get active Salesforce integration
     const { data: integration } = await supabaseAdmin
       .from('salesforce_integrations')
@@ -42,6 +61,7 @@ export async function POST() {
     }
 
     const sfIntegration = integration as unknown as SalesforceIntegration;
+    const isSelectiveSync = ids && ids.length > 0;
 
     // Create sync log entry
     const { data: syncLog } = await supabaseAdmin
@@ -49,7 +69,7 @@ export async function POST() {
       .insert({
         company_id: userData.company_id,
         integration_id: sfIntegration.id,
-        sync_type: 'full',
+        sync_type: isSelectiveSync ? 'selective' : 'full',
         sync_direction: 'inbound',
         records_created: 0,
         records_updated: 0,
@@ -61,11 +81,24 @@ export async function POST() {
       .select('id')
       .single();
 
-    // Sync contacts and leads in parallel
-    const [contactsResult, leadsResult] = await Promise.all([
-      syncSalesforceContactsToCallengo(sfIntegration),
-      syncSalesforceLeadsToCallengo(sfIntegration),
-    ]);
+    let contactsResult, leadsResult;
+
+    if (isSelectiveSync && ids) {
+      // Selective sync: only sync the specific IDs
+      if (type === 'contacts') {
+        contactsResult = await syncSelectedSalesforceContacts(sfIntegration, ids);
+        leadsResult = { contacts_created: 0, contacts_updated: 0, contacts_skipped: 0, leads_created: 0, leads_updated: 0, leads_skipped: 0, errors: [] };
+      } else {
+        contactsResult = { contacts_created: 0, contacts_updated: 0, contacts_skipped: 0, leads_created: 0, leads_updated: 0, leads_skipped: 0, errors: [] };
+        leadsResult = await syncSelectedSalesforceLeads(sfIntegration, ids);
+      }
+    } else {
+      // Full sync: sync all contacts and leads
+      [contactsResult, leadsResult] = await Promise.all([
+        syncSalesforceContactsToCallengo(sfIntegration),
+        syncSalesforceLeadsToCallengo(sfIntegration),
+      ]);
+    }
 
     const totalCreated = contactsResult.contacts_created + leadsResult.leads_created;
     const totalUpdated = contactsResult.contacts_updated + leadsResult.leads_updated;
@@ -82,7 +115,7 @@ export async function POST() {
           records_skipped: totalSkipped,
           errors: allErrors,
           completed_at: new Date().toISOString(),
-          status: allErrors.length > 0 ? 'completed' : 'completed',
+          status: allErrors.length > 0 ? 'completed_with_errors' : 'completed',
           error_message: allErrors.length > 0 ? allErrors.join('; ') : null,
         })
         .eq('id', syncLog.id);

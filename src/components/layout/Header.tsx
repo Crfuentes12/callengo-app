@@ -74,6 +74,7 @@ export default function Header({
   const [showAIChat, setShowAIChat] = useState(false);
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [companyName, setCompanyName] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   // Ref for the search bar wrapper — CommandCenter uses this to anchor the dropdown
   const searchWrapperRef = useRef<HTMLDivElement>(null);
@@ -121,13 +122,13 @@ export default function Header({
         });
       }
 
-      const { data: members } = await supabase
-        .from('users')
-        .select('id, full_name, email, role')
-        .eq('company_id', companyId)
-        .limit(10);
+      const [membersRes, companyRes] = await Promise.all([
+        supabase.from('users').select('id, full_name, email, role').eq('company_id', companyId).limit(10),
+        supabase.from('companies').select('name').eq('id', companyId).single(),
+      ]);
 
-      if (members) setTeamMembers(members);
+      if (membersRes.data) setTeamMembers(membersRes.data);
+      if (companyRes.data?.name) setCompanyName(companyRes.data.name);
     };
     fetchData();
   }, [companyId]);
@@ -323,6 +324,17 @@ export default function Header({
                       </div>
                     </div>
 
+                    {/* Organization info */}
+                    {companyName && (
+                      <div className="flex items-center gap-2 mb-3 px-1">
+                        <div className="w-5 h-5 rounded bg-slate-200 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg>
+                        </div>
+                        <span className="text-xs font-medium text-slate-700 truncate">{companyName}</span>
+                        <span className="text-[10px] text-slate-400 flex-shrink-0">{teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''}</span>
+                      </div>
+                    )}
+
                     {planInfo && (
                       <div className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
                         <div className="flex items-center justify-between mb-2">
@@ -333,7 +345,7 @@ export default function Header({
                             <span className="text-[10px] text-slate-400 font-medium">Plan</span>
                           </div>
                           <button
-                            onClick={() => { setShowUserMenu(false); router.push('/billing'); }}
+                            onClick={() => { setShowUserMenu(false); router.push('/settings?tab=billing'); }}
                             className="text-[11px] font-semibold text-[var(--color-primary)] hover:underline flex items-center gap-1"
                           >
                             Upgrade
@@ -409,7 +421,7 @@ export default function Header({
                       </svg>
                       Settings
                     </button>
-                    <button onClick={() => { setShowUserMenu(false); router.push('/billing'); }}
+                    <button onClick={() => { setShowUserMenu(false); router.push('/settings?tab=billing'); }}
                       className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3">
                       <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />

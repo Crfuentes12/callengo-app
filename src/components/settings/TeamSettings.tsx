@@ -1,7 +1,8 @@
 // components/settings/TeamSettings.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 interface TeamMember {
@@ -40,7 +41,8 @@ const PLAN_SEAT_LIMITS: Record<string, { seats: number; extraCost: number | null
 };
 
 export default function TeamSettings({ companyId, currentUser }: TeamSettingsProps) {
-  const supabase = createClient();
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [invites, setInvites] = useState<PendingInvite[]>([]);
   const [planSlug, setPlanSlug] = useState<string>('free');
@@ -133,7 +135,8 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
 
       setSuccess(`Invitation sent to ${inviteEmail}`);
       setInviteEmail('');
-      loadTeamData();
+      await loadTeamData();
+      router.refresh();
     } catch (err: any) {
       setError(err.message || 'Failed to send invitation');
     } finally {
@@ -154,7 +157,8 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
 
       if (!response.ok) throw new Error('Failed to remove member');
       setSuccess('Team member removed');
-      loadTeamData();
+      await loadTeamData();
+      router.refresh();
     } catch (err) {
       setError('Failed to remove team member');
     }
@@ -170,7 +174,8 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
 
       if (!response.ok) throw new Error('Failed to cancel invitation');
       setSuccess('Invitation cancelled');
-      loadTeamData();
+      await loadTeamData();
+      router.refresh();
     } catch (err) {
       setError('Failed to cancel invitation');
     }
@@ -285,7 +290,7 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
                 <p className="text-xs text-amber-700 font-medium">
                   Upgrade to Business plan or higher to add team members.
                 </p>
-                <a href="/billing" className="text-xs font-semibold text-amber-800 hover:text-amber-900 mt-1 inline-block">
+                <a href="/settings?tab=billing" className="text-xs font-semibold text-amber-800 hover:text-amber-900 mt-1 inline-block">
                   Upgrade Plan &rarr;
                 </a>
               </div>
@@ -306,7 +311,7 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
                     </p>
                   </div>
                   <a
-                    href="/billing?upgrade=teams"
+                    href="/settings?tab=billing&upgrade=teams"
                     className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white gradient-bg hover:opacity-90 transition-opacity shadow-sm"
                   >
                     Upgrade to Teams
@@ -333,7 +338,7 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
                     </p>
                   </div>
                   <a
-                    href="/billing?upgrade=enterprise"
+                    href="/settings?tab=billing&upgrade=enterprise"
                     className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 transition-all shadow-sm"
                   >
                     Contact Sales

@@ -15,6 +15,10 @@ export {
   fetchSalesforceLeads,
   fetchSalesforceEvents,
   fetchSalesforceUsers,
+  fetchSalesforceContactsByIds,
+  fetchSalesforceLeadsByIds,
   syncSalesforceContactsToCallengo,
   syncSalesforceLeadsToCallengo,
+  syncSelectedSalesforceContacts,
+  syncSelectedSalesforceLeads,
 } from './sync';
