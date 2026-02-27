@@ -30,8 +30,10 @@ function UsersIcon({ className = "w-5 h-5" }: { className?: string }) {
 }
 function CampaignsIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+      <path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14" />
+      <path d="M8 6v8" />
     </svg>
   );
 }
@@ -155,7 +157,7 @@ export default function Sidebar({
     [
       { name: 'Analytics', href: '/analytics', icon: ChartIcon },
       { name: 'Integrations', href: '/integrations', icon: IntegrationsIcon },
-      ...(isOwnerOrAdmin ? [{ name: 'Team', href: '/team', icon: TeamIcon }] : []),
+      { name: 'Team', href: '/team', icon: TeamIcon },
     ],
   ];
 

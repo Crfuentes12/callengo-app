@@ -1726,10 +1726,63 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       </button>
                     </div>
                     {overageData.enabled ? (
-                      <div className="flex items-center gap-4 text-[11px] pl-12">
-                        <span className="text-slate-500">Budget: <span className="font-semibold text-slate-700">${overageData.budget.toFixed(0)}</span></span>
-                        {overageData.spent > 0 && <span className="text-slate-500">Spent: <span className="font-semibold text-slate-700">${overageData.spent.toFixed(2)}</span></span>}
-                        <a href="/settings?section=billing" target="_blank" className="text-[var(--color-primary)] font-semibold hover:underline ml-auto">Manage</a>
+                      <div className="space-y-2 pl-12">
+                        <div className="flex items-center gap-3 text-[11px]">
+                          <span className="text-slate-500 shrink-0">Budget:</span>
+                          <div className="flex items-center gap-1.5">
+                            {[20, 50, 100, 200].map(amount => (
+                              <button
+                                key={amount}
+                                onClick={() => {
+                                  setOverageData(prev => prev ? { ...prev, budget: amount } : prev);
+                                  fetch('/api/billing/update-overage', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ companyId, subscriptionId: overageData.subscriptionId, enabled: true, budget: amount }),
+                                  }).catch(() => {});
+                                }}
+                                className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                                  overageData.budget === amount
+                                    ? 'bg-green-600 text-white shadow-sm'
+                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-green-300'
+                                }`}
+                              >
+                                ${amount}
+                              </button>
+                            ))}
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">$</span>
+                              <input
+                                type="number"
+                                min={5}
+                                max={1000}
+                                value={![20, 50, 100, 200].includes(overageData.budget) ? overageData.budget : ''}
+                                placeholder="Custom"
+                                onChange={e => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  if (val > 0) {
+                                    setOverageData(prev => prev ? { ...prev, budget: val } : prev);
+                                  }
+                                }}
+                                onBlur={e => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  if (val > 0) {
+                                    fetch('/api/billing/update-overage', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ companyId, subscriptionId: overageData.subscriptionId, enabled: true, budget: val }),
+                                    }).catch(() => {});
+                                  }
+                                }}
+                                className="w-16 pl-5 pr-1 py-1 rounded-md border border-slate-200 text-[11px] font-semibold text-slate-700 focus:ring-1 focus:ring-green-400 focus:border-green-400 outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-[11px]">
+                          <span className="text-slate-500">Rate: <span className="font-semibold text-slate-700">${overageData.pricePerMinute.toFixed(2)}/min</span></span>
+                          {overageData.spent > 0 && <span className="text-slate-500">Spent: <span className="font-semibold text-slate-700">${overageData.spent.toFixed(2)}</span></span>}
+                        </div>
                       </div>
                     ) : (
                       <div className="bg-amber-100/60 rounded-lg p-3 flex items-start gap-2.5">

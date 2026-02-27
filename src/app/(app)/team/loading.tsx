@@ -2,14 +2,14 @@ import { Skeleton } from '@/components/skeletons/SkeletonBase';
 
 export default function TeamLoading() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl">
       {/* Header skeleton */}
       <div className="gradient-bg-subtle rounded-2xl p-8 border border-slate-200 overflow-hidden">
         <div className="relative z-10 flex items-center gap-4">
-          <Skeleton className="w-16 h-16 rounded-2xl animate-skeleton-slide" />
-          <div className="space-y-2 flex-1">
+          <Skeleton className="w-16 h-16 rounded-2xl animate-skeleton-slide shrink-0" />
+          <div className="space-y-2 flex-1 min-w-0">
             <Skeleton className="h-7 w-24 animate-skeleton-slide [animation-delay:50ms]" />
-            <Skeleton className="h-4 w-72 animate-skeleton-slide [animation-delay:100ms]" />
+            <Skeleton className="h-4 w-72 max-w-full animate-skeleton-slide [animation-delay:100ms]" />
           </div>
         </div>
       </div>
@@ -22,9 +22,9 @@ export default function TeamLoading() {
               <Skeleton className="h-5 w-24 animate-skeleton-slide [animation-delay:150ms]" />
               <Skeleton className="h-5 w-20 rounded-full animate-skeleton-slide [animation-delay:200ms]" />
             </div>
-            <Skeleton className="h-3 w-48 animate-skeleton-slide [animation-delay:250ms]" />
+            <Skeleton className="h-3 w-48 max-w-full animate-skeleton-slide [animation-delay:250ms]" />
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <Skeleton className="h-8 w-16 animate-skeleton-slide [animation-delay:300ms]" />
             <Skeleton className="h-2 w-24 rounded-full mt-1 animate-skeleton-slide [animation-delay:350ms]" />
           </div>
@@ -34,8 +34,8 @@ export default function TeamLoading() {
       {/* Invite form skeleton */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <Skeleton className="h-4 w-36 mb-3 animate-skeleton-slide [animation-delay:400ms]" />
-        <div className="flex gap-3">
-          <Skeleton className="h-11 flex-1 rounded-lg animate-skeleton-slide [animation-delay:450ms]" />
+        <div className="flex gap-3 flex-wrap">
+          <Skeleton className="h-11 flex-1 min-w-[200px] rounded-lg animate-skeleton-slide [animation-delay:450ms]" />
           <Skeleton className="h-11 w-28 rounded-lg animate-skeleton-slide [animation-delay:500ms]" />
           <Skeleton className="h-11 w-24 rounded-lg animate-skeleton-slide [animation-delay:550ms]" />
         </div>
@@ -48,18 +48,18 @@ export default function TeamLoading() {
         </div>
         <div className="divide-y divide-slate-100">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Skeleton className={`w-10 h-10 rounded-full animate-skeleton-slide [animation-delay:${650 + i * 80}ms]`} />
-                <div className="space-y-1.5">
+            <div key={i} className="px-5 py-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <Skeleton className={`w-10 h-10 rounded-full shrink-0 animate-skeleton-slide [animation-delay:${650 + i * 80}ms]`} />
+                <div className="space-y-1.5 min-w-0">
                   <div className="flex items-center gap-2">
                     <Skeleton className={`h-4 w-32 animate-skeleton-slide [animation-delay:${700 + i * 80}ms]`} />
                     <Skeleton className={`h-4 w-16 rounded-full animate-skeleton-slide [animation-delay:${750 + i * 80}ms]`} />
                   </div>
-                  <Skeleton className={`h-3 w-44 animate-skeleton-slide [animation-delay:${800 + i * 80}ms]`} />
+                  <Skeleton className={`h-3 w-44 max-w-full animate-skeleton-slide [animation-delay:${800 + i * 80}ms]`} />
                 </div>
               </div>
-              <Skeleton className={`h-3 w-24 animate-skeleton-slide [animation-delay:${850 + i * 80}ms]`} />
+              <Skeleton className={`h-3 w-24 shrink-0 animate-skeleton-slide [animation-delay:${850 + i * 80}ms]`} />
             </div>
           ))}
         </div>
