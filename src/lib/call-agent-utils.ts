@@ -189,6 +189,7 @@ export function mapRowToContact(
     tags: null,
     list_id: null,
     custom_fields: null,
+    source: 'csv',
   };
 }
 
