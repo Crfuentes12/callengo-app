@@ -1615,7 +1615,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
-        <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
+        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-slate-200 overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           <button
             onClick={onClose}
             className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
@@ -1629,17 +1629,122 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             <StepIndicator currentStep={getStepNumber()} />
 
             {loadingContacts ? (
-              <div className="space-y-4">
-                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 animate-pulse">
-                  <div className="h-4 bg-slate-200 rounded w-1/3 mb-4"></div>
-                  <div className="space-y-3">
-                    <div className="h-14 bg-slate-200 rounded"></div>
-                    <div className="h-14 bg-slate-200 rounded"></div>
+              <div className="space-y-5" style={{ minHeight: 480 }}>
+                {/* Overage skeleton */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 animate-pulse">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2 flex-1">
+                      <div className="h-3 bg-slate-200 rounded w-40"></div>
+                      <div className="h-2.5 bg-slate-100 rounded w-60"></div>
+                    </div>
+                    <div className="w-11 h-6 bg-slate-200 rounded-full shrink-0"></div>
+                  </div>
+                </div>
+                {/* Contact lists skeleton */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 animate-pulse">
+                  <div className="h-3 bg-slate-200 rounded w-1/3 mb-4"></div>
+                  <div className="space-y-2.5">
+                    <div className="h-14 bg-slate-200 rounded-lg"></div>
+                    <div className="h-14 bg-slate-200 rounded-lg"></div>
+                    <div className="h-14 bg-slate-200 rounded-lg"></div>
+                  </div>
+                </div>
+                {/* Contact count skeleton */}
+                <div className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-200 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-slate-200"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-slate-200 rounded w-28"></div>
+                      <div className="h-2.5 bg-slate-100 rounded w-20"></div>
+                    </div>
+                  </div>
+                </div>
+                {/* Campaign context skeleton */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 animate-pulse">
+                  <div className="h-3 bg-slate-200 rounded w-1/4 mb-3"></div>
+                  <div className="h-20 bg-slate-200 rounded-lg mb-3"></div>
+                  <div className="flex gap-2">
+                    <div className="h-8 w-28 bg-slate-200 rounded-full"></div>
+                    <div className="h-8 w-32 bg-slate-200 rounded-full"></div>
+                    <div className="h-8 w-24 bg-slate-200 rounded-full"></div>
+                  </div>
+                </div>
+                {/* Company info skeleton */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 animate-pulse">
+                  <div className="h-3 bg-slate-200 rounded w-1/4 mb-3"></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="h-10 bg-slate-200 rounded-lg"></div>
+                    <div className="h-10 bg-slate-200 rounded-lg"></div>
+                    <div className="col-span-2 h-16 bg-slate-200 rounded-lg"></div>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="space-y-5">
+                {/* Auto-Overage Billing Toggle */}
+                {overageData && planLimits && (
+                  <div className={`rounded-xl p-4 border space-y-3 transition-all ${overageData.enabled ? 'bg-green-50/50 border-green-200' : 'bg-amber-50/50 border-amber-200'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${overageData.enabled ? 'bg-green-100' : 'bg-amber-100'}`}>
+                          <svg className={`w-4.5 h-4.5 ${overageData.enabled ? 'text-green-600' : 'text-amber-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-bold text-slate-900 uppercase">Auto-Overage</h3>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {overageData.enabled
+                              ? `Enabled — ${planLimits.minutesIncluded.toLocaleString()} min included, then $${overageData.pricePerMinute.toFixed(2)}/min`
+                              : 'Calls stop when plan minutes run out'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newEnabled = !overageData.enabled;
+                          // Optimistic update - toggle immediately
+                          setOverageData(prev => prev ? { ...prev, enabled: newEnabled, budget: newEnabled ? (prev.budget || 50) : prev.budget } : prev);
+                          // Fire API call in background
+                          fetch('/api/billing/update-overage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              companyId,
+                              subscriptionId: overageData.subscriptionId,
+                              enabled: newEnabled,
+                              budget: newEnabled ? (overageData.budget || 50) : 0,
+                            }),
+                          }).catch(() => {
+                            // Revert on error
+                            setOverageData(prev => prev ? { ...prev, enabled: !newEnabled } : prev);
+                          });
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${overageData.enabled ? 'bg-green-500' : 'bg-slate-300'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${overageData.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    {overageData.enabled ? (
+                      <div className="flex items-center gap-4 text-[11px] pl-12">
+                        <span className="text-slate-500">Budget: <span className="font-semibold text-slate-700">${overageData.budget.toFixed(0)}</span></span>
+                        {overageData.spent > 0 && <span className="text-slate-500">Spent: <span className="font-semibold text-slate-700">${overageData.spent.toFixed(2)}</span></span>}
+                        <a href="/settings?section=billing" target="_blank" className="text-[var(--color-primary)] font-semibold hover:underline ml-auto">Manage</a>
+                      </div>
+                    ) : (
+                      <div className="bg-amber-100/60 rounded-lg p-3 flex items-start gap-2.5">
+                        <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                        <div>
+                          <p className="text-[11px] font-semibold text-amber-800">Campaign will stop mid-progress if minutes run out</p>
+                          <p className="text-[10px] text-amber-700 mt-0.5">Remaining contacts won&apos;t be called, breaking campaign momentum and leaving gaps in your outreach. Enable overage to ensure uninterrupted campaigns.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Contact Lists */}
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                   <div className="flex items-center justify-between mb-3">
@@ -1871,65 +1976,6 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </div>
                 </div>
 
-                {/* Overage Billing Toggle */}
-                {overageData && planLimits && (
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-xs font-bold text-slate-900 uppercase">Auto-Overage Billing</h3>
-                        <p className="text-[11px] text-slate-500 mt-0.5">Continue calls beyond your {planLimits.minutesIncluded.toLocaleString()} included minutes</p>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          setTogglingOverage(true);
-                          try {
-                            const newEnabled = !overageData.enabled;
-                            const res = await fetch('/api/billing/update-overage', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                companyId,
-                                subscriptionId: overageData.subscriptionId,
-                                enabled: newEnabled,
-                                budget: newEnabled ? (overageData.budget || 50) : 0,
-                              }),
-                            });
-                            if (res.ok) {
-                              setOverageData(prev => prev ? { ...prev, enabled: newEnabled, budget: newEnabled ? (prev.budget || 50) : 0 } : prev);
-                            }
-                          } catch {
-                            // silently fail
-                          } finally {
-                            setTogglingOverage(false);
-                          }
-                        }}
-                        disabled={togglingOverage}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${overageData.enabled ? 'bg-green-500' : 'bg-slate-300'} ${togglingOverage ? 'opacity-50' : ''}`}
-                      >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${overageData.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
-                    </div>
-                    {overageData.enabled && (
-                      <div className="space-y-2 pt-1">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500">Rate</span>
-                          <span className="font-semibold text-slate-700">${overageData.pricePerMinute.toFixed(2)}/min</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500">Budget limit</span>
-                          <span className="font-semibold text-slate-700">${overageData.budget.toFixed(0)}</span>
-                        </div>
-                        {overageData.spent > 0 && (
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-500">Spent this period</span>
-                            <span className="font-semibold text-slate-700">${overageData.spent.toFixed(2)}</span>
-                          </div>
-                        )}
-                        <p className="text-[10px] text-slate-400 pt-1">Manage budget in Settings → Billing</p>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             )}
 
