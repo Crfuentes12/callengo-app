@@ -2,7 +2,6 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import ContactsManager from '@/components/contacts/ContactsManager';
-import SalesforceContactsBanner from '@/components/contacts/SalesforceContactsBanner';
 
 export default async function ContactsPage() {
   const supabase = await createServerClient();
@@ -61,17 +60,12 @@ export default async function ContactsPage() {
   }
 
   return (
-    <>
-      <SalesforceContactsBanner
-        planSlug={planSlug}
-        hasSalesforceAccess={hasSalesforceAccess}
-        sfConnected={sfConnected}
-      />
-      <ContactsManager
-        initialContacts={contacts || []}
-        initialContactLists={contactLists || []}
-        companyId={companyId}
-      />
-    </>
+    <ContactsManager
+      initialContacts={contacts || []}
+      initialContactLists={contactLists || []}
+      companyId={companyId}
+      hasSalesforceAccess={hasSalesforceAccess}
+      sfConnected={sfConnected}
+    />
   );
 }

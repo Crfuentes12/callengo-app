@@ -1,7 +1,7 @@
 // components/contacts/SalesforceContactsPage.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaSalesforce } from 'react-icons/fa';
 import Link from 'next/link';
@@ -33,7 +33,14 @@ interface SFContact {
   Email: string | null;
   Phone: string | null;
   Title: string | null;
+  Department: string | null;
   Account?: { Name: string } | null;
+  MailingCity: string | null;
+  MailingState: string | null;
+  MailingCountry: string | null;
+  Description: string | null;
+  OwnerId: string | null;
+  CreatedDate: string;
   LastModifiedDate: string;
 }
 
@@ -47,6 +54,10 @@ interface SFLead {
   Title: string | null;
   Company: string | null;
   Status: string;
+  LeadSource: string | null;
+  Description: string | null;
+  OwnerId: string | null;
+  CreatedDate: string;
   LastModifiedDate: string;
 }
 
@@ -104,6 +115,8 @@ export default function SalesforceContactsPage({
   const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -166,6 +179,51 @@ export default function SalesforceContactsPage({
     );
   };
 
+  // Selection helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = (ids: string[]) => {
+    const allSelected = ids.every((id) => selectedIds.includes(id));
+    if (allSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)));
+    } else {
+      setSelectedIds((prev) => [...new Set([...prev, ...ids])]);
+    }
+  };
+
+  // Sync selected contacts/leads
+  const handleSyncSelected = useCallback(async () => {
+    if (selectedIds.length === 0) return;
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/integrations/salesforce/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds, type: activeTab }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const total = (data.contacts?.created || 0) + (data.leads?.created || 0);
+        const updated = (data.contacts?.updated || 0) + (data.leads?.updated || 0);
+        showToast(`Sync complete: ${total} created, ${updated} updated`, 'success');
+        setSelectedIds([]);
+        loadData();
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || 'Sync failed', 'error');
+      }
+    } catch {
+      showToast('Sync failed', 'error');
+    } finally {
+      setSyncing(false);
+    }
+  }, [selectedIds, activeTab, showToast, loadData, router]);
+
   // Filter by search
   const filteredContacts = contacts.filter((c) => {
     if (!searchQuery) return true;
@@ -188,6 +246,14 @@ export default function SalesforceContactsPage({
       l.Company?.toLowerCase().includes(q)
     );
   });
+
+  // Stats computations
+  const currentItems = activeTab === 'contacts' ? filteredContacts : filteredLeads;
+  const currentType = activeTab === 'contacts' ? 'contact' : 'lead';
+  const syncedCount = currentItems.filter((item) => isSynced(item.Id, currentType as 'contact' | 'lead')).length;
+  const notSyncedCount = currentItems.length - syncedCount;
+  const currentIds = currentItems.map((item) => item.Id);
+  const allCurrentSelected = currentIds.length > 0 && currentIds.every((id) => selectedIds.includes(id));
 
   // ============================================================================
   // NOT CONNECTED STATE
@@ -339,6 +405,43 @@ export default function SalesforceContactsPage({
         </div>
       </div>
 
+      {/* Summary Stats Bar */}
+      {!loading && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-slate-500">
+              {currentItems.length} total
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              {syncedCount} synced
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 whitespace-nowrap">
+              {notSyncedCount} not synced
+            </span>
+          </div>
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleSyncSelected}
+              disabled={syncing}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium text-xs text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 transition-all disabled:opacity-50 shadow-sm"
+            >
+              {syncing ? (
+                <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )}
+              Sync Selected ({selectedIds.length})
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-16">
@@ -353,6 +456,15 @@ export default function SalesforceContactsPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-4 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={allCurrentSelected}
+                      onChange={() => toggleSelectAll(filteredContacts.map((c) => c.Id))}
+                      className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+                    />
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 w-8" />
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Email</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Phone</th>
@@ -365,32 +477,98 @@ export default function SalesforceContactsPage({
               <tbody className="divide-y divide-slate-100">
                 {filteredContacts.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                    <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
                       {searchQuery ? 'No contacts match your search' : 'No contacts found in Salesforce'}
                     </td>
                   </tr>
                 ) : (
                   filteredContacts.map((contact) => (
-                    <tr key={contact.Id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-slate-900">{contact.Name}</td>
-                      <td className="px-4 py-3 text-slate-600">{contact.Email || '—'}</td>
-                      <td className="px-4 py-3 text-slate-600">{contact.Phone || '—'}</td>
-                      <td className="px-4 py-3 text-slate-600">{contact.Account?.Name || '—'}</td>
-                      <td className="px-4 py-3 text-slate-600">{contact.Title || '—'}</td>
-                      <td className="px-4 py-3">
-                        {isSynced(contact.Id, 'contact') ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            Synced
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
-                            Not synced
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(contact.LastModifiedDate)}</td>
-                    </tr>
+                    <React.Fragment key={contact.Id}>
+                      <tr
+                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => setExpandedId(expandedId === contact.Id ? null : contact.Id)}
+                      >
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(contact.Id)}
+                            onChange={() => toggleSelect(contact.Id)}
+                            className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-slate-400">
+                          <svg
+                            className={`w-4 h-4 transition-transform duration-200 ${expandedId === contact.Id ? 'rotate-90' : ''}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-900">{contact.Name}</td>
+                        <td className="px-4 py-3 text-slate-600">{contact.Email || '\u2014'}</td>
+                        <td className="px-4 py-3 text-slate-600">{contact.Phone || '\u2014'}</td>
+                        <td className="px-4 py-3 text-slate-600">{contact.Account?.Name || '\u2014'}</td>
+                        <td className="px-4 py-3 text-slate-600">{contact.Title || '\u2014'}</td>
+                        <td className="px-4 py-3">
+                          {isSynced(contact.Id, 'contact') ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Synced
+                            </span>
+                          ) : (
+                            <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                              Not synced
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(contact.LastModifiedDate)}</td>
+                      </tr>
+                      {expandedId === contact.Id && (
+                        <tr>
+                          <td colSpan={9} className="bg-blue-50 px-4 py-0">
+                            <div className="pl-14 py-4">
+                              <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Title</span>
+                                  <p className="text-slate-700">{contact.Title || '\u2014'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Department</span>
+                                  <p className="text-slate-700">{contact.Department || '\u2014'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Account Name</span>
+                                  <p className="text-slate-700">{contact.Account?.Name || '\u2014'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Mailing Address</span>
+                                  <p className="text-slate-700">
+                                    {[contact.MailingCity, contact.MailingState, contact.MailingCountry]
+                                      .filter(Boolean)
+                                      .join(', ') || '\u2014'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Description</span>
+                                  <p className="text-slate-700 line-clamp-2">{contact.Description || '\u2014'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Owner ID</span>
+                                  <p className="text-slate-700 font-mono text-xs">{contact.OwnerId || '\u2014'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Created Date</span>
+                                  <p className="text-slate-700">{formatDate(contact.CreatedDate)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))
                 )}
               </tbody>
@@ -406,6 +584,15 @@ export default function SalesforceContactsPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-4 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={allCurrentSelected}
+                      onChange={() => toggleSelectAll(filteredLeads.map((l) => l.Id))}
+                      className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+                    />
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 w-8" />
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Email</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Phone</th>
@@ -418,36 +605,98 @@ export default function SalesforceContactsPage({
               <tbody className="divide-y divide-slate-100">
                 {filteredLeads.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                    <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
                       {searchQuery ? 'No leads match your search' : 'No leads found in Salesforce'}
                     </td>
                   </tr>
                 ) : (
                   filteredLeads.map((lead) => (
-                    <tr key={lead.Id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-slate-900">{lead.Name}</td>
-                      <td className="px-4 py-3 text-slate-600">{lead.Email || '—'}</td>
-                      <td className="px-4 py-3 text-slate-600">{lead.Phone || '—'}</td>
-                      <td className="px-4 py-3 text-slate-600">{lead.Company || '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                          {lead.Status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {isSynced(lead.Id, 'lead') ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            Synced
+                    <React.Fragment key={lead.Id}>
+                      <tr
+                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => setExpandedId(expandedId === lead.Id ? null : lead.Id)}
+                      >
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(lead.Id)}
+                            onChange={() => toggleSelect(lead.Id)}
+                            className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-slate-400">
+                          <svg
+                            className={`w-4 h-4 transition-transform duration-200 ${expandedId === lead.Id ? 'rotate-90' : ''}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-900">{lead.Name}</td>
+                        <td className="px-4 py-3 text-slate-600">{lead.Email || '\u2014'}</td>
+                        <td className="px-4 py-3 text-slate-600">{lead.Phone || '\u2014'}</td>
+                        <td className="px-4 py-3 text-slate-600">{lead.Company || '\u2014'}</td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
+                            {lead.Status}
                           </span>
-                        ) : (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
-                            Not synced
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(lead.LastModifiedDate)}</td>
-                    </tr>
+                        </td>
+                        <td className="px-4 py-3">
+                          {isSynced(lead.Id, 'lead') ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Synced
+                            </span>
+                          ) : (
+                            <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                              Not synced
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(lead.LastModifiedDate)}</td>
+                      </tr>
+                      {expandedId === lead.Id && (
+                        <tr>
+                          <td colSpan={9} className="bg-blue-50 px-4 py-0">
+                            <div className="pl-14 py-4">
+                              <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Title</span>
+                                  <p className="text-slate-700">{lead.Title || '\u2014'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Company</span>
+                                  <p className="text-slate-700">{lead.Company || '\u2014'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Lead Status</span>
+                                  <p className="text-slate-700">{lead.Status}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Lead Source</span>
+                                  <p className="text-slate-700">{lead.LeadSource || '\u2014'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Description</span>
+                                  <p className="text-slate-700 line-clamp-2">{lead.Description || '\u2014'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Owner ID</span>
+                                  <p className="text-slate-700 font-mono text-xs">{lead.OwnerId || '\u2014'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 text-xs font-medium">Created Date</span>
+                                  <p className="text-slate-700">{formatDate(lead.CreatedDate)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))
                 )}
               </tbody>

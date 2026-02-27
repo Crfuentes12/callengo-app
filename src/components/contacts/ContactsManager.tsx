@@ -8,11 +8,15 @@ import { ContactList } from '@/types/supabase';
 import ContactsTable from './ContactsTable';
 import ImportModal from './ImportModal';
 import { GoogleSheetsIcon } from '@/components/icons/BrandIcons';
+import { FaSalesforce } from 'react-icons/fa';
+import Link from 'next/link';
 
 interface ContactsManagerProps {
   initialContacts: any[];
   initialContactLists?: ContactList[];
   companyId: string;
+  hasSalesforceAccess: boolean;
+  sfConnected: boolean;
 }
 
 interface Toast {
@@ -97,7 +101,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
   );
 }
 
-export default function ContactsManager({ initialContacts, initialContactLists = [], companyId }: ContactsManagerProps) {
+export default function ContactsManager({ initialContacts, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected }: ContactsManagerProps) {
   const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -504,81 +508,123 @@ export default function ContactsManager({ initialContacts, initialContactLists =
               </svg>
             </button>
             {showAddContactsDropdown && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn">
-                <div className="px-3 py-2 text-xs font-bold text-[var(--color-primary)] uppercase tracking-wider border-b border-slate-100">
-                  Add Method
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-fadeIn overflow-hidden">
+                {/* Header */}
+                <div className="px-4 py-2.5 text-xs font-bold text-[var(--color-primary)] uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+                  Add Contacts
                 </div>
+
+                {/* Add Manually */}
                 <button
                   onClick={handleManualAdd}
                   className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 group"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center transition-transform">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                   </div>
                   <div>
                     <div className="font-semibold text-slate-900">Add Manually</div>
-                    <div className="text-xs text-slate-500">Create custom fields</div>
+                    <div className="text-xs text-slate-500">Create a contact with custom fields</div>
                   </div>
                 </button>
-                <div className="border-t border-slate-100 my-2"></div>
-                <div className="px-3 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Import From File
+
+                {/* Import From File */}
+                <div className="border-t border-slate-100">
+                  <div className="px-4 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                    Import From File
+                  </div>
+                  <div className="px-4 pb-3 pt-1 grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => handleImportTypeSelect('csv')}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                      CSV
+                    </button>
+                    <button
+                      onClick={() => handleImportTypeSelect('xlsx')}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
+                      XLSX
+                    </button>
+                    <button
+                      onClick={() => handleImportTypeSelect('txt')}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-slate-400 flex-shrink-0"></span>
+                      TXT
+                    </button>
+                    <button
+                      onClick={() => handleImportTypeSelect('xml')}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0"></span>
+                      XML
+                    </button>
+                    <button
+                      onClick={() => handleImportTypeSelect('json')}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></span>
+                      JSON
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleImportTypeSelect('csv')}
-                  className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                >
-                  <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="font-medium">Import CSV</span>
-                </button>
-                <button
-                  onClick={() => handleImportTypeSelect('xlsx')}
-                  className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                >
-                  <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  <span className="font-medium">Import XLSX</span>
-                </button>
-                <button
-                  onClick={() => handleImportTypeSelect('txt')}
-                  className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                >
-                  <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="font-medium">Import TXT</span>
-                </button>
-                <button
-                  onClick={() => handleImportTypeSelect('xml')}
-                  className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                >
-                  <svg className="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                  </svg>
-                  <span className="font-medium">Import XML</span>
-                </button>
-                <button
-                  onClick={() => handleImportTypeSelect('json')}
-                  className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                >
-                  <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  <span className="font-medium">Import JSON</span>
-                </button>
-                <div className="border-t border-slate-100 my-2"></div>
-                <button
-                  onClick={() => handleImportTypeSelect('google')}
-                  className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
-                >
-                  <GoogleSheetsIcon className="w-5 h-5" />
-                  <span className="font-medium">Import from Google Sheets</span>
-                </button>
+
+                {/* Integrations */}
+                <div className="border-t border-slate-100">
+                  <div className="px-4 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                    Integrations
+                  </div>
+                  <div className="px-2 pb-2">
+                    {/* Salesforce */}
+                    <Link
+                      href={
+                        sfConnected
+                          ? '/contacts/salesforce'
+                          : hasSalesforceAccess
+                            ? '/api/integrations/salesforce/connect?return_to=/contacts/salesforce'
+                            : '/billing'
+                      }
+                      className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-[#00A1E0] flex items-center justify-center flex-shrink-0">
+                        <FaSalesforce className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-900 flex items-center gap-2">
+                          Salesforce
+                          {!hasSalesforceAccess && (
+                            <span className="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.5 rounded-full">
+                              Business+
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-500">Import contacts &amp; leads</div>
+                      </div>
+                      <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+
+                    {/* Google Sheets */}
+                    <button
+                      onClick={() => handleImportTypeSelect('google')}
+                      className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+                        <GoogleSheetsIcon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-900">Google Sheets</div>
+                        <div className="text-xs text-slate-500">Import from spreadsheet</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
