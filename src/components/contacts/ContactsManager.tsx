@@ -8,7 +8,7 @@ import { ContactList } from '@/types/supabase';
 import ContactsTable from './ContactsTable';
 import ImportModal from './ImportModal';
 import { GoogleSheetsIcon } from '@/components/icons/BrandIcons';
-import { FaSalesforce } from 'react-icons/fa';
+import { FaSalesforce, FaHubspot } from 'react-icons/fa';
 import Link from 'next/link';
 
 interface ContactsManagerProps {
@@ -17,6 +17,8 @@ interface ContactsManagerProps {
   companyId: string;
   hasSalesforceAccess: boolean;
   sfConnected: boolean;
+  hasHubSpotAccess?: boolean;
+  hsConnected?: boolean;
 }
 
 interface Toast {
@@ -101,7 +103,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
   );
 }
 
-export default function ContactsManager({ initialContacts, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected }: ContactsManagerProps) {
+export default function ContactsManager({ initialContacts, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false }: ContactsManagerProps) {
   const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -604,6 +606,36 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                           )}
                         </div>
                         <div className="text-xs text-slate-500">Import contacts &amp; leads</div>
+                      </div>
+                      <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+
+                    {/* HubSpot */}
+                    <Link
+                      href={
+                        hsConnected
+                          ? '/contacts/hubspot'
+                          : hasHubSpotAccess
+                            ? '/api/integrations/hubspot/connect?return_to=/contacts/hubspot'
+                            : '/settings?tab=billing'
+                      }
+                      className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-[#FF7A59] flex items-center justify-center flex-shrink-0">
+                        <FaHubspot className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-900 flex items-center gap-2">
+                          HubSpot
+                          {!hasHubSpotAccess && (
+                            <span className="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.5 rounded-full">
+                              Business+
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-500">Import contacts from HubSpot</div>
                       </div>
                       <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
