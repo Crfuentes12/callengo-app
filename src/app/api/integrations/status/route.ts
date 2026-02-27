@@ -39,6 +39,14 @@ export async function GET() {
       .eq('is_active', true)
       .maybeSingle();
 
+    // Get HubSpot integration
+    const { data: hsIntegration } = await supabaseAdmin
+      .from('hubspot_integrations')
+      .select('id, hs_user_email, hs_display_name, hub_domain, hub_id, last_synced_at')
+      .eq('company_id', userData.company_id)
+      .eq('is_active', true)
+      .maybeSingle();
+
     // Get company settings for Slack, Zoom, Twilio
     const { data: companySettings } = await supabaseAdmin
       .from('company_settings')
@@ -82,6 +90,15 @@ export async function GET() {
         instanceUrl: sfIntegration?.instance_url || undefined,
         lastSynced: sfIntegration?.last_synced_at || undefined,
         integrationId: sfIntegration?.id || undefined,
+      },
+      hubspot: {
+        connected: !!hsIntegration,
+        email: hsIntegration?.hs_user_email || undefined,
+        displayName: hsIntegration?.hs_display_name || undefined,
+        hubDomain: hsIntegration?.hub_domain || undefined,
+        hubId: hsIntegration?.hub_id || undefined,
+        lastSynced: hsIntegration?.last_synced_at || undefined,
+        integrationId: hsIntegration?.id || undefined,
       },
     };
 

@@ -45,7 +45,9 @@ export default async function ContactsPage() {
     planSlug = (subscription.subscription_plans as unknown as { slug: string }).slug || 'free';
   }
 
-  const hasSalesforceAccess = ['business', 'teams', 'enterprise'].includes(planSlug);
+  const hasCrmAccess = ['business', 'teams', 'enterprise'].includes(planSlug);
+  const hasSalesforceAccess = hasCrmAccess;
+  const hasHubSpotAccess = hasCrmAccess;
 
   // Check Salesforce connection
   let sfConnected = false;
@@ -59,6 +61,18 @@ export default async function ContactsPage() {
     sfConnected = !!sfIntegration;
   }
 
+  // Check HubSpot connection
+  let hsConnected = false;
+  if (hasHubSpotAccess) {
+    const { data: hsIntegration } = await supabaseAdminRaw
+      .from('hubspot_integrations')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .maybeSingle();
+    hsConnected = !!hsIntegration;
+  }
+
   return (
     <ContactsManager
       initialContacts={contacts || []}
@@ -66,6 +80,8 @@ export default async function ContactsPage() {
       companyId={companyId}
       hasSalesforceAccess={hasSalesforceAccess}
       sfConnected={sfConnected}
+      hasHubSpotAccess={hasHubSpotAccess}
+      hsConnected={hsConnected}
     />
   );
 }

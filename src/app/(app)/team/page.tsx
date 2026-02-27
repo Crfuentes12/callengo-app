@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import TeamSettings from '@/components/settings/TeamSettings';
 import SalesforceOrgMembers from '@/components/settings/SalesforceOrgMembers';
+import HubSpotOrgMembers from '@/components/settings/HubSpotOrgMembers';
 import Link from 'next/link';
 
 function TeamUpgradeCTA() {
@@ -145,6 +146,16 @@ export default async function TeamPage() {
     .maybeSingle();
   sfConnected = !!sfIntegration;
 
+  // Check HubSpot connection
+  let hsConnected = false;
+  const { data: hsIntegration } = await supabaseAdminRaw
+    .from('hubspot_integrations')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+  hsConnected = !!hsIntegration;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -179,6 +190,13 @@ export default async function TeamPage() {
         companyId={companyId}
         planSlug={planSlug}
         sfConnected={sfConnected}
+      />
+
+      {/* HubSpot Org Members Preview */}
+      <HubSpotOrgMembers
+        companyId={companyId}
+        planSlug={planSlug}
+        hsConnected={hsConnected}
       />
     </div>
   );
