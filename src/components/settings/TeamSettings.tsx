@@ -48,6 +48,7 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
   const [inviting, setInviting] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
@@ -175,6 +176,39 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
     }
   };
 
+  const handleResendInvite = async (invite: PendingInvite) => {
+    setResendingId(invite.id);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch('/api/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: invite.email, role: invite.role }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to resend invitation');
+
+      setSuccess(`Invitation resent to ${invite.email}`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend invitation');
+    } finally {
+      setResendingId(null);
+    }
+  };
+
+  const getDaysAgo = (dateString: string): string => {
+    const now = new Date();
+    const sent = new Date(dateString);
+    const diffMs = now.getTime() - sent.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return '1 day ago';
+    return `${diffDays} days ago`;
+  };
+
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'owner': return 'bg-[var(--color-primary-50)] text-[var(--color-primary)] border-[var(--color-primary-200)]';
@@ -245,18 +279,72 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
         </div>
 
         {!canInvite && planSlug !== 'enterprise' && (
-          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-xs text-amber-700 font-medium">
-              {planSlug === 'free' || planSlug === 'starter'
-                ? 'Upgrade to Business plan or higher to add team members.'
-                : planConfig.extraCost
-                ? `All seats are used. Additional seats cost $${planConfig.extraCost}/month each.`
-                : 'Upgrade your plan to add more team members.'}
-            </p>
-            <a href="/billing" className="text-xs font-semibold text-amber-800 hover:text-amber-900 mt-1 inline-block">
-              Upgrade Plan &rarr;
-            </a>
-          </div>
+          <>
+            {(planSlug === 'free' || planSlug === 'starter') && (
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs text-amber-700 font-medium">
+                  Upgrade to Business plan or higher to add team members.
+                </p>
+                <a href="/billing" className="text-xs font-semibold text-amber-800 hover:text-amber-900 mt-1 inline-block">
+                  Upgrade Plan &rarr;
+                </a>
+              </div>
+            )}
+
+            {planSlug === 'business' && (
+              <div className="mt-3 p-4 bg-gradient-to-r from-[var(--color-primary-50)] via-indigo-50 to-purple-50 border border-[var(--color-primary-200)] rounded-xl">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                      </svg>
+                      <p className="text-sm font-bold text-slate-900">Upgrade to Teams</p>
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      Get <span className="font-semibold">5 seats included</span> plus add more at <span className="font-semibold">$79/mo</span> per additional seat. Collaborate with your full team without limits.
+                    </p>
+                  </div>
+                  <a
+                    href="/billing?upgrade=teams"
+                    className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white gradient-bg hover:opacity-90 transition-opacity shadow-sm"
+                  >
+                    Upgrade to Teams
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {planSlug === 'teams' && (
+              <div className="mt-3 p-4 bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 border border-purple-200 rounded-xl">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                      </svg>
+                      <p className="text-sm font-bold text-slate-900">Upgrade to Enterprise</p>
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      Get <span className="font-semibold">unlimited seats</span>, dedicated support, custom integrations, and advanced security features for your organization.
+                    </p>
+                  </div>
+                  <a
+                    href="/billing?upgrade=enterprise"
+                    className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 transition-all shadow-sm"
+                  >
+                    Contact Sales
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -366,30 +454,58 @@ export default function TeamSettings({ companyId, currentUser }: TeamSettingsPro
             {invites.map(invite => (
               <div key={invite.id} className="px-5 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center">
+                  <div className="relative w-10 h-10 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center">
                     <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                     </svg>
+                    <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                    </span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{invite.email}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900">{invite.email}</p>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase ${getRoleBadge(invite.role)}`}>
+                        {invite.role}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 border border-amber-200 text-amber-700">
-                        Pending
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 border border-amber-200 text-amber-700">
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Invitation Sent
                       </span>
                       <span className="text-xs text-slate-400">
-                        Sent {new Date(invite.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        Sent {getDaysAgo(invite.created_at)}
                       </span>
                     </div>
                   </div>
                 </div>
                 {isOwnerOrAdmin && (
-                  <button
-                    onClick={() => handleCancelInvite(invite.id)}
-                    className="text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleResendInvite(invite)}
+                      disabled={resendingId === invite.id}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-primary)] border border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {resendingId === invite.id ? (
+                        <div className="w-3 h-3 border border-[var(--color-primary-200)] border-t-[var(--color-primary)] rounded-full animate-spin"></div>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                        </svg>
+                      )}
+                      Resend
+                    </button>
+                    <button
+                      onClick={() => handleCancelInvite(invite.id)}
+                      className="text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
