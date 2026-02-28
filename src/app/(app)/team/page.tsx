@@ -4,6 +4,7 @@ import { supabaseAdminRaw } from '@/lib/supabase/service';
 import TeamSettings from '@/components/settings/TeamSettings';
 import SalesforceOrgMembers from '@/components/settings/SalesforceOrgMembers';
 import HubSpotOrgMembers from '@/components/settings/HubSpotOrgMembers';
+import PipedriveOrgMembers from '@/components/settings/PipedriveOrgMembers';
 import Link from 'next/link';
 
 function TeamUpgradeCTA() {
@@ -156,6 +157,16 @@ export default async function TeamPage() {
     .maybeSingle();
   hsConnected = !!hsIntegration;
 
+  // Check Pipedrive connection
+  let pdConnected = false;
+  const { data: pdIntegration } = await supabaseAdminRaw
+    .from('pipedrive_integrations')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+  pdConnected = !!pdIntegration;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -197,6 +208,13 @@ export default async function TeamPage() {
         companyId={companyId}
         planSlug={planSlug}
         hsConnected={hsConnected}
+      />
+
+      {/* Pipedrive Org Members Preview */}
+      <PipedriveOrgMembers
+        companyId={companyId}
+        planSlug={planSlug}
+        pdConnected={pdConnected}
       />
     </div>
   );

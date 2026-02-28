@@ -48,6 +48,7 @@ export default async function ContactsPage() {
   const hasCrmAccess = ['business', 'teams', 'enterprise'].includes(planSlug);
   const hasSalesforceAccess = hasCrmAccess;
   const hasHubSpotAccess = hasCrmAccess;
+  const hasPipedriveAccess = hasCrmAccess;
 
   // Check Salesforce connection
   let sfConnected = false;
@@ -73,6 +74,18 @@ export default async function ContactsPage() {
     hsConnected = !!hsIntegration;
   }
 
+  // Check Pipedrive connection
+  let pdConnected = false;
+  if (hasPipedriveAccess) {
+    const { data: pdIntegration } = await supabaseAdminRaw
+      .from('pipedrive_integrations')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .maybeSingle();
+    pdConnected = !!pdIntegration;
+  }
+
   return (
     <ContactsManager
       initialContacts={contacts || []}
@@ -82,6 +95,8 @@ export default async function ContactsPage() {
       sfConnected={sfConnected}
       hasHubSpotAccess={hasHubSpotAccess}
       hsConnected={hsConnected}
+      hasPipedriveAccess={hasPipedriveAccess}
+      pdConnected={pdConnected}
     />
   );
 }
