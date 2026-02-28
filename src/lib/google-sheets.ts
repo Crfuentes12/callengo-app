@@ -217,7 +217,7 @@ export async function getSpreadsheetTabs(
 
   const response = await sheets.spreadsheets.get({
     spreadsheetId,
-    fields: 'spreadsheetId, properties.title, sheets.properties',
+    fields: 'spreadsheetId,properties.title,sheets.properties(sheetId,title,gridProperties(rowCount,columnCount))',
   });
 
   return {
@@ -311,12 +311,18 @@ export interface LinkedSheet {
 
 /** Get all active linked sheets for a company */
 export async function getLinkedSheets(companyId: string): Promise<LinkedSheet[]> {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('google_sheets_linked_sheets')
     .select('*')
     .eq('company_id', companyId)
     .eq('is_active', true)
     .order('created_at', { ascending: false });
+
+  // Gracefully return empty if table doesn't exist yet (migration not run)
+  if (error) {
+    console.warn('getLinkedSheets error (migration may not be applied):', error.message);
+    return [];
+  }
 
   return (data || []) as LinkedSheet[];
 }
