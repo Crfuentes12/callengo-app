@@ -13,6 +13,11 @@ import {
   getActivePipedriveIntegration,
   pushCallResultToPipedrive,
 } from '@/lib/pipedrive';
+import {
+  getActiveGoogleSheetsIntegration,
+  getLinkedSheets,
+  pushSingleContactToSheet,
+} from '@/lib/google-sheets';
 import type { CalendarStepConfig } from '@/types/calendar';
 
 export async function POST(request: NextRequest) {
@@ -337,6 +342,42 @@ export async function POST(request: NextRequest) {
       } catch (pipedriveError) {
         // Don't fail the webhook if Pipedrive sync fails
         console.error('Pipedrive outbound sync failed (non-fatal):', pipedriveError);
+      }
+    }
+
+    // ================================================================
+    // GOOGLE SHEETS SYNC: Push call result to linked sheets
+    // ================================================================
+    if (contactId && completed && companyId) {
+      try {
+        const gsIntegration = await getActiveGoogleSheetsIntegration(companyId);
+        if (gsIntegration) {
+          const linkedSheets = await getLinkedSheets(companyId);
+          const outboundSheets = linkedSheets.filter(
+            (ls) => ls.sync_direction === 'outbound' || ls.sync_direction === 'bidirectional'
+          );
+
+          if (outboundSheets.length > 0) {
+            // Fetch the updated contact data
+            const { data: contact } = await supabaseAdmin
+              .from('contacts')
+              .select('*')
+              .eq('id', contactId)
+              .single();
+
+            if (contact) {
+              for (const ls of outboundSheets) {
+                const gsResult = await pushSingleContactToSheet(gsIntegration, ls, contact);
+                if (!gsResult.success) {
+                  console.warn(`Google Sheets sync to "${ls.spreadsheet_name}" skipped:`, gsResult.error);
+                }
+              }
+            }
+          }
+        }
+      } catch (gsheetsError) {
+        // Don't fail the webhook if Google Sheets sync fails
+        console.error('Google Sheets outbound sync failed (non-fatal):', gsheetsError);
       }
     }
 

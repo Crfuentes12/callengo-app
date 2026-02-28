@@ -781,16 +781,18 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     },
     {
       id: 'google-sheets', provider: 'google-sheets', name: 'Google Sheets',
-      description: 'Import contacts directly from your Google spreadsheets',
+      description: 'Bidirectional sync — contacts and call results stay in sync with your sheets',
       icon: <GoogleSheetsIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-green-50',
       category: 'crm', requiredPlan: 'free',
       status: integrations.google_sheets?.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/google-sheets/connect?return_to=/integrations',
       disconnectUrl: '/api/integrations/google-sheets/disconnect',
+      syncUrl: '/api/integrations/google-sheets/sync',
+      showSync: true,
       manageUrl: '/contacts',
       connectedInfo: integrations.google_sheets?.connected ? [
         ...(integrations.google_sheets.email ? [{ label: 'Account', value: integrations.google_sheets.email }] : []),
-        ...(integrations.google_sheets.lastUsed ? [{ label: 'Last Used', value: new Date(integrations.google_sheets.lastUsed).toLocaleDateString() }] : []),
+        ...(integrations.google_sheets.lastUsed ? [{ label: 'Last Synced', value: new Date(integrations.google_sheets.lastUsed).toLocaleDateString() }] : []),
       ] : undefined,
     },
     {
