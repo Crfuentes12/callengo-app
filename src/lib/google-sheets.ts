@@ -1,5 +1,5 @@
 // lib/google-sheets.ts
-// Google Sheets API service - handles OAuth and spreadsheet operations for contact import
+// Google Sheets API service - handles OAuth, spreadsheet operations, and bidirectional sync
 
 import { google } from 'googleapis';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
@@ -26,9 +26,9 @@ function getGoogleConfig() {
   };
 }
 
-// Only request read-only access to sheets + drive metadata (to list files) + user profile
+// Full access to sheets (read + write) + drive (to list files) + user profile
 const SCOPES = [
-  'https://www.googleapis.com/auth/spreadsheets.readonly',
+  'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
@@ -288,4 +288,450 @@ export async function getActiveGoogleSheetsIntegration(
     .maybeSingle();
 
   return data as SheetsIntegration | null;
+}
+
+// ============================================================================
+// LINKED SHEETS
+// ============================================================================
+
+export interface LinkedSheet {
+  id: string;
+  company_id: string;
+  integration_id: string;
+  spreadsheet_id: string;
+  spreadsheet_name: string;
+  sheet_tab_title: string;
+  sheet_tab_id: number;
+  column_mapping: Record<string, string>;
+  sync_direction: 'inbound' | 'outbound' | 'bidirectional';
+  last_synced_at: string | null;
+  last_sync_row_count: number;
+  is_active: boolean;
+}
+
+/** Get all active linked sheets for a company */
+export async function getLinkedSheets(companyId: string): Promise<LinkedSheet[]> {
+  const { data } = await supabaseAdmin
+    .from('google_sheets_linked_sheets')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  return (data || []) as LinkedSheet[];
+}
+
+/** Link a spreadsheet tab for sync */
+export async function linkSheet(params: {
+  companyId: string;
+  integrationId: string;
+  spreadsheetId: string;
+  spreadsheetName: string;
+  sheetTabTitle: string;
+  sheetTabId: number;
+  columnMapping: Record<string, string>;
+  syncDirection?: 'inbound' | 'outbound' | 'bidirectional';
+}): Promise<LinkedSheet> {
+  const { data, error } = await supabaseAdmin
+    .from('google_sheets_linked_sheets')
+    .upsert(
+      {
+        company_id: params.companyId,
+        integration_id: params.integrationId,
+        spreadsheet_id: params.spreadsheetId,
+        spreadsheet_name: params.spreadsheetName,
+        sheet_tab_title: params.sheetTabTitle,
+        sheet_tab_id: params.sheetTabId,
+        column_mapping: params.columnMapping,
+        sync_direction: params.syncDirection || 'bidirectional',
+        is_active: true,
+      },
+      { onConflict: 'company_id,spreadsheet_id,sheet_tab_title' }
+    )
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to link sheet: ${error.message}`);
+  return data as LinkedSheet;
+}
+
+/** Unlink a spreadsheet tab */
+export async function unlinkSheet(linkedSheetId: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('google_sheets_linked_sheets')
+    .update({ is_active: false })
+    .eq('id', linkedSheetId);
+
+  if (error) throw new Error(`Failed to unlink sheet: ${error.message}`);
+}
+
+// ============================================================================
+// OUTBOUND SYNC — Write Callengo data to Google Sheets
+// ============================================================================
+
+// Standard headers for the Callengo contact sheet
+const CALLENGO_HEADERS = [
+  'Contact Name',
+  'Phone Number',
+  'Email',
+  'Company',
+  'Status',
+  'Call Status',
+  'Call Outcome',
+  'Last Call Date',
+  'Call Duration (s)',
+  'Call Attempts',
+  'Sentiment',
+  'Interest Level',
+  'Follow-up Required',
+  'Summary',
+  'Tags',
+  'Notes',
+  'Source',
+  'Created At',
+  'Updated At',
+];
+
+interface ContactForSheet {
+  contact_name?: string | null;
+  phone_number: string;
+  email?: string | null;
+  company_name?: string | null;
+  status?: string | null;
+  call_status?: string | null;
+  call_outcome?: string | null;
+  last_call_date?: string | null;
+  call_duration?: number | null;
+  call_attempts?: number | null;
+  analysis?: Record<string, unknown> | null;
+  call_metadata?: Record<string, unknown> | null;
+  tags?: string[] | null;
+  notes?: string | null;
+  source?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+function contactToRow(c: ContactForSheet): string[] {
+  const analysis = c.analysis || {};
+  return [
+    c.contact_name || '',
+    c.phone_number || '',
+    c.email || '',
+    c.company_name || '',
+    c.status || '',
+    c.call_status || '',
+    c.call_outcome || '',
+    c.last_call_date ? new Date(c.last_call_date).toLocaleString() : '',
+    c.call_duration != null ? String(c.call_duration) : '',
+    c.call_attempts != null ? String(c.call_attempts) : '',
+    (analysis.callSentiment as string) || '',
+    (analysis.customerInterestLevel as string) || '',
+    analysis.followUpRequired ? 'Yes' : analysis.followUpRequired === false ? 'No' : '',
+    (c.call_metadata as Record<string, unknown>)?.summary as string || c.call_outcome || '',
+    (c.tags || []).join(', '),
+    c.notes || '',
+    c.source || 'callengo',
+    c.created_at ? new Date(c.created_at).toLocaleString() : '',
+    c.updated_at ? new Date(c.updated_at).toLocaleString() : '',
+  ];
+}
+
+/** Push all company contacts to a linked Google Sheet (full overwrite) */
+export async function pushContactsToSheet(
+  integration: SheetsIntegration,
+  linkedSheet: LinkedSheet,
+  companyId: string
+): Promise<{ success: boolean; rowCount: number; error?: string }> {
+  try {
+    // Fetch all contacts for this company
+    const { data: contacts, error: fetchError } = await supabaseAdmin
+      .from('contacts')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false });
+
+    if (fetchError) throw new Error(`Failed to fetch contacts: ${fetchError.message}`);
+
+    const auth = await getAuthenticatedClient(integration);
+    const sheetsApi = google.sheets({ version: 'v4', auth });
+
+    // Build the data: headers + rows
+    const rows = (contacts || []).map((c: ContactForSheet) => contactToRow(c));
+    const values = [CALLENGO_HEADERS, ...rows];
+
+    // Clear existing content first
+    await sheetsApi.spreadsheets.values.clear({
+      spreadsheetId: linkedSheet.spreadsheet_id,
+      range: `'${linkedSheet.sheet_tab_title}'`,
+    });
+
+    // Write new data
+    await sheetsApi.spreadsheets.values.update({
+      spreadsheetId: linkedSheet.spreadsheet_id,
+      range: `'${linkedSheet.sheet_tab_title}'!A1`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values },
+    });
+
+    // Format header row as bold
+    try {
+      await sheetsApi.spreadsheets.batchUpdate({
+        spreadsheetId: linkedSheet.spreadsheet_id,
+        requestBody: {
+          requests: [
+            {
+              repeatCell: {
+                range: {
+                  sheetId: linkedSheet.sheet_tab_id,
+                  startRowIndex: 0,
+                  endRowIndex: 1,
+                },
+                cell: {
+                  userEnteredFormat: {
+                    textFormat: { bold: true },
+                    backgroundColor: { red: 0.93, green: 0.93, blue: 0.93 },
+                  },
+                },
+                fields: 'userEnteredFormat(textFormat,backgroundColor)',
+              },
+            },
+          ],
+        },
+      });
+    } catch {
+      // Non-fatal: formatting failed but data is written
+    }
+
+    // Update sync metadata
+    await supabaseAdmin
+      .from('google_sheets_linked_sheets')
+      .update({
+        last_synced_at: new Date().toISOString(),
+        last_sync_row_count: rows.length,
+      })
+      .eq('id', linkedSheet.id);
+
+    await supabaseAdmin
+      .from('google_sheets_integrations')
+      .update({ last_used_at: new Date().toISOString() })
+      .eq('id', integration.id);
+
+    return { success: true, rowCount: rows.length };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to push contacts to sheet:', message);
+    return { success: false, rowCount: 0, error: message };
+  }
+}
+
+/** Push a single contact update to the linked sheet (append or update row) */
+export async function pushSingleContactToSheet(
+  integration: SheetsIntegration,
+  linkedSheet: LinkedSheet,
+  contact: ContactForSheet
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const auth = await getAuthenticatedClient(integration);
+    const sheetsApi = google.sheets({ version: 'v4', auth });
+
+    // Read existing data to find the contact row by phone number
+    const existing = await sheetsApi.spreadsheets.values.get({
+      spreadsheetId: linkedSheet.spreadsheet_id,
+      range: `'${linkedSheet.sheet_tab_title}'`,
+      valueRenderOption: 'FORMATTED_VALUE',
+    });
+
+    const allRows = existing.data.values || [];
+    const phoneColIndex = 1; // Phone Number is column B (index 1)
+
+    // Find existing row by phone number
+    let rowIndex = -1;
+    for (let i = 1; i < allRows.length; i++) {
+      const rowPhone = (allRows[i]?.[phoneColIndex] || '').replace(/\D/g, '');
+      const contactPhone = (contact.phone_number || '').replace(/\D/g, '');
+      if (rowPhone && contactPhone && rowPhone === contactPhone) {
+        rowIndex = i;
+        break;
+      }
+    }
+
+    const newRow = contactToRow(contact);
+
+    if (rowIndex > 0) {
+      // Update existing row
+      await sheetsApi.spreadsheets.values.update({
+        spreadsheetId: linkedSheet.spreadsheet_id,
+        range: `'${linkedSheet.sheet_tab_title}'!A${rowIndex + 1}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [newRow] },
+      });
+    } else {
+      // Ensure headers exist
+      if (allRows.length === 0) {
+        await sheetsApi.spreadsheets.values.update({
+          spreadsheetId: linkedSheet.spreadsheet_id,
+          range: `'${linkedSheet.sheet_tab_title}'!A1`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [CALLENGO_HEADERS] },
+        });
+      }
+
+      // Append new row
+      await sheetsApi.spreadsheets.values.append({
+        spreadsheetId: linkedSheet.spreadsheet_id,
+        range: `'${linkedSheet.sheet_tab_title}'!A1`,
+        valueInputOption: 'USER_ENTERED',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: [newRow] },
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to push single contact to sheet:', message);
+    return { success: false, error: message };
+  }
+}
+
+/** Inbound sync: read contacts from a linked sheet and upsert into Callengo */
+export async function pullContactsFromSheet(
+  integration: SheetsIntegration,
+  linkedSheet: LinkedSheet,
+  companyId: string
+): Promise<{ success: boolean; created: number; updated: number; skipped: number; error?: string }> {
+  try {
+    const data = await getSheetData(integration, linkedSheet.spreadsheet_id, linkedSheet.sheet_tab_title);
+
+    if (data.headers.length === 0 || data.rows.length === 0) {
+      return { success: true, created: 0, updated: 0, skipped: 0 };
+    }
+
+    // Use the stored column mapping or auto-detect
+    const mapping = linkedSheet.column_mapping || {};
+    const headerLower = data.headers.map((h) => h.toLowerCase().trim());
+
+    // Helper to find column index by mapping key or common header names
+    const findCol = (key: string, ...aliases: string[]): number => {
+      if (mapping[key]) {
+        const idx = headerLower.indexOf(mapping[key].toLowerCase());
+        if (idx >= 0) return idx;
+      }
+      for (const alias of aliases) {
+        const idx = headerLower.findIndex((h) => h.includes(alias.toLowerCase()));
+        if (idx >= 0) return idx;
+      }
+      return -1;
+    };
+
+    const phoneCol = findCol('phoneNumber', 'phone', 'tel', 'mobile', 'cell');
+    if (phoneCol < 0) {
+      return { success: false, created: 0, updated: 0, skipped: 0, error: 'No phone number column found in sheet' };
+    }
+
+    const nameCol = findCol('contactName', 'name', 'contact name', 'full name', 'nombre');
+    const emailCol = findCol('email', 'e-mail', 'correo');
+    const companyCol = findCol('companyName', 'company', 'empresa', 'organization');
+    const notesCol = findCol('notes', 'note', 'notas', 'comentarios');
+
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    for (const row of data.rows) {
+      const phone = (row[phoneCol] || '').trim();
+      if (!phone) {
+        skipped++;
+        continue;
+      }
+
+      const contactData: Record<string, unknown> = {
+        company_id: companyId,
+        phone_number: phone,
+        source: 'google_sheets',
+      };
+
+      if (nameCol >= 0 && row[nameCol]) contactData.contact_name = row[nameCol].trim();
+      if (emailCol >= 0 && row[emailCol]) contactData.email = row[emailCol].trim();
+      if (companyCol >= 0 && row[companyCol]) contactData.company_name = row[companyCol].trim();
+      if (notesCol >= 0 && row[notesCol]) contactData.notes = row[notesCol].trim();
+
+      // Check if contact already exists by phone number
+      const { data: existing } = await supabaseAdmin
+        .from('contacts')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('phone_number', phone)
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing
+        const { error } = await supabaseAdmin
+          .from('contacts')
+          .update(contactData)
+          .eq('id', existing.id);
+        if (!error) updated++;
+        else skipped++;
+      } else {
+        // Insert new
+        const { error } = await supabaseAdmin
+          .from('contacts')
+          .insert(contactData);
+        if (!error) created++;
+        else skipped++;
+      }
+    }
+
+    // Update sync metadata
+    await supabaseAdmin
+      .from('google_sheets_linked_sheets')
+      .update({
+        last_synced_at: new Date().toISOString(),
+        last_sync_row_count: data.rows.length,
+      })
+      .eq('id', linkedSheet.id);
+
+    return { success: true, created, updated, skipped };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to pull contacts from sheet:', message);
+    return { success: false, created: 0, updated: 0, skipped: 0, error: message };
+  }
+}
+
+/** Full bidirectional sync: pull inbound then push outbound */
+export async function syncLinkedSheet(
+  integration: SheetsIntegration,
+  linkedSheet: LinkedSheet,
+  companyId: string
+): Promise<{
+  success: boolean;
+  inbound: { created: number; updated: number; skipped: number };
+  outbound: { rowCount: number };
+  error?: string;
+}> {
+  const direction = linkedSheet.sync_direction;
+  let inbound = { created: 0, updated: 0, skipped: 0 };
+  let outbound = { rowCount: 0 };
+
+  // Inbound first (pull new contacts from sheet)
+  if (direction === 'inbound' || direction === 'bidirectional') {
+    const inResult = await pullContactsFromSheet(integration, linkedSheet, companyId);
+    if (!inResult.success) {
+      return { success: false, inbound, outbound, error: inResult.error };
+    }
+    inbound = { created: inResult.created, updated: inResult.updated, skipped: inResult.skipped };
+  }
+
+  // Outbound (push all contacts to sheet — overwrites)
+  if (direction === 'outbound' || direction === 'bidirectional') {
+    const outResult = await pushContactsToSheet(integration, linkedSheet, companyId);
+    if (!outResult.success) {
+      return { success: false, inbound, outbound, error: outResult.error };
+    }
+    outbound = { rowCount: outResult.rowCount };
+  }
+
+  return { success: true, inbound, outbound };
 }
