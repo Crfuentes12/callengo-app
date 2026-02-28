@@ -126,11 +126,8 @@ function BooksyIcon({ className = 'w-7 h-7' }: { className?: string }) {
 
 function PipedriveIcon({ className = 'w-7 h-7' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="54 39 210 230" fill="currentColor">
-      <path d="m128.3 87.8c-11.9 0-18.8 5.4-22.1 9-0.4-3.2-2.5-7.3-10.7-7.3h-17.9v18.6h7.3c1.2 0 1.6 0.4 1.6 1.6v85.1h21.2v-31.8-2.4c3.3 3 9.6 7.2 19.5 7.2 20.7 0 35.2-16.4 35.2-40 0.1-23.9-13.7-40-34.1-40m-4.3 61.5c-11.4 0-16.6-10.9-16.6-21.1 0-16 8.7-21.7 16.9-21.7 10 0 16.8 8.6 16.8 21.5-0.1 14.8-8.7 21.3-17.1 21.3" />
-      <path d="m191 146v-45.1c0-7.6-3.7-11.3-11.2-11.3h-19v18.6h7.3c1.2 0 1.6 0.4 1.6 1.6v44.9c0 7.7 3.6 11.3 11.2 11.3h19v-18.5h-7.3c-1.1 0.1-1.6-0.4-1.6-1.5" />
-      <rect x="170.6" y="60.7" width="18.9" height="19.9" />
-      <path d="m246.4 87.8c-11.9 0-18.8 5.4-22.2 9-0.4-3.2-2.5-7.3-10.7-7.3h-17.8v18.6h7.3c1.2 0 1.6 0.4 1.6 1.6v85.1h21.4v-31.8-2.4c3.3 3 9.7 7.2 19.5 7.2 20.7 0 35.2-16.4 35.2-40 0-23.9-13.8-40-34.3-40m-4.3 61.5c-11.4 0-16.6-10.9-16.6-21.1 0-16 8.7-21.7 16.9-21.7 10 0 16.8 8.6 16.8 21.5 0 14.8-8.6 21.3-17.1 21.3" />
+    <svg className={className} viewBox="0 0 32 32" fill="currentColor">
+      <path d="M16.3 7.8c-3.6 0-5.7 1.6-6.7 2.7-.1-1-.8-2.2-3.2-2.2H1v5.6h2.2c.4 0 .5.1.5.5v25.7h6.4V30v-.7c1 .9 2.9 2.2 5.9 2.2 6.3 0 10.7-5 10.7-12.1 0-7.3-4.2-12.1-10.4-12.1m-1.3 18.6c-3.5 0-5-3.3-5-6.4 0-4.8 2.6-6.6 5.1-6.6 3 0 5.1 2.6 5.1 6.5 0 4.5-2.6 6.5-5.2 6.5" transform="scale(0.85) translate(5, 0)" />
     </svg>
   );
 }
@@ -807,7 +804,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     {
       id: 'pipedrive', provider: 'pipedrive', name: 'Pipedrive',
       description: 'Bidirectional sync: import contacts and push call results back to your CRM',
-      icon: <PipedriveIcon className="w-7 h-7" />, iconColor: 'text-[#203232]', iconBg: 'bg-emerald-50',
+      icon: <PipedriveIcon className="w-7 h-7" />, iconColor: 'text-black', iconBg: 'bg-slate-50',
       category: 'crm', requiredPlan: 'business',
       status: integrations.pipedrive?.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/pipedrive/connect?return_to=/integrations',
