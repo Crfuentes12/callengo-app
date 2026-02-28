@@ -36,16 +36,24 @@ This document provides a comprehensive guide to configuring and deploying the Pi
    - Development: `http://localhost:3000/api/integrations/pipedrive/callback`
 3. Note your **Client ID** and **Client Secret**
 
-### Step 3: Required Scopes
+### Step 3: Required OAuth Scopes
 
-Pipedrive OAuth uses implicit scopes based on the app type. The integration accesses:
-- Persons (contacts) - read
-- Organizations - read
-- Deals - read
-- Activities - read
-- Users - read
+In the **OAuth & Access Scopes** section of your Pipedrive app, enable the following scopes. **All scopes should be set to Read-only** — this integration never writes data to Pipedrive.
 
-No explicit scope selection is needed for Pipedrive OAuth - access is granted based on the user's permissions in their Pipedrive account.
+| Scope | Level | Used for |
+|-------|-------|----------|
+| **Contacts** | **Read only** (`contacts:read`) | Fetching Persons and Organizations |
+| **Deals** | **Read only** (`deals:read`) | Reading deal counts and metadata |
+| **Activities** | **Read only** (`activities:read`) | Reading activity data |
+| **Users** | **Read only** (`users:read`) | Listing org members for Team page |
+
+The `base` scope is always included automatically.
+
+**Do NOT enable** `admin`, `mail`, `products`, `leads`, `goals`, `webhooks`, or `phone-integration` — they are not needed.
+
+**Do NOT use Full Access** (`*:full`) — our integration only reads data from Pipedrive. All writes go to the Callengo database.
+
+The granted scopes are saved in the `scopes` column of `pipedrive_integrations` after OAuth callback. The sync library validates scopes before making API calls and gracefully skips resources if the required scope is missing.
 
 ---
 
@@ -209,15 +217,15 @@ All three tables have Row Level Security enabled with policies that scope access
 
 ### Key API Endpoints Used
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/persons` | GET | List all persons (contacts) |
-| `/api/v1/persons/{id}` | GET | Get specific person |
-| `/api/v1/organizations` | GET | List organizations |
-| `/api/v1/deals` | GET | List deals |
-| `/api/v1/activities` | GET | List activities |
-| `/api/v1/users` | GET | List account users |
-| `/api/v1/users/me` | GET | Get current user info |
+| Endpoint | Method | Required Scope | Description |
+|----------|--------|---------------|-------------|
+| `/api/v1/persons` | GET | `contacts:read` | List all persons (contacts) |
+| `/api/v1/persons/{id}` | GET | `contacts:read` | Get specific person |
+| `/api/v1/organizations` | GET | `contacts:read` | List organizations |
+| `/api/v1/deals` | GET | `deals:read` | List deals |
+| `/api/v1/activities` | GET | `activities:read` | List activities |
+| `/api/v1/users` | GET | `users:read` | List account users |
+| `/api/v1/users/me` | GET | `base` | Get current user info |
 
 ### Pagination
 

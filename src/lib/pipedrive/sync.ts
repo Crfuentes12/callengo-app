@@ -15,6 +15,34 @@ import type {
 } from '@/types/pipedrive';
 
 // ============================================================================
+// SCOPE HELPERS
+// ============================================================================
+
+/**
+ * Required scopes for each Pipedrive resource.
+ * Configured in Pipedrive Marketplace Manager → OAuth & Access scopes.
+ * Our integration only needs read-only access.
+ */
+const REQUIRED_SCOPES: Record<string, string[]> = {
+  persons: ['contacts:read', 'contacts:full'],
+  organizations: ['contacts:read', 'contacts:full'],
+  deals: ['deals:read', 'deals:full'],
+  activities: ['activities:read', 'activities:full'],
+  users: ['users:read'],
+};
+
+/**
+ * Check if the integration has the required scope for a resource.
+ * Returns true if scopes array is null/empty (legacy integrations or scope not tracked).
+ */
+export function hasScope(integration: PipedriveIntegration, resource: keyof typeof REQUIRED_SCOPES): boolean {
+  if (!integration.scopes || integration.scopes.length === 0) return true;
+  const required = REQUIRED_SCOPES[resource];
+  if (!required) return true;
+  return required.some((scope) => integration.scopes!.includes(scope));
+}
+
+// ============================================================================
 // API QUERY HELPERS
 // ============================================================================
 
@@ -73,6 +101,10 @@ export async function fetchPipedrivePersons(
   integration: PipedriveIntegration,
   options: { limit?: number; start?: number; modifiedSince?: string } = {}
 ): Promise<PipedrivePerson[]> {
+  if (!hasScope(integration, 'persons')) {
+    console.warn('Pipedrive integration missing contacts:read scope — skipping persons fetch');
+    return [];
+  }
   const queryParams: Record<string, string> = {};
   if (options.modifiedSince) {
     queryParams.since = options.modifiedSince;
@@ -91,6 +123,10 @@ export async function fetchPipedriveOrganizations(
   integration: PipedriveIntegration,
   options: { limit?: number } = {}
 ): Promise<PipedriveOrganization[]> {
+  if (!hasScope(integration, 'organizations')) {
+    console.warn('Pipedrive integration missing contacts:read scope — skipping organizations fetch');
+    return [];
+  }
   const queryParams: Record<string, string> = {};
   if (options.limit) {
     queryParams.limit = String(options.limit);
@@ -106,6 +142,10 @@ export async function fetchPipedriveDeals(
   integration: PipedriveIntegration,
   options: { limit?: number; status?: string } = {}
 ): Promise<PipedriveDeal[]> {
+  if (!hasScope(integration, 'deals')) {
+    console.warn('Pipedrive integration missing deals:read scope — skipping deals fetch');
+    return [];
+  }
   const queryParams: Record<string, string> = {};
   if (options.limit) {
     queryParams.limit = String(options.limit);
@@ -124,6 +164,10 @@ export async function fetchPipedriveActivities(
   integration: PipedriveIntegration,
   options: { limit?: number; done?: boolean } = {}
 ): Promise<PipedriveActivity[]> {
+  if (!hasScope(integration, 'activities')) {
+    console.warn('Pipedrive integration missing activities:read scope — skipping activities fetch');
+    return [];
+  }
   const queryParams: Record<string, string> = {};
   if (options.limit) {
     queryParams.limit = String(options.limit);
@@ -141,6 +185,10 @@ export async function fetchPipedriveActivities(
 export async function fetchPipedriveUsers(
   integration: PipedriveIntegration
 ): Promise<PipedriveUser[]> {
+  if (!hasScope(integration, 'users')) {
+    console.warn('Pipedrive integration missing users:read scope — skipping users fetch');
+    return [];
+  }
   const client = await getPipedriveClient(integration);
 
   const res = await client.fetch('/api/v1/users');
