@@ -7,6 +7,7 @@ import { Contact as ContactType } from '@/types/call-agent';
 import { ContactList } from '@/types/supabase';
 import ContactsTable from './ContactsTable';
 import ImportModal from './ImportModal';
+import GoogleSheetsPickerModal from './GoogleSheetsPickerModal';
 import { GoogleSheetsIcon } from '@/components/icons/BrandIcons';
 import { FaSalesforce, FaHubspot } from 'react-icons/fa';
 import Link from 'next/link';
@@ -21,6 +22,7 @@ interface ContactsManagerProps {
   hsConnected?: boolean;
   hasPipedriveAccess?: boolean;
   pdConnected?: boolean;
+  gsConnected?: boolean;
 }
 
 interface Toast {
@@ -105,7 +107,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
   );
 }
 
-export default function ContactsManager({ initialContacts, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false, hasPipedriveAccess = false, pdConnected = false }: ContactsManagerProps) {
+export default function ContactsManager({ initialContacts, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false, hasPipedriveAccess = false, pdConnected = false, gsConnected = false }: ContactsManagerProps) {
   const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -118,6 +120,8 @@ export default function ContactsManager({ initialContacts, initialContactLists =
   const [showAddContactsDropdown, setShowAddContactsDropdown] = useState(false);
   const [showManualAddModal, setShowManualAddModal] = useState(false);
   const [importType, setImportType] = useState<'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null>(null);
+  const [showGSheetsPicker, setShowGSheetsPicker] = useState(false);
+  const [gSheetsPreloadedData, setGSheetsPreloadedData] = useState<{ headers: string[]; rows: string[][] } | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
     show: false,
@@ -181,12 +185,31 @@ export default function ContactsManager({ initialContacts, initialContactLists =
     refreshContacts();
     setShowImportModal(false);
     setImportType(null);
+    setGSheetsPreloadedData(null);
   };
 
   const handleImportTypeSelect = (type: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json') => {
     setImportType(type);
     setShowImportModal(true);
     setShowAddContactsDropdown(false);
+  };
+
+  const handleGoogleSheetsClick = () => {
+    setShowAddContactsDropdown(false);
+    if (gsConnected) {
+      // Connected: open picker to browse sheets
+      setShowGSheetsPicker(true);
+    } else {
+      // Not connected: redirect to OAuth
+      window.location.href = '/api/integrations/google-sheets/connect?return_to=/contacts';
+    }
+  };
+
+  const handleGSheetsDataReady = (headers: string[], rows: string[][]) => {
+    setShowGSheetsPicker(false);
+    setGSheetsPreloadedData({ headers, rows });
+    setImportType('google');
+    setShowImportModal(true);
   };
 
   const handleManualAdd = () => {
@@ -678,16 +701,26 @@ export default function ContactsManager({ initialContacts, initialContactLists =
 
                     {/* Google Sheets */}
                     <button
-                      onClick={() => handleImportTypeSelect('google')}
+                      onClick={handleGoogleSheetsClick}
                       className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
                     >
                       <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                         <GoogleSheetsIcon className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-slate-900">Google Sheets</div>
-                        <div className="text-xs text-slate-500">Import from spreadsheet</div>
+                        <div className="font-semibold text-slate-900 flex items-center gap-2">
+                          Google Sheets
+                          {gsConnected && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {gsConnected ? 'Browse & import from your sheets' : 'Connect Google to import'}
+                        </div>
                       </div>
+                      <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -712,9 +745,19 @@ export default function ContactsManager({ initialContacts, initialContactLists =
           onClose={() => {
             setShowImportModal(false);
             setImportType(null);
+            setGSheetsPreloadedData(null);
           }}
           onComplete={handleImportComplete}
           importType={importType}
+          onShowToast={showToast}
+          preloadedData={gSheetsPreloadedData || undefined}
+        />
+      )}
+
+      {showGSheetsPicker && (
+        <GoogleSheetsPickerModal
+          onClose={() => setShowGSheetsPicker(false)}
+          onDataReady={handleGSheetsDataReady}
           onShowToast={showToast}
         />
       )}

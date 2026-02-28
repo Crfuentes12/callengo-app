@@ -14,6 +14,7 @@ interface ImportModalProps {
   onComplete: () => void;
   importType?: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null;
   onShowToast?: (message: string, type: 'success' | 'error' | 'info') => void;
+  preloadedData?: { headers: string[]; rows: string[][] };
 }
 
 type ImportStep = 'upload' | 'list-select' | 'mapping' | 'preview' | 'complete';
@@ -37,7 +38,7 @@ const getImportTypeInfo = (type?: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'j
   }
 };
 
-export default function ImportModal({ companyId, onClose, onComplete, importType, onShowToast }: ImportModalProps) {
+export default function ImportModal({ companyId, onClose, onComplete, importType, onShowToast, preloadedData }: ImportModalProps) {
   const typeInfo = getImportTypeInfo(importType);
   const supabase = createClient();
   const [step, setStep] = useState<ImportStep>('upload');
@@ -69,6 +70,17 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
   useEffect(() => {
     loadContactLists();
   }, []);
+
+  // Handle preloaded data from Google Sheets picker
+  useEffect(() => {
+    if (preloadedData && preloadedData.headers.length > 0) {
+      setHeaders(preloadedData.headers);
+      setRows(preloadedData.rows);
+      const suggestedMapping = detectColumnMapping(preloadedData.headers);
+      setMapping(suggestedMapping);
+      setStep('list-select');
+    }
+  }, [preloadedData]);
 
   const loadContactLists = async () => {
     const { data } = await supabase
@@ -204,12 +216,28 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
   };
 
   const handleImport = async () => {
-    if (!file || !mapping.phoneNumber) return;
+    if (!mapping.phoneNumber) return;
+
+    // Need either a file or preloaded data (from Google Sheets picker)
+    const hasData = file || (preloadedData && headers.length > 0);
+    if (!hasData) return;
 
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+
+      if (file) {
+        formData.append('file', file);
+      } else {
+        // Create CSV from in-memory data (Google Sheets picker)
+        const csvContent = [
+          headers.join(','),
+          ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+        const csvBlob = new Blob([csvContent], { type: 'text/csv' });
+        formData.append('file', csvBlob, 'google-sheets-import.csv');
+      }
+
       formData.append('mapping', JSON.stringify(mapping));
       if (selectedListId) {
         formData.append('listId', selectedListId);

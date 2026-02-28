@@ -28,6 +28,7 @@ interface IntegrationsPageProps {
     salesforce: { connected: boolean; email?: string; username?: string; displayName?: string; lastSynced?: string; integrationId?: string };
     hubspot?: { connected: boolean; email?: string; displayName?: string; hubDomain?: string; lastSynced?: string; integrationId?: string };
     pipedrive?: { connected: boolean; email?: string; displayName?: string; companyName?: string; companyDomain?: string; lastSynced?: string; integrationId?: string };
+    google_sheets?: { connected: boolean; email?: string; displayName?: string; lastUsed?: string; integrationId?: string };
   };
   planSlug: string;
   companyId: string;
@@ -780,9 +781,17 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     },
     {
       id: 'google-sheets', provider: 'google-sheets', name: 'Google Sheets',
-      description: 'Export call logs, results, and contact data',
+      description: 'Import contacts directly from your Google spreadsheets',
       icon: <GoogleSheetsIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-green-50',
-      category: 'crm', requiredPlan: 'free', status: 'coming_soon',
+      category: 'crm', requiredPlan: 'free',
+      status: integrations.google_sheets?.connected ? 'connected' : 'available',
+      connectUrl: '/api/integrations/google-sheets/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/google-sheets/disconnect',
+      manageUrl: '/contacts',
+      connectedInfo: integrations.google_sheets?.connected ? [
+        ...(integrations.google_sheets.email ? [{ label: 'Account', value: integrations.google_sheets.email }] : []),
+        ...(integrations.google_sheets.lastUsed ? [{ label: 'Last Used', value: new Date(integrations.google_sheets.lastUsed).toLocaleDateString() }] : []),
+      ] : undefined,
     },
     {
       id: 'hubspot', provider: 'hubspot', name: 'HubSpot',

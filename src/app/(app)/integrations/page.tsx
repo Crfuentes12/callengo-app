@@ -61,6 +61,14 @@ export default async function Integrations() {
     .eq('is_active', true)
     .maybeSingle();
 
+  // Fetch Google Sheets integration
+  const { data: gsIntegration } = await supabaseAdminRaw
+    .from('google_sheets_integrations')
+    .select('id, google_email, google_user_name, last_used_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+
   // Determine Twilio connection status
   const twilioConnected = !!settings.twilio_encrypted_key;
 
@@ -135,6 +143,13 @@ export default async function Integrations() {
           companyDomain: pdIntegration?.pd_company_domain || undefined,
           lastSynced: pdIntegration?.last_synced_at || undefined,
           integrationId: pdIntegration?.id || undefined,
+        },
+        google_sheets: {
+          connected: !!gsIntegration,
+          email: gsIntegration?.google_email || undefined,
+          displayName: gsIntegration?.google_user_name || undefined,
+          lastUsed: gsIntegration?.last_used_at || undefined,
+          integrationId: gsIntegration?.id || undefined,
         },
       }}
       planSlug={planSlug}
