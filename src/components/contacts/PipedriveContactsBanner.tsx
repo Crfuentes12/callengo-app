@@ -5,8 +5,8 @@ import Link from 'next/link';
 
 function PipedriveIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.5v-3.07c-1.62-.27-3-1.4-3.47-3.03-.07-.24-.03-.5.11-.71.14-.21.37-.34.63-.34h1.47c.3 0 .56.18.67.46.27.67.92 1.14 1.67 1.14h1.84c1.01 0 1.84-.83 1.84-1.84 0-.88-.62-1.63-1.48-1.81l-3.38-.68c-1.72-.34-2.98-1.86-2.98-3.61 0-2.04 1.66-3.7 3.7-3.7h.38V3.5c0-.28.22-.5.5-.5s.5.22.5.5v2.81c1.62.27 3 1.4 3.47 3.03.07.24.03.5-.11.71-.14.21-.37.34-.63.34h-1.47c-.3 0-.56-.18-.67-.46-.27-.67-.92-1.14-1.67-1.14H10.3c-1.01 0-1.84.83-1.84 1.84 0 .88.62 1.63 1.48 1.81l3.38.68c1.72.34 2.98 1.86 2.98 3.61 0 2.04-1.66 3.7-3.7 3.7H12.22v2.81c0 .28-.22.5-.5.5s-.5-.22-.5-.5z" />
+    <svg className={className} viewBox="0 0 32 32" fill="currentColor">
+      <path d="M16.3 7.8c-3.6 0-5.7 1.6-6.7 2.7-.1-1-.8-2.2-3.2-2.2H1v5.6h2.2c.4 0 .5.1.5.5v25.7h6.4V30v-.7c1 .9 2.9 2.2 5.9 2.2 6.3 0 10.7-5 10.7-12.1 0-7.3-4.2-12.1-10.4-12.1m-1.3 18.6c-3.5 0-5-3.3-5-6.4 0-4.8 2.6-6.6 5.1-6.6 3 0 5.1 2.6 5.1 6.5 0 4.5-2.6 6.5-5.2 6.5" transform="scale(0.85) translate(5, 0)" />
     </svg>
   );
 }
@@ -25,9 +25,9 @@ export default function PipedriveContactsBanner({
   // Connected: show link to Pipedrive contacts sub-page
   if (hasPipedriveAccess && pdConnected) {
     return (
-      <div className="mb-4 bg-gradient-to-r from-emerald-50 to-[var(--color-primary-50)] rounded-xl border border-emerald-100 p-4 flex items-center justify-between">
+      <div className="mb-4 bg-gradient-to-r from-slate-50 to-[var(--color-primary-50)] rounded-xl border border-slate-200 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-slate-100 text-black flex items-center justify-center">
             <PipedriveIcon className="w-5 h-5" />
           </div>
           <div>
@@ -54,12 +54,12 @@ export default function PipedriveContactsBanner({
     return (
       <div className="mb-4 bg-slate-50 rounded-xl border border-slate-200 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-slate-100 text-black flex items-center justify-center">
             <PipedriveIcon className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">Import from Pipedrive</p>
-            <p className="text-xs text-slate-500">Connect your Pipedrive account to import contacts</p>
+            <p className="text-sm font-semibold text-slate-900">Sync with Pipedrive</p>
+            <p className="text-xs text-slate-500">Connect your Pipedrive account to sync contacts</p>
           </div>
         </div>
         <Link
@@ -83,7 +83,7 @@ export default function PipedriveContactsBanner({
         <div>
           <p className="text-sm font-semibold text-slate-900">Pipedrive CRM Integration</p>
           <p className="text-xs text-slate-500">
-            Import contacts from Pipedrive. Available on Business plan and above.
+            Sync contacts with Pipedrive. Available on Business plan and above.
           </p>
         </div>
       </div>
