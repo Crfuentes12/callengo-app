@@ -189,12 +189,15 @@ CREATE POLICY "Users can update their company hubspot sync logs"
 
 -- Auto-update updated_at trigger for hubspot_integrations
 CREATE OR REPLACE FUNCTION public.update_hubspot_integrations_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE TRIGGER trigger_update_hubspot_integrations_updated_at
   BEFORE UPDATE ON public.hubspot_integrations
@@ -203,12 +206,15 @@ CREATE TRIGGER trigger_update_hubspot_integrations_updated_at
 
 -- Auto-update updated_at trigger for hubspot_contact_mappings
 CREATE OR REPLACE FUNCTION public.update_hubspot_contact_mappings_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE TRIGGER trigger_update_hubspot_contact_mappings_updated_at
   BEFORE UPDATE ON public.hubspot_contact_mappings
