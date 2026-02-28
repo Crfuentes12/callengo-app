@@ -251,6 +251,51 @@ export interface PipedriveSyncResult {
   errors: string[];
 }
 
+export interface PipedriveOutboundSyncResult {
+  persons_pushed: number;
+  activities_created: number;
+  notes_created: number;
+  errors: string[];
+}
+
+/**
+ * Data payload for pushing a Callengo contact update to Pipedrive Person
+ */
+export interface PipedrivePersonUpdate {
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string[];
+  phone?: string[];
+  visible_to?: string;
+}
+
+/**
+ * Data payload for creating a Pipedrive Activity (call log, no-show, follow-up, etc.)
+ */
+export interface PipedriveActivityCreate {
+  subject: string;
+  type: string;
+  done: boolean;
+  due_date: string;
+  due_time?: string;
+  duration?: string;
+  person_id?: number;
+  org_id?: number;
+  deal_id?: number;
+  note?: string;
+}
+
+/**
+ * Data payload for creating a Pipedrive Note on a Person
+ */
+export interface PipedriveNoteCreate {
+  content: string;
+  person_id?: number;
+  org_id?: number;
+  deal_id?: number;
+}
+
 export interface PipedriveOrgMember {
   pd_user_id: number;
   name: string;
@@ -275,6 +320,8 @@ export interface PipedriveFeatureAccess {
   canSyncActivities: boolean;
   canViewOrgMembers: boolean;
   canInviteFromPipedrive: boolean;
+  canPushCallResults: boolean;
+  canPushContactUpdates: boolean;
 }
 
 export function getPipedriveFeatureAccess(planSlug: string): PipedriveFeatureAccess {
@@ -287,5 +334,7 @@ export function getPipedriveFeatureAccess(planSlug: string): PipedriveFeatureAcc
     canSyncActivities: hasPipedrive,
     canViewOrgMembers: hasPipedrive,
     canInviteFromPipedrive: hasPipedrive,
+    canPushCallResults: hasPipedrive,
+    canPushContactUpdates: hasPipedrive,
   };
 }

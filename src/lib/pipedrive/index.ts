@@ -11,6 +11,7 @@ export {
 } from './auth';
 
 export {
+  // Inbound (Pipedrive → Callengo)
   fetchPipedrivePersons,
   fetchPipedriveOrganizations,
   fetchPipedriveDeals,
@@ -19,4 +20,13 @@ export {
   fetchPipedrivePersonsByIds,
   syncPipedrivePersonsToCallengo,
   syncSelectedPipedrivePersons,
+  // Outbound (Callengo → Pipedrive)
+  pushContactToPipedrive,
+  pushCallResultToPipedrive,
+  pushContactUpdatesToPipedrive,
+  createPipedriveActivity,
+  createPipedriveNote,
+  // Helpers
+  getActivePipedriveIntegration,
+  hasScope,
 } from './sync';

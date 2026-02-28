@@ -71,7 +71,9 @@ export async function GET(request: NextRequest) {
       pd_user_name: pdUser.name || null,
       token_issued_at: new Date().toISOString(),
       is_active: true,
-      scopes: tokens.scope ? tokens.scope.split(' ') : [],
+      scopes: tokens.scope
+        ? tokens.scope.split(/[\s,]+/).filter(Boolean)
+        : [],
       raw_profile: pdUser as unknown as Record<string, unknown>,
       api_domain: apiDomain,
     };

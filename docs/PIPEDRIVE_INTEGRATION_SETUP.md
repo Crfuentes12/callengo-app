@@ -6,12 +6,13 @@ This document provides a comprehensive guide to configuring and deploying the Pi
 
 ### What this integration provides:
 - **OAuth2 Authentication** with Pipedrive (Authorization Code flow)
-- **Contact Import** from Pipedrive Persons into Callengo contacts
+- **Bidirectional Contact Sync** — import from Pipedrive AND push updates back
+- **Call Result Sync** — automatically push call outcomes, notes, and activities to Pipedrive after every call
 - **Organization Data** enrichment from Pipedrive Organizations
 - **Deal Tracking** metadata attached to imported contacts
 - **Team Member Preview** showing Pipedrive users with invite-to-Callengo functionality
 - **Selective & Full Sync** with deduplication by email/phone
-- **Sync Logging** with full audit trail
+- **Sync Logging** with full audit trail (inbound, outbound, bidirectional)
 - **Plan Gating** (Business, Teams, Enterprise plans only)
 
 ---
@@ -36,16 +37,32 @@ This document provides a comprehensive guide to configuring and deploying the Pi
    - Development: `http://localhost:3000/api/integrations/pipedrive/callback`
 3. Note your **Client ID** and **Client Secret**
 
-### Step 3: Required Scopes
+### Step 3: Required OAuth Scopes
 
-Pipedrive OAuth uses implicit scopes based on the app type. The integration accesses:
-- Persons (contacts) - read
-- Organizations - read
-- Deals - read
-- Activities - read
-- Users - read
+In the **OAuth & Access Scopes** section of your Pipedrive app, enable the following scopes. **Full Access is required** for bidirectional sync — Callengo needs to write call results, activities, and notes back to Pipedrive.
 
-No explicit scope selection is needed for Pipedrive OAuth - access is granted based on the user's permissions in their Pipedrive account.
+| Scope | Level | Used for |
+|-------|-------|----------|
+| **Contacts** | **Full access** (`contacts:full`) | Read Persons/Orgs + push contact updates back |
+| **Deals** | **Read only** (`deals:read`) | Reading deal counts and metadata |
+| **Activities** | **Full access** (`activities:full`) | Read activities + create call log activities |
+| **Users** | **Read only** (`users:read`) | Listing org members for Team page |
+
+The `base` scope is always included automatically (used for Notes API and `/users/me`).
+
+**Do NOT enable** `admin`, `mail`, `products`, `leads`, `goals`, `webhooks`, or `phone-integration` — they are not needed.
+
+The granted scopes are saved in the `scopes` column of `pipedrive_integrations` after OAuth callback. The sync library validates scopes before making API calls and gracefully skips resources if the required scope is missing.
+
+#### What gets written back to Pipedrive:
+
+| Callengo Event | Pipedrive Object | Details |
+|---------------|-----------------|---------|
+| Contact update (name, email, phone) | Person (PUT) | Updates the mapped Pipedrive Person |
+| Call completed | Activity (POST) | Creates a "call" activity with outcome, duration, summary |
+| No-answer / Voicemail | Activity (POST) | Creates activity logging the missed call |
+| Call analysis / transcript | Note (POST) | Creates a detailed note on the Person with AI analysis, sentiment, key points |
+| Follow-up scheduled | Activity (POST) | Creates a "task" activity marked as not done |
 
 ---
 
@@ -155,14 +172,14 @@ All three tables have Row Level Security enabled with policies that scope access
 
 #### Library
 - `src/lib/pipedrive/auth.ts` - OAuth flow, token management, API client
-- `src/lib/pipedrive/sync.ts` - Data fetching and sync operations
+- `src/lib/pipedrive/sync.ts` - Inbound + outbound sync operations
 - `src/lib/pipedrive/index.ts` - Barrel exports
 
 #### API Routes
 - `src/app/api/integrations/pipedrive/connect/route.ts` - Initiates OAuth
 - `src/app/api/integrations/pipedrive/callback/route.ts` - Handles OAuth callback
 - `src/app/api/integrations/pipedrive/contacts/route.ts` - Returns Pipedrive persons
-- `src/app/api/integrations/pipedrive/sync/route.ts` - Triggers sync (full/selective)
+- `src/app/api/integrations/pipedrive/sync/route.ts` - Triggers sync (inbound/outbound/bidirectional)
 - `src/app/api/integrations/pipedrive/users/route.ts` - Returns org members
 - `src/app/api/integrations/pipedrive/disconnect/route.ts` - Soft-disconnect
 
@@ -177,12 +194,13 @@ All three tables have Row Level Security enabled with policies that scope access
 #### Database
 - `supabase/migrations/20260228000002_add_pipedrive_integration.sql`
 
-### Modified Files (4 total):
+### Modified Files (5 total):
 
 - `src/app/(app)/contacts/page.tsx` - Added Pipedrive connection check + props
 - `src/components/contacts/ContactsManager.tsx` - Added Pipedrive to integration dropdown
 - `src/app/(app)/team/page.tsx` - Added PipedriveOrgMembers component
 - `src/app/api/integrations/status/route.ts` - Added Pipedrive status to aggregated endpoint
+- `src/app/api/bland/webhook/route.ts` - Added automatic Pipedrive outbound sync on call complete
 
 ---
 
@@ -209,15 +227,25 @@ All three tables have Row Level Security enabled with policies that scope access
 
 ### Key API Endpoints Used
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/persons` | GET | List all persons (contacts) |
-| `/api/v1/persons/{id}` | GET | Get specific person |
-| `/api/v1/organizations` | GET | List organizations |
-| `/api/v1/deals` | GET | List deals |
-| `/api/v1/activities` | GET | List activities |
-| `/api/v1/users` | GET | List account users |
-| `/api/v1/users/me` | GET | Get current user info |
+#### Inbound (Read from Pipedrive)
+
+| Endpoint | Method | Required Scope | Description |
+|----------|--------|---------------|-------------|
+| `/api/v1/persons` | GET | `contacts:read` | List all persons (contacts) |
+| `/api/v1/persons/{id}` | GET | `contacts:read` | Get specific person |
+| `/api/v1/organizations` | GET | `contacts:read` | List organizations |
+| `/api/v1/deals` | GET | `deals:read` | List deals |
+| `/api/v1/activities` | GET | `activities:read` | List activities |
+| `/api/v1/users` | GET | `users:read` | List account users |
+| `/api/v1/users/me` | GET | `base` | Get current user info |
+
+#### Outbound (Write to Pipedrive)
+
+| Endpoint | Method | Required Scope | Description |
+|----------|--------|---------------|-------------|
+| `/api/v1/persons/{id}` | PUT | `contacts:full` | Update person with Callengo data |
+| `/api/v1/activities` | POST | `activities:full` | Create call log activity |
+| `/api/v1/notes` | POST | `base` | Create note with call details/analysis |
 
 ### Pagination
 
@@ -265,7 +293,37 @@ Pipedrive returns an `api_domain` in the token response (e.g., `https://api.pipe
 - `pd_closed_deals` - Closed deals count
 - `pd_label` - Person label
 
-### Deduplication Logic
+### Callengo Contact → Pipedrive Person (Outbound)
+
+| Callengo Field | Pipedrive Field |
+|----------------|----------------|
+| `contact_name` | `name` |
+| `email` | `email[0]` (primary, label: work) |
+| `phone_number` | `phone[0]` (primary, label: work) |
+
+### Callengo Call → Pipedrive Activity (Outbound)
+
+| Callengo Field | Pipedrive Activity Field |
+|----------------|--------------------------|
+| `call_status` → mapped subject | `subject` |
+| `'call'` or `'task'` | `type` |
+| `last_call_date` | `due_date` + `due_time` |
+| `call_duration` | `duration` (HH:MM format) |
+| `call_outcome` + `status` + `summary` | `note` |
+| mapped `pd_person_id` | `person_id` |
+
+### Callengo Call → Pipedrive Note (Outbound)
+
+A detailed HTML-formatted note is created on the Person containing:
+- Call date, status, outcome, contact status
+- Call duration
+- AI analysis: sentiment, interest level, category, key points
+- AI summary
+- Answered by (human/voicemail)
+- Follow-up requirements
+- Manual notes
+
+### Deduplication Logic (Inbound)
 
 When syncing a Pipedrive Person to Callengo:
 1. Check `pipedrive_contact_mappings` for existing mapping
@@ -274,6 +332,17 @@ When syncing a Pipedrive Person to Callengo:
 4. If duplicate found: update existing contact
 5. If no duplicate: create new contact
 6. Always create/update mapping record
+
+### Automatic Outbound Sync (Webhook)
+
+When a call completes (Bland webhook), the system automatically:
+1. Checks if the contact has a Pipedrive mapping
+2. If yes, pushes the call result as an Activity in Pipedrive
+3. Creates a detailed Note on the Pipedrive Person with full call analysis
+4. Updates the Pipedrive Person with any changed contact info
+5. Updates mapping `sync_direction` to `bidirectional`
+
+This happens non-blocking — if Pipedrive sync fails, the webhook still succeeds.
 
 ---
 
@@ -365,9 +434,17 @@ const hasPipedriveAccess = ['business', 'teams', 'enterprise'].includes(planSlug
 - Verify API domain is correct (region-specific)
 - Check Pipedrive user has permission to view persons
 
+**Outbound sync not working**
+- Verify `contacts:full` and `activities:full` scopes are enabled in Pipedrive Marketplace Manager
+- Check `pipedrive_contact_mappings` has a mapping for the contact
+- Verify integration `is_active = true`
+- Check browser console / server logs for scope warnings
+
 ---
 
 ## 10. Architecture Diagram
+
+### Inbound Flow (Pipedrive → Callengo)
 
 ```
 User clicks "Connect Pipedrive"
@@ -403,7 +480,7 @@ GET /api/integrations/pipedrive/contacts (fetches persons from Pipedrive API)
 User selects contacts and clicks "Sync"
         |
         v
-POST /api/integrations/pipedrive/sync
+POST /api/integrations/pipedrive/sync { direction: "inbound" }
         |
         v
 syncPipedrivePersonsToCallengo() / syncSelectedPipedrivePersons()
@@ -413,4 +490,52 @@ Creates/updates records in contacts table + pipedrive_contact_mappings
         |
         v
 Updates pipedrive_sync_logs with results
+```
+
+### Outbound Flow (Callengo → Pipedrive) — Automatic on Call Complete
+
+```
+Bland AI completes a call
+        |
+        v
+POST /api/bland/webhook (call result data)
+        |
+        v
+Updates contacts table (call_status, duration, transcript, analysis)
+        |
+        v
+Checks: does this contact have a Pipedrive mapping?
+        |
+        v (yes)
+getActivePipedriveIntegration(companyId)
+        |
+        v
+pushCallResultToPipedrive(integration, contactId)
+        |
+        ├──> PUT /api/v1/persons/{id} (update contact info)
+        |
+        ├──> POST /api/v1/activities (create call activity)
+        |         Subject: "Call completed: John Smith"
+        |         Type: call | Duration: 03:45
+        |         Note: Outcome, Status, AI Summary
+        |
+        └──> POST /api/v1/notes (create detailed note)
+                  HTML note with: call status, outcome, sentiment,
+                  interest level, key points, AI summary, follow-up info
+```
+
+### Manual Bidirectional Sync
+
+```
+User clicks "Sync" in Callengo UI
+        |
+        v
+POST /api/integrations/pipedrive/sync { direction: "bidirectional" }
+        |
+        ├──> INBOUND: Fetch persons → create/update Callengo contacts
+        |
+        └──> OUTBOUND: For each mapped contact updated since last sync
+                  ├──> Push contact updates to Pipedrive Person
+                  ├──> Create Activity for any completed calls
+                  └──> Create Note with call details
 ```
