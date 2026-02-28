@@ -403,9 +403,9 @@ interface ContactForSheet {
   last_call_date?: string | null;
   call_duration?: number | null;
   call_attempts?: number | null;
-  analysis?: Record<string, unknown> | null;
-  call_metadata?: Record<string, unknown> | null;
-  tags?: string[] | null;
+  analysis?: unknown;
+  call_metadata?: unknown;
+  tags?: string[] | unknown;
   notes?: string | null;
   source?: string | null;
   created_at?: string | null;
@@ -413,7 +413,9 @@ interface ContactForSheet {
 }
 
 function contactToRow(c: ContactForSheet): string[] {
-  const analysis = c.analysis || {};
+  const analysis = (c.analysis && typeof c.analysis === 'object' ? c.analysis : {}) as Record<string, unknown>;
+  const metadata = (c.call_metadata && typeof c.call_metadata === 'object' ? c.call_metadata : {}) as Record<string, unknown>;
+  const tags = Array.isArray(c.tags) ? c.tags : [];
   return [
     c.contact_name || '',
     c.phone_number || '',
@@ -425,11 +427,11 @@ function contactToRow(c: ContactForSheet): string[] {
     c.last_call_date ? new Date(c.last_call_date).toLocaleString() : '',
     c.call_duration != null ? String(c.call_duration) : '',
     c.call_attempts != null ? String(c.call_attempts) : '',
-    (analysis.callSentiment as string) || '',
-    (analysis.customerInterestLevel as string) || '',
+    String(analysis.callSentiment || ''),
+    String(analysis.customerInterestLevel || ''),
     analysis.followUpRequired ? 'Yes' : analysis.followUpRequired === false ? 'No' : '',
-    (c.call_metadata as Record<string, unknown>)?.summary as string || c.call_outcome || '',
-    (c.tags || []).join(', '),
+    String(metadata.summary || c.call_outcome || ''),
+    tags.join(', '),
     c.notes || '',
     c.source || 'callengo',
     c.created_at ? new Date(c.created_at).toLocaleString() : '',
