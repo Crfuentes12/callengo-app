@@ -9,6 +9,10 @@ import {
   syncScheduleMeeting,
   syncScheduleCallback,
 } from '@/lib/calendar/campaign-sync';
+import {
+  getActivePipedriveIntegration,
+  pushCallResultToPipedrive,
+} from '@/lib/pipedrive';
 import type { CalendarStepConfig } from '@/types/calendar';
 
 export async function POST(request: NextRequest) {
@@ -316,6 +320,24 @@ export async function POST(request: NextRequest) {
     } catch (campaignCalendarError) {
       // Don't fail the webhook if campaign calendar operations fail
       console.error('Failed campaign calendar operation (non-fatal):', campaignCalendarError);
+    }
+
+    // ================================================================
+    // PIPEDRIVE CRM SYNC: Push call results to Pipedrive
+    // ================================================================
+    if (contactId && completed && companyId) {
+      try {
+        const pdIntegration = await getActivePipedriveIntegration(companyId);
+        if (pdIntegration) {
+          const pdResult = await pushCallResultToPipedrive(pdIntegration, contactId);
+          if (!pdResult.success) {
+            console.warn('Pipedrive sync skipped:', pdResult.error);
+          }
+        }
+      } catch (pipedriveError) {
+        // Don't fail the webhook if Pipedrive sync fails
+        console.error('Pipedrive outbound sync failed (non-fatal):', pipedriveError);
+      }
     }
 
     return NextResponse.json({

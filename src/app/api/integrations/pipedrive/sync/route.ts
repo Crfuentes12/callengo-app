@@ -1,6 +1,6 @@
 // app/api/integrations/pipedrive/sync/route.ts
-// Triggers a Pipedrive data sync (persons)
-// Supports both full sync and selective sync (by Pipedrive IDs)
+// Triggers a Pipedrive data sync (inbound, outbound, or bidirectional)
+// Supports full sync, selective sync (by Pipedrive IDs), and outbound push
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
@@ -8,6 +8,7 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import {
   syncPipedrivePersonsToCallengo,
   syncSelectedPipedrivePersons,
+  pushContactUpdatesToPipedrive,
 } from '@/lib/pipedrive';
 import type { PipedriveIntegration } from '@/types/pipedrive';
 
@@ -30,15 +31,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
-    // Parse optional body for selective sync
+    // Parse body for sync options
     let ids: number[] | undefined;
+    let direction: 'inbound' | 'outbound' | 'bidirectional' = 'inbound';
     try {
       const body = await request.json();
       if (body.ids && Array.isArray(body.ids) && body.ids.length > 0) {
         ids = body.ids.map((id: unknown) => Number(id));
       }
+      if (body.direction === 'outbound' || body.direction === 'bidirectional') {
+        direction = body.direction;
+      }
     } catch {
-      // No body or invalid JSON = full sync
+      // No body or invalid JSON = full inbound sync
     }
 
     // Get active Pipedrive integration
@@ -58,6 +63,7 @@ export async function POST(request: NextRequest) {
 
     const pdIntegration = integration as unknown as PipedriveIntegration;
     const isSelectiveSync = ids && ids.length > 0;
+    const syncType = isSelectiveSync ? 'selective' : 'full';
 
     // Create sync log entry
     const { data: syncLog } = await supabaseAdmin
@@ -65,8 +71,8 @@ export async function POST(request: NextRequest) {
       .insert({
         company_id: userData.company_id,
         integration_id: pdIntegration.id,
-        sync_type: isSelectiveSync ? 'selective' : 'full',
-        sync_direction: 'inbound',
+        sync_type: syncType,
+        sync_direction: direction,
         records_created: 0,
         records_updated: 0,
         records_skipped: 0,
@@ -77,26 +83,42 @@ export async function POST(request: NextRequest) {
       .select('id')
       .single();
 
-    let syncResult;
+    const allErrors: string[] = [];
+    let inboundResult = { persons_created: 0, persons_updated: 0, persons_skipped: 0, errors: [] as string[] };
+    let outboundResult = { persons_pushed: 0, activities_created: 0, notes_created: 0, errors: [] as string[] };
 
-    if (isSelectiveSync && ids) {
-      syncResult = await syncSelectedPipedrivePersons(pdIntegration, ids);
-    } else {
-      syncResult = await syncPipedrivePersonsToCallengo(pdIntegration);
+    // ---- INBOUND: Pipedrive → Callengo ----
+    if (direction === 'inbound' || direction === 'bidirectional') {
+      if (isSelectiveSync && ids) {
+        inboundResult = await syncSelectedPipedrivePersons(pdIntegration, ids);
+      } else {
+        inboundResult = await syncPipedrivePersonsToCallengo(pdIntegration);
+      }
+      allErrors.push(...inboundResult.errors);
+    }
+
+    // ---- OUTBOUND: Callengo → Pipedrive ----
+    if (direction === 'outbound' || direction === 'bidirectional') {
+      outboundResult = await pushContactUpdatesToPipedrive(pdIntegration);
+      allErrors.push(...outboundResult.errors);
     }
 
     // Update sync log
+    const totalCreated = inboundResult.persons_created;
+    const totalUpdated = inboundResult.persons_updated + outboundResult.persons_pushed;
+    const totalSkipped = inboundResult.persons_skipped;
+
     if (syncLog) {
       await supabaseAdmin
         .from('pipedrive_sync_logs')
         .update({
-          records_created: syncResult.persons_created,
-          records_updated: syncResult.persons_updated,
-          records_skipped: syncResult.persons_skipped,
-          errors: syncResult.errors,
+          records_created: totalCreated,
+          records_updated: totalUpdated,
+          records_skipped: totalSkipped,
+          errors: allErrors,
           completed_at: new Date().toISOString(),
-          status: syncResult.errors.length > 0 ? 'completed_with_errors' : 'completed',
-          error_message: syncResult.errors.length > 0 ? syncResult.errors.join('; ') : null,
+          status: allErrors.length > 0 ? 'completed_with_errors' : 'completed',
+          error_message: allErrors.length > 0 ? allErrors.join('; ') : null,
         })
         .eq('id', syncLog.id);
     }
@@ -109,12 +131,18 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      persons: {
-        created: syncResult.persons_created,
-        updated: syncResult.persons_updated,
-        skipped: syncResult.persons_skipped,
+      direction,
+      inbound: {
+        created: inboundResult.persons_created,
+        updated: inboundResult.persons_updated,
+        skipped: inboundResult.persons_skipped,
       },
-      errors: syncResult.errors,
+      outbound: {
+        persons_pushed: outboundResult.persons_pushed,
+        activities_created: outboundResult.activities_created,
+        notes_created: outboundResult.notes_created,
+      },
+      errors: allErrors,
     });
   } catch (error) {
     console.error('Error syncing Pipedrive:', error);
