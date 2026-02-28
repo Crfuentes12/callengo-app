@@ -26,6 +26,7 @@ interface IntegrationsPageProps {
     slack: { connected: boolean; teamName?: string; channelName?: string };
     twilio: { connected: boolean };
     salesforce: { connected: boolean; email?: string; username?: string; displayName?: string; lastSynced?: string; integrationId?: string };
+    hubspot?: { connected: boolean; email?: string; displayName?: string; hubDomain?: string; lastSynced?: string; integrationId?: string };
   };
   planSlug: string;
   companyId: string;
@@ -789,7 +790,18 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'hubspot', provider: 'hubspot', name: 'HubSpot',
       description: 'Import contacts and sync call outcomes',
       icon: <FaHubspot className="w-7 h-7" />, iconColor: 'text-[#FF7A59]', iconBg: 'bg-orange-50',
-      category: 'crm', requiredPlan: 'business', status: 'coming_soon',
+      category: 'crm', requiredPlan: 'business',
+      status: integrations.hubspot?.connected ? 'connected' : 'available',
+      connectUrl: '/api/integrations/hubspot/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/hubspot/disconnect',
+      syncUrl: '/api/integrations/hubspot/sync',
+      showSync: true,
+      manageUrl: '/contacts/hubspot',
+      connectedInfo: integrations.hubspot?.connected ? [
+        ...(integrations.hubspot.displayName || integrations.hubspot.email ? [{ label: 'Account', value: integrations.hubspot.displayName || integrations.hubspot.email || '' }] : []),
+        ...(integrations.hubspot.hubDomain ? [{ label: 'Portal', value: integrations.hubspot.hubDomain }] : []),
+        ...(integrations.hubspot.lastSynced ? [{ label: 'Last Sync', value: formatLastSynced(integrations.hubspot.lastSynced) }] : []),
+      ] : undefined,
     },
     {
       id: 'pipedrive', provider: 'pipedrive', name: 'Pipedrive',

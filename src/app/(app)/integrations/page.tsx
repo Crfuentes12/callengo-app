@@ -45,6 +45,14 @@ export default async function Integrations() {
     .eq('is_active', true)
     .maybeSingle();
 
+  // Fetch HubSpot integration
+  const { data: hsIntegration } = await supabaseAdminRaw
+    .from('hubspot_integrations')
+    .select('id, hs_user_email, hs_display_name, hub_domain, hub_id, last_synced_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+
   // Determine Twilio connection status
   const twilioConnected = !!settings.twilio_encrypted_key;
 
@@ -102,6 +110,14 @@ export default async function Integrations() {
           displayName: sfIntegration?.sf_display_name || undefined,
           lastSynced: sfIntegration?.last_synced_at || undefined,
           integrationId: sfIntegration?.id || undefined,
+        },
+        hubspot: {
+          connected: !!hsIntegration,
+          email: hsIntegration?.hs_user_email || undefined,
+          displayName: hsIntegration?.hs_display_name || undefined,
+          hubDomain: hsIntegration?.hub_domain || undefined,
+          lastSynced: hsIntegration?.last_synced_at || undefined,
+          integrationId: hsIntegration?.id || undefined,
         },
       }}
       planSlug={planSlug}
