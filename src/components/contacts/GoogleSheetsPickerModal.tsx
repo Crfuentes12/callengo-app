@@ -36,10 +36,17 @@ interface LinkedSheetInfo {
   last_sync_row_count: number;
 }
 
+interface SyncJobStart {
+  linkedSheetId: string;
+  spreadsheetName: string;
+  sheetTab: string;
+}
+
 interface GoogleSheetsPickerModalProps {
   onClose: () => void;
   onDataReady: (headers: string[], rows: string[][]) => void;
   onShowToast?: (message: string, type: 'success' | 'error' | 'info') => void;
+  onSyncStart?: (syncJob: SyncJobStart) => void;
 }
 
 type PickerStep = 'home' | 'spreadsheets' | 'tabs' | 'action' | 'loading-data' | 'linking' | 'syncing';
@@ -48,6 +55,7 @@ export default function GoogleSheetsPickerModal({
   onClose,
   onDataReady,
   onShowToast,
+  onSyncStart,
 }: GoogleSheetsPickerModalProps) {
   const [step, setStep] = useState<PickerStep>('home');
   const [loading, setLoading] = useState(true);
@@ -179,7 +187,7 @@ export default function GoogleSheetsPickerModal({
           spreadsheetName: selectedSpreadsheet.name,
           sheetTabTitle: selectedTab.title,
           sheetTabId: selectedTab.sheetId,
-          syncDirection: 'bidirectional',
+          syncDirection: 'inbound',
         }),
       });
 
@@ -188,25 +196,34 @@ export default function GoogleSheetsPickerModal({
 
       onShowToast?.(`Linked "${selectedSpreadsheet.name} / ${selectedTab.title}" for sync`, 'success');
 
-      // Now trigger initial sync
-      setSyncing(data.linkedSheet.id);
-      const syncRes = await fetch('/api/integrations/google-sheets/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ linkedSheetId: data.linkedSheet.id }),
-      });
-      const syncData = await syncRes.json();
+      // Trigger sync via the minimizable progress widget
+      if (onSyncStart) {
+        onSyncStart({
+          linkedSheetId: data.linkedSheet.id,
+          spreadsheetName: selectedSpreadsheet.name,
+          sheetTab: selectedTab.title,
+        });
+        onClose();
+      } else {
+        // Fallback: sync inline (non-streaming) if no onSyncStart handler
+        setSyncing(data.linkedSheet.id);
+        const syncRes = await fetch('/api/integrations/google-sheets/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ linkedSheetId: data.linkedSheet.id }),
+        });
+        const syncData = await syncRes.json();
 
-      if (syncRes.ok && syncData.success) {
-        const r = syncData.results[0];
-        onShowToast?.(
-          `Synced! ${r.inbound.created} imported, ${r.inbound.updated} updated, ${r.outbound.rowCount} pushed to sheet`,
-          'success'
-        );
+        if (syncRes.ok && syncData.success) {
+          const r = syncData.results[0];
+          onShowToast?.(
+            `Synced! ${r.inbound.created} imported, ${r.inbound.updated} updated`,
+            'success'
+          );
+        }
+        setSyncing(null);
+        await fetchLinkedSheets();
       }
-
-      setSyncing(null);
-      await fetchLinkedSheets();
     } catch (error) {
       onShowToast?.(`Error: ${(error as Error).message}`, 'error');
       setSyncing(null);
@@ -217,6 +234,18 @@ export default function GoogleSheetsPickerModal({
   };
 
   const handleSyncLinked = async (linkedId: string) => {
+    const ls = linkedSheets.find((s) => s.id === linkedId);
+    if (onSyncStart && ls) {
+      onSyncStart({
+        linkedSheetId: linkedId,
+        spreadsheetName: ls.spreadsheet_name,
+        sheetTab: ls.sheet_tab_title,
+      });
+      onClose();
+      return;
+    }
+
+    // Fallback if no onSyncStart
     setSyncing(linkedId);
     try {
       const response = await fetch('/api/integrations/google-sheets/sync', {
@@ -229,7 +258,7 @@ export default function GoogleSheetsPickerModal({
       if (response.ok && data.success) {
         const r = data.results[0];
         onShowToast?.(
-          `Synced! ${r.inbound.created} imported, ${r.inbound.updated} updated, ${r.outbound.rowCount} pushed`,
+          `Synced! ${r.inbound.created} imported, ${r.inbound.updated} updated`,
           'success'
         );
         await fetchLinkedSheets();

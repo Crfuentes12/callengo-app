@@ -8,6 +8,7 @@ import { ContactList } from '@/types/supabase';
 import ContactsTable from './ContactsTable';
 import ImportModal from './ImportModal';
 import GoogleSheetsPickerModal from './GoogleSheetsPickerModal';
+import GoogleSheetsSyncProgress, { type SyncJobInfo } from './GoogleSheetsSyncProgress';
 import { GoogleSheetsIcon } from '@/components/icons/BrandIcons';
 import { FaSalesforce, FaHubspot } from 'react-icons/fa';
 import Link from 'next/link';
@@ -122,6 +123,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
   const [importType, setImportType] = useState<'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null>(null);
   const [showGSheetsPicker, setShowGSheetsPicker] = useState(false);
   const [gSheetsPreloadedData, setGSheetsPreloadedData] = useState<{ headers: string[]; rows: string[][] } | null>(null);
+  const [syncJob, setSyncJob] = useState<SyncJobInfo | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
     show: false,
@@ -759,8 +761,22 @@ export default function ContactsManager({ initialContacts, initialContactLists =
           onClose={() => setShowGSheetsPicker(false)}
           onDataReady={handleGSheetsDataReady}
           onShowToast={showToast}
+          onSyncStart={(job) => {
+            setSyncJob(job);
+            setShowGSheetsPicker(false);
+          }}
         />
       )}
+
+      {/* Google Sheets Sync Progress Widget (minimizable) */}
+      <GoogleSheetsSyncProgress
+        syncJob={syncJob}
+        onComplete={() => {
+          refreshContacts();
+          setSyncJob(null);
+        }}
+        onDismiss={() => setSyncJob(null)}
+      />
 
       {showManualAddModal && (
         <ManualAddModal

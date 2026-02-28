@@ -603,18 +603,37 @@ export async function pushSingleContactToSheet(
   }
 }
 
-/** Inbound sync: read contacts from a linked sheet and upsert into Callengo */
+/** Progress callback for sync operations */
+export type SyncProgressCallback = (progress: {
+  phase: 'reading' | 'importing' | 'complete' | 'error';
+  processed: number;
+  total: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  message: string;
+}) => void;
+
+const BATCH_SIZE = 200;
+
+/** Inbound sync: read contacts from a linked sheet and upsert into Callengo (batch processing) */
 export async function pullContactsFromSheet(
   integration: SheetsIntegration,
   linkedSheet: LinkedSheet,
-  companyId: string
-): Promise<{ success: boolean; created: number; updated: number; skipped: number; error?: string }> {
+  companyId: string,
+  onProgress?: SyncProgressCallback
+): Promise<{ success: boolean; created: number; updated: number; skipped: number; total: number; error?: string }> {
   try {
+    onProgress?.({ phase: 'reading', processed: 0, total: 0, created: 0, updated: 0, skipped: 0, message: 'Reading spreadsheet data...' });
+
     const data = await getSheetData(integration, linkedSheet.spreadsheet_id, linkedSheet.sheet_tab_title);
 
     if (data.headers.length === 0 || data.rows.length === 0) {
-      return { success: true, created: 0, updated: 0, skipped: 0 };
+      onProgress?.({ phase: 'complete', processed: 0, total: 0, created: 0, updated: 0, skipped: 0, message: 'Sheet is empty' });
+      return { success: true, created: 0, updated: 0, skipped: 0, total: 0 };
     }
+
+    const totalRows = data.rows.length;
 
     // Use the stored column mapping or auto-detect
     const mapping = linkedSheet.column_mapping || {};
@@ -635,7 +654,9 @@ export async function pullContactsFromSheet(
 
     const phoneCol = findCol('phoneNumber', 'phone', 'tel', 'mobile', 'cell');
     if (phoneCol < 0) {
-      return { success: false, created: 0, updated: 0, skipped: 0, error: 'No phone number column found in sheet' };
+      const errMsg = 'No phone number column found in sheet';
+      onProgress?.({ phase: 'error', processed: 0, total: totalRows, created: 0, updated: 0, skipped: 0, message: errMsg });
+      return { success: false, created: 0, updated: 0, skipped: 0, total: totalRows, error: errMsg };
     }
 
     const nameCol = findCol('contactName', 'name', 'contact name', 'full name', 'nombre');
@@ -646,11 +667,15 @@ export async function pullContactsFromSheet(
     let created = 0;
     let updated = 0;
     let skipped = 0;
+    let processed = 0;
 
+    // Prepare all contacts from the sheet
+    const sheetContacts: { phone: string; data: Record<string, unknown> }[] = [];
     for (const row of data.rows) {
       const phone = (row[phoneCol] || '').trim();
       if (!phone) {
         skipped++;
+        processed++;
         continue;
       }
 
@@ -665,30 +690,86 @@ export async function pullContactsFromSheet(
       if (companyCol >= 0 && row[companyCol]) contactData.company_name = row[companyCol].trim();
       if (notesCol >= 0 && row[notesCol]) contactData.notes = row[notesCol].trim();
 
-      // Check if contact already exists by phone number
-      const { data: existing } = await supabaseAdmin
-        .from('contacts')
-        .select('id')
-        .eq('company_id', companyId)
-        .eq('phone_number', phone)
-        .maybeSingle();
+      sheetContacts.push({ phone, data: contactData });
+    }
 
-      if (existing) {
-        // Update existing
+    // Process in batches
+    for (let i = 0; i < sheetContacts.length; i += BATCH_SIZE) {
+      const batch = sheetContacts.slice(i, i + BATCH_SIZE);
+      const batchPhones = batch.map((c) => c.phone);
+
+      // Single query: get all existing contacts for this batch by phone number
+      const { data: existingContacts } = await supabaseAdmin
+        .from('contacts')
+        .select('id, phone_number, source')
+        .eq('company_id', companyId)
+        .in('phone_number', batchPhones);
+
+      const existingMap = new Map<string, { id: string; source: string | null }>();
+      for (const ec of existingContacts || []) {
+        existingMap.set(ec.phone_number, { id: ec.id, source: ec.source });
+      }
+
+      // Separate into inserts and updates
+      const toInsert: Record<string, unknown>[] = [];
+      const toUpdate: { id: string; data: Record<string, unknown> }[] = [];
+
+      for (const contact of batch) {
+        const existing = existingMap.get(contact.phone);
+        if (existing) {
+          // PROTECTION: For contacts from other sources, only update non-critical fields
+          // Never overwrite the source of a contact that came from another integration
+          const updateData = { ...contact.data };
+          if (existing.source && existing.source !== 'google_sheets' && existing.source !== 'manual') {
+            // Preserve the original source — don't overwrite salesforce/hubspot/pipedrive contacts
+            delete updateData.source;
+          }
+          // Remove company_id from update payload (it's the match key, not an update field)
+          delete updateData.company_id;
+          toUpdate.push({ id: existing.id, data: updateData });
+        } else {
+          toInsert.push(contact.data);
+        }
+      }
+
+      // Batch insert new contacts
+      if (toInsert.length > 0) {
         const { error } = await supabaseAdmin
           .from('contacts')
-          .update(contactData)
-          .eq('id', existing.id);
+          .insert(toInsert);
+        if (!error) {
+          created += toInsert.length;
+        } else {
+          // Fallback: try inserting one by one to skip duplicates
+          for (const row of toInsert) {
+            const { error: singleErr } = await supabaseAdmin.from('contacts').insert(row);
+            if (!singleErr) created++;
+            else skipped++;
+          }
+        }
+      }
+
+      // Batch update existing contacts (updates must be done per-row due to different IDs)
+      for (const upd of toUpdate) {
+        const { error } = await supabaseAdmin
+          .from('contacts')
+          .update(upd.data)
+          .eq('id', upd.id);
         if (!error) updated++;
         else skipped++;
-      } else {
-        // Insert new
-        const { error } = await supabaseAdmin
-          .from('contacts')
-          .insert(contactData);
-        if (!error) created++;
-        else skipped++;
       }
+
+      processed += batch.length;
+
+      onProgress?.({
+        phase: 'importing',
+        processed,
+        total: totalRows,
+        created,
+        updated,
+        skipped,
+        message: `Importing contacts... ${processed} of ${totalRows}`,
+      });
     }
 
     // Update sync metadata
@@ -700,39 +781,52 @@ export async function pullContactsFromSheet(
       })
       .eq('id', linkedSheet.id);
 
-    return { success: true, created, updated, skipped };
+    onProgress?.({
+      phase: 'complete',
+      processed: totalRows,
+      total: totalRows,
+      created,
+      updated,
+      skipped,
+      message: `Import complete! ${created} created, ${updated} updated`,
+    });
+
+    return { success: true, created, updated, skipped, total: totalRows };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Failed to pull contacts from sheet:', message);
-    return { success: false, created: 0, updated: 0, skipped: 0, error: message };
+    onProgress?.({ phase: 'error', processed: 0, total: 0, created: 0, updated: 0, skipped: 0, message });
+    return { success: false, created: 0, updated: 0, skipped: 0, total: 0, error: message };
   }
 }
 
-/** Full bidirectional sync: pull inbound then push outbound */
+/** Full sync: pull inbound then optionally push outbound */
 export async function syncLinkedSheet(
   integration: SheetsIntegration,
   linkedSheet: LinkedSheet,
-  companyId: string
+  companyId: string,
+  onProgress?: SyncProgressCallback
 ): Promise<{
   success: boolean;
-  inbound: { created: number; updated: number; skipped: number };
+  inbound: { created: number; updated: number; skipped: number; total: number };
   outbound: { rowCount: number };
   error?: string;
 }> {
   const direction = linkedSheet.sync_direction;
-  let inbound = { created: 0, updated: 0, skipped: 0 };
+  let inbound = { created: 0, updated: 0, skipped: 0, total: 0 };
   let outbound = { rowCount: 0 };
 
   // Inbound first (pull new contacts from sheet)
   if (direction === 'inbound' || direction === 'bidirectional') {
-    const inResult = await pullContactsFromSheet(integration, linkedSheet, companyId);
+    const inResult = await pullContactsFromSheet(integration, linkedSheet, companyId, onProgress);
     if (!inResult.success) {
       return { success: false, inbound, outbound, error: inResult.error };
     }
-    inbound = { created: inResult.created, updated: inResult.updated, skipped: inResult.skipped };
+    inbound = { created: inResult.created, updated: inResult.updated, skipped: inResult.skipped, total: inResult.total };
   }
 
-  // Outbound (push all contacts to sheet — overwrites)
+  // Outbound (push all contacts to sheet — only if explicitly set to outbound or bidirectional)
+  // SAFETY: outbound push overwrites the Google Sheet, so only do it when explicitly requested
   if (direction === 'outbound' || direction === 'bidirectional') {
     const outResult = await pushContactsToSheet(integration, linkedSheet, companyId);
     if (!outResult.success) {
@@ -742,4 +836,34 @@ export async function syncLinkedSheet(
   }
 
   return { success: true, inbound, outbound };
+}
+
+/** Create a notification for sync completion */
+export async function createSyncNotification(
+  companyId: string,
+  userId: string,
+  result: { created: number; updated: number; skipped: number; total: number; spreadsheetName: string; success: boolean; error?: string }
+): Promise<void> {
+  try {
+    const isSuccess = result.success;
+    await supabaseAdmin.from('notifications').insert({
+      company_id: companyId,
+      user_id: userId,
+      type: isSuccess ? 'campaign_completed' : 'campaign_failed',
+      title: isSuccess ? 'Google Sheets Import Complete' : 'Google Sheets Import Failed',
+      message: isSuccess
+        ? `"${result.spreadsheetName}" — ${result.created} contacts created, ${result.updated} updated, ${result.skipped} skipped (${result.total} total rows processed)`
+        : `"${result.spreadsheetName}" — Import failed: ${result.error || 'Unknown error'}`,
+      read: false,
+      metadata: {
+        source: 'google_sheets',
+        created: result.created,
+        updated: result.updated,
+        skipped: result.skipped,
+        total: result.total,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to create sync notification:', err);
+  }
 }
