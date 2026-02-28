@@ -47,6 +47,14 @@ export async function GET() {
       .eq('is_active', true)
       .maybeSingle();
 
+    // Get Pipedrive integration
+    const { data: pdIntegration } = await supabaseAdmin
+      .from('pipedrive_integrations')
+      .select('id, pd_user_email, pd_user_name, pd_company_name, pd_company_domain, last_synced_at')
+      .eq('company_id', userData.company_id)
+      .eq('is_active', true)
+      .maybeSingle();
+
     // Get company settings for Slack, Zoom, Twilio
     const { data: companySettings } = await supabaseAdmin
       .from('company_settings')
@@ -99,6 +107,15 @@ export async function GET() {
         hubId: hsIntegration?.hub_id || undefined,
         lastSynced: hsIntegration?.last_synced_at || undefined,
         integrationId: hsIntegration?.id || undefined,
+      },
+      pipedrive: {
+        connected: !!pdIntegration,
+        email: pdIntegration?.pd_user_email || undefined,
+        displayName: pdIntegration?.pd_user_name || undefined,
+        companyName: pdIntegration?.pd_company_name || undefined,
+        companyDomain: pdIntegration?.pd_company_domain || undefined,
+        lastSynced: pdIntegration?.last_synced_at || undefined,
+        integrationId: pdIntegration?.id || undefined,
       },
     };
 
