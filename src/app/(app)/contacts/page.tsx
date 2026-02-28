@@ -86,6 +86,15 @@ export default async function ContactsPage() {
     pdConnected = !!pdIntegration;
   }
 
+  // Check Google Sheets connection (available on all plans)
+  const { data: gsIntegration } = await supabaseAdminRaw
+    .from('google_sheets_integrations')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+  const gsConnected = !!gsIntegration;
+
   return (
     <ContactsManager
       initialContacts={contacts || []}
@@ -97,6 +106,7 @@ export default async function ContactsPage() {
       hsConnected={hsConnected}
       hasPipedriveAccess={hasPipedriveAccess}
       pdConnected={pdConnected}
+      gsConnected={gsConnected}
     />
   );
 }
