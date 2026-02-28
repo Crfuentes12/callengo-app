@@ -27,6 +27,7 @@ interface IntegrationsPageProps {
     twilio: { connected: boolean };
     salesforce: { connected: boolean; email?: string; username?: string; displayName?: string; lastSynced?: string; integrationId?: string };
     hubspot?: { connected: boolean; email?: string; displayName?: string; hubDomain?: string; lastSynced?: string; integrationId?: string };
+    pipedrive?: { connected: boolean; email?: string; displayName?: string; companyName?: string; companyDomain?: string; lastSynced?: string; integrationId?: string };
   };
   planSlug: string;
   companyId: string;
@@ -805,9 +806,20 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     },
     {
       id: 'pipedrive', provider: 'pipedrive', name: 'Pipedrive',
-      description: 'Sync deals, contacts, and activities with your pipeline',
+      description: 'Bidirectional sync: import contacts and push call results back to your CRM',
       icon: <PipedriveIcon className="w-7 h-7" />, iconColor: 'text-[#203232]', iconBg: 'bg-emerald-50',
-      category: 'crm', requiredPlan: 'business', status: 'coming_soon',
+      category: 'crm', requiredPlan: 'business',
+      status: integrations.pipedrive?.connected ? 'connected' : 'available',
+      connectUrl: '/api/integrations/pipedrive/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/pipedrive/disconnect',
+      syncUrl: '/api/integrations/pipedrive/sync',
+      showSync: true,
+      manageUrl: '/contacts/pipedrive',
+      connectedInfo: integrations.pipedrive?.connected ? [
+        ...(integrations.pipedrive.displayName || integrations.pipedrive.email ? [{ label: 'Account', value: integrations.pipedrive.displayName || integrations.pipedrive.email || '' }] : []),
+        ...(integrations.pipedrive.companyName ? [{ label: 'Company', value: integrations.pipedrive.companyName }] : []),
+        ...(integrations.pipedrive.lastSynced ? [{ label: 'Last Sync', value: formatLastSynced(integrations.pipedrive.lastSynced) }] : []),
+      ] : undefined,
     },
     {
       id: 'zoho', provider: 'zoho', name: 'Zoho CRM',
