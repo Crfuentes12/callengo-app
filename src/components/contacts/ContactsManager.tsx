@@ -1,11 +1,12 @@
 // components/contacts/ContactsManager.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Contact as ContactType } from '@/types/call-agent';
 import { ContactList } from '@/types/supabase';
-import ContactsTable from './ContactsTable';
+import ContactsTable, { type SortField, type SortOrder } from './ContactsTable';
+import ContactDetailDrawer from './ContactDetailDrawer';
 import ImportModal from './ImportModal';
 import GoogleSheetsPickerModal from './GoogleSheetsPickerModal';
 import GoogleSheetsSyncProgress, { type SyncJobInfo } from './GoogleSheetsSyncProgress';
@@ -15,6 +16,7 @@ import Link from 'next/link';
 
 interface ContactsManagerProps {
   initialContacts: any[];
+  initialTotalCount: number;
   initialContactLists?: ContactList[];
   companyId: string;
   hasSalesforceAccess: boolean;
@@ -24,6 +26,22 @@ interface ContactsManagerProps {
   hasPipedriveAccess?: boolean;
   pdConnected?: boolean;
   gsConnected?: boolean;
+}
+
+interface ContactStats {
+  total: number;
+  statusCounts: Record<string, number>;
+  sourceCounts: Record<string, number>;
+  withEmail: number;
+  called: number;
+  recentlyAdded: number;
+  noList: number;
+}
+
+interface AIResult {
+  action: string;
+  result: Record<string, unknown>;
+  contactCount: number;
 }
 
 interface Toast {
@@ -108,10 +126,20 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
   );
 }
 
-export default function ContactsManager({ initialContacts, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false, hasPipedriveAccess = false, pdConnected = false, gsConnected = false }: ContactsManagerProps) {
+export default function ContactsManager({ initialContacts, initialTotalCount, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false, hasPipedriveAccess = false, pdConnected = false, gsConnected = false }: ContactsManagerProps) {
   const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
+  const [total, setTotal] = useState(initialTotalCount);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalPages, setTotalPages] = useState(Math.ceil(initialTotalCount / 50));
+  const [sortBy, setSortBy] = useState<SortField>('created_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [isLoading, setIsLoading] = useState(false);
+  const [stats, setStats] = useState<ContactStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [contactLists, setContactLists] = useState<ContactList[]>(initialContactLists);
@@ -124,6 +152,10 @@ export default function ContactsManager({ initialContacts, initialContactLists =
   const [showGSheetsPicker, setShowGSheetsPicker] = useState(false);
   const [gSheetsPreloadedData, setGSheetsPreloadedData] = useState<{ headers: string[]; rows: string[][] } | null>(null);
   const [syncJob, setSyncJob] = useState<SyncJobInfo | null>(null);
+  const [selectedContact, setSelectedContact] = useState<ContactType | null>(null);
+  const [showAIMenu, setShowAIMenu] = useState(false);
+  const [aiLoading, setAILoading] = useState(false);
+  const [aiResult, setAIResult] = useState<AIResult | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
     show: false,
@@ -131,6 +163,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
     message: '',
     onConfirm: () => {},
   });
+  const aiMenuRef = useRef<HTMLDivElement>(null);
 
   const supabase = createClient();
 
@@ -149,12 +182,74 @@ export default function ContactsManager({ initialContacts, initialContactLists =
     }
   }, []);
 
-  // Close dropdown when clicking outside
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch contacts from API when filters/sort/page change
+  const fetchContacts = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+        sortBy,
+        sortOrder,
+      });
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+      if (selectedListFilter && selectedListFilter !== 'all') params.set('listId', selectedListFilter);
+
+      const res = await fetch(`/api/contacts?${params}`);
+      const data = await res.json();
+      if (res.ok) {
+        setContacts(data.contacts as ContactType[]);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
+      }
+    } catch {
+      // Keep existing data on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, pageSize, sortBy, sortOrder, debouncedSearch, statusFilter, selectedListFilter]);
+
+  useEffect(() => {
+    fetchContacts();
+  }, [fetchContacts]);
+
+  // Fetch stats on mount and after data changes
+  const fetchStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch('/api/contacts/stats');
+      const data = await res.json();
+      if (res.ok) setStats(data);
+    } catch {
+      // ignore
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('.add-contacts-dropdown') && showAddContactsDropdown) {
         setShowAddContactsDropdown(false);
+      }
+      if (aiMenuRef.current && !aiMenuRef.current.contains(target)) {
+        setShowAIMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -174,13 +269,37 @@ export default function ContactsManager({ initialContacts, initialContactLists =
   };
 
   const refreshContacts = async () => {
-    const { data } = await supabase
-      .from('contacts')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false });
+    await fetchContacts();
+    await fetchStats();
+  };
 
-    if (data) setContacts(data as ContactType[]);
+  const handleSort = (field: SortField) => {
+    if (field === sortBy) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+    setPage(1);
+  };
+
+  const handleAIAnalysis = async (action: 'suggest-segments' | 'analyze-quality' | 'suggest-tags') => {
+    setShowAIMenu(false);
+    setAILoading(true);
+    try {
+      const res = await fetch('/api/contacts/ai-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'AI analysis failed');
+      setAIResult(data);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'AI analysis failed', 'error');
+    } finally {
+      setAILoading(false);
+    }
   };
 
   const handleImportComplete = () => {
@@ -299,33 +418,91 @@ export default function ContactsManager({ initialContacts, initialContactLists =
     });
   };
 
-  const filteredContacts = contacts.filter(contact => {
-    const matchesSearch =
-      contact.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.phone_number.includes(searchTerm) ||
-      (contact.city && contact.city.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
-
-    const matchesList = selectedListFilter === 'all'
-      ? true
-      : selectedListFilter === 'none'
-      ? !contact.list_id
-      : contact.list_id === selectedListFilter;
-
-    return matchesSearch && matchesStatus && matchesList;
-  });
-
   const handleQuickFilterClick = (listId: string) => {
     if (selectedListFilter === listId) {
       setSelectedListFilter('all');
     } else {
       setSelectedListFilter(listId);
     }
+    setPage(1);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleListFilterChange = (value: string) => {
+    setSelectedListFilter(value);
+    setPage(1);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase">Total</p>
+              {statsLoading ? (
+                <div className="h-7 w-16 bg-slate-200 rounded animate-pulse mt-0.5" />
+              ) : (
+                <p className="text-2xl font-bold text-slate-900">{(stats?.total || total).toLocaleString()}</p>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase">Called</p>
+              {statsLoading ? (
+                <div className="h-7 w-12 bg-slate-200 rounded animate-pulse mt-0.5" />
+              ) : (
+                <p className="text-2xl font-bold text-slate-900">{(stats?.called || 0).toLocaleString()}</p>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+              <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase">With Email</p>
+              {statsLoading ? (
+                <div className="h-7 w-12 bg-slate-200 rounded animate-pulse mt-0.5" />
+              ) : (
+                <p className="text-2xl font-bold text-slate-900">{(stats?.withEmail || 0).toLocaleString()}</p>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+              <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase">Last 7 Days</p>
+              {statsLoading ? (
+                <div className="h-7 w-12 bg-slate-200 rounded animate-pulse mt-0.5" />
+              ) : (
+                <p className="text-2xl font-bold text-slate-900">{(stats?.recentlyAdded || 0).toLocaleString()}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Quick Filters - List Badges */}
       {contactLists.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-sm">
@@ -339,7 +516,7 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
               }`}
             >
-              All Contacts ({contacts.length})
+              All Contacts ({(stats?.total || total).toLocaleString()})
             </button>
             <button
               onClick={() => setSelectedListFilter('none')}
@@ -349,10 +526,9 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
               }`}
             >
-              No List ({contacts.filter(c => !c.list_id).length})
+              No List ({(stats?.noList || 0).toLocaleString()})
             </button>
             {contactLists.map((list) => {
-              const listContactCount = contacts.filter(c => c.list_id === list.id).length;
               const listColor = list.color || '#3b82f6';
               return (
                 <button
@@ -371,9 +547,11 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                 >
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: listColor }}></div>
                   {list.name}
-                  <span className="ml-1 px-1.5 py-0.5 bg-white/50 rounded text-xs font-semibold">
-                    {listContactCount}
-                  </span>
+                  {selectedListFilter === list.id && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-white/50 rounded text-xs font-semibold">
+                      {total.toLocaleString()}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -484,8 +662,8 @@ export default function ContactsManager({ initialContacts, initialContactLists =
         <div className="flex gap-3 w-full lg:w-auto flex-wrap">
           <select
             value={selectedListFilter}
-            onChange={(e) => setSelectedListFilter(e.target.value)}
-            className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer"
+            onChange={(e) => handleListFilterChange(e.target.value)}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer"
           >
             <option value="all">All Lists</option>
             <option value="none">No List</option>
@@ -496,15 +674,50 @@ export default function ContactsManager({ initialContacts, initialContactLists =
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer"
+            onChange={(e) => handleStatusFilterChange(e.target.value)}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer"
           >
             <option value="all">All Statuses</option>
             <option value="Pending">Pending</option>
             <option value="Calling">Calling</option>
             <option value="Fully Verified">Verified</option>
             <option value="For Callback">For Callback</option>
+            <option value="No Answer">No Answer</option>
+            <option value="Voicemail Left">Voicemail</option>
+            <option value="Wrong Number">Wrong Number</option>
           </select>
+
+          {/* AI Insights */}
+          <div className="relative" ref={aiMenuRef}>
+            <button
+              onClick={() => setShowAIMenu(!showAIMenu)}
+              disabled={aiLoading}
+              className="px-3 py-2 text-sm border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 font-medium disabled:opacity-50"
+            >
+              {aiLoading ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+              )}
+              AI Insights
+            </button>
+            {showAIMenu && (
+              <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-xl border border-slate-200 py-1 z-50">
+                <button onClick={() => handleAIAnalysis('suggest-segments')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <div className="font-medium">Suggest Segments</div>
+                  <div className="text-xs text-slate-400">AI-powered list suggestions</div>
+                </button>
+                <button onClick={() => handleAIAnalysis('analyze-quality')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <div className="font-medium">Data Quality</div>
+                  <div className="text-xs text-slate-400">Analyze data completeness</div>
+                </button>
+                <button onClick={() => handleAIAnalysis('suggest-tags')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <div className="font-medium">Suggest Tags</div>
+                  <div className="text-xs text-slate-400">Smart tagging recommendations</div>
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             onClick={() => setShowListManager(true)}
@@ -721,12 +934,22 @@ export default function ContactsManager({ initialContacts, initialContactLists =
       </div>
 
       <ContactsTable
-        contacts={filteredContacts}
-        onRefresh={refreshContacts}
+        contacts={contacts}
         selectedContactIds={selectedContactIds}
         onSelectionChange={setSelectedContactIds}
         contactLists={contactLists}
         onListClick={handleQuickFilterClick}
+        onContactClick={(contact) => setSelectedContact(contact)}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        isLoading={isLoading}
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
       />
 
       {showImportModal && (
@@ -783,6 +1006,151 @@ export default function ContactsManager({ initialContacts, initialContactLists =
           onUpdate={loadContactLists}
           onShowToast={showToast}
         />
+      )}
+
+      {/* Contact Detail Drawer */}
+      {selectedContact && (
+        <ContactDetailDrawer
+          contact={selectedContact}
+          onClose={() => setSelectedContact(null)}
+          onRefresh={() => {
+            refreshContacts();
+            setSelectedContact(null);
+          }}
+          onShowToast={showToast}
+          sfConnected={sfConnected}
+          hsConnected={hsConnected}
+          pdConnected={pdConnected}
+        />
+      )}
+
+      {/* AI Results Modal */}
+      {aiResult && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-md border border-slate-200 flex flex-col">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  {aiResult.action === 'suggest-segments' ? 'Suggested Segments' :
+                   aiResult.action === 'analyze-quality' ? 'Data Quality Report' :
+                   'Suggested Tags'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">Analyzed {aiResult.contactCount} contacts</p>
+              </div>
+              <button
+                onClick={() => setAIResult(null)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {aiResult.action === 'suggest-segments' && (
+                <>
+                  {(aiResult.result as { segments?: { name: string; description: string; criteria: string; estimatedCount: number; color: string }[] }).segments?.map((seg, i) => (
+                    <div key={i} className="border border-slate-200 rounded-xl p-4 hover:shadow-sm transition-all">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: seg.color }} />
+                        <h4 className="font-semibold text-slate-900">{seg.name}</h4>
+                        <span className="ml-auto text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">~{seg.estimatedCount} contacts</span>
+                      </div>
+                      <p className="text-sm text-slate-600 mb-1">{seg.description}</p>
+                      <p className="text-xs text-slate-400">Criteria: {seg.criteria}</p>
+                    </div>
+                  ))}
+                  {(aiResult.result as { insights?: string[] }).insights && (
+                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                      <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">Key Insights</h4>
+                      <ul className="space-y-1">
+                        {(aiResult.result as { insights: string[] }).insights.map((insight, i) => (
+                          <li key={i} className="text-sm text-blue-800 flex items-start gap-2">
+                            <span className="text-blue-500 mt-0.5">&#x2022;</span>
+                            {insight}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {aiResult.action === 'analyze-quality' && (
+                <>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="relative w-20 h-20">
+                      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="15.5" fill="none" className="stroke-slate-200" strokeWidth="3" />
+                        <circle cx="18" cy="18" r="15.5" fill="none" className={`${
+                          ((aiResult.result as { overallScore?: number }).overallScore || 0) >= 70 ? 'stroke-emerald-500' :
+                          ((aiResult.result as { overallScore?: number }).overallScore || 0) >= 40 ? 'stroke-amber-500' : 'stroke-red-500'
+                        }`} strokeWidth="3" strokeDasharray={`${((aiResult.result as { overallScore?: number }).overallScore || 0)} 100`} strokeLinecap="round" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-lg font-bold text-slate-900">{(aiResult.result as { overallScore?: number }).overallScore || 0}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Overall Quality Score</p>
+                      <p className="text-xs text-slate-500">Based on data completeness and accuracy</p>
+                    </div>
+                  </div>
+                  {(aiResult.result as { issues?: { type: string; count: number; severity: string; suggestion: string }[] }).issues?.map((issue, i) => (
+                    <div key={i} className={`border rounded-xl p-3 flex items-start gap-3 ${
+                      issue.severity === 'high' ? 'border-red-200 bg-red-50/50' :
+                      issue.severity === 'medium' ? 'border-amber-200 bg-amber-50/50' : 'border-slate-200 bg-slate-50/50'
+                    }`}>
+                      <span className={`mt-0.5 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded ${
+                        issue.severity === 'high' ? 'bg-red-100 text-red-700' :
+                        issue.severity === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'
+                      }`}>{issue.severity}</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-900">{issue.type.replace(/_/g, ' ')} ({issue.count})</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{issue.suggestion}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {(aiResult.result as { recommendations?: string[] }).recommendations && (
+                    <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+                      <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">Recommendations</h4>
+                      <ul className="space-y-1">
+                        {(aiResult.result as { recommendations: string[] }).recommendations.map((rec, i) => (
+                          <li key={i} className="text-sm text-emerald-800 flex items-start gap-2">
+                            <span className="text-emerald-500 mt-0.5">&#x2022;</span>
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {aiResult.action === 'suggest-tags' && (
+                <div className="space-y-2">
+                  {(aiResult.result as { suggestedTags?: { tag: string; reason: string; matchCount: number }[] }).suggestedTags?.map((tag, i) => (
+                    <div key={i} className="border border-slate-200 rounded-xl p-3 flex items-center gap-3 hover:shadow-sm transition-all">
+                      <span className="px-2.5 py-1 bg-[var(--color-primary-50)] text-[var(--color-primary)] text-sm font-semibold rounded-lg border border-[var(--color-primary-200)]">{tag.tag}</span>
+                      <div className="flex-1">
+                        <p className="text-sm text-slate-600">{tag.reason}</p>
+                      </div>
+                      <span className="text-xs text-slate-400 font-medium">{tag.matchCount} matches</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+              <button
+                onClick={() => setAIResult(null)}
+                className="w-full px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toast Notifications */}
