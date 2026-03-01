@@ -277,12 +277,16 @@ export default function ContactsManager({ initialContacts, initialContactLists =
       onConfirm: async () => {
         try {
           const count = selectedContactIds.length;
-          const { error } = await supabase
-            .from('contacts')
-            .delete()
-            .in('id', selectedContactIds);
-
-          if (error) throw error;
+          // Batch deletes to avoid URL length limits (Supabase REST API uses query params)
+          const BATCH_SIZE = 50;
+          for (let i = 0; i < selectedContactIds.length; i += BATCH_SIZE) {
+            const batch = selectedContactIds.slice(i, i + BATCH_SIZE);
+            const { error } = await supabase
+              .from('contacts')
+              .delete()
+              .in('id', batch);
+            if (error) throw error;
+          }
 
           await refreshContacts();
           setSelectedContactIds([]);
@@ -600,6 +604,13 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                       <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></span>
                       JSON
                     </button>
+                    <button
+                      onClick={handleGoogleSheetsClick}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
+                    >
+                      <GoogleSheetsIcon className="w-4 h-4 flex-shrink-0" />
+                      Sheets
+                    </button>
                   </div>
                 </div>
 
@@ -701,29 +712,6 @@ export default function ContactsManager({ initialContacts, initialContactLists =
                       </svg>
                     </Link>
 
-                    {/* Google Sheets */}
-                    <button
-                      onClick={handleGoogleSheetsClick}
-                      className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                        <GoogleSheetsIcon className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-slate-900 flex items-center gap-2">
-                          Google Sheets
-                          {gsConnected && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {gsConnected ? 'Browse & import from your sheets' : 'Connect Google to import'}
-                        </div>
-                      </div>
-                      <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
                   </div>
                 </div>
               </div>

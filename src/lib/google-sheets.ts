@@ -1,5 +1,5 @@
 // lib/google-sheets.ts
-// Google Sheets API service - handles OAuth, spreadsheet operations, and bidirectional sync
+// Google Sheets API service - handles OAuth, spreadsheet operations, and inbound import
 
 import { google } from 'googleapis';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
@@ -26,9 +26,10 @@ function getGoogleConfig() {
   };
 }
 
-// Full access to sheets (read + write) + drive (to list files) + user profile
+// Read-only access to sheets + drive (to list files) + user profile
+// Google Sheets is used only for importing contacts (inbound), never writing back
 const SCOPES = [
-  'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/spreadsheets.readonly',
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
@@ -303,7 +304,7 @@ export interface LinkedSheet {
   sheet_tab_title: string;
   sheet_tab_id: number;
   column_mapping: Record<string, string>;
-  sync_direction: 'inbound' | 'outbound' | 'bidirectional';
+  sync_direction: 'inbound';
   last_synced_at: string | null;
   last_sync_row_count: number;
   is_active: boolean;
@@ -336,7 +337,7 @@ export async function linkSheet(params: {
   sheetTabTitle: string;
   sheetTabId: number;
   columnMapping: Record<string, string>;
-  syncDirection?: 'inbound' | 'outbound' | 'bidirectional';
+  syncDirection?: 'inbound';
 }): Promise<LinkedSheet> {
   const { data, error } = await supabaseAdmin
     .from('google_sheets_linked_sheets')
@@ -349,7 +350,7 @@ export async function linkSheet(params: {
         sheet_tab_title: params.sheetTabTitle,
         sheet_tab_id: params.sheetTabId,
         column_mapping: params.columnMapping,
-        sync_direction: params.syncDirection || 'bidirectional',
+        sync_direction: 'inbound',
         is_active: true,
       },
       { onConflict: 'company_id,spreadsheet_id,sheet_tab_title' }
@@ -372,236 +373,9 @@ export async function unlinkSheet(linkedSheetId: string): Promise<void> {
 }
 
 // ============================================================================
-// OUTBOUND SYNC — Write Callengo data to Google Sheets
+// OUTBOUND SYNC — REMOVED
+// Google Sheets is import-only. Callengo never writes back to Google Sheets.
 // ============================================================================
-
-// Standard headers for the Callengo contact sheet
-const CALLENGO_HEADERS = [
-  'Contact Name',
-  'Phone Number',
-  'Email',
-  'Company',
-  'Status',
-  'Call Status',
-  'Call Outcome',
-  'Last Call Date',
-  'Call Duration (s)',
-  'Call Attempts',
-  'Sentiment',
-  'Interest Level',
-  'Follow-up Required',
-  'Summary',
-  'Tags',
-  'Notes',
-  'Source',
-  'Created At',
-  'Updated At',
-];
-
-interface ContactForSheet {
-  contact_name?: string | null;
-  phone_number: string;
-  email?: string | null;
-  company_name?: string | null;
-  status?: string | null;
-  call_status?: string | null;
-  call_outcome?: string | null;
-  last_call_date?: string | null;
-  call_duration?: number | null;
-  call_attempts?: number | null;
-  analysis?: unknown;
-  call_metadata?: unknown;
-  tags?: string[] | unknown;
-  notes?: string | null;
-  source?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
-
-function contactToRow(c: ContactForSheet): string[] {
-  const analysis = (c.analysis && typeof c.analysis === 'object' ? c.analysis : {}) as Record<string, unknown>;
-  const metadata = (c.call_metadata && typeof c.call_metadata === 'object' ? c.call_metadata : {}) as Record<string, unknown>;
-  const tags = Array.isArray(c.tags) ? c.tags : [];
-  return [
-    c.contact_name || '',
-    c.phone_number || '',
-    c.email || '',
-    c.company_name || '',
-    c.status || '',
-    c.call_status || '',
-    c.call_outcome || '',
-    c.last_call_date ? new Date(c.last_call_date).toLocaleString() : '',
-    c.call_duration != null ? String(c.call_duration) : '',
-    c.call_attempts != null ? String(c.call_attempts) : '',
-    String(analysis.callSentiment || ''),
-    String(analysis.customerInterestLevel || ''),
-    analysis.followUpRequired ? 'Yes' : analysis.followUpRequired === false ? 'No' : '',
-    String(metadata.summary || c.call_outcome || ''),
-    tags.join(', '),
-    c.notes || '',
-    c.source || 'callengo',
-    c.created_at ? new Date(c.created_at).toLocaleString() : '',
-    c.updated_at ? new Date(c.updated_at).toLocaleString() : '',
-  ];
-}
-
-/** Push all company contacts to a linked Google Sheet (full overwrite) */
-export async function pushContactsToSheet(
-  integration: SheetsIntegration,
-  linkedSheet: LinkedSheet,
-  companyId: string
-): Promise<{ success: boolean; rowCount: number; error?: string }> {
-  try {
-    // Fetch all contacts for this company
-    const { data: contacts, error: fetchError } = await supabaseAdmin
-      .from('contacts')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false });
-
-    if (fetchError) throw new Error(`Failed to fetch contacts: ${fetchError.message}`);
-
-    const auth = await getAuthenticatedClient(integration);
-    const sheetsApi = google.sheets({ version: 'v4', auth });
-
-    // Build the data: headers + rows
-    const rows = (contacts || []).map((c: ContactForSheet) => contactToRow(c));
-    const values = [CALLENGO_HEADERS, ...rows];
-
-    // Clear existing content first
-    await sheetsApi.spreadsheets.values.clear({
-      spreadsheetId: linkedSheet.spreadsheet_id,
-      range: `'${linkedSheet.sheet_tab_title}'`,
-    });
-
-    // Write new data
-    await sheetsApi.spreadsheets.values.update({
-      spreadsheetId: linkedSheet.spreadsheet_id,
-      range: `'${linkedSheet.sheet_tab_title}'!A1`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values },
-    });
-
-    // Format header row as bold
-    try {
-      await sheetsApi.spreadsheets.batchUpdate({
-        spreadsheetId: linkedSheet.spreadsheet_id,
-        requestBody: {
-          requests: [
-            {
-              repeatCell: {
-                range: {
-                  sheetId: linkedSheet.sheet_tab_id,
-                  startRowIndex: 0,
-                  endRowIndex: 1,
-                },
-                cell: {
-                  userEnteredFormat: {
-                    textFormat: { bold: true },
-                    backgroundColor: { red: 0.93, green: 0.93, blue: 0.93 },
-                  },
-                },
-                fields: 'userEnteredFormat(textFormat,backgroundColor)',
-              },
-            },
-          ],
-        },
-      });
-    } catch {
-      // Non-fatal: formatting failed but data is written
-    }
-
-    // Update sync metadata
-    await supabaseAdmin
-      .from('google_sheets_linked_sheets')
-      .update({
-        last_synced_at: new Date().toISOString(),
-        last_sync_row_count: rows.length,
-      })
-      .eq('id', linkedSheet.id);
-
-    await supabaseAdmin
-      .from('google_sheets_integrations')
-      .update({ last_used_at: new Date().toISOString() })
-      .eq('id', integration.id);
-
-    return { success: true, rowCount: rows.length };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Failed to push contacts to sheet:', message);
-    return { success: false, rowCount: 0, error: message };
-  }
-}
-
-/** Push a single contact update to the linked sheet (append or update row) */
-export async function pushSingleContactToSheet(
-  integration: SheetsIntegration,
-  linkedSheet: LinkedSheet,
-  contact: ContactForSheet
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const auth = await getAuthenticatedClient(integration);
-    const sheetsApi = google.sheets({ version: 'v4', auth });
-
-    // Read existing data to find the contact row by phone number
-    const existing = await sheetsApi.spreadsheets.values.get({
-      spreadsheetId: linkedSheet.spreadsheet_id,
-      range: `'${linkedSheet.sheet_tab_title}'`,
-      valueRenderOption: 'FORMATTED_VALUE',
-    });
-
-    const allRows = existing.data.values || [];
-    const phoneColIndex = 1; // Phone Number is column B (index 1)
-
-    // Find existing row by phone number
-    let rowIndex = -1;
-    for (let i = 1; i < allRows.length; i++) {
-      const rowPhone = (allRows[i]?.[phoneColIndex] || '').replace(/\D/g, '');
-      const contactPhone = (contact.phone_number || '').replace(/\D/g, '');
-      if (rowPhone && contactPhone && rowPhone === contactPhone) {
-        rowIndex = i;
-        break;
-      }
-    }
-
-    const newRow = contactToRow(contact);
-
-    if (rowIndex > 0) {
-      // Update existing row
-      await sheetsApi.spreadsheets.values.update({
-        spreadsheetId: linkedSheet.spreadsheet_id,
-        range: `'${linkedSheet.sheet_tab_title}'!A${rowIndex + 1}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [newRow] },
-      });
-    } else {
-      // Ensure headers exist
-      if (allRows.length === 0) {
-        await sheetsApi.spreadsheets.values.update({
-          spreadsheetId: linkedSheet.spreadsheet_id,
-          range: `'${linkedSheet.sheet_tab_title}'!A1`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: { values: [CALLENGO_HEADERS] },
-        });
-      }
-
-      // Append new row
-      await sheetsApi.spreadsheets.values.append({
-        spreadsheetId: linkedSheet.spreadsheet_id,
-        range: `'${linkedSheet.sheet_tab_title}'!A1`,
-        valueInputOption: 'USER_ENTERED',
-        insertDataOption: 'INSERT_ROWS',
-        requestBody: { values: [newRow] },
-      });
-    }
-
-    return { success: true };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Failed to push single contact to sheet:', message);
-    return { success: false, error: message };
-  }
-}
 
 /** Progress callback for sync operations */
 export type SyncProgressCallback = (progress: {
@@ -800,7 +574,7 @@ export async function pullContactsFromSheet(
   }
 }
 
-/** Full sync: pull inbound then optionally push outbound */
+/** Import contacts from a linked Google Sheet (inbound only — never writes to Google Sheets) */
 export async function syncLinkedSheet(
   integration: SheetsIntegration,
   linkedSheet: LinkedSheet,
@@ -809,33 +583,17 @@ export async function syncLinkedSheet(
 ): Promise<{
   success: boolean;
   inbound: { created: number; updated: number; skipped: number; total: number };
-  outbound: { rowCount: number };
   error?: string;
 }> {
-  const direction = linkedSheet.sync_direction;
   let inbound = { created: 0, updated: 0, skipped: 0, total: 0 };
-  let outbound = { rowCount: 0 };
 
-  // Inbound first (pull new contacts from sheet)
-  if (direction === 'inbound' || direction === 'bidirectional') {
-    const inResult = await pullContactsFromSheet(integration, linkedSheet, companyId, onProgress);
-    if (!inResult.success) {
-      return { success: false, inbound, outbound, error: inResult.error };
-    }
-    inbound = { created: inResult.created, updated: inResult.updated, skipped: inResult.skipped, total: inResult.total };
+  const inResult = await pullContactsFromSheet(integration, linkedSheet, companyId, onProgress);
+  if (!inResult.success) {
+    return { success: false, inbound, error: inResult.error };
   }
+  inbound = { created: inResult.created, updated: inResult.updated, skipped: inResult.skipped, total: inResult.total };
 
-  // Outbound (push all contacts to sheet — only if explicitly set to outbound or bidirectional)
-  // SAFETY: outbound push overwrites the Google Sheet, so only do it when explicitly requested
-  if (direction === 'outbound' || direction === 'bidirectional') {
-    const outResult = await pushContactsToSheet(integration, linkedSheet, companyId);
-    if (!outResult.success) {
-      return { success: false, inbound, outbound, error: outResult.error };
-    }
-    outbound = { rowCount: outResult.rowCount };
-  }
-
-  return { success: true, inbound, outbound };
+  return { success: true, inbound };
 }
 
 /** Create a notification for sync completion */

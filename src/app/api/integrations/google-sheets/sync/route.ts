@@ -1,5 +1,5 @@
 // app/api/integrations/google-sheets/sync/route.ts
-// Trigger sync for linked Google Sheets with streaming progress updates
+// Import contacts from linked Google Sheets with streaming progress updates (inbound only)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';

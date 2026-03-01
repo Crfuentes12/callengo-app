@@ -1,5 +1,5 @@
 // app/api/integrations/google-sheets/link/route.ts
-// Link/unlink a Google Sheet for bidirectional sync
+// Link/unlink a Google Sheet for contact import
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       sheetTabTitle,
       sheetTabId: sheetTabId || 0,
       columnMapping: columnMapping || {},
-      syncDirection: syncDirection || 'bidirectional',
+      syncDirection: 'inbound',
     });
 
     return NextResponse.json({ success: true, linkedSheet: linked });

@@ -376,7 +376,7 @@ export default function GoogleSheetsPickerModal({
                               <p className="text-xs text-slate-500 flex items-center gap-1.5">
                                 <span>{ls.sheet_tab_title}</span>
                                 <span className="text-slate-300">·</span>
-                                <span className="capitalize">{ls.sync_direction}</span>
+                                <span>Import</span>
                                 {ls.last_synced_at && (
                                   <>
                                     <span className="text-slate-300">·</span>
