@@ -113,15 +113,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
               syncResults.pipedrive = { success: false, error: 'Not connected' };
             }
           } else if (crm === 'clio') {
-            // Clio has outbound push support
-            const { getActiveClioIntegration, pushContactToClio } = await import('@/lib/clio');
-            const clioIntegration = await getActiveClioIntegration(companyId);
-            if (clioIntegration) {
-              const result = await pushContactToClio(clioIntegration, id);
-              syncResults.clio = result;
-            } else {
-              syncResults.clio = { success: false, error: 'Not connected' };
-            }
+            // Clio Contacts Write scope unavailable — contact field updates not supported
+            syncResults.clio = { success: false, error: 'Contacts Write scope not available in Clio' };
           } else if (crm === 'salesforce') {
             // Salesforce doesn't have outbound push yet — just note it
             syncResults.salesforce = { success: false, error: 'Outbound sync not available yet' };

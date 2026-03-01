@@ -375,75 +375,8 @@ export async function syncClioContactsToCallengo(
 }
 
 // ============================================================================
-// OUTBOUND SYNC: CALLENGO → CLIO
+// OUTBOUND SYNC: CALLENGO → CLIO (Contact Notes only — Contacts Write scope unavailable)
 // ============================================================================
-
-/**
- * Update a Clio Contact with Callengo contact data
- */
-export async function pushContactToClio(
-  integration: ClioIntegration,
-  callengoContactId: string
-): Promise<{ success: boolean; error?: string }> {
-  const { data: mapping } = await supabaseAdmin
-    .from('clio_contact_mappings')
-    .select('clio_contact_id')
-    .eq('integration_id', integration.id)
-    .eq('callengo_contact_id', callengoContactId)
-    .maybeSingle();
-
-  if (!mapping?.clio_contact_id) {
-    return { success: false, error: 'No Clio mapping found for this contact' };
-  }
-
-  const { data: contact } = await supabaseAdmin
-    .from('contacts')
-    .select('*')
-    .eq('id', callengoContactId)
-    .single();
-
-  if (!contact) {
-    return { success: false, error: 'Contact not found in Callengo' };
-  }
-
-  const client = await getClioClient(integration);
-
-  // Build update payload following Clio API v4 format
-  const updatePayload: Record<string, unknown> = {};
-  if (contact.contact_name) {
-    const nameParts = (contact.contact_name as string).split(' ');
-    updatePayload.first_name = nameParts[0] || '';
-    updatePayload.last_name = nameParts.slice(1).join(' ') || '';
-  }
-  if (contact.email) {
-    updatePayload.email_addresses = [{ name: 'Work', address: contact.email, default_email: true }];
-  }
-  if (contact.phone_number) {
-    updatePayload.phone_numbers = [{ name: 'Work', number: contact.phone_number, default_number: true }];
-  }
-
-  const res = await client.fetch(`/contacts/${mapping.clio_contact_id}.json`, {
-    method: 'PATCH',
-    body: JSON.stringify({ data: updatePayload }),
-  });
-
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '');
-    return { success: false, error: `Clio API error ${res.status}: ${errBody}` };
-  }
-
-  // Update mapping direction
-  await supabaseAdmin
-    .from('clio_contact_mappings')
-    .update({
-      last_synced_at: new Date().toISOString(),
-      sync_direction: 'bidirectional',
-    })
-    .eq('integration_id', integration.id)
-    .eq('callengo_contact_id', callengoContactId);
-
-  return { success: true };
-}
 
 /**
  * Create a Clio Note on a Contact (for call transcripts, AI analysis, etc.)
@@ -585,9 +518,6 @@ export async function pushCallResultToClio(
     contactId: clioContactId,
   });
 
-  // Push updated contact info back to Clio
-  await pushContactToClio(integration, callengoContactId);
-
   // Update mapping sync direction
   await supabaseAdmin
     .from('clio_contact_mappings')
@@ -608,7 +538,6 @@ export async function pushContactUpdatesToClio(
   integration: ClioIntegration
 ): Promise<ClioOutboundSyncResult> {
   const result: ClioOutboundSyncResult = {
-    contacts_pushed: 0,
     notes_created: 0,
     errors: [],
   };
@@ -636,15 +565,7 @@ export async function pushContactUpdatesToClio(
         const lastSynced = mapping.last_synced_at ? new Date(mapping.last_synced_at).getTime() : 0;
         if (contactUpdated <= lastSynced) continue;
 
-        // Push contact data update
-        const pushResult = await pushContactToClio(integration, mapping.callengo_contact_id);
-        if (pushResult.success) {
-          result.contacts_pushed++;
-        } else if (pushResult.error) {
-          result.errors.push(`Contact ${mapping.callengo_contact_id}: ${pushResult.error}`);
-        }
-
-        // If there's a completed call, push note
+        // Push call result as Contact Note (Contacts Write scope unavailable, notes only)
         if (contact.call_status && contact.call_status !== 'pending' && contact.call_status !== 'queued') {
           const callResult = await pushCallResultToClio(integration, mapping.callengo_contact_id);
           if (callResult.noteId) result.notes_created++;

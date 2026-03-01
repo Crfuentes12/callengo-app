@@ -92,14 +92,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // OUTBOUND SYNC (Callengo → Clio)
-    let outboundResult = { contacts_pushed: 0, notes_created: 0, errors: [] as string[] };
+    // OUTBOUND SYNC (Callengo → Clio: Contact Notes only, Contacts Write unavailable)
+    let outboundResult = { notes_created: 0, errors: [] as string[] };
     if (direction === 'outbound' || direction === 'bidirectional') {
       outboundResult = await pushContactUpdatesToClio(clioIntegration);
     }
 
-    const totalCreated = inboundResult.contacts_created;
-    const totalUpdated = inboundResult.contacts_updated + outboundResult.contacts_pushed;
+    const totalCreated = inboundResult.contacts_created + outboundResult.notes_created;
+    const totalUpdated = inboundResult.contacts_updated;
     const totalSkipped = inboundResult.contacts_skipped;
     const allErrors = [...inboundResult.errors, ...outboundResult.errors];
 
@@ -134,7 +134,6 @@ export async function POST(request: NextRequest) {
         contacts_skipped: inboundResult.contacts_skipped,
       },
       outbound: {
-        contacts_pushed: outboundResult.contacts_pushed,
         notes_created: outboundResult.notes_created,
       },
       errors: allErrors,

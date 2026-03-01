@@ -215,7 +215,6 @@ export interface ClioSyncResult {
 }
 
 export interface ClioOutboundSyncResult {
-  contacts_pushed: number;
   notes_created: number;
   errors: string[];
 }
