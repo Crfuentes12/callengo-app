@@ -8,7 +8,7 @@ const EXPORT_FIELDS = [
   'company_name', 'contact_name', 'email', 'phone_number',
   'address', 'city', 'state', 'zip_code',
   'status', 'call_outcome', 'last_call_date',
-  'call_attempts', 'call_duration', 'notes', 'tags', 'source',
+  'call_attempts', 'call_duration', 'notes', 'source',
 ] as const;
 
 const HEADER_LABELS: Record<string, string> = {
@@ -26,7 +26,6 @@ const HEADER_LABELS: Record<string, string> = {
   call_attempts: 'Call Attempts',
   call_duration: 'Call Duration (s)',
   notes: 'Notes',
-  tags: 'Tags',
   source: 'Source',
 };
 
@@ -96,7 +95,7 @@ export async function GET(request: NextRequest) {
       const jsonData = allContacts.map(c => {
         const row: Record<string, unknown> = {};
         for (const field of EXPORT_FIELDS) {
-          row[HEADER_LABELS[field] || field] = field === 'tags' ? (c[field] || []).join(', ') : (c[field] ?? '');
+          row[HEADER_LABELS[field] || field] = c[field] ?? '';
         }
         return row;
       });
@@ -130,7 +129,7 @@ export async function GET(request: NextRequest) {
       for (const c of allContacts) {
         xml += '<Row>\n';
         for (const field of EXPORT_FIELDS) {
-          const val = field === 'tags' ? (c[field] || []).join(', ') : String(c[field] ?? '');
+          const val = String(c[field] ?? '');
           const type = (field === 'call_attempts' || field === 'call_duration') ? 'Number' : 'String';
           xml += `<Cell><Data ss:Type="${type}">${escapeXml(val)}</Data></Cell>\n`;
         }

@@ -51,7 +51,6 @@ export default function ContactDetailDrawer({
     zip_code: contact.zip_code || '',
     status: contact.status || 'Pending',
     notes: contact.notes || '',
-    tags: (contact.tags || []).join(', '),
   });
   const [saving, setSaving] = useState(false);
   const [crmMappings, setCrmMappings] = useState<CrmMappings | null>(null);
@@ -83,9 +82,6 @@ export default function ContactDetailDrawer({
     if (editData.zip_code !== (contact.zip_code || '')) updates.zip_code = editData.zip_code || null;
     if (editData.status !== contact.status) updates.status = editData.status;
     if (editData.notes !== (contact.notes || '')) updates.notes = editData.notes || null;
-    const newTags = editData.tags.split(',').map(t => t.trim()).filter(Boolean);
-    const oldTags = contact.tags || [];
-    if (JSON.stringify(newTags) !== JSON.stringify(oldTags)) updates.tags = newTags;
 
     if (Object.keys(updates).length === 0) {
       setIsEditing(false);
@@ -152,8 +148,6 @@ export default function ContactDetailDrawer({
     if (editData.zip_code !== (contact.zip_code || '')) updates.zip_code = editData.zip_code || null;
     if (editData.status !== contact.status) updates.status = editData.status;
     if (editData.notes !== (contact.notes || '')) updates.notes = editData.notes || null;
-    const newTags = editData.tags.split(',').map(t => t.trim()).filter(Boolean);
-    if (JSON.stringify(newTags) !== JSON.stringify(contact.tags || [])) updates.tags = newTags;
 
     await saveContact(updates, syncSelections);
   };
@@ -294,29 +288,6 @@ export default function ContactDetailDrawer({
                   <InputField label="State" field="state" />
                   <InputField label="Zip Code" field="zip_code" />
                 </div>
-              </div>
-
-              {/* Tags */}
-              <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tags</h3>
-                {isEditing ? (
-                  <input
-                    value={editData.tags}
-                    onChange={(e) => setEditData(prev => ({ ...prev, tags: e.target.value }))}
-                    placeholder="tag1, tag2, tag3..."
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
-                  />
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {contact.tags && contact.tags.length > 0 ? (
-                      contact.tags.map((tag, i) => (
-                        <span key={i} className="px-2 py-0.5 bg-white text-slate-600 text-xs rounded-md border border-slate-200 font-medium">{tag}</span>
-                      ))
-                    ) : (
-                      <span className="text-slate-300 text-sm">No tags</span>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Notes */}

@@ -66,7 +66,6 @@ export default function ContactsTable({
   const [visibleColumns, setVisibleColumns] = useState({
     address: false,
     zipCode: false,
-    tags: true,
     lastCallDate: true,
     callAttempts: false,
     source: false,
@@ -141,7 +140,6 @@ export default function ContactsTable({
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">List</th>
               <SortableHeader field="contact_name">Contact</SortableHeader>
               <SortableHeader field="email">Email</SortableHeader>
-              {visibleColumns.tags && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Tags</th>}
               {visibleColumns.lastCallDate && <SortableHeader field="last_call_date">Last Call</SortableHeader>}
               {visibleColumns.callAttempts && <SortableHeader field="call_attempts">Attempts</SortableHeader>}
               {visibleColumns.source && <SortableHeader field="source">Source</SortableHeader>}
@@ -161,7 +159,6 @@ export default function ContactsTable({
                     {Object.entries({
                       address: 'Address',
                       zipCode: 'Zip Code',
-                      tags: 'Tags',
                       lastCallDate: 'Last Call Date',
                       callAttempts: 'Call Attempts',
                       source: 'Source',
@@ -202,7 +199,6 @@ export default function ContactsTable({
                   <td className="px-4 py-3.5"><div className="h-5 w-16 bg-slate-200 rounded-lg" /></td>
                   <td className="px-4 py-3.5"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
                   <td className="px-4 py-3.5"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
-                  {visibleColumns.tags && <td className="px-4 py-3.5"><div className="h-4 w-16 bg-slate-200 rounded" /></td>}
                   {visibleColumns.lastCallDate && <td className="px-4 py-3.5"><div className="h-4 w-20 bg-slate-200 rounded" /></td>}
                   {visibleColumns.callAttempts && <td className="px-4 py-3.5"><div className="h-4 w-8 bg-slate-200 rounded" /></td>}
                   {visibleColumns.source && <td className="px-4 py-3.5"><div className="h-4 w-16 bg-slate-200 rounded" /></td>}
@@ -289,22 +285,6 @@ export default function ContactsTable({
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500 max-w-[180px] truncate">
                     {contact.email || <span className="text-slate-300">—</span>}
                   </td>
-                  {visibleColumns.tags && (
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      {contact.tags && contact.tags.length > 0 ? (
-                        <div className="flex gap-1">
-                          {contact.tags.slice(0, 2).map((tag, i) => (
-                            <span key={i} className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded font-medium">{tag}</span>
-                          ))}
-                          {contact.tags.length > 2 && (
-                            <span className="px-1.5 py-0.5 bg-slate-100 text-slate-400 text-[10px] rounded">+{contact.tags.length - 2}</span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-slate-300">—</span>
-                      )}
-                    </td>
-                  )}
                   {visibleColumns.lastCallDate && (
                     <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
                       {contact.last_call_date ? new Date(contact.last_call_date).toLocaleDateString() : <span className="text-slate-300">—</span>}
