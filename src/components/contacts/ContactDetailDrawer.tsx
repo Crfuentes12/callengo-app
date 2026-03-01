@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Contact, CallAnalysis, CallMetadata } from '@/types/call-agent';
+import { Contact, CallAnalysis, CallMetadata, ContactStatus } from '@/types/call-agent';
 import {
   formatPhoneForDisplay,
   formatDuration,
@@ -264,7 +264,7 @@ export default function ContactDetailDrawer({
                 {isEditing ? (
                   <select
                     value={editData.status}
-                    onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value }))}
+                    onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value as ContactStatus }))}
                     className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   >
                     {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
