@@ -973,117 +973,86 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         </div>
       )}
 
-      {/* Current Free Plan */}
+      {/* Trial Expired Banner */}
+      {currentPlan && usage && usage.minutes_used >= usage.minutes_included && (
+        <div className="relative overflow-hidden bg-gradient-to-r from-red-50 via-orange-50 to-red-50 border border-red-200 rounded-2xl p-6">
+          <div className="relative z-10 flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-md">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-bold text-red-900 mb-1">Your trial has ended</h3>
+              <p className="text-sm text-red-800 mb-3">
+                You&apos;ve used all 15 trial minutes. To continue making calls and unlock the full power of Callengo, upgrade to a paid plan below.
+              </p>
+              <button
+                onClick={() => {
+                  const el = document.getElementById('plans-section');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-red-600 to-orange-600 text-white text-sm font-semibold hover:opacity-90 transition-all shadow-md"
+              >
+                Upgrade Now
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Current Free Trial Plan */}
       {currentPlan && usage && (
         <div>
-          <h3 className="text-lg font-bold text-slate-900 mb-4">Current Plan</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Free Trial</h3>
           <div className="gradient-bg-subtle border border-slate-200 rounded-xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="text-2xl font-bold text-slate-900">{currentPlan.name}</h4>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">Active</span>
+                  <h4 className="text-2xl font-bold text-slate-900">Free Trial</h4>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${usage.minutes_used >= usage.minutes_included ? 'bg-red-100 text-red-700 border-red-200' : 'bg-green-100 text-green-700 border-green-200'}`}>
+                    {usage.minutes_used >= usage.minutes_included ? 'Expired' : 'Active'}
+                  </span>
                 </div>
-                <p className="text-sm text-slate-600">{currentPlan.description}</p>
+                <p className="text-sm text-slate-600">Experience the full power of AI calling</p>
               </div>
               <div className="text-right">
                 <div className="text-3xl font-bold text-slate-900">$0</div>
-                <div className="text-sm text-slate-500">/forever</div>
+                <div className="text-sm text-slate-500">one-time</div>
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-700">Minutes Used</span>
+                <span className="font-medium text-slate-700">Trial Minutes Used</span>
                 <span className="font-bold text-slate-900">{usage.minutes_used.toLocaleString()} / {usage.minutes_included.toLocaleString()} min</span>
               </div>
               <div className="h-2 bg-white/80 rounded-full overflow-hidden">
-                <div className="h-full gradient-bg transition-all duration-500" style={{ width: `${usagePercent}%` }} />
+                <div className={`h-full transition-all duration-500 ${usagePercent >= 100 ? 'bg-red-500' : 'bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)]'}`} style={{ width: `${usagePercent}%` }} />
               </div>
-              <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} calls made · ~{getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining</p>
+              <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} calls made · {usage.minutes_used >= usage.minutes_included ? 'No minutes remaining — upgrade to continue' : `~${getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining`}</p>
             </div>
             <div className="mt-4 pt-4 border-t border-amber-200 bg-amber-50/50 -m-6 p-4 rounded-b-xl">
               <div className="flex items-start gap-2">
                 <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <div>
-                  <p className="text-xs font-semibold text-amber-900">One-Time Credit</p>
-                  <p className="text-xs text-amber-800 mt-0.5">Your 15 free minutes are for testing only and <strong>do not renew</strong>. Upgrade to a paid plan for ongoing use.</p>
+                  <p className="text-xs font-semibold text-amber-900">Trial — No Overage Available</p>
+                  <p className="text-xs text-amber-800 mt-0.5">Your 15 trial minutes are <strong>one-time only</strong> and do not renew. There is no overage or recharge option. Upgrade to a paid plan for ongoing use with overage capabilities.</p>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Overage for Free */}
-      {subscription && (
-        <div>
-          <h3 className="text-lg font-bold text-slate-900 mb-4">Overage Controls</h3>
-          <div className="bg-white border border-slate-200 rounded-xl p-6">
-            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <div className="flex gap-2">
-                <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                <div>
-                  <h5 className="font-semibold text-amber-900 text-sm mb-1">Free Plan Notice</h5>
-                  <p className="text-xs text-amber-800">Your 15 free minutes are <strong>one-time only</strong>, not monthly. Overage rate: <strong>$0.80/min</strong>. Max budget: <strong>$20</strong>.</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h4 className="font-semibold text-slate-900 mb-1">Auto-Overage Billing</h4>
-                <p className="text-sm text-slate-600">Continue making calls after your 15 free minutes run out</p>
-              </div>
-              <button onClick={() => setShowOverageModal(true)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${subscription.overage_enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
-                {subscription.overage_enabled ? 'Enabled' : 'Disabled'}
-              </button>
-            </div>
-            {subscription.overage_enabled && (
-              <div className="space-y-3 pt-4 border-t border-slate-100">
-                <div className="flex justify-between items-center"><span className="text-sm text-slate-600">Overage Budget</span><span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_budget)}</span></div>
-                <div className="flex justify-between items-center"><span className="text-sm text-slate-600">Overage Spent</span><span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_spent)}</span></div>
-                <div className="space-y-1">
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className={`h-full transition-all duration-500 ${subscription.overage_spent >= subscription.overage_budget ? 'bg-red-500' : subscription.overage_spent >= subscription.overage_budget * 0.85 ? 'bg-orange-500' : 'bg-green-500'}`} style={{ width: `${Math.min((subscription.overage_spent / subscription.overage_budget) * 100, 100)}%` }} />
-                  </div>
-                  <p className="text-xs text-slate-500">{formatPrice(subscription.overage_budget - subscription.overage_spent)} remaining</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Overage Modal (Free) */}
-      {showOverageModal && subscription && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 min-h-screen">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative z-10">
-            <h3 className="text-xl font-bold text-slate-900 mb-2">{subscription.overage_enabled ? 'Disable' : 'Enable'} Auto-Overage</h3>
-            <p className="text-sm text-slate-600 mb-6">{subscription.overage_enabled ? 'Disabling auto-overage will stop all calls once you reach your plan limits.' : 'Enable auto-overage to continue making calls beyond your free minutes.'}</p>
-            {!subscription.overage_enabled && (
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-900 mb-2">Overage Budget (Max $20)</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                  <input type="number" min="0" max={20} step="5" value={overageBudget} onChange={(e) => setOverageBudget(Math.min(Number(e.target.value), 20))} className="w-full pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" placeholder="10" />
-                </div>
-                <p className="text-xs text-slate-500 mt-2">Free plan has a maximum overage budget of $20.</p>
-              </div>
-            )}
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6"><p className="text-xs text-blue-900"><span className="font-semibold">Overage rate:</span> {formatPriceWithDecimals(currentPlan?.price_per_extra_minute || 0)}/minute</p></div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowOverageModal(false)} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">Cancel</button>
-              <button onClick={() => handleToggleOverage(!subscription.overage_enabled)} className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors ${subscription.overage_enabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}>{subscription.overage_enabled ? 'Disable Overage' : 'Enable Overage'}</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Choose Your Plan */}
-      <div>
+      <div id="plans-section">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-xl font-bold text-slate-900 mb-1">Choose Your Plan</h3>
-            <p className="text-sm text-slate-600">Select the perfect plan for your needs</p>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">Upgrade Your Plan</h3>
+            <p className="text-sm text-slate-600">Choose a plan to unlock unlimited AI calling with overage support</p>
           </div>
           {plans.length > 0 && (
             <div className="inline-flex items-center gap-2 p-1 bg-slate-100 rounded-lg">

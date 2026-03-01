@@ -30,36 +30,13 @@ export async function enableOverage(params: {
       throw new Error('Subscription not found');
     }
 
-    const isFreeOrTrialPlan = !subscription.stripe_subscription_id ||
-                              subscription.subscription_plans?.slug === 'free';
-
-    // For free/trial plans, just update the database
-    if (isFreeOrTrialPlan) {
-      await supabase
-        .from('company_subscriptions')
-        .update({
-          overage_enabled: true,
-          overage_budget: budget,
-        })
-        .eq('id', subscription.id);
-
-      // Log event
-      await supabase.from('billing_events').insert({
-        company_id: companyId,
-        subscription_id: subscription.id,
-        event_type: 'overage_enabled',
-        event_data: {
-          budget,
-          price_per_minute: subscription.subscription_plans?.price_per_extra_minute,
-          plan_type: 'free',
-        },
-        minutes_consumed: 0,
-        cost_usd: 0,
-      });
-
-      console.log(`✅ Overage enabled for free plan company ${companyId}`);
-      return;
+    // Free/trial plans cannot enable overage — they must upgrade
+    const isFreePlan = subscription.subscription_plans?.slug === 'free';
+    if (isFreePlan) {
+      throw new Error('Overage is not available on the free trial plan. Please upgrade to a paid plan to continue making calls.');
     }
+
+    const isFreeOrTrialPlan = !subscription.stripe_subscription_id;
 
     // For paid plans with Stripe subscription, add metered billing
     // Check if plan has metered price configured

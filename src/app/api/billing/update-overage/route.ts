@@ -62,12 +62,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Apply budget limits based on plan
-    let finalBudget = budget || 0;
+    // Free/trial plan users cannot enable or modify overage — must upgrade
     if (subscription?.plan?.slug === 'free') {
-      // Free plan has a max budget of $20
-      finalBudget = Math.min(finalBudget, 20);
+      return NextResponse.json(
+        { error: 'Overage is not available on the free trial plan. Please upgrade to a paid plan to continue making calls.' },
+        { status: 403 }
+      );
     }
+
+    // Apply budget for paid plans
+    let finalBudget = budget || 0;
 
     // Use Stripe integration to enable/disable overage
     if (enabled && !subscription.overage_enabled) {
