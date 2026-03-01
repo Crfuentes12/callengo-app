@@ -156,6 +156,8 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
   const [showAIMenu, setShowAIMenu] = useState(false);
   const [aiLoading, setAILoading] = useState(false);
   const [aiResult, setAIResult] = useState<AIResult | null>(null);
+  const [creatingSegments, setCreatingSegments] = useState<Set<number>>(new Set());
+  const [createdSegments, setCreatedSegments] = useState<Set<number>>(new Set());
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
     show: false,
@@ -299,6 +301,32 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       showToast(error instanceof Error ? error.message : 'AI analysis failed', 'error');
     } finally {
       setAILoading(false);
+    }
+  };
+
+  const handleCreateSegmentList = async (segment: { name: string; color: string; description: string; criteria: string }, index: number) => {
+    setCreatingSegments(prev => new Set(prev).add(index));
+    try {
+      const { error } = await supabase
+        .from('contact_lists')
+        .insert({
+          company_id: companyId,
+          name: segment.name,
+          description: `${segment.description} | Criteria: ${segment.criteria}`,
+          color: segment.color,
+        });
+      if (error) throw error;
+      setCreatedSegments(prev => new Set(prev).add(index));
+      await loadContactLists();
+      showToast(`List "${segment.name}" created successfully`, 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to create list', 'error');
+    } finally {
+      setCreatingSegments(prev => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
     }
   };
 
@@ -643,292 +671,226 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
         </div>
       )}
 
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-        <div className="flex-1 w-full lg:w-auto">
-          <div className="relative">
-            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      {/* Toolbar */}
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4">
+        {/* Row 1: Search + Actions */}
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
               type="text"
-              placeholder="Search contacts..."
+              placeholder="Search by name, company, phone, email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-900 placeholder-slate-400"
+              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm text-slate-900 placeholder-slate-400"
             />
           </div>
-        </div>
 
-        <div className="flex gap-3 w-full lg:w-auto flex-wrap">
-          <select
-            value={selectedListFilter}
-            onChange={(e) => handleListFilterChange(e.target.value)}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer"
-          >
-            <option value="all">All Lists</option>
-            <option value="none">No List</option>
-            {contactLists.map((list) => (
-              <option key={list.id} value={list.id}>{list.name}</option>
-            ))}
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => handleStatusFilterChange(e.target.value)}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer"
-          >
-            <option value="all">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Calling">Calling</option>
-            <option value="Fully Verified">Verified</option>
-            <option value="For Callback">For Callback</option>
-            <option value="No Answer">No Answer</option>
-            <option value="Voicemail Left">Voicemail</option>
-            <option value="Wrong Number">Wrong Number</option>
-          </select>
-
-          {/* AI Insights */}
-          <div className="relative" ref={aiMenuRef}>
-            <button
-              onClick={() => setShowAIMenu(!showAIMenu)}
-              disabled={aiLoading}
-              className="px-3 py-2 text-sm border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 font-medium disabled:opacity-50"
+          {/* Filters */}
+          <div className="flex gap-2 items-center">
+            <select
+              value={selectedListFilter}
+              onChange={(e) => handleListFilterChange(e.target.value)}
+              className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-slate-700 cursor-pointer"
             >
-              {aiLoading ? (
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
-              )}
-              AI Insights
-            </button>
-            {showAIMenu && (
-              <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-xl border border-slate-200 py-1 z-50">
-                <button onClick={() => handleAIAnalysis('suggest-segments')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                  <div className="font-medium">Suggest Segments</div>
-                  <div className="text-xs text-slate-400">AI-powered list suggestions</div>
-                </button>
-                <button onClick={() => handleAIAnalysis('analyze-quality')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                  <div className="font-medium">Data Quality</div>
-                  <div className="text-xs text-slate-400">Analyze data completeness</div>
-                </button>
-                <button onClick={() => handleAIAnalysis('suggest-tags')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                  <div className="font-medium">Suggest Tags</div>
-                  <div className="text-xs text-slate-400">Smart tagging recommendations</div>
-                </button>
-              </div>
-            )}
+              <option value="all">All Lists</option>
+              <option value="none">No List</option>
+              {contactLists.map((list) => (
+                <option key={list.id} value={list.id}>{list.name}</option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => handleStatusFilterChange(e.target.value)}
+              className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-slate-700 cursor-pointer"
+            >
+              <option value="all">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Calling">Calling</option>
+              <option value="Fully Verified">Verified</option>
+              <option value="For Callback">For Callback</option>
+              <option value="No Answer">No Answer</option>
+              <option value="Voicemail Left">Voicemail</option>
+              <option value="Wrong Number">Wrong Number</option>
+            </select>
           </div>
 
-          <button
-            onClick={() => setShowListManager(true)}
-            className="px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 font-medium"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
-            Manage Lists
-          </button>
+          {/* Divider */}
+          <div className="hidden lg:block w-px h-8 bg-slate-200" />
 
-          <button
-            onClick={handleExport}
-            disabled={contacts.length === 0}
-            className="px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Export
-          </button>
+          {/* Actions */}
+          <div className="flex gap-2 items-center">
+            {/* AI Insights - Prominent */}
+            <div className="relative" ref={aiMenuRef}>
+              <button
+                onClick={() => setShowAIMenu(!showAIMenu)}
+                disabled={aiLoading}
+                className="px-3.5 py-2 text-sm rounded-lg font-semibold transition-all flex items-center gap-2 disabled:opacity-50 bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-sm hover:shadow-md hover:from-violet-700 hover:to-purple-700"
+              >
+                {aiLoading ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                )}
+                AI Insights
+              </button>
+              {showAIMenu && (
+                <div className="absolute right-0 mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 overflow-hidden">
+                  <div className="px-4 py-2 border-b border-slate-100">
+                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                      Powered by AI
+                    </p>
+                  </div>
+                  <button onClick={() => handleAIAnalysis('suggest-segments')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-purple-50 transition-colors flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900">Suggest Segments</div>
+                      <div className="text-xs text-slate-400">Create smart lists automatically</div>
+                    </div>
+                  </button>
+                  <button onClick={() => handleAIAnalysis('analyze-quality')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-purple-50 transition-colors flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900">Data Quality</div>
+                      <div className="text-xs text-slate-400">Analyze completeness &amp; issues</div>
+                    </div>
+                  </button>
+                  <button onClick={() => handleAIAnalysis('suggest-tags')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-purple-50 transition-colors flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900">Suggest Tags</div>
+                      <div className="text-xs text-slate-400">Smart tagging recommendations</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
 
-          <div className="relative add-contacts-dropdown">
             <button
-              onClick={() => setShowAddContactsDropdown(!showAddContactsDropdown)}
-              className="btn-primary px-4 py-2.5 rounded-xl flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+              onClick={() => setShowListManager(true)}
+              className="px-3 py-2 text-sm border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 font-medium"
+              title="Manage Lists"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
               </svg>
-              Add Contacts
-              <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <span className="hidden xl:inline">Lists</span>
             </button>
-            {showAddContactsDropdown && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-fadeIn overflow-hidden">
-                {/* Header */}
-                <div className="px-4 py-2.5 text-xs font-bold text-[var(--color-primary)] uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
-                  Add Contacts
-                </div>
 
-                {/* Add Manually */}
-                <button
-                  onClick={handleManualAdd}
-                  className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 group"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-slate-900">Add Manually</div>
-                    <div className="text-xs text-slate-500">Create a contact with custom fields</div>
-                  </div>
-                </button>
+            <button
+              onClick={handleExport}
+              disabled={contacts.length === 0}
+              className="px-3 py-2 text-sm border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium"
+              title="Export Contacts"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span className="hidden xl:inline">Export</span>
+            </button>
 
-                {/* Import From File */}
-                <div className="border-t border-slate-100">
-                  <div className="px-4 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50">
-                    Import From File
+            <div className="relative add-contacts-dropdown">
+              <button
+                onClick={() => setShowAddContactsDropdown(!showAddContactsDropdown)}
+                className="btn-primary px-3.5 py-2 rounded-lg flex items-center gap-2 font-semibold text-sm shadow-sm hover:shadow-md"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add
+                <svg className="w-3 h-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showAddContactsDropdown && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-fadeIn overflow-hidden">
+                  <div className="px-4 py-2.5 text-xs font-bold text-[var(--color-primary)] uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+                    Add Contacts
                   </div>
-                  <div className="px-4 pb-3 pt-1 grid grid-cols-3 gap-2">
-                    <button
-                      onClick={() => handleImportTypeSelect('csv')}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
-                      CSV
-                    </button>
-                    <button
-                      onClick={() => handleImportTypeSelect('xlsx')}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
-                      XLSX
-                    </button>
-                    <button
-                      onClick={() => handleImportTypeSelect('txt')}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-slate-400 flex-shrink-0"></span>
-                      TXT
-                    </button>
-                    <button
-                      onClick={() => handleImportTypeSelect('xml')}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0"></span>
-                      XML
-                    </button>
-                    <button
-                      onClick={() => handleImportTypeSelect('json')}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></span>
-                      JSON
-                    </button>
-                    <button
-                      onClick={handleGoogleSheetsClick}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
-                    >
-                      <GoogleSheetsIcon className="w-4 h-4 flex-shrink-0" />
-                      Sheets
-                    </button>
-                  </div>
-                </div>
 
-                {/* Integrations */}
-                <div className="border-t border-slate-100">
-                  <div className="px-4 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50">
-                    Integrations
-                  </div>
-                  <div className="px-2 pb-2">
-                    {/* Salesforce */}
-                    <Link
-                      href={
-                        sfConnected
-                          ? '/contacts/salesforce'
-                          : hasSalesforceAccess
-                            ? '/api/integrations/salesforce/connect?return_to=/contacts/salesforce'
-                            : '/settings?tab=billing'
-                      }
-                      className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-[#00A1E0] flex items-center justify-center flex-shrink-0">
-                        <FaSalesforce className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-slate-900 flex items-center gap-2">
-                          Salesforce
-                          {!hasSalesforceAccess && (
-                            <span className="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.5 rounded-full">
-                              Business+
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-500">Import contacts &amp; leads</div>
-                      </div>
-                      <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <button
+                    onClick={handleManualAdd}
+                    className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 group"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
-                    </Link>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900">Add Manually</div>
+                      <div className="text-xs text-slate-500">Create a contact with custom fields</div>
+                    </div>
+                  </button>
 
-                    {/* HubSpot */}
-                    <Link
-                      href={
-                        hsConnected
-                          ? '/contacts/hubspot'
-                          : hasHubSpotAccess
-                            ? '/api/integrations/hubspot/connect?return_to=/contacts/hubspot'
-                            : '/settings?tab=billing'
-                      }
-                      className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-[#FF7A59] flex items-center justify-center flex-shrink-0">
-                        <FaHubspot className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-slate-900 flex items-center gap-2">
-                          HubSpot
-                          {!hasHubSpotAccess && (
-                            <span className="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.5 rounded-full">
-                              Business+
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-500">Import contacts from HubSpot</div>
-                      </div>
-                      <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
+                  <div className="border-t border-slate-100">
+                    <div className="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50">Import From File</div>
+                    <div className="px-4 pb-3 pt-1 grid grid-cols-3 gap-2">
+                      {([
+                        { type: 'csv' as const, label: 'CSV', color: 'bg-green-500' },
+                        { type: 'xlsx' as const, label: 'XLSX', color: 'bg-emerald-500' },
+                        { type: 'txt' as const, label: 'TXT', color: 'bg-slate-400' },
+                        { type: 'xml' as const, label: 'XML', color: 'bg-orange-500' },
+                        { type: 'json' as const, label: 'JSON', color: 'bg-purple-500' },
+                      ]).map(({ type, label, color }) => (
+                        <button
+                          key={type}
+                          onClick={() => handleImportTypeSelect(type)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
+                        >
+                          <span className={`w-2 h-2 rounded-full ${color} flex-shrink-0`}></span>
+                          {label}
+                        </button>
+                      ))}
+                      <button
+                        onClick={handleGoogleSheetsClick}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
+                      >
+                        <GoogleSheetsIcon className="w-4 h-4 flex-shrink-0" />
+                        Sheets
+                      </button>
+                    </div>
+                  </div>
 
-                    {/* Pipedrive */}
-                    <Link
-                      href={
-                        pdConnected
-                          ? '/contacts/pipedrive'
-                          : hasPipedriveAccess
-                            ? '/api/integrations/pipedrive/connect?return_to=/contacts/pipedrive'
-                            : '/settings?tab=billing'
-                      }
-                      className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-black" viewBox="0 0 32 32" fill="currentColor">
-                          <path d="M16.3 7.8c-3.6 0-5.7 1.6-6.7 2.7-.1-1-.8-2.2-3.2-2.2H1v5.6h2.2c.4 0 .5.1.5.5v25.7h6.4V30v-.7c1 .9 2.9 2.2 5.9 2.2 6.3 0 10.7-5 10.7-12.1 0-7.3-4.2-12.1-10.4-12.1m-1.3 18.6c-3.5 0-5-3.3-5-6.4 0-4.8 2.6-6.6 5.1-6.6 3 0 5.1 2.6 5.1 6.5 0 4.5-2.6 6.5-5.2 6.5" transform="scale(0.85) translate(5, 0)" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-slate-900 flex items-center gap-2">
-                          Pipedrive
-                          {!hasPipedriveAccess && (
-                            <span className="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.5 rounded-full">
-                              Business+
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-500">Sync contacts with Pipedrive</div>
-                      </div>
-                      <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
-
+                  <div className="border-t border-slate-100">
+                    <div className="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50">Integrations</div>
+                    <div className="px-2 pb-2">
+                      {([
+                        { name: 'Salesforce', icon: <FaSalesforce className="w-5 h-5 text-white" />, bg: 'bg-[#00A1E0]', connected: sfConnected, hasAccess: hasSalesforceAccess, href: sfConnected ? '/contacts/salesforce' : hasSalesforceAccess ? '/api/integrations/salesforce/connect?return_to=/contacts/salesforce' : '/settings?tab=billing', desc: 'Import contacts & leads' },
+                        { name: 'HubSpot', icon: <FaHubspot className="w-5 h-5 text-white" />, bg: 'bg-[#FF7A59]', connected: hsConnected, hasAccess: hasHubSpotAccess, href: hsConnected ? '/contacts/hubspot' : hasHubSpotAccess ? '/api/integrations/hubspot/connect?return_to=/contacts/hubspot' : '/settings?tab=billing', desc: 'Import contacts from HubSpot' },
+                        { name: 'Pipedrive', icon: <svg className="w-5 h-5 text-black" viewBox="0 0 32 32" fill="currentColor"><path d="M16.3 7.8c-3.6 0-5.7 1.6-6.7 2.7-.1-1-.8-2.2-3.2-2.2H1v5.6h2.2c.4 0 .5.1.5.5v25.7h6.4V30v-.7c1 .9 2.9 2.2 5.9 2.2 6.3 0 10.7-5 10.7-12.1 0-7.3-4.2-12.1-10.4-12.1m-1.3 18.6c-3.5 0-5-3.3-5-6.4 0-4.8 2.6-6.6 5.1-6.6 3 0 5.1 2.6 5.1 6.5 0 4.5-2.6 6.5-5.2 6.5" transform="scale(0.85) translate(5, 0)" /></svg>, bg: 'bg-slate-100', connected: pdConnected, hasAccess: hasPipedriveAccess, href: pdConnected ? '/contacts/pipedrive' : hasPipedriveAccess ? '/api/integrations/pipedrive/connect?return_to=/contacts/pipedrive' : '/settings?tab=billing', desc: 'Sync contacts with Pipedrive' },
+                      ] as const).map((crm) => (
+                        <Link
+                          key={crm.name}
+                          href={crm.href}
+                          className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
+                        >
+                          <div className={`w-9 h-9 rounded-lg ${crm.bg} flex items-center justify-center flex-shrink-0`}>{crm.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-slate-900 flex items-center gap-2">
+                              {crm.name}
+                              {!crm.hasAccess && <span className="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.5 rounded-full">Business+</span>}
+                            </div>
+                            <div className="text-xs text-slate-500">{crm.desc}</div>
+                          </div>
+                          <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1028,18 +990,24 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       {aiResult && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-md border border-slate-200 flex flex-col">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  {aiResult.action === 'suggest-segments' ? 'Suggested Segments' :
-                   aiResult.action === 'analyze-quality' ? 'Data Quality Report' :
-                   'Suggested Tags'}
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">Analyzed {aiResult.contactCount} contacts</p>
+            {/* Header with AI branding */}
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-violet-50 to-purple-50 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {aiResult.action === 'suggest-segments' ? 'Suggested Segments' :
+                     aiResult.action === 'analyze-quality' ? 'Data Quality Report' :
+                     'Suggested Tags'}
+                  </h3>
+                  <p className="text-xs text-purple-600 font-medium mt-0.5">Analyzed {aiResult.contactCount} contacts with AI</p>
+                </div>
               </div>
               <button
-                onClick={() => setAIResult(null)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                onClick={() => { setAIResult(null); setCreatingSegments(new Set()); setCreatedSegments(new Set()); }}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-lg transition-all"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1052,21 +1020,47 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                   {(aiResult.result as { segments?: { name: string; description: string; criteria: string; estimatedCount: number; color: string }[] }).segments?.map((seg, i) => (
                     <div key={i} className="border border-slate-200 rounded-xl p-4 hover:shadow-sm transition-all">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: seg.color }} />
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: seg.color }} />
                         <h4 className="font-semibold text-slate-900">{seg.name}</h4>
                         <span className="ml-auto text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">~{seg.estimatedCount} contacts</span>
                       </div>
                       <p className="text-sm text-slate-600 mb-1">{seg.description}</p>
-                      <p className="text-xs text-slate-400">Criteria: {seg.criteria}</p>
+                      <p className="text-xs text-slate-400 mb-3">Criteria: {seg.criteria}</p>
+                      <div className="flex items-center justify-end">
+                        {createdSegments.has(i) ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                            List Created
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleCreateSegmentList(seg, i)}
+                            disabled={creatingSegments.has(i)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-violet-600 to-purple-600 rounded-lg hover:from-violet-700 hover:to-purple-700 transition-all shadow-sm disabled:opacity-50"
+                          >
+                            {creatingSegments.has(i) ? (
+                              <>
+                                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                                Creating...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                Create List
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                   {(aiResult.result as { insights?: string[] }).insights && (
-                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                      <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">Key Insights</h4>
+                    <div className="bg-purple-50/80 rounded-xl p-4 border border-purple-100">
+                      <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-2">Key Insights</h4>
                       <ul className="space-y-1">
                         {(aiResult.result as { insights: string[] }).insights.map((insight, i) => (
-                          <li key={i} className="text-sm text-blue-800 flex items-start gap-2">
-                            <span className="text-blue-500 mt-0.5">&#x2022;</span>
+                          <li key={i} className="text-sm text-purple-800 flex items-start gap-2">
+                            <span className="text-purple-500 mt-0.5">&#x2022;</span>
                             {insight}
                           </li>
                         ))}
@@ -1143,7 +1137,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
             </div>
             <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
               <button
-                onClick={() => setAIResult(null)}
+                onClick={() => { setAIResult(null); setCreatingSegments(new Set()); setCreatedSegments(new Set()); }}
                 className="w-full px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
               >
                 Close
