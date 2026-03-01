@@ -1,6 +1,6 @@
 // app/api/integrations/clio/sync/route.ts
-// Triggers a Clio data sync (contacts)
-// Supports both full sync and selective sync (by Clio IDs)
+// Triggers a Clio data sync (inbound, outbound, or bidirectional)
+// Supports full sync, selective sync (by Clio IDs), and outbound push
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
@@ -8,6 +8,7 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import {
   syncClioContactsToCallengo,
   syncSelectedClioContacts,
+  pushContactUpdatesToClio,
 } from '@/lib/clio';
 import type { ClioIntegration } from '@/types/clio';
 
@@ -30,15 +31,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
-    // Parse optional body for selective sync
+    // Parse optional body for selective sync and direction
     let ids: string[] | undefined;
+    let direction: 'inbound' | 'outbound' | 'bidirectional' = 'inbound';
     try {
       const body = await request.json();
       if (body.ids && Array.isArray(body.ids) && body.ids.length > 0) {
         ids = body.ids;
       }
+      if (body.direction === 'outbound' || body.direction === 'bidirectional') {
+        direction = body.direction;
+      }
     } catch {
-      // No body or invalid JSON = full sync
+      // No body or invalid JSON = full inbound sync
     }
 
     // Get active Clio integration
@@ -66,7 +71,7 @@ export async function POST(request: NextRequest) {
         company_id: userData.company_id,
         integration_id: clioIntegration.id,
         sync_type: isSelectiveSync ? 'selective' : 'full',
-        sync_direction: 'inbound',
+        sync_direction: direction,
         records_created: 0,
         records_updated: 0,
         records_skipped: 0,
@@ -77,18 +82,26 @@ export async function POST(request: NextRequest) {
       .select('id')
       .single();
 
-    let contactsResult;
-
-    if (isSelectiveSync && ids) {
-      contactsResult = await syncSelectedClioContacts(clioIntegration, ids);
-    } else {
-      contactsResult = await syncClioContactsToCallengo(clioIntegration);
+    // INBOUND SYNC (Clio → Callengo)
+    let inboundResult = { contacts_created: 0, contacts_updated: 0, contacts_skipped: 0, errors: [] as string[] };
+    if (direction === 'inbound' || direction === 'bidirectional') {
+      if (isSelectiveSync && ids) {
+        inboundResult = await syncSelectedClioContacts(clioIntegration, ids);
+      } else {
+        inboundResult = await syncClioContactsToCallengo(clioIntegration);
+      }
     }
 
-    const totalCreated = contactsResult.contacts_created;
-    const totalUpdated = contactsResult.contacts_updated;
-    const totalSkipped = contactsResult.contacts_skipped;
-    const allErrors = [...contactsResult.errors];
+    // OUTBOUND SYNC (Callengo → Clio)
+    let outboundResult = { contacts_pushed: 0, notes_created: 0, errors: [] as string[] };
+    if (direction === 'outbound' || direction === 'bidirectional') {
+      outboundResult = await pushContactUpdatesToClio(clioIntegration);
+    }
+
+    const totalCreated = inboundResult.contacts_created;
+    const totalUpdated = inboundResult.contacts_updated + outboundResult.contacts_pushed;
+    const totalSkipped = inboundResult.contacts_skipped;
+    const allErrors = [...inboundResult.errors, ...outboundResult.errors];
 
     // Update sync log
     if (syncLog) {
@@ -114,10 +127,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      contacts: {
-        created: contactsResult.contacts_created,
-        updated: contactsResult.contacts_updated,
-        skipped: contactsResult.contacts_skipped,
+      direction,
+      inbound: {
+        contacts_created: inboundResult.contacts_created,
+        contacts_updated: inboundResult.contacts_updated,
+        contacts_skipped: inboundResult.contacts_skipped,
+      },
+      outbound: {
+        contacts_pushed: outboundResult.contacts_pushed,
+        notes_created: outboundResult.notes_created,
       },
       errors: allErrors,
     });
