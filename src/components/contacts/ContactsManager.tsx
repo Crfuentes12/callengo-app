@@ -147,6 +147,8 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
   const [showListManager, setShowListManager] = useState(false);
   const [showBatchActions, setShowBatchActions] = useState(false);
   const [showAddContactsDropdown, setShowAddContactsDropdown] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
   const [showManualAddModal, setShowManualAddModal] = useState(false);
   const [importType, setImportType] = useState<'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null>(null);
   const [showGSheetsPicker, setShowGSheetsPicker] = useState(false);
@@ -253,6 +255,9 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       if (aiMenuRef.current && !aiMenuRef.current.contains(target)) {
         setShowAIMenu(false);
       }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(target)) {
+        setShowExportMenu(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -304,21 +309,26 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     }
   };
 
-  const handleCreateSegmentList = async (segment: { name: string; color: string; description: string; criteria: string }, index: number) => {
+  const handleCreateSegmentList = async (segment: { name: string; color: string; description: string; criteria: string; filters?: Record<string, unknown> }, index: number) => {
     setCreatingSegments(prev => new Set(prev).add(index));
     try {
-      const { error } = await supabase
-        .from('contact_lists')
-        .insert({
-          company_id: companyId,
+      const res = await fetch('/api/contacts/ai-segment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           name: segment.name,
-          description: `${segment.description} | Criteria: ${segment.criteria}`,
+          description: segment.description,
           color: segment.color,
-        });
-      if (error) throw error;
+          criteria: segment.criteria,
+          filters: segment.filters || {},
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create segment');
       setCreatedSegments(prev => new Set(prev).add(index));
       await loadContactLists();
-      showToast(`List "${segment.name}" created successfully`, 'success');
+      await refreshContacts();
+      showToast(`List "${segment.name}" created with ${data.assignedCount} contacts`, 'success');
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Failed to create list', 'error');
     } finally {
@@ -366,19 +376,49 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     setShowAddContactsDropdown(false);
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'csv' | 'json' | 'xlsx' | 'gsheets' = 'csv') => {
+    setShowExportMenu(false);
+    if (format === 'gsheets') {
+      // Download CSV and open a new Google Sheet for the user to import
+      try {
+        const params = new URLSearchParams({ format: 'csv' });
+        if (selectedListFilter !== 'all') params.set('listId', selectedListFilter);
+        if (statusFilter !== 'all') params.set('status', statusFilter);
+        const response = await fetch(`/api/contacts/export?${params}`);
+        if (!response.ok) throw new Error('Export failed');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `contacts_export_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showToast('CSV downloaded! Opening Google Sheets — use File > Import to upload.', 'info');
+        window.open('https://sheets.new', '_blank');
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Export failed', 'error');
+      }
+      return;
+    }
     try {
-      const response = await fetch('/api/contacts/export');
+      const params = new URLSearchParams({ format });
+      if (selectedListFilter !== 'all') params.set('listId', selectedListFilter);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      const response = await fetch(`/api/contacts/export?${params}`);
+      if (!response.ok) throw new Error('Export failed');
       const blob = await response.blob();
+      const ext = format === 'xlsx' ? 'xls' : format;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `contacts_export_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `contacts_export_${new Date().toISOString().split('T')[0]}.${ext}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      showToast('Contacts exported successfully', 'success');
+      showToast(`Contacts exported as ${format.toUpperCase()} successfully`, 'success');
     } catch (error) {
       console.error('Export failed:', error);
       showToast('Failed to export contacts', 'error');
@@ -787,17 +827,47 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               <span className="hidden xl:inline">Lists</span>
             </button>
 
-            <button
-              onClick={handleExport}
-              disabled={contacts.length === 0}
-              className="px-3 py-2 text-sm border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium"
-              title="Export Contacts"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              <span className="hidden xl:inline">Export</span>
-            </button>
+            <div className="relative" ref={exportMenuRef}>
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                disabled={total === 0}
+                className="px-3 py-2 text-sm border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium"
+                title="Export Contacts"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span className="hidden xl:inline">Export</span>
+                <svg className="w-3 h-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              {showExportMenu && (
+                <div className="absolute right-0 mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 overflow-hidden">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Download as</div>
+                  <button onClick={() => handleExport('csv')} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                    <span className="font-medium">CSV</span>
+                    <span className="ml-auto text-xs text-slate-400">.csv</span>
+                  </button>
+                  <button onClick={() => handleExport('xlsx')} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
+                    <span className="font-medium">Excel</span>
+                    <span className="ml-auto text-xs text-slate-400">.xls</span>
+                  </button>
+                  <button onClick={() => handleExport('json')} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></span>
+                    <span className="font-medium">JSON</span>
+                    <span className="ml-auto text-xs text-slate-400">.json</span>
+                  </button>
+                  <div className="border-t border-slate-100 my-1"></div>
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cloud</div>
+                  <button onClick={() => handleExport('gsheets')} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2.5">
+                    <GoogleSheetsIcon className="w-4 h-4 flex-shrink-0" />
+                    <span className="font-medium">Google Sheets</span>
+                    {!gsConnected && <span className="ml-auto text-[10px] text-amber-600 font-bold">Connect</span>}
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="relative add-contacts-dropdown">
               <button
@@ -1017,7 +1087,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
             <div className="p-6 overflow-y-auto flex-1 space-y-4">
               {aiResult.action === 'suggest-segments' && (
                 <>
-                  {(aiResult.result as { segments?: { name: string; description: string; criteria: string; estimatedCount: number; color: string }[] }).segments?.map((seg, i) => (
+                  {(aiResult.result as { segments?: { name: string; description: string; criteria: string; estimatedCount: number; color: string; filters?: Record<string, unknown> }[] }).segments?.map((seg, i) => (
                     <div key={i} className="border border-slate-200 rounded-xl p-4 hover:shadow-sm transition-all">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: seg.color }} />
