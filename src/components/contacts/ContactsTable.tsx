@@ -62,7 +62,7 @@ export default function ContactsTable({
   onPageSizeChange,
 }: ContactsTableProps) {
   const [showColumnMenu, setShowColumnMenu] = useState(false);
-  const columnMenuRef = useRef<HTMLDivElement>(null);
+  const columnMenuRef = useRef<HTMLTableCellElement>(null);
   const [visibleColumns, setVisibleColumns] = useState({
     address: false,
     zipCode: false,
