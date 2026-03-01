@@ -47,7 +47,6 @@ interface UsageTracking {
   period_end: string;
   minutes_used: number;
   minutes_included: number;
-  overage_minutes: number;
   total_cost: number;
 }
 
@@ -225,22 +224,47 @@ export default function DashboardOverview({
         </div>
       </div>
 
-      {/* Free Plan Banner — only for Free plan users */}
+      {/* Free Trial Banner — only for Free plan (trial) users */}
       {subscription && subscription.subscription_plans?.name === 'Free' && (
-        <div className="relative overflow-hidden bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200 rounded-2xl p-6">
+        <div className="relative overflow-hidden border rounded-2xl p-6" style={{
+          background: usageTracking && usageTracking.minutes_used >= (subscription.subscription_plans?.minutes_included || 15)
+            ? 'linear-gradient(to right, rgb(254, 242, 242), rgb(254, 226, 226), rgb(254, 242, 242))'
+            : 'linear-gradient(to right, rgb(255, 251, 235), rgb(255, 237, 213), rgb(255, 251, 235))',
+          borderColor: usageTracking && usageTracking.minutes_used >= (subscription.subscription_plans?.minutes_included || 15)
+            ? 'rgb(252, 165, 165)'
+            : 'rgb(253, 230, 138)',
+        }}>
           <div className="relative z-10 flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-md">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md ${
+              usageTracking && usageTracking.minutes_used >= (subscription.subscription_plans?.minutes_included || 15)
+                ? 'bg-gradient-to-br from-red-400 to-red-600'
+                : 'bg-gradient-to-br from-amber-400 to-orange-500'
+            }`}>
               <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {usageTracking && usageTracking.minutes_used >= (subscription.subscription_plans?.minutes_included || 15)
+                  ? <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  : <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                }
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-semibold text-slate-900 mb-1">You have 15 free minutes courtesy of Callengo</h3>
-              <p className="text-sm text-slate-700 mb-3">
-                We believe so much in our product that you don&apos;t need more than 15 minutes to see its real value. Create a small campaign, watch the magic happen, and see how Callengo transforms your outreach.
-              </p>
+              {usageTracking && usageTracking.minutes_used >= (subscription.subscription_plans?.minutes_included || 15) ? (
+                <>
+                  <h3 className="text-base font-semibold text-red-900 mb-1">Your free trial has ended</h3>
+                  <p className="text-sm text-red-800 mb-3">
+                    Your 15 free trial minutes have been used. All calling features are now blocked. Subscribe to a paid plan to unlock Callengo&apos;s full potential and keep growing your outreach.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-base font-semibold text-slate-900 mb-1">You have {Math.max(0, (subscription.subscription_plans?.minutes_included || 15) - (usageTracking?.minutes_used || 0))} free minutes remaining</h3>
+                  <p className="text-sm text-slate-700 mb-3">
+                    We believe so much in our product that you don&apos;t need more than 15 minutes to see its real value. Create a small campaign, watch the magic happen, and see how Callengo transforms your outreach.
+                  </p>
+                </>
+              )}
               <a
-                href="/settings"
+                href="/settings?tab=billing"
                 className="btn-primary text-sm"
               >
                 Upgrade Your Plan

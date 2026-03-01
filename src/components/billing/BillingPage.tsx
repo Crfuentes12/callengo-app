@@ -9,7 +9,6 @@ interface UsageRecord {
   period_end: string;
   minutes_used: number;
   minutes_included: number;
-  overage_minutes: number;
   total_cost: number;
   created_at: string;
 }
@@ -64,7 +63,6 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
     totalSpent: billingHistory.filter(b => b.status === 'paid').reduce((sum, b) => sum + b.amount, 0),
     currentMinutes: currentUsage?.minutes_used || 0,
     includedMinutes: currentUsage?.minutes_included || 0,
-    overageMinutes: currentUsage?.overage_minutes || 0,
   }), [billingHistory, currentUsage]);
 
   const formatCurrency = (amount: number, currency: string = 'USD') => {
@@ -125,9 +123,6 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
             </div>
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>{usagePercent}% used</span>
-              {stats.overageMinutes > 0 && (
-                <span className="text-amber-600 font-medium">{stats.overageMinutes} overage minutes</span>
-              )}
               <span>
                 Period: {new Date(subscription.current_period_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(subscription.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </span>
@@ -267,7 +262,6 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
                   <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Period</th>
                   <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Minutes Used</th>
                   <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Included</th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Overage</th>
                   <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Usage</th>
                 </tr>
               </thead>
@@ -286,11 +280,6 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
                       </td>
                       <td className="py-3 px-6">
                         <span className="text-sm text-slate-600">{record.minutes_included.toLocaleString()}</span>
-                      </td>
-                      <td className="py-3 px-6">
-                        <span className={`text-sm ${record.overage_minutes > 0 ? 'text-amber-600 font-medium' : 'text-slate-600'}`}>
-                          {record.overage_minutes > 0 ? `+${record.overage_minutes.toLocaleString()}` : '0'}
-                        </span>
                       </td>
                       <td className="py-3 px-6">
                         <div className="flex items-center gap-2">

@@ -3,9 +3,14 @@ import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 
 /**
- * Ensures a company has a Free plan subscription.
+ * Ensures a company has a Free Trial subscription (15 minutes).
  * Called during onboarding and as a fallback from the dashboard.
  * Uses supabaseAdmin (service role) to bypass RLS for INSERT operations.
+ *
+ * The "free" plan acts as a one-time 15-minute trial that simulates
+ * the Starter plan experience. Once minutes are exhausted, features
+ * are blocked and the user must upgrade to a paid plan.
+ * No overage, no recharge — upgrade is the only path forward.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -50,7 +55,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'already_exists', subscription_id: existingSub.id });
     }
 
-    // Get the Free plan
+    // Get the Free plan (used as a 15-minute trial)
     const { data: freePlan, error: planError } = await supabaseAdmin
       .from('subscription_plans')
       .select('id, minutes_included')
@@ -62,7 +67,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Free plan not found in database' }, { status: 500 });
     }
 
-    // Create the subscription using admin client (bypasses RLS)
+    // Create the trial subscription
+    // Period set to 10 years — trial never "expires" by date,
+    // it expires when minutes run out (features get blocked).
     const now = new Date();
     const periodEnd = new Date();
     periodEnd.setFullYear(periodEnd.getFullYear() + 10);
@@ -76,6 +83,10 @@ export async function POST(req: NextRequest) {
         status: 'active',
         current_period_start: now.toISOString(),
         current_period_end: periodEnd.toISOString(),
+        // No overage for trial users
+        overage_enabled: false,
+        overage_budget: 0,
+        overage_spent: 0,
       })
       .select()
       .single();
@@ -95,7 +106,7 @@ export async function POST(req: NextRequest) {
       minutes_included: freePlan.minutes_included,
     });
 
-    console.log(`[ensure-free-plan] Free plan assigned to company ${company_id}`);
+    console.log(`[ensure-free-plan] Free trial (15 min) assigned to company ${company_id}`);
 
     return NextResponse.json({ status: 'created', subscription_id: newSub.id });
   } catch (error) {

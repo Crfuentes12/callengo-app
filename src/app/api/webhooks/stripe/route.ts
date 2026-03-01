@@ -393,19 +393,6 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
     cost_usd: invoice.amount_paid / 100,
   });
 
-  // Reset overage tracking if this is a new period
-  const now = new Date();
-  const periodEnd = new Date(subscription.current_period_end);
-  if (now < periodEnd) {
-    await supabase
-      .from('company_subscriptions')
-      .update({
-        overage_spent: 0,
-        last_overage_alert_at: null,
-        overage_alert_level: 0,
-      })
-      .eq('id', subscription.id);
-  }
 }
 
 /**

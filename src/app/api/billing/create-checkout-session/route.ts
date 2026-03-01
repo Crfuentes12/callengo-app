@@ -170,8 +170,7 @@ export async function POST(req: NextRequest) {
         billing_cycle: billingCycle,
         user_id: user.id,
       },
-      // If upgrading/downgrading, don't offer trial
-      trialPeriodDays: existingSubscription ? undefined : 7, // 7-day trial for new customers
+      // No Stripe trial — we use an internal 15-minute free trial instead
     });
 
     // Update company subscription with Stripe customer ID if not already set
