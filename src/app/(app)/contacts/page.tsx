@@ -20,11 +20,13 @@ export default async function ContactsPage() {
 
   const companyId = userData!.company_id;
 
-  const { data: contacts } = await supabase
+  // Fetch initial page of contacts with count (server-side for fast first paint)
+  const { data: initialContacts, count: totalCount } = await supabase
     .from('contacts')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('company_id', companyId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(0, 49);
 
   const { data: contactLists } = await supabase
     .from('contact_lists')
@@ -32,7 +34,7 @@ export default async function ContactsPage() {
     .eq('company_id', companyId)
     .order('name');
 
-  // Check plan for Salesforce access
+  // Check plan for CRM access
   let planSlug = 'free';
   const { data: subscription } = await supabase
     .from('company_subscriptions')
@@ -50,63 +52,33 @@ export default async function ContactsPage() {
   const hasHubSpotAccess = hasCrmAccess;
   const hasPipedriveAccess = hasCrmAccess;
 
-  // Check Salesforce connection
-  let sfConnected = false;
-  if (hasSalesforceAccess) {
-    const { data: sfIntegration } = await supabaseAdminRaw
-      .from('salesforce_integrations')
-      .select('id')
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .maybeSingle();
-    sfConnected = !!sfIntegration;
-  }
-
-  // Check HubSpot connection
-  let hsConnected = false;
-  if (hasHubSpotAccess) {
-    const { data: hsIntegration } = await supabaseAdminRaw
-      .from('hubspot_integrations')
-      .select('id')
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .maybeSingle();
-    hsConnected = !!hsIntegration;
-  }
-
-  // Check Pipedrive connection
-  let pdConnected = false;
-  if (hasPipedriveAccess) {
-    const { data: pdIntegration } = await supabaseAdminRaw
-      .from('pipedrive_integrations')
-      .select('id')
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .maybeSingle();
-    pdConnected = !!pdIntegration;
-  }
-
-  // Check Google Sheets connection (available on all plans)
-  const { data: gsIntegration } = await supabaseAdminRaw
-    .from('google_sheets_integrations')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .maybeSingle();
-  const gsConnected = !!gsIntegration;
+  // Check CRM connections in parallel
+  const [sfResult, hsResult, pdResult, gsResult] = await Promise.all([
+    hasSalesforceAccess
+      ? supabaseAdminRaw.from('salesforce_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
+      : Promise.resolve({ data: null }),
+    hasHubSpotAccess
+      ? supabaseAdminRaw.from('hubspot_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
+      : Promise.resolve({ data: null }),
+    hasPipedriveAccess
+      ? supabaseAdminRaw.from('pipedrive_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabaseAdminRaw.from('google_sheets_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
+  ]);
 
   return (
     <ContactsManager
-      initialContacts={contacts || []}
+      initialContacts={initialContacts || []}
+      initialTotalCount={totalCount || 0}
       initialContactLists={contactLists || []}
       companyId={companyId}
       hasSalesforceAccess={hasSalesforceAccess}
-      sfConnected={sfConnected}
+      sfConnected={!!sfResult.data}
       hasHubSpotAccess={hasHubSpotAccess}
-      hsConnected={hsConnected}
+      hsConnected={!!hsResult.data}
       hasPipedriveAccess={hasPipedriveAccess}
-      pdConnected={pdConnected}
-      gsConnected={gsConnected}
+      pdConnected={!!pdResult.data}
+      gsConnected={!!gsResult.data}
     />
   );
 }
