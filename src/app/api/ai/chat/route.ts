@@ -103,7 +103,7 @@ Callengo supports the following integrations:
 - **Google Calendar** (Free+): Sync call schedules, appointments, and events. Automatically creates events from AI agent calls. Supports incremental sync.
 - **Google Meet** (Free+): Auto-enabled when Google Calendar is connected. Adds Meet links to scheduled events.
 - **Zoom** (Free+): Auto-generate Zoom meeting room links for events. Uses Server-to-Server OAuth.
-- **Google Sheets** (Free+, Coming Soon): Export call logs, campaign results, and contact data.
+- **Google Sheets** (Free+): Import contacts from Google Sheets. Available in the Contacts page under "Import from File".
 
 ### Business Plan Integrations (available on Business plan and above)
 - **Microsoft 365 Outlook** (Business+): Sync Outlook calendar events with Callengo. Supports bidirectional sync.

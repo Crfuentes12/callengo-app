@@ -8,7 +8,7 @@ import { FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
 import Link from 'next/link';
 import { BiLogoZoom } from 'react-icons/bi';
 import { createClient } from '@/lib/supabase/client';
-import { GoogleCalendarIcon, GoogleMeetIcon, GoogleSheetsIcon, OutlookIcon, TeamsIcon, SlackIcon } from '@/components/icons/BrandIcons';
+import { GoogleCalendarIcon, GoogleMeetIcon, OutlookIcon, TeamsIcon, SlackIcon } from '@/components/icons/BrandIcons';
 
 // ============================================================================
 // TYPES
@@ -779,22 +779,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       settingsUrl: integrations.twilio.connected ? '/settings?section=call-settings&scroll=phone-numbers' : undefined,
       connectedInfo: integrations.twilio.connected ? [{ label: 'Config', value: 'Managed via Settings' }] : undefined,
     },
-    {
-      id: 'google-sheets', provider: 'google-sheets', name: 'Google Sheets',
-      description: 'Bidirectional sync — contacts and call results stay in sync with your sheets',
-      icon: <GoogleSheetsIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-green-50',
-      category: 'crm', requiredPlan: 'free',
-      status: integrations.google_sheets?.connected ? 'connected' : 'available',
-      connectUrl: '/api/integrations/google-sheets/connect?return_to=/integrations',
-      disconnectUrl: '/api/integrations/google-sheets/disconnect',
-      syncUrl: '/api/integrations/google-sheets/sync',
-      showSync: true,
-      manageUrl: '/contacts',
-      connectedInfo: integrations.google_sheets?.connected ? [
-        ...(integrations.google_sheets.email ? [{ label: 'Account', value: integrations.google_sheets.email }] : []),
-        ...(integrations.google_sheets.lastUsed ? [{ label: 'Last Synced', value: new Date(integrations.google_sheets.lastUsed).toLocaleDateString() }] : []),
-      ] : undefined,
-    },
+    // Google Sheets removed from Integrations — it's now in the Import from File section in Contacts
     {
       id: 'hubspot', provider: 'hubspot', name: 'HubSpot',
       description: 'Import contacts and sync call outcomes',
