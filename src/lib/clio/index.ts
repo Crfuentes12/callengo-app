@@ -17,4 +17,8 @@ export {
   fetchClioUsers,
   syncClioContactsToCallengo,
   syncSelectedClioContacts,
+  pushCallResultToClio,
+  pushContactUpdatesToClio,
+  createClioNote,
+  getActiveClioIntegration,
 } from './sync';

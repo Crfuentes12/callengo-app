@@ -214,6 +214,18 @@ export interface ClioSyncResult {
   errors: string[];
 }
 
+export interface ClioOutboundSyncResult {
+  notes_created: number;
+  errors: string[];
+}
+
+export interface ClioNoteCreate {
+  subject: string;
+  detail: string;
+  type: 'Contact' | 'Matter';
+  regarding: { id: number; type: 'Contact' | 'Matter' };
+}
+
 export interface ClioOrgMember {
   clio_user_id: string;
   name: string;

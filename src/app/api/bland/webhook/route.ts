@@ -13,6 +13,10 @@ import {
   getActivePipedriveIntegration,
   pushCallResultToPipedrive,
 } from '@/lib/pipedrive';
+import {
+  getActiveClioIntegration,
+  pushCallResultToClio,
+} from '@/lib/clio';
 // Google Sheets is import-only — no outbound push from webhooks
 import type { CalendarStepConfig } from '@/types/calendar';
 
@@ -338,6 +342,24 @@ export async function POST(request: NextRequest) {
       } catch (pipedriveError) {
         // Don't fail the webhook if Pipedrive sync fails
         console.error('Pipedrive outbound sync failed (non-fatal):', pipedriveError);
+      }
+    }
+
+    // ================================================================
+    // CLIO CRM SYNC: Push call results to Clio
+    // ================================================================
+    if (contactId && completed && companyId) {
+      try {
+        const clioIntegration = await getActiveClioIntegration(companyId);
+        if (clioIntegration) {
+          const clioResult = await pushCallResultToClio(clioIntegration, contactId);
+          if (!clioResult.success) {
+            console.warn('Clio sync skipped:', clioResult.error);
+          }
+        }
+      } catch (clioError) {
+        // Don't fail the webhook if Clio sync fails
+        console.error('Clio outbound sync failed (non-fatal):', clioError);
       }
     }
 
