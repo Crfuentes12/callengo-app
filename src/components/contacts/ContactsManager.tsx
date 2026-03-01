@@ -26,6 +26,8 @@ interface ContactsManagerProps {
   hasPipedriveAccess?: boolean;
   pdConnected?: boolean;
   gsConnected?: boolean;
+  hasClioAccess?: boolean;
+  clioConnected?: boolean;
 }
 
 interface ContactStats {
@@ -126,7 +128,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
   );
 }
 
-export default function ContactsManager({ initialContacts, initialTotalCount, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false, hasPipedriveAccess = false, pdConnected = false, gsConnected = false }: ContactsManagerProps) {
+export default function ContactsManager({ initialContacts, initialTotalCount, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false, hasPipedriveAccess = false, pdConnected = false, gsConnected = false, hasClioAccess = false, clioConnected = false }: ContactsManagerProps) {
   const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
   const [total, setTotal] = useState(initialTotalCount);
   const [page, setPage] = useState(1);
@@ -930,6 +932,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                         { name: 'Salesforce', icon: <FaSalesforce className="w-5 h-5 text-white" />, bg: 'bg-[#00A1E0]', connected: sfConnected, hasAccess: hasSalesforceAccess, href: sfConnected ? '/contacts/salesforce' : hasSalesforceAccess ? '/api/integrations/salesforce/connect?return_to=/contacts/salesforce' : '/settings?tab=billing', desc: 'Import contacts & leads' },
                         { name: 'HubSpot', icon: <FaHubspot className="w-5 h-5 text-white" />, bg: 'bg-[#FF7A59]', connected: hsConnected, hasAccess: hasHubSpotAccess, href: hsConnected ? '/contacts/hubspot' : hasHubSpotAccess ? '/api/integrations/hubspot/connect?return_to=/contacts/hubspot' : '/settings?tab=billing', desc: 'Import contacts from HubSpot' },
                         { name: 'Pipedrive', icon: <svg className="w-5 h-5 text-black" viewBox="0 0 32 32" fill="currentColor"><path d="M16.3 7.8c-3.6 0-5.7 1.6-6.7 2.7-.1-1-.8-2.2-3.2-2.2H1v5.6h2.2c.4 0 .5.1.5.5v25.7h6.4V30v-.7c1 .9 2.9 2.2 5.9 2.2 6.3 0 10.7-5 10.7-12.1 0-7.3-4.2-12.1-10.4-12.1m-1.3 18.6c-3.5 0-5-3.3-5-6.4 0-4.8 2.6-6.6 5.1-6.6 3 0 5.1 2.6 5.1 6.5 0 4.5-2.6 6.5-5.2 6.5" transform="scale(0.85) translate(5, 0)" /></svg>, bg: 'bg-slate-100', connected: pdConnected, hasAccess: hasPipedriveAccess, href: pdConnected ? '/contacts/pipedrive' : hasPipedriveAccess ? '/api/integrations/pipedrive/connect?return_to=/contacts/pipedrive' : '/settings?tab=billing', desc: 'Sync contacts with Pipedrive' },
+                        { name: 'Clio', icon: <img src="/clio-logo.png" alt="Clio" className="w-5 h-5" />, bg: 'bg-[#1B2B5B]/10', connected: clioConnected, hasAccess: hasClioAccess, href: clioConnected ? '/contacts/clio' : hasClioAccess ? '/api/integrations/clio/connect?return_to=/contacts/clio' : '/settings?tab=billing', desc: 'Import contacts from Clio' },
                       ] as const).map((crm) => (
                         <Link
                           key={crm.name}

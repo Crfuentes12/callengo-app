@@ -51,9 +51,10 @@ export default async function ContactsPage() {
   const hasSalesforceAccess = hasCrmAccess;
   const hasHubSpotAccess = hasCrmAccess;
   const hasPipedriveAccess = hasCrmAccess;
+  const hasClioAccess = hasCrmAccess;
 
   // Check CRM connections in parallel
-  const [sfResult, hsResult, pdResult, gsResult] = await Promise.all([
+  const [sfResult, hsResult, pdResult, gsResult, clioResult] = await Promise.all([
     hasSalesforceAccess
       ? supabaseAdminRaw.from('salesforce_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -64,6 +65,9 @@ export default async function ContactsPage() {
       ? supabaseAdminRaw.from('pipedrive_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
       : Promise.resolve({ data: null }),
     supabaseAdminRaw.from('google_sheets_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
+    hasClioAccess
+      ? supabaseAdminRaw.from('clio_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   return (
@@ -79,6 +83,8 @@ export default async function ContactsPage() {
       hasPipedriveAccess={hasPipedriveAccess}
       pdConnected={!!pdResult.data}
       gsConnected={!!gsResult.data}
+      hasClioAccess={hasClioAccess}
+      clioConnected={!!clioResult.data}
     />
   );
 }

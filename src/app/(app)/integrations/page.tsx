@@ -61,6 +61,14 @@ export default async function Integrations() {
     .eq('is_active', true)
     .maybeSingle();
 
+  // Fetch Clio integration
+  const { data: clioIntegration } = await supabaseAdminRaw
+    .from('clio_integrations')
+    .select('id, clio_user_email, clio_user_name, clio_firm_name, clio_firm_id, last_synced_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+
   // Fetch Google Sheets integration
   const { data: gsIntegration } = await supabaseAdminRaw
     .from('google_sheets_integrations')
@@ -143,6 +151,15 @@ export default async function Integrations() {
           companyDomain: pdIntegration?.pd_company_domain || undefined,
           lastSynced: pdIntegration?.last_synced_at || undefined,
           integrationId: pdIntegration?.id || undefined,
+        },
+        clio: {
+          connected: !!clioIntegration,
+          email: clioIntegration?.clio_user_email || undefined,
+          displayName: clioIntegration?.clio_user_name || undefined,
+          firmName: clioIntegration?.clio_firm_name || undefined,
+          firmId: clioIntegration?.clio_firm_id || undefined,
+          lastSynced: clioIntegration?.last_synced_at || undefined,
+          integrationId: clioIntegration?.id || undefined,
         },
         google_sheets: {
           connected: !!gsIntegration,
