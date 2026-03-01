@@ -72,27 +72,55 @@ export async function POST(request: NextRequest) {
     }));
 
     if (action === 'suggest-segments') {
-      systemPrompt = 'You are a CRM data analyst. Analyze the contact data and suggest intelligent segments/lists. Return JSON.';
+      systemPrompt = `You are a CRM data analyst. Analyze the contact data and suggest intelligent segments/lists.
+You MUST return structured filter criteria so segments can be automatically created.
+The available filterable fields in the database are:
+- status: one of "Pending", "Calling", "Fully Verified", "For Callback", "No Answer", "Voicemail Left", "Wrong Number", "Number Disconnected", "Research Needed"
+- city: string (exact city name as it appears in the data)
+- state: string (exact state as it appears in the data)
+- source: string (exact source value)
+- call_outcome: string
+- call_attempts: number (use call_attempts_gte or call_attempts_eq)
+- has_email: boolean (true = has email, false = no email)
+- has_phone: boolean
+- tags: string[] (array of tag values)
+Return JSON.`;
       userPrompt = `Analyze these ${contacts.length} contacts and suggest 3-5 smart segments based on patterns you find (geography, status, engagement, industry, etc.).
 
 Contact data sample: ${JSON.stringify(contactSummary.slice(0, 100))}
 ${contacts.length > 100 ? `(Showing 100 of ${contacts.length} contacts)` : ''}
 
+Unique states found: ${JSON.stringify([...new Set(contacts.map(c => c.state).filter(Boolean))])}
+Unique cities found: ${JSON.stringify([...new Set(contacts.map(c => c.city).filter(Boolean))].slice(0, 30))}
+Unique statuses found: ${JSON.stringify([...new Set(contacts.map(c => c.status).filter(Boolean))])}
+Unique sources found: ${JSON.stringify([...new Set(contacts.map(c => c.source).filter(Boolean))])}
+
 Current lists: ${JSON.stringify(Object.values(listMap))}
 
-Return JSON with this structure:
+Return JSON with this EXACT structure:
 {
   "segments": [
     {
       "name": "segment name",
       "description": "why this segment is useful",
-      "criteria": "human-readable filter criteria",
-      "estimatedCount": number,
-      "color": "hex color suggestion"
+      "criteria": "human-readable filter criteria description",
+      "filters": {
+        "status": ["Pending"],
+        "city": ["New York"],
+        "state": ["CA", "NY"],
+        "source": ["google_sheets"],
+        "has_email": true,
+        "call_attempts_gte": 1,
+        "call_attempts_eq": 0
+      },
+      "estimatedCount": 150,
+      "color": "#3b82f6"
     }
   ],
   "insights": ["key insight 1", "key insight 2"]
-}`;
+}
+
+IMPORTANT: The "filters" object must contain ONLY the filter keys that apply to this segment. Use the exact values from the data. Do NOT include a filter key if it is not relevant to the segment. Each filter narrows the results (AND logic).`;
     } else if (action === 'analyze-quality') {
       systemPrompt = 'You are a CRM data quality analyst. Analyze contact data quality and provide actionable recommendations. Return JSON.';
       userPrompt = `Analyze the data quality of these ${contacts.length} contacts.

@@ -22,11 +22,37 @@ export default async function DashboardPage() {
     .eq('id', userData!.company_id)
     .single();
 
-  // Fetch contacts
+  // Fetch contact stats via aggregation queries (avoids 1000 row cap)
+  const { count: totalContacts } = await supabase
+    .from('contacts')
+    .select('*', { count: 'exact', head: true })
+    .eq('company_id', userData!.company_id);
+
+  // Fetch status counts in parallel
+  const statusValues = ['Pending', 'Calling', 'Fully Verified', 'No Answer', 'Voicemail Left', 'For Callback', 'Research Needed', 'Wrong Number', 'Number Disconnected'];
+  const statusCountResults = await Promise.all(
+    statusValues.map(s =>
+      supabase.from('contacts').select('*', { count: 'exact', head: true })
+        .eq('company_id', userData!.company_id).eq('status', s)
+    )
+  );
+  const statusCounts: Record<string, number> = {};
+  statusValues.forEach((s, i) => { statusCounts[s] = statusCountResults[i].count || 0; });
+
+  // Fetch called contacts count and avg duration
+  const { count: calledCount } = await supabase
+    .from('contacts')
+    .select('*', { count: 'exact', head: true })
+    .eq('company_id', userData!.company_id)
+    .gt('call_attempts', 0);
+
+  // Fetch sample contacts for recent display (latest 50 only)
   const { data: contacts } = await supabase
     .from('contacts')
     .select('*')
-    .eq('company_id', userData!.company_id);
+    .eq('company_id', userData!.company_id)
+    .order('created_at', { ascending: false })
+    .limit(50);
 
   // Fetch recent calls
   const { data: recentCalls } = await supabase
@@ -147,6 +173,16 @@ export default async function DashboardPage() {
       contactLists={contactLists || []}
       usageTracking={correctedUsage}
       subscription={subscription}
+      contactStats={{
+        total: totalContacts || 0,
+        pending: statusCounts['Pending'] || 0,
+        calling: statusCounts['Calling'] || 0,
+        verified: statusCounts['Fully Verified'] || 0,
+        noAnswer: statusCounts['No Answer'] || 0,
+        voicemail: statusCounts['Voicemail Left'] || 0,
+        callback: statusCounts['For Callback'] || 0,
+        calledCount: calledCount || 0,
+      }}
     />
   );
 }

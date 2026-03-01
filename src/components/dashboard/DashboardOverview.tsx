@@ -68,6 +68,17 @@ interface SubscriptionWithPlan {
   } | null;
 }
 
+interface ContactStatsFromServer {
+  total: number;
+  pending: number;
+  calling: number;
+  verified: number;
+  noAnswer: number;
+  voicemail: number;
+  callback: number;
+  calledCount: number;
+}
+
 interface DashboardOverviewProps {
   contacts: any[];
   recentCalls: CallLog[];
@@ -78,6 +89,7 @@ interface DashboardOverviewProps {
   contactLists: ContactList[];
   usageTracking: UsageTracking | null;
   subscription: SubscriptionWithPlan | null;
+  contactStats?: ContactStatsFromServer;
 }
 
 export default function DashboardOverview({
@@ -90,6 +102,7 @@ export default function DashboardOverview({
   contactLists,
   usageTracking,
   subscription,
+  contactStats: serverStats,
 }: DashboardOverviewProps) {
   const [showAgentSelection, setShowAgentSelection] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -105,17 +118,18 @@ export default function DashboardOverview({
   const stats = useMemo(() => {
     const typedContacts = contacts as Contact[];
 
-    const total = typedContacts.length;
-    const pending = typedContacts.filter(c => c.status === 'Pending').length;
-    const calling = typedContacts.filter(c => c.status === 'Calling').length;
-    const verified = typedContacts.filter(c => c.status === 'Fully Verified').length;
-    const noAnswer = typedContacts.filter(c => c.status === 'No Answer').length;
-    const voicemail = typedContacts.filter(c => c.status === 'Voicemail Left').length;
-    const callback = typedContacts.filter(c => c.status === 'For Callback').length;
+    // Use server stats for accurate totals (avoids 1000 row cap)
+    const total = serverStats?.total ?? typedContacts.length;
+    const pending = serverStats?.pending ?? typedContacts.filter(c => c.status === 'Pending').length;
+    const calling = serverStats?.calling ?? typedContacts.filter(c => c.status === 'Calling').length;
+    const verified = serverStats?.verified ?? typedContacts.filter(c => c.status === 'Fully Verified').length;
+    const noAnswer = serverStats?.noAnswer ?? typedContacts.filter(c => c.status === 'No Answer').length;
+    const voicemail = serverStats?.voicemail ?? typedContacts.filter(c => c.status === 'Voicemail Left').length;
+    const callback = serverStats?.callback ?? typedContacts.filter(c => c.status === 'For Callback').length;
 
     const totalCallDuration = typedContacts.reduce((sum, c) => sum + (c.call_duration || 0), 0);
 
-    const calledContacts = typedContacts.filter(c => c.call_attempts > 0).length;
+    const calledContacts = serverStats?.calledCount ?? typedContacts.filter(c => c.call_attempts > 0).length;
     const successRate = calledContacts > 0 ? (verified / calledContacts) * 100 : 0;
     const avgCallDuration = calledContacts > 0 ? totalCallDuration / calledContacts : 0;
 
@@ -139,7 +153,7 @@ export default function DashboardOverview({
       completedCampaigns,
       totalCampaignCalls,
     };
-  }, [contacts, recentCalls, agentRuns]);
+  }, [contacts, recentCalls, agentRuns, serverStats]);
 
   const getStatusStyles = (status: string) => {
     switch (status) {
