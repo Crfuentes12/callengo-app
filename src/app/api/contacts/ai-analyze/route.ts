@@ -1,5 +1,5 @@
 // app/api/contacts/ai-analyze/route.ts
-// AI-powered contact analysis and segmentation suggestions
+// AI-powered contact analysis and list suggestions
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import OpenAI from 'openai';
@@ -23,14 +23,14 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { action, contactIds } = body as {
-      action: 'suggest-segments' | 'analyze-quality' | 'suggest-tags';
+      action: 'suggest-lists' | 'analyze-quality';
       contactIds?: string[];
     };
 
     // Fetch contacts for analysis (limit to 500 for token efficiency)
     let query = supabase
       .from('contacts')
-      .select('company_name, contact_name, email, phone_number, city, state, status, call_outcome, call_attempts, tags, source, list_id, notes')
+      .select('company_name, contact_name, email, phone_number, city, state, status, call_outcome, call_attempts, source, list_id, notes')
       .eq('company_id', userData.company_id)
       .limit(500);
 
@@ -51,13 +51,13 @@ export async function POST(request: NextRequest) {
       .select('id, name, color')
       .eq('company_id', userData.company_id);
 
-    const listMap = Object.fromEntries((lists || []).map(l => [l.id, l.name]));
+    const listMap = Object.fromEntries((lists || []).map((l: { id: string; name: string }) => [l.id, l.name]));
 
     // Build prompt based on action
     let systemPrompt = '';
     let userPrompt = '';
 
-    const contactSummary = contacts.map(c => ({
+    const contactSummary = contacts.map((c: Record<string, unknown>) => ({
       company: c.company_name,
       contact: c.contact_name,
       email: c.email ? 'yes' : 'no',
@@ -66,14 +66,13 @@ export async function POST(request: NextRequest) {
       status: c.status,
       outcome: c.call_outcome,
       attempts: c.call_attempts,
-      tags: c.tags,
       source: c.source,
-      list: c.list_id ? (listMap[c.list_id] || 'Unknown') : 'None',
+      list: c.list_id ? (listMap[c.list_id as string] || 'Unknown') : 'None',
     }));
 
-    if (action === 'suggest-segments') {
-      systemPrompt = `You are a CRM data analyst. Analyze the contact data and suggest intelligent segments/lists.
-You MUST return structured filter criteria so segments can be automatically created.
+    if (action === 'suggest-lists') {
+      systemPrompt = `You are a CRM data analyst. Analyze the contact data and suggest intelligent contact lists.
+You MUST return structured filter criteria so lists can be automatically created and populated with matching contacts.
 The available filterable fields in the database are:
 - status: one of "Pending", "Calling", "Fully Verified", "For Callback", "No Answer", "Voicemail Left", "Wrong Number", "Number Disconnected", "Research Needed"
 - city: string (exact city name as it appears in the data)
@@ -83,26 +82,25 @@ The available filterable fields in the database are:
 - call_attempts: number (use call_attempts_gte or call_attempts_eq)
 - has_email: boolean (true = has email, false = no email)
 - has_phone: boolean
-- tags: string[] (array of tag values)
 Return JSON.`;
-      userPrompt = `Analyze these ${contacts.length} contacts and suggest 3-5 smart segments based on patterns you find (geography, status, engagement, industry, etc.).
+      userPrompt = `Analyze these ${contacts.length} contacts and suggest 3-5 smart contact lists based on patterns you find (geography, status, engagement, industry, etc.).
 
 Contact data sample: ${JSON.stringify(contactSummary.slice(0, 100))}
 ${contacts.length > 100 ? `(Showing 100 of ${contacts.length} contacts)` : ''}
 
-Unique states found: ${JSON.stringify([...new Set(contacts.map(c => c.state).filter(Boolean))])}
-Unique cities found: ${JSON.stringify([...new Set(contacts.map(c => c.city).filter(Boolean))].slice(0, 30))}
-Unique statuses found: ${JSON.stringify([...new Set(contacts.map(c => c.status).filter(Boolean))])}
-Unique sources found: ${JSON.stringify([...new Set(contacts.map(c => c.source).filter(Boolean))])}
+Unique states found: ${JSON.stringify([...new Set(contacts.map((c: Record<string, unknown>) => c.state).filter(Boolean))])}
+Unique cities found: ${JSON.stringify([...new Set(contacts.map((c: Record<string, unknown>) => c.city).filter(Boolean))].slice(0, 30))}
+Unique statuses found: ${JSON.stringify([...new Set(contacts.map((c: Record<string, unknown>) => c.status).filter(Boolean))])}
+Unique sources found: ${JSON.stringify([...new Set(contacts.map((c: Record<string, unknown>) => c.source).filter(Boolean))])}
 
 Current lists: ${JSON.stringify(Object.values(listMap))}
 
 Return JSON with this EXACT structure:
 {
-  "segments": [
+  "lists": [
     {
-      "name": "segment name",
-      "description": "why this segment is useful",
+      "name": "list name",
+      "description": "why this list is useful",
       "criteria": "human-readable filter criteria description",
       "filters": {
         "status": ["Pending"],
@@ -120,7 +118,7 @@ Return JSON with this EXACT structure:
   "insights": ["key insight 1", "key insight 2"]
 }
 
-IMPORTANT: The "filters" object must contain ONLY the filter keys that apply to this segment. Use the exact values from the data. Do NOT include a filter key if it is not relevant to the segment. Each filter narrows the results (AND logic).`;
+IMPORTANT: The "filters" object must contain ONLY the filter keys that apply to this list. Use the exact values from the data. Do NOT include a filter key if it is not relevant to the list. Each filter narrows the results (AND logic).`;
     } else if (action === 'analyze-quality') {
       systemPrompt = 'You are a CRM data quality analyst. Analyze contact data quality and provide actionable recommendations. Return JSON.';
       userPrompt = `Analyze the data quality of these ${contacts.length} contacts.
@@ -134,18 +132,6 @@ Return JSON with this structure:
     { "type": "missing_emails" | "missing_names" | "duplicates" | "stale_contacts" | "unassigned", "count": number, "severity": "high" | "medium" | "low", "suggestion": "actionable fix" }
   ],
   "recommendations": ["recommendation 1", "recommendation 2"]
-}`;
-    } else if (action === 'suggest-tags') {
-      systemPrompt = 'You are a CRM tagging expert. Suggest relevant tags for contacts based on their data. Return JSON.';
-      userPrompt = `Suggest tags for these ${contacts.length} contacts based on their attributes and patterns.
-
-Contact data sample: ${JSON.stringify(contactSummary.slice(0, 100))}
-
-Return JSON:
-{
-  "suggestedTags": [
-    { "tag": "tag-name", "reason": "why useful", "matchCount": number }
-  ]
 }`;
     } else {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

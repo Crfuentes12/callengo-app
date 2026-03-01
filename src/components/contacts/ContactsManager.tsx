@@ -290,7 +290,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     setPage(1);
   };
 
-  const handleAIAnalysis = async (action: 'suggest-segments' | 'analyze-quality' | 'suggest-tags') => {
+  const handleAIAnalysis = async (action: 'suggest-lists' | 'analyze-quality') => {
     setShowAIMenu(false);
     setAILoading(true);
     try {
@@ -785,12 +785,12 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                       Powered by AI
                     </p>
                   </div>
-                  <button onClick={() => handleAIAnalysis('suggest-segments')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-purple-50 transition-colors flex items-center gap-3">
+                  <button onClick={() => handleAIAnalysis('suggest-lists')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-purple-50 transition-colors flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
                       <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-900">Suggest Segments</div>
+                      <div className="font-semibold text-slate-900">Suggest Lists</div>
                       <div className="text-xs text-slate-400">Create smart lists automatically</div>
                     </div>
                   </button>
@@ -801,15 +801,6 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                     <div>
                       <div className="font-semibold text-slate-900">Data Quality</div>
                       <div className="text-xs text-slate-400">Analyze completeness &amp; issues</div>
-                    </div>
-                  </button>
-                  <button onClick={() => handleAIAnalysis('suggest-tags')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-purple-50 transition-colors flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-slate-900">Suggest Tags</div>
-                      <div className="text-xs text-slate-400">Smart tagging recommendations</div>
                     </div>
                   </button>
                 </div>
@@ -1068,9 +1059,8 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">
-                    {aiResult.action === 'suggest-segments' ? 'Suggested Segments' :
-                     aiResult.action === 'analyze-quality' ? 'Data Quality Report' :
-                     'Suggested Tags'}
+                    {aiResult.action === 'suggest-lists' ? 'Suggested Lists' :
+                     'Data Quality Report'}
                   </h3>
                   <p className="text-xs text-purple-600 font-medium mt-0.5">Analyzed {aiResult.contactCount} contacts with AI</p>
                 </div>
@@ -1085,9 +1075,9 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               </button>
             </div>
             <div className="p-6 overflow-y-auto flex-1 space-y-4">
-              {aiResult.action === 'suggest-segments' && (
+              {aiResult.action === 'suggest-lists' && (
                 <>
-                  {(aiResult.result as { segments?: { name: string; description: string; criteria: string; estimatedCount: number; color: string; filters?: Record<string, unknown> }[] }).segments?.map((seg, i) => (
+                  {(aiResult.result as { lists?: { name: string; description: string; criteria: string; estimatedCount: number; color: string; filters?: Record<string, unknown> }[] }).lists?.map((seg, i) => (
                     <div key={i} className="border border-slate-200 rounded-xl p-4 hover:shadow-sm transition-all">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: seg.color }} />
@@ -1191,19 +1181,6 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 </>
               )}
 
-              {aiResult.action === 'suggest-tags' && (
-                <div className="space-y-2">
-                  {(aiResult.result as { suggestedTags?: { tag: string; reason: string; matchCount: number }[] }).suggestedTags?.map((tag, i) => (
-                    <div key={i} className="border border-slate-200 rounded-xl p-3 flex items-center gap-3 hover:shadow-sm transition-all">
-                      <span className="px-2.5 py-1 bg-[var(--color-primary-50)] text-[var(--color-primary)] text-sm font-semibold rounded-lg border border-[var(--color-primary-200)]">{tag.tag}</span>
-                      <div className="flex-1">
-                        <p className="text-sm text-slate-600">{tag.reason}</p>
-                      </div>
-                      <span className="text-xs text-slate-400 font-medium">{tag.matchCount} matches</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
             <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
               <button
