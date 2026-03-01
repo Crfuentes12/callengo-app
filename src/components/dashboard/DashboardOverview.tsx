@@ -225,8 +225,36 @@ export default function DashboardOverview({
         </div>
       </div>
 
-      {/* Free Plan Banner — only for Free plan users */}
-      {subscription && subscription.subscription_plans?.name === 'Free' && (
+      {/* Trial Expired Banner — when free trial minutes are exhausted */}
+      {subscription && subscription.subscription_plans?.name === 'Free' && usageTracking && usageTracking.minutes_used >= (subscription.subscription_plans?.minutes_included || 0) && (
+        <div className="relative overflow-hidden bg-gradient-to-r from-red-50 via-orange-50 to-red-50 border border-red-200 rounded-2xl p-6">
+          <div className="relative z-10 flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-md">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-bold text-red-900 mb-1">Your trial has ended</h3>
+              <p className="text-sm text-red-800 mb-3">
+                You&apos;ve used all your trial minutes. Upgrade to a paid plan to continue making calls and access the full power of Callengo.
+              </p>
+              <a
+                href="/settings?tab=billing"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-red-600 to-orange-600 text-white text-sm font-semibold hover:opacity-90 transition-all shadow-md"
+              >
+                Upgrade Now
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Free Trial Banner — for active trial users with remaining minutes */}
+      {subscription && subscription.subscription_plans?.name === 'Free' && (!usageTracking || usageTracking.minutes_used < (subscription.subscription_plans?.minutes_included || 0)) && (
         <div className="relative overflow-hidden bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200 rounded-2xl p-6">
           <div className="relative z-10 flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-md">
@@ -235,15 +263,17 @@ export default function DashboardOverview({
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-semibold text-slate-900 mb-1">You have 15 free minutes courtesy of Callengo</h3>
+              <h3 className="text-base font-semibold text-slate-900 mb-1">
+                Free Trial — {usageTracking ? Math.max(0, (subscription.subscription_plans?.minutes_included || 0) - usageTracking.minutes_used) : (subscription.subscription_plans?.minutes_included || 0)} minutes remaining
+              </h3>
               <p className="text-sm text-slate-700 mb-3">
-                We believe so much in our product that you don&apos;t need more than 15 minutes to see its real value. Create a small campaign, watch the magic happen, and see how Callengo transforms your outreach.
+                Experience the full power of AI calling. Your trial includes {subscription.subscription_plans?.minutes_included || 15} one-time minutes — no overage, no recharge. Create a campaign, see the magic, and upgrade when you&apos;re ready.
               </p>
               <a
-                href="/settings"
+                href="/settings?tab=billing"
                 className="btn-primary text-sm"
               >
-                Upgrade Your Plan
+                View Plans
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>

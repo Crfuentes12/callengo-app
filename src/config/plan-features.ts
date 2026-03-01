@@ -2,6 +2,9 @@
  * Plan Features Configuration
  * Coherent with Stripe sync script and product spec
  * Phone numbers: Free = rotated only, Starter+ = Twilio BYOP
+ *
+ * Free plan = Trial: 15 minutes included, no overage, no recharge.
+ * After 15 minutes are consumed, users must upgrade to a paid plan.
  */
 
 export const COMMON_FEATURES = [
@@ -22,9 +25,11 @@ export const COMMON_FEATURES = [
 
 export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
   free: [
+    '15 minutes of AI calling (trial)',
     '1 active agent',
-    'Test AI calling workflows',
+    'Full platform experience',
     'Auto-rotated numbers from Callengo pool',
+    'No overage — upgrade required after trial',
   ],
 
   starter: [

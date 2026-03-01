@@ -134,6 +134,9 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
     const pricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;
     const overageCost = overageMinutes * pricePerMinute;
 
+    // Determine if this is a free/trial plan
+    const isFreePlan = subscription.subscription_plans?.slug === 'free';
+
     // Check if within included minutes
     if (minutesUsed < minutesIncluded) {
       return {
@@ -153,7 +156,28 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
       };
     }
 
-    // Over included minutes - check overage settings
+    // FREE PLAN: Hard block at included minutes — no overage allowed
+    // Free users get 15 trial minutes only. After that, they must upgrade.
+    if (isFreePlan) {
+      return {
+        allowed: false,
+        reason: 'Trial minutes exhausted. Please upgrade to a paid plan to continue making calls.',
+        usage: {
+          minutesUsed,
+          minutesIncluded,
+          overageMinutes: 0,
+          overageCost: 0,
+        },
+        subscription: {
+          status: subscription.status,
+          overageEnabled: false,
+          overageBudget: null,
+          overageSpent: 0,
+        },
+      };
+    }
+
+    // PAID PLANS: Over included minutes - check overage settings
     if (!subscription.overage_enabled) {
       return {
         allowed: false,
@@ -193,7 +217,7 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
       };
     }
 
-    // All checks passed
+    // All checks passed (paid plan with overage within budget)
     return {
       allowed: true,
       usage: {

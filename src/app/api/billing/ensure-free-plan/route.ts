@@ -3,9 +3,12 @@ import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 
 /**
- * Ensures a company has a Free plan subscription.
+ * Ensures a company has a Free trial plan subscription.
  * Called during onboarding and as a fallback from the dashboard.
  * Uses supabaseAdmin (service role) to bypass RLS for INSERT operations.
+ *
+ * Free trial: 15 minutes included, no overage allowed.
+ * Users must upgrade to a paid plan after trial minutes are exhausted.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -76,6 +79,9 @@ export async function POST(req: NextRequest) {
         status: 'active',
         current_period_start: now.toISOString(),
         current_period_end: periodEnd.toISOString(),
+        overage_enabled: false,
+        overage_budget: 0,
+        overage_spent: 0,
       })
       .select()
       .single();
@@ -95,7 +101,7 @@ export async function POST(req: NextRequest) {
       minutes_included: freePlan.minutes_included,
     });
 
-    console.log(`[ensure-free-plan] Free plan assigned to company ${company_id}`);
+    console.log(`[ensure-free-plan] Free trial plan (15 min) assigned to company ${company_id}`);
 
     return NextResponse.json({ status: 'created', subscription_id: newSub.id });
   } catch (error) {

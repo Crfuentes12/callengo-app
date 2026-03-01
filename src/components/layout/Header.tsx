@@ -107,15 +107,16 @@ export default function Header({
 
       if (subscription?.subscription_plans) {
         const plan = subscription.subscription_plans as any;
+        const isFree = plan.slug === 'free';
         setPlanInfo({
-          name: plan.name || 'Free',
+          name: isFree ? 'Trial' : (plan.name || 'Free'),
           slug: plan.slug || 'free',
           minutesUsed: usage?.minutes_used || 0,
           minutesIncluded: plan.minutes_included || usage?.minutes_included || 0,
         });
       } else {
         setPlanInfo({
-          name: 'Free',
+          name: 'Trial',
           slug: 'free',
           minutesUsed: usage?.minutes_used || 0,
           minutesIncluded: usage?.minutes_included || 15,
@@ -170,7 +171,7 @@ export default function Header({
       : 'from-emerald-500 to-teal-500';
 
   const planBadgeColor: Record<string, string> = {
-    free: 'bg-slate-100 text-slate-700 border-slate-200',
+    free: 'bg-orange-50 text-orange-700 border-orange-200',
     starter: 'bg-blue-50 text-blue-700 border-blue-200',
     business: 'bg-purple-50 text-purple-700 border-purple-200',
     teams: 'bg-amber-50 text-amber-700 border-amber-200',
