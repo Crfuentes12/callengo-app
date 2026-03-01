@@ -5,6 +5,7 @@ import TeamSettings from '@/components/settings/TeamSettings';
 import SalesforceOrgMembers from '@/components/settings/SalesforceOrgMembers';
 import HubSpotOrgMembers from '@/components/settings/HubSpotOrgMembers';
 import PipedriveOrgMembers from '@/components/settings/PipedriveOrgMembers';
+import ClioOrgMembers from '@/components/settings/ClioOrgMembers';
 import Link from 'next/link';
 
 function TeamUpgradeCTA() {
@@ -167,6 +168,16 @@ export default async function TeamPage() {
     .maybeSingle();
   pdConnected = !!pdIntegration;
 
+  // Check Clio connection
+  let clioConnected = false;
+  const { data: clioIntegration } = await supabaseAdminRaw
+    .from('clio_integrations')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+  clioConnected = !!clioIntegration;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -215,6 +226,13 @@ export default async function TeamPage() {
         companyId={companyId}
         planSlug={planSlug}
         pdConnected={pdConnected}
+      />
+
+      {/* Clio Org Members Preview */}
+      <ClioOrgMembers
+        companyId={companyId}
+        planSlug={planSlug}
+        clioConnected={clioConnected}
       />
     </div>
   );

@@ -28,6 +28,7 @@ interface IntegrationsPageProps {
     salesforce: { connected: boolean; email?: string; username?: string; displayName?: string; lastSynced?: string; integrationId?: string };
     hubspot?: { connected: boolean; email?: string; displayName?: string; hubDomain?: string; lastSynced?: string; integrationId?: string };
     pipedrive?: { connected: boolean; email?: string; displayName?: string; companyName?: string; companyDomain?: string; lastSynced?: string; integrationId?: string };
+    clio?: { connected: boolean; email?: string; displayName?: string; firmName?: string; firmId?: string; lastSynced?: string; integrationId?: string };
     google_sheets?: { connected: boolean; email?: string; displayName?: string; lastUsed?: string; integrationId?: string };
   };
   planSlug: string;
@@ -825,6 +826,23 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         ...(integrations.pipedrive.displayName || integrations.pipedrive.email ? [{ label: 'Account', value: integrations.pipedrive.displayName || integrations.pipedrive.email || '' }] : []),
         ...(integrations.pipedrive.companyName ? [{ label: 'Company', value: integrations.pipedrive.companyName }] : []),
         ...(integrations.pipedrive.lastSynced ? [{ label: 'Last Sync', value: formatLastSynced(integrations.pipedrive.lastSynced) }] : []),
+      ] : undefined,
+    },
+    {
+      id: 'clio', provider: 'clio', name: 'Clio',
+      description: 'Import contacts, matters, and calendar from your legal practice management software',
+      icon: <img src="/clio-logo.png" alt="Clio" className="w-7 h-7" />, iconColor: '', iconBg: 'bg-[#1B2B5B]/5',
+      category: 'crm', requiredPlan: 'business',
+      status: integrations.clio?.connected ? 'connected' : 'available',
+      connectUrl: '/api/integrations/clio/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/clio/disconnect',
+      syncUrl: '/api/integrations/clio/sync',
+      showSync: true,
+      manageUrl: '/contacts/clio',
+      connectedInfo: integrations.clio?.connected ? [
+        ...(integrations.clio.displayName || integrations.clio.email ? [{ label: 'Account', value: integrations.clio.displayName || integrations.clio.email || '' }] : []),
+        ...(integrations.clio.firmName ? [{ label: 'Firm', value: integrations.clio.firmName }] : []),
+        ...(integrations.clio.lastSynced ? [{ label: 'Last Sync', value: formatLastSynced(integrations.clio.lastSynced) }] : []),
       ] : undefined,
     },
     {

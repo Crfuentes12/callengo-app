@@ -1,0 +1,374 @@
+// lib/clio/sync.ts
+// Clio data sync operations - contacts, matters, calendar entries, users
+
+import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
+import { getClioClient } from './auth';
+import type {
+  ClioIntegration,
+  ClioContact,
+  ClioCalendarEntry,
+  ClioUser,
+  ClioPaginatedResponse,
+  ClioSyncResult,
+} from '@/types/clio';
+
+// ============================================================================
+// QUERY HELPERS
+// ============================================================================
+
+async function fetchClioPage<T>(
+  integration: ClioIntegration,
+  path: string
+): Promise<ClioPaginatedResponse<T>> {
+  const client = await getClioClient(integration);
+
+  const res = await client.fetch(path);
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '(could not read error body)');
+    throw new Error(`Clio API request failed (${res.status}): ${errBody}`);
+  }
+
+  return res.json() as Promise<ClioPaginatedResponse<T>>;
+}
+
+async function fetchAllPages<T>(
+  integration: ClioIntegration,
+  initialPath: string
+): Promise<T[]> {
+  const allRecords: T[] = [];
+
+  let result = await fetchClioPage<T>(integration, initialPath);
+  allRecords.push(...result.data);
+
+  while (result.meta.paging?.next) {
+    result = await fetchClioPage<T>(integration, result.meta.paging.next);
+    allRecords.push(...result.data);
+  }
+
+  return allRecords;
+}
+
+// ============================================================================
+// FETCH OPERATIONS
+// ============================================================================
+
+/**
+ * Fetch contacts from Clio
+ */
+export async function fetchClioContacts(
+  integration: ClioIntegration,
+  options: { limit?: number; modifiedSince?: string } = {}
+): Promise<ClioContact[]> {
+  const limit = options.limit || 200;
+  const fields = 'id,etag,name,first_name,last_name,type,prefix,title,company,primary_email_address,primary_phone_number,email_addresses,phone_numbers,addresses,created_at,updated_at';
+
+  let path = `/contacts.json?fields=${fields}&limit=${limit}&order=updated_at(desc)`;
+
+  if (options.modifiedSince) {
+    path += `&updated_since=${encodeURIComponent(options.modifiedSince)}`;
+  }
+
+  return fetchAllPages<ClioContact>(integration, path);
+}
+
+/**
+ * Fetch specific contacts by IDs
+ */
+export async function fetchClioContactsByIds(
+  integration: ClioIntegration,
+  ids: string[]
+): Promise<ClioContact[]> {
+  const contacts: ClioContact[] = [];
+  const client = await getClioClient(integration);
+  const fields = 'id,etag,name,first_name,last_name,type,prefix,title,company,primary_email_address,primary_phone_number,email_addresses,phone_numbers,addresses,created_at,updated_at';
+
+  for (const id of ids) {
+    try {
+      const res = await client.fetch(`/contacts/${id}.json?fields=${fields}`);
+      if (res.ok) {
+        const data = await res.json();
+        contacts.push(data.data);
+      }
+    } catch {
+      // Skip individual failures
+    }
+  }
+
+  return contacts;
+}
+
+/**
+ * Fetch calendar entries from Clio
+ */
+export async function fetchClioCalendarEntries(
+  integration: ClioIntegration,
+  options: { limit?: number; modifiedSince?: string } = {}
+): Promise<ClioCalendarEntry[]> {
+  const limit = options.limit || 200;
+  const fields = 'id,etag,summary,description,start_at,end_at,all_day,location,recurrence_rule,matter,attendees,calendar_owner,created_at,updated_at';
+
+  let path = `/calendar_entries.json?fields=${fields}&limit=${limit}&order=start_at(desc)`;
+
+  if (options.modifiedSince) {
+    path += `&updated_since=${encodeURIComponent(options.modifiedSince)}`;
+  }
+
+  return fetchAllPages<ClioCalendarEntry>(integration, path);
+}
+
+/**
+ * Fetch active users from Clio firm
+ */
+export async function fetchClioUsers(
+  integration: ClioIntegration
+): Promise<ClioUser[]> {
+  const fields = 'id,name,first_name,last_name,email,enabled,subscription_type,account_owner,created_at,updated_at';
+  const path = `/users.json?fields=${fields}&limit=200&order=name(asc)`;
+
+  return fetchAllPages<ClioUser>(integration, path);
+}
+
+// ============================================================================
+// SYNC: CLIO → CALLENGO
+// ============================================================================
+
+/**
+ * Sync specific Clio Contacts (by ID) into Callengo contacts table
+ */
+export async function syncSelectedClioContacts(
+  integration: ClioIntegration,
+  clioIds: string[]
+): Promise<ClioSyncResult> {
+  const result: ClioSyncResult = {
+    contacts_created: 0,
+    contacts_updated: 0,
+    contacts_skipped: 0,
+    errors: [],
+  };
+
+  try {
+    const clioContacts = await fetchClioContactsByIds(integration, clioIds);
+
+    for (const clioContact of clioContacts) {
+      try {
+        const contactId = String(clioContact.id);
+
+        const { data: existingMapping } = await supabaseAdmin
+          .from('clio_contact_mappings')
+          .select('id, callengo_contact_id')
+          .eq('integration_id', integration.id)
+          .eq('clio_contact_id', contactId)
+          .maybeSingle();
+
+        const email = clioContact.primary_email_address || null;
+        const phone = clioContact.primary_phone_number || '';
+        const contactData = {
+          company_id: integration.company_id,
+          contact_name: clioContact.name || `${clioContact.first_name || ''} ${clioContact.last_name || ''}`.trim(),
+          email,
+          phone_number: phone,
+          company_name: clioContact.company?.name || 'Unknown',
+          source: 'clio',
+          tags: ['clio-import'],
+          custom_fields: {
+            clio_contact_id: clioContact.id,
+            clio_first_name: clioContact.first_name,
+            clio_last_name: clioContact.last_name,
+            clio_type: clioContact.type,
+            clio_title: clioContact.title,
+            clio_prefix: clioContact.prefix,
+            clio_addresses: clioContact.addresses,
+          },
+        };
+
+        if (existingMapping?.callengo_contact_id) {
+          await supabaseAdmin.from('contacts').update(contactData).eq('id', existingMapping.callengo_contact_id);
+          await supabaseAdmin.from('clio_contact_mappings').update({ last_synced_at: new Date().toISOString() }).eq('id', existingMapping.id);
+          result.contacts_updated++;
+        } else {
+          let duplicateId: string | null = null;
+          if (email) {
+            const { data: byEmail } = await supabaseAdmin.from('contacts').select('id').eq('company_id', integration.company_id).eq('email', email).maybeSingle();
+            if (byEmail) duplicateId = byEmail.id;
+          }
+          if (!duplicateId && phone) {
+            const { data: byPhone } = await supabaseAdmin.from('contacts').select('id').eq('company_id', integration.company_id).eq('phone_number', phone).maybeSingle();
+            if (byPhone) duplicateId = byPhone.id;
+          }
+
+          let callengoContactId: string;
+          if (duplicateId) {
+            await supabaseAdmin.from('contacts').update(contactData).eq('id', duplicateId);
+            callengoContactId = duplicateId;
+            result.contacts_updated++;
+          } else {
+            const { data: newContact, error: insertError } = await supabaseAdmin.from('contacts').insert(contactData).select('id').single();
+            if (insertError || !newContact) { result.errors.push(`Failed to create contact for Clio ID ${clioContact.id}: ${insertError?.message}`); result.contacts_skipped++; continue; }
+            callengoContactId = newContact.id;
+            result.contacts_created++;
+          }
+
+          await supabaseAdmin.from('clio_contact_mappings').insert({
+            company_id: integration.company_id,
+            integration_id: integration.id,
+            callengo_contact_id: callengoContactId,
+            clio_contact_id: contactId,
+            clio_contact_type: clioContact.type || 'Person',
+            last_synced_at: new Date().toISOString(),
+            sync_direction: 'inbound',
+          });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        result.errors.push(`Error syncing Clio Contact ${clioContact.id}: ${msg}`);
+        result.contacts_skipped++;
+      }
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    result.errors.push(`Failed to fetch selected Clio contacts: ${msg}`);
+  }
+
+  return result;
+}
+
+/**
+ * Sync Clio Contacts into Callengo contacts table
+ */
+export async function syncClioContactsToCallengo(
+  integration: ClioIntegration
+): Promise<ClioSyncResult> {
+  const result: ClioSyncResult = {
+    contacts_created: 0,
+    contacts_updated: 0,
+    contacts_skipped: 0,
+    errors: [],
+  };
+
+  try {
+    const clioContacts = await fetchClioContacts(integration, {
+      modifiedSince: integration.last_synced_at || undefined,
+    });
+
+    for (const clioContact of clioContacts) {
+      try {
+        const contactId = String(clioContact.id);
+
+        // Check if mapping already exists
+        const { data: existingMapping } = await supabaseAdmin
+          .from('clio_contact_mappings')
+          .select('id, callengo_contact_id')
+          .eq('integration_id', integration.id)
+          .eq('clio_contact_id', contactId)
+          .maybeSingle();
+
+        const email = clioContact.primary_email_address || null;
+        const phone = clioContact.primary_phone_number || '';
+        const contactData = {
+          company_id: integration.company_id,
+          contact_name: clioContact.name || `${clioContact.first_name || ''} ${clioContact.last_name || ''}`.trim(),
+          email,
+          phone_number: phone,
+          company_name: clioContact.company?.name || 'Unknown',
+          source: 'clio',
+          tags: ['clio-import'],
+          custom_fields: {
+            clio_contact_id: clioContact.id,
+            clio_first_name: clioContact.first_name,
+            clio_last_name: clioContact.last_name,
+            clio_type: clioContact.type,
+            clio_title: clioContact.title,
+            clio_prefix: clioContact.prefix,
+            clio_addresses: clioContact.addresses,
+          },
+        };
+
+        if (existingMapping?.callengo_contact_id) {
+          // Update existing contact
+          await supabaseAdmin
+            .from('contacts')
+            .update(contactData)
+            .eq('id', existingMapping.callengo_contact_id);
+
+          await supabaseAdmin
+            .from('clio_contact_mappings')
+            .update({ last_synced_at: new Date().toISOString() })
+            .eq('id', existingMapping.id);
+
+          result.contacts_updated++;
+        } else {
+          // Check for duplicate by email or phone
+          let duplicateId: string | null = null;
+          if (email) {
+            const { data: byEmail } = await supabaseAdmin
+              .from('contacts')
+              .select('id')
+              .eq('company_id', integration.company_id)
+              .eq('email', email)
+              .maybeSingle();
+            if (byEmail) duplicateId = byEmail.id;
+          }
+
+          if (!duplicateId && phone) {
+            const { data: byPhone } = await supabaseAdmin
+              .from('contacts')
+              .select('id')
+              .eq('company_id', integration.company_id)
+              .eq('phone_number', phone)
+              .maybeSingle();
+            if (byPhone) duplicateId = byPhone.id;
+          }
+
+          let callengoContactId: string;
+          if (duplicateId) {
+            // Update existing contact with Clio data
+            await supabaseAdmin
+              .from('contacts')
+              .update(contactData)
+              .eq('id', duplicateId);
+            callengoContactId = duplicateId;
+            result.contacts_updated++;
+          } else {
+            // Create new contact
+            const { data: newContact, error: insertError } = await supabaseAdmin
+              .from('contacts')
+              .insert(contactData)
+              .select('id')
+              .single();
+
+            if (insertError || !newContact) {
+              result.errors.push(`Failed to create contact for Clio ID ${clioContact.id}: ${insertError?.message}`);
+              result.contacts_skipped++;
+              continue;
+            }
+            callengoContactId = newContact.id;
+            result.contacts_created++;
+          }
+
+          // Create mapping
+          await supabaseAdmin
+            .from('clio_contact_mappings')
+            .insert({
+              company_id: integration.company_id,
+              integration_id: integration.id,
+              callengo_contact_id: callengoContactId,
+              clio_contact_id: contactId,
+              clio_contact_type: clioContact.type || 'Person',
+              last_synced_at: new Date().toISOString(),
+              sync_direction: 'inbound',
+            });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        result.errors.push(`Error syncing Clio Contact ${clioContact.id}: ${msg}`);
+        result.contacts_skipped++;
+      }
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    result.errors.push(`Failed to fetch Clio contacts: ${msg}`);
+  }
+
+  return result;
+}
