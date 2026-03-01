@@ -196,6 +196,69 @@ export async function cancelSubscription(params: {
 }
 
 /**
+ * Reports usage for metered billing (overage)
+ * Uses Stripe's meter events API for v2025-12-15+
+ */
+export async function reportUsage(params: {
+  subscriptionItemId: string;
+  quantity: number;
+  timestamp?: number;
+  action?: 'increment' | 'set';
+}): Promise<any> {
+  const {
+    subscriptionItemId,
+    quantity,
+    timestamp = Math.floor(Date.now() / 1000),
+    action = 'set',
+  } = params;
+
+  try {
+    // Use rawRequest since createUsageRecord was removed in Stripe SDK v20+
+    const usageRecord = await stripe.rawRequest(
+      'POST',
+      `/v1/subscription_items/${subscriptionItemId}/usage_records`,
+      { quantity, timestamp, action }
+    );
+
+    console.log('Usage reported to Stripe:', {
+      subscriptionItemId,
+      quantity,
+    });
+
+    return usageRecord;
+  } catch (error) {
+    console.error('Failed to report usage to Stripe:', error);
+    throw error;
+  }
+}
+
+/**
+ * Creates a metered price for overage billing
+ */
+export async function createMeteredPrice(params: {
+  productId: string;
+  unitAmount: number;
+  currency?: string;
+  nickname?: string;
+}): Promise<Stripe.Price> {
+  const { productId, unitAmount, currency = 'usd', nickname } = params;
+
+  const price = await stripe.prices.create({
+    product: productId,
+    currency,
+    unit_amount: unitAmount,
+    recurring: {
+      interval: 'month',
+      usage_type: 'metered',
+    },
+    billing_scheme: 'per_unit',
+    nickname,
+  });
+
+  return price;
+}
+
+/**
  * Retrieves subscription with pricing details
  */
 export async function getSubscription(

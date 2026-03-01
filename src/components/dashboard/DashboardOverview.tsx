@@ -47,6 +47,7 @@ interface UsageTracking {
   period_end: string;
   minutes_used: number;
   minutes_included: number;
+  overage_minutes: number;
   total_cost: number;
 }
 

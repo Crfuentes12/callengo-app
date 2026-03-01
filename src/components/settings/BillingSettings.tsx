@@ -29,11 +29,16 @@ interface Subscription {
   billing_cycle: 'monthly' | 'annual';
   status: string;
   current_period_end: string;
+  overage_enabled: boolean;
+  overage_budget: number;
+  overage_spent: number;
+  overage_alert_level: number;
 }
 
 interface Usage {
   minutes_used: number;
   minutes_included: number;
+  overage_minutes: number;
 }
 
 interface BillingSettingsProps {
@@ -70,6 +75,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const [loading, setLoading] = useState(true);
   const [changing, setChanging] = useState(false);
   const [success, setSuccess] = useState('');
+  const [showOverageModal, setShowOverageModal] = useState(false);
+  const [overageBudget, setOverageBudget] = useState(10);
 
   // Billing details expandable section
   const [showBillingDetails, setShowBillingDetails] = useState(false);
@@ -157,6 +164,29 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       console.error('Error creating checkout session:', error);
       alert('Failed to start checkout process');
       setChanging(false);
+    }
+  };
+
+  const handleToggleOverage = async (enabled: boolean) => {
+    if (!subscription) return;
+    if (enabled && overageBudget <= 0) { alert('Please set a budget greater than $0'); return; }
+    try {
+      const response = await fetch('/api/billing/update-overage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId, subscriptionId: subscription.id, enabled, budget: enabled ? overageBudget : 0 })
+      });
+      if (response.ok) {
+        setSuccess(enabled ? 'Overage enabled successfully' : 'Overage disabled');
+        await fetchData();
+        setShowOverageModal(false);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to update overage'}`);
+      }
+    } catch (error) {
+      console.error('Error updating overage:', error);
+      alert('Failed to update overage settings');
     }
   };
 
@@ -379,6 +409,34 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           </div>
         </div>
 
+        {/* ── Overage Controls (right after subscription) ── */}
+        <div>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Overage Controls</h3>
+          <div className="bg-white border border-slate-200 rounded-xl p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h4 className="font-semibold text-slate-900 mb-1">Auto-Overage Billing</h4>
+                <p className="text-sm text-slate-600">Continue making calls even after your monthly minutes run out</p>
+              </div>
+              <button onClick={() => setShowOverageModal(true)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${subscription.overage_enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+                {subscription.overage_enabled ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+            {subscription.overage_enabled && (
+              <div className="space-y-3 pt-4 border-t border-slate-100">
+                <div className="flex justify-between items-center"><span className="text-sm text-slate-600">Overage Budget</span><span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_budget)}</span></div>
+                <div className="flex justify-between items-center"><span className="text-sm text-slate-600">Overage Spent</span><span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_spent)}</span></div>
+                <div className="space-y-1">
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={`h-full transition-all duration-500 ${subscription.overage_spent >= subscription.overage_budget ? 'bg-red-500' : subscription.overage_spent >= subscription.overage_budget * 0.85 ? 'bg-orange-500' : 'bg-green-500'}`} style={{ width: `${Math.min((subscription.overage_spent / subscription.overage_budget) * 100, 100)}%` }} />
+                  </div>
+                  <p className="text-xs text-slate-500">{formatPrice(subscription.overage_budget - subscription.overage_spent)} remaining</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* ── Plans Comparison (current + upgrades) ── */}
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -540,6 +598,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     <span className="text-sm text-slate-600">Concurrent Calls</span>
                     <span className="text-sm text-slate-900 font-medium">{currentPlan.max_concurrent_calls}</span>
                   </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
+                    <span className="text-sm text-slate-600">Overage Rate</span>
+                    <span className="text-sm text-slate-900 font-medium">{formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/min</span>
+                  </div>
                   {currentPlan.max_calls_per_hour && (
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
                       <span className="text-sm text-slate-600">Rate Limit (hourly)</span>
@@ -572,6 +634,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       <span className="text-sm text-slate-900 font-medium">{usage.minutes_included.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
+                      <span className="text-sm text-slate-600">Overage Minutes</span>
+                      <span className="text-sm text-slate-900 font-medium">{usage.overage_minutes.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-50">
                       <span className="text-sm text-slate-600">Minutes Remaining</span>
                       <span className="text-sm text-slate-900 font-medium">{Math.max(0, usage.minutes_included - usage.minutes_used).toLocaleString()}</span>
                     </div>
@@ -597,7 +663,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 </h4>
                 <div className="space-y-2 text-sm text-slate-600">
                   <p>Your subscription automatically renews each billing cycle. Charges are processed through Stripe, our secure payment processor.</p>
-                  <p>Your plan includes {currentPlan.minutes_included.toLocaleString()} minutes per month. When you reach your limit, you can upgrade to a higher plan for more minutes.</p>
+                  <p>Overage charges are calculated at {formatPriceWithDecimals(currentPlan.price_per_extra_minute)} per minute beyond your included {currentPlan.minutes_included.toLocaleString()} minutes, up to your set budget limit.</p>
                   <p>Changes to your subscription take effect at the start of the next billing period. Downgrades and cancellations will continue until the end of the current period.</p>
                   <p className="text-xs text-slate-400 mt-4">By using Callengo, you agree to our Terms of Service and Privacy Policy.</p>
                 </div>
@@ -866,6 +932,29 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           </div>
         )}
 
+        {/* Overage Modal (Paid) */}
+        {showOverageModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 min-h-screen">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative z-10">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">{subscription.overage_enabled ? 'Disable' : 'Enable'} Auto-Overage</h3>
+              <p className="text-sm text-slate-600 mb-6">{subscription.overage_enabled ? 'Disabling auto-overage will stop all calls once you reach your plan limits.' : 'Enable auto-overage to continue making calls beyond your plan limits.'}</p>
+              {!subscription.overage_enabled && (
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-slate-900 mb-2">Monthly Overage Budget</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                    <input type="number" min="0" step="50" value={overageBudget} onChange={(e) => setOverageBudget(Number(e.target.value))} className="w-full pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" placeholder="100" />
+                  </div>
+                </div>
+              )}
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6"><p className="text-xs text-blue-900"><span className="font-semibold">Overage rate:</span> {formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/minute</p></div>
+              <div className="flex gap-3">
+                <button onClick={() => setShowOverageModal(false)} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">Cancel</button>
+                <button onClick={() => handleToggleOverage(!subscription.overage_enabled)} className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors ${subscription.overage_enabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}>{subscription.overage_enabled ? 'Disable Overage' : 'Enable Overage'}</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1011,6 +1100,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       <div className="space-y-1.5 text-[11px]">
                         <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span> min/mo</span></div>
                         <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.max_call_duration} min</span> max call</span></div>
+                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{formatPriceWithDecimals(plan.price_per_extra_minute)}</span> overage</span></div>
                         <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span> concurrent</span></div>
                         {(plan.max_calls_per_hour || plan.max_calls_per_day) && (
                           <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700">{plan.max_calls_per_hour && <><span className="font-semibold text-slate-900">{plan.max_calls_per_hour}</span>/hr</>}{plan.max_calls_per_hour && plan.max_calls_per_day && ', '}{plan.max_calls_per_day && <><span className="font-semibold text-slate-900">{plan.max_calls_per_day}</span>/day</>}</span></div>

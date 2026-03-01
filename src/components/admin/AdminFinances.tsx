@@ -88,7 +88,9 @@ export default function AdminFinances() {
             ${currentFinance.revenue_total?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
           </p>
           <div className="mt-3 flex items-center gap-2 text-xs">
-            <span className="text-emerald-700">Subscriptions: ${currentFinance.revenue_subscriptions?.toLocaleString() || 0}</span>
+            <span className="text-emerald-700">Subs: ${currentFinance.revenue_subscriptions?.toLocaleString() || 0}</span>
+            <span className="text-emerald-600">•</span>
+            <span className="text-emerald-700">Overage: ${currentFinance.revenue_overages?.toLocaleString() || 0}</span>
           </div>
         </div>
 
@@ -186,6 +188,16 @@ export default function AdminFinances() {
           </p>
           <p className="text-xs text-slate-500 mt-2">
             Avg: {currentFinance.avg_minutes_per_call?.toFixed(2) || '0.00'} min/call
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <h4 className="text-sm font-bold text-slate-500 uppercase mb-3">Overage Revenue</h4>
+          <p className="text-4xl font-bold text-slate-900 mb-2">
+            ${currentFinance.revenue_overages?.toLocaleString() || '0'}
+          </p>
+          <p className="text-sm text-slate-600">
+            {currentFinance.overage_revenue_percent?.toFixed(1) || '0.0'}% of total revenue
           </p>
         </div>
 

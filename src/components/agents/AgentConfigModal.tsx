@@ -213,6 +213,8 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const [contactPreview, setContactPreview] = useState<any[]>([]);
   const [setAsDefaultVoice, setSetAsDefaultVoice] = useState(false);
   const [planLimits, setPlanLimits] = useState<{ maxCallDuration: number; maxCallsPerDay: number | null; minutesIncluded: number; slug: string } | null>(null);
+  const [overageData, setOverageData] = useState<{ enabled: boolean; budget: number; spent: number; pricePerMinute: number; subscriptionId: string } | null>(null);
+  const [togglingOverage, setTogglingOverage] = useState(false);
   const [contextSuggestions, setContextSuggestions] = useState<{ title: string; detail: string }[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
@@ -282,7 +284,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   // Load contact lists and plan limits on mount
   useEffect(() => {
     loadContactLists();
-    // Fetch plan limits
+    // Fetch plan limits and overage data
     fetch('/api/billing/subscription')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -293,6 +295,13 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
             maxCallsPerDay: p.max_calls_per_day,
             minutesIncluded: p.minutes_included || 0,
             slug: p.slug || 'free',
+          });
+          setOverageData({
+            enabled: data.subscription.overage_enabled ?? false,
+            budget: data.subscription.overage_budget ?? 0,
+            spent: data.subscription.overage_spent ?? 0,
+            pricePerMinute: p.price_per_extra_minute ?? 0,
+            subscriptionId: data.subscription.id,
           });
         }
       })
@@ -1672,8 +1681,125 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               </div>
             ) : (
               <div className="space-y-5">
-                {/* Minutes Warning */}
-                {planLimits && (
+                {/* Auto-Overage Billing Toggle — hidden for free trial users */}
+                {overageData && planLimits && planLimits.slug !== 'free' && (
+                  <div className={`rounded-xl p-4 border space-y-3 transition-all ${overageData.enabled ? 'bg-green-50/50 border-green-200' : 'bg-amber-50/50 border-amber-200'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${overageData.enabled ? 'bg-green-100' : 'bg-amber-100'}`}>
+                          <svg className={`w-4.5 h-4.5 ${overageData.enabled ? 'text-green-600' : 'text-amber-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-bold text-slate-900 uppercase">Auto-Overage</h3>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {overageData.enabled
+                              ? `Enabled — ${planLimits.minutesIncluded.toLocaleString()} min included, then $${overageData.pricePerMinute.toFixed(2)}/min`
+                              : 'Calls stop when plan minutes run out'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newEnabled = !overageData.enabled;
+                          // Optimistic update - toggle immediately
+                          setOverageData(prev => prev ? { ...prev, enabled: newEnabled, budget: newEnabled ? (prev.budget || 50) : prev.budget } : prev);
+                          // Fire API call in background
+                          fetch('/api/billing/update-overage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              companyId,
+                              subscriptionId: overageData.subscriptionId,
+                              enabled: newEnabled,
+                              budget: newEnabled ? (overageData.budget || 50) : 0,
+                            }),
+                          }).catch(() => {
+                            // Revert on error
+                            setOverageData(prev => prev ? { ...prev, enabled: !newEnabled } : prev);
+                          });
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${overageData.enabled ? 'bg-green-500' : 'bg-slate-300'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${overageData.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    {overageData.enabled ? (
+                      <div className="space-y-2 pl-12">
+                        <div className="flex items-center gap-3 text-[11px]">
+                          <span className="text-slate-500 shrink-0">Budget:</span>
+                          <div className="flex items-center gap-1.5">
+                            {[20, 50, 100, 200].map(amount => (
+                              <button
+                                key={amount}
+                                onClick={() => {
+                                  setOverageData(prev => prev ? { ...prev, budget: amount } : prev);
+                                  fetch('/api/billing/update-overage', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ companyId, subscriptionId: overageData.subscriptionId, enabled: true, budget: amount }),
+                                  }).catch(() => {});
+                                }}
+                                className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                                  overageData.budget === amount
+                                    ? 'bg-green-600 text-white shadow-sm'
+                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-green-300'
+                                }`}
+                              >
+                                ${amount}
+                              </button>
+                            ))}
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">$</span>
+                              <input
+                                type="number"
+                                min={5}
+                                max={1000}
+                                value={![20, 50, 100, 200].includes(overageData.budget) ? overageData.budget : ''}
+                                placeholder="Custom"
+                                onChange={e => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  if (val > 0) {
+                                    setOverageData(prev => prev ? { ...prev, budget: val } : prev);
+                                  }
+                                }}
+                                onBlur={e => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  if (val > 0) {
+                                    fetch('/api/billing/update-overage', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ companyId, subscriptionId: overageData.subscriptionId, enabled: true, budget: val }),
+                                    }).catch(() => {});
+                                  }
+                                }}
+                                className="w-16 pl-5 pr-1 py-1 rounded-md border border-slate-200 text-[11px] font-semibold text-slate-700 focus:ring-1 focus:ring-green-400 focus:border-green-400 outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-[11px]">
+                          <span className="text-slate-500">Rate: <span className="font-semibold text-slate-700">${overageData.pricePerMinute.toFixed(2)}/min</span></span>
+                          {overageData.spent > 0 && <span className="text-slate-500">Spent: <span className="font-semibold text-slate-700">${overageData.spent.toFixed(2)}</span></span>}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-amber-100/60 rounded-lg p-3 flex items-start gap-2.5">
+                        <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                        <div>
+                          <p className="text-[11px] font-semibold text-amber-800">Campaign will stop mid-progress if minutes run out</p>
+                          <p className="text-[10px] text-amber-700 mt-0.5">Remaining contacts won&apos;t be called, breaking campaign momentum and leaving gaps in your outreach. Enable overage to ensure uninterrupted campaigns.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Free trial notice — shown only for free plan users */}
+                {planLimits && planLimits.slug === 'free' && (
                   <div className="rounded-xl p-4 border space-y-3 transition-all bg-blue-50/50 border-blue-200">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-100">
@@ -1682,28 +1808,15 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         </svg>
                       </div>
                       <div>
-                        <h3 className="text-xs font-bold text-slate-900 uppercase">Minutes Limit</h3>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          {planLimits.slug === 'free'
-                            ? `Free trial — ${planLimits.minutesIncluded} minutes included (one-time)`
-                            : `${planLimits.minutesIncluded.toLocaleString()} minutes included per month`
-                          }
-                        </p>
+                        <h3 className="text-xs font-bold text-slate-900 uppercase">Free Trial</h3>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{planLimits.minutesIncluded} minutes included (one-time). Campaigns stop when minutes run out.</p>
                       </div>
                     </div>
                     <div className="bg-blue-100/60 rounded-lg p-3 flex items-start gap-2.5">
                       <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <div>
-                        <p className="text-[11px] font-semibold text-blue-800">Campaigns stop when minutes run out</p>
-                        <p className="text-[10px] text-blue-700 mt-0.5">
-                          {planLimits.slug === 'free'
-                            ? 'Upgrade to a paid plan for more minutes and uninterrupted campaigns.'
-                            : 'Upgrade your plan for more minutes if needed.'
-                          }
-                        </p>
-                      </div>
+                      <p className="text-[10px] text-blue-700">Upgrade to a paid plan for more minutes and uninterrupted campaigns.</p>
                     </div>
                   </div>
                 )}

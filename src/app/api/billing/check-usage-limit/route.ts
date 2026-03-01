@@ -3,29 +3,17 @@ import { createServerClient } from '@/lib/supabase/server';
 import { checkUsageLimit } from '@/lib/billing/usage-tracker';
 
 /**
- * Check if a company can make a call based on their usage limits.
- *
- * For free trial users: blocks calls once 15 minutes are exhausted.
- * For paid users: blocks calls when plan minutes are exceeded.
- * No overage option — users must upgrade to continue.
+ * API endpoint to check if a company can make a call based on usage limits
+ * This should be called before initiating any call
  */
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerClient();
 
-    // Verify authentication
+    // Get current user
     const {
       data: { user },
-      error: userError,
     } = await supabase.auth.getUser();
-
-    // Also check for internal service key
-    const serviceKey = req.headers.get('x-service-key');
-    const isServiceCall = serviceKey === process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!user && !isServiceCall) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const body = await req.json();
     const { companyId } = body;
@@ -37,8 +25,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify user has access to this company
-    if (user && !isServiceCall) {
+    // Verify user has access to this company (if authenticated)
+    if (user) {
       const { data: userData } = await supabase
         .from('users')
         .select('company_id')
@@ -46,10 +34,14 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (userData?.company_id !== companyId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 403 }
+        );
       }
     }
 
+    // Check usage limit
     const result = await checkUsageLimit(companyId);
 
     return NextResponse.json(result);
@@ -65,6 +57,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * GET endpoint to retrieve usage limit information
+ */
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createServerClient();
@@ -75,7 +70,10 @@ export async function GET(req: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     // Get user's company
@@ -85,13 +83,14 @@ export async function GET(req: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (!userData?.company_id) {
+    if (!userData) {
       return NextResponse.json(
-        { error: 'Company not found' },
+        { error: 'User data not found' },
         { status: 404 }
       );
     }
 
+    // Check usage limit
     const result = await checkUsageLimit(userData.company_id);
 
     return NextResponse.json(result);

@@ -1,11 +1,6 @@
 /**
  * Usage Tracker Service
- * Tracks call usage and enforces plan limits.
- *
- * For free trial users: blocks calls once 15 minutes are exhausted.
- * No overage, no recharge — users must upgrade to a paid plan.
- *
- * For paid users: tracks usage against plan-included minutes.
+ * Automatically tracks and reports usage to Stripe
  */
 
 import { supabaseAdmin as supabase } from '@/lib/supabase/service';
@@ -23,12 +18,14 @@ export interface UsageCheckResult {
   usage: {
     minutesUsed: number;
     minutesIncluded: number;
-    minutesRemaining: number;
+    overageMinutes: number;
+    overageCost: number;
   };
   subscription: {
     status: string;
-    planSlug: string;
-    isTrial: boolean;
+    overageEnabled: boolean;
+    overageBudget: number | null;
+    overageSpent: number;
   };
 }
 
@@ -63,7 +60,7 @@ export async function trackCallUsage(params: UsageReport): Promise<void> {
     }
 
     const data = await response.json();
-    console.log('Usage tracked successfully:', data);
+    console.log('✅ Usage tracked successfully:', data);
   } catch (error) {
     console.error('Error tracking call usage:', error);
     throw error;
@@ -71,13 +68,7 @@ export async function trackCallUsage(params: UsageReport): Promise<void> {
 }
 
 /**
- * Check if company can make a call based on their usage limits.
- *
- * Logic:
- * 1. Subscription must exist and be active/trialing
- * 2. Minutes used must be less than minutes included
- * 3. If trial (free plan) and minutes exhausted → blocked, must upgrade
- * 4. No overage — calls are simply blocked at the limit
+ * Check if company can make a call based on their usage limits
  */
 export async function checkUsageLimit(companyId: string): Promise<UsageCheckResult> {
   try {
@@ -95,18 +86,17 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
         usage: {
           minutesUsed: 0,
           minutesIncluded: 0,
-          minutesRemaining: 0,
+          overageMinutes: 0,
+          overageCost: 0,
         },
         subscription: {
           status: 'inactive',
-          planSlug: 'none',
-          isTrial: false,
+          overageEnabled: false,
+          overageBudget: null,
+          overageSpent: 0,
         },
       };
     }
-
-    const planSlug = subscription.subscription_plans?.slug || 'free';
-    const isTrial = planSlug === 'free';
 
     // Check subscription status
     if (subscription.status !== 'active' && subscription.status !== 'trialing') {
@@ -116,12 +106,14 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
         usage: {
           minutesUsed: 0,
           minutesIncluded: 0,
-          minutesRemaining: 0,
+          overageMinutes: 0,
+          overageCost: 0,
         },
         subscription: {
           status: subscription.status,
-          planSlug,
-          isTrial,
+          overageEnabled: subscription.overage_enabled,
+          overageBudget: subscription.overage_budget,
+          overageSpent: subscription.overage_spent || 0,
         },
       };
     }
@@ -138,7 +130,9 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
 
     const minutesUsed = usage?.minutes_used || 0;
     const minutesIncluded = subscription.subscription_plans?.minutes_included || 0;
-    const minutesRemaining = Math.max(0, minutesIncluded - minutesUsed);
+    const overageMinutes = Math.max(0, minutesUsed - minutesIncluded);
+    const pricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;
+    const overageCost = overageMinutes * pricePerMinute;
 
     // Check if within included minutes
     if (minutesUsed < minutesIncluded) {
@@ -147,33 +141,93 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
         usage: {
           minutesUsed,
           minutesIncluded,
-          minutesRemaining,
+          overageMinutes,
+          overageCost,
         },
         subscription: {
           status: subscription.status,
-          planSlug,
-          isTrial,
+          overageEnabled: subscription.overage_enabled,
+          overageBudget: subscription.overage_budget,
+          overageSpent: subscription.overage_spent || 0,
         },
       };
     }
 
-    // Minutes exhausted — calls are blocked
-    const reason = isTrial
-      ? 'Your free trial minutes have been used. Please upgrade to a paid plan to continue.'
-      : 'Monthly minutes exceeded. Please upgrade your plan for more minutes.';
+    // Free/trial plan: always block when minutes exhausted — no overage
+    const planSlug = subscription.subscription_plans?.slug || 'free';
+    if (planSlug === 'free') {
+      return {
+        allowed: false,
+        reason: 'Your free trial minutes have been used. Please upgrade to a paid plan to continue.',
+        usage: {
+          minutesUsed,
+          minutesIncluded,
+          overageMinutes,
+          overageCost,
+        },
+        subscription: {
+          status: subscription.status,
+          overageEnabled: false,
+          overageBudget: null,
+          overageSpent: 0,
+        },
+      };
+    }
 
+    // Paid plans: check overage settings
+    if (!subscription.overage_enabled) {
+      return {
+        allowed: false,
+        reason: 'Monthly minutes exceeded and overage is disabled',
+        usage: {
+          minutesUsed,
+          minutesIncluded,
+          overageMinutes,
+          overageCost,
+        },
+        subscription: {
+          status: subscription.status,
+          overageEnabled: subscription.overage_enabled,
+          overageBudget: subscription.overage_budget,
+          overageSpent: subscription.overage_spent || 0,
+        },
+      };
+    }
+
+    // Check overage budget
+    if (subscription.overage_budget && overageCost >= subscription.overage_budget) {
+      return {
+        allowed: false,
+        reason: 'Overage budget exceeded',
+        usage: {
+          minutesUsed,
+          minutesIncluded,
+          overageMinutes,
+          overageCost,
+        },
+        subscription: {
+          status: subscription.status,
+          overageEnabled: subscription.overage_enabled,
+          overageBudget: subscription.overage_budget,
+          overageSpent: subscription.overage_spent || 0,
+        },
+      };
+    }
+
+    // All checks passed
     return {
-      allowed: false,
-      reason,
+      allowed: true,
       usage: {
         minutesUsed,
         minutesIncluded,
-        minutesRemaining: 0,
+        overageMinutes,
+        overageCost,
       },
       subscription: {
         status: subscription.status,
-        planSlug,
-        isTrial,
+        overageEnabled: subscription.overage_enabled,
+        overageBudget: subscription.overage_budget,
+        overageSpent: subscription.overage_spent || 0,
       },
     };
   } catch (error) {
@@ -208,16 +262,19 @@ export async function getUsageStats(companyId: string) {
 
     const minutesUsed = usage?.minutes_used || 0;
     const minutesIncluded = subscription.subscription_plans?.minutes_included || 0;
-    const minutesRemaining = Math.max(0, minutesIncluded - minutesUsed);
-    const planSlug = subscription.subscription_plans?.slug || 'free';
+    const overageMinutes = Math.max(0, minutesUsed - minutesIncluded);
+    const pricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;
+    const overageCost = overageMinutes * pricePerMinute;
 
     return {
       minutesUsed,
       minutesIncluded,
-      minutesRemaining,
-      percentageUsed: minutesIncluded > 0 ? (minutesUsed / minutesIncluded) * 100 : 0,
-      isTrial: planSlug === 'free',
-      planSlug,
+      overageMinutes,
+      overageCost,
+      percentageUsed: (minutesUsed / minutesIncluded) * 100,
+      overageEnabled: subscription.overage_enabled,
+      overageBudget: subscription.overage_budget,
+      overageSpent: subscription.overage_spent || 0,
       periodStart: usage?.period_start,
       periodEnd: usage?.period_end,
     };
@@ -256,7 +313,17 @@ export async function resetUsageForNewPeriod(companyId: string): Promise<void> {
       total_cost: 0,
     });
 
-    console.log(`Usage reset for company ${companyId}`);
+    // Reset overage tracking in subscription
+    await supabase
+      .from('company_subscriptions')
+      .update({
+        overage_spent: 0,
+        last_overage_alert_at: null,
+        overage_alert_level: 0,
+      })
+      .eq('id', subscription.id);
+
+    console.log(`✅ Usage reset for company ${companyId}`);
   } catch (error) {
     console.error('Error resetting usage:', error);
     throw error;
