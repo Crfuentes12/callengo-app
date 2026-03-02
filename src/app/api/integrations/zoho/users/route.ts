@@ -62,7 +62,7 @@ export async function GET() {
       .select('id, email')
       .eq('company_id', userData.company_id);
 
-    const callengoEmailMap = new Map(
+    const callengoEmailMap = new Map<string, string>(
       (callengoUsers || []).map((u: { id: string; email: string }) => [u.email?.toLowerCase(), u.id])
     );
 
