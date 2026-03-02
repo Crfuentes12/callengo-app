@@ -557,7 +557,7 @@ function SlackConfigureModal({
         .update({
           settings: {
             ...existingSettings,
-            slack_default_config: config,
+            slack_default_config: config as unknown as Record<string, unknown>,
           },
         })
         .eq('company_id', companyId);
