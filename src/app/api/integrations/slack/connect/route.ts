@@ -23,6 +23,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(`${returnTo}?error=no_company`, request.url));
     }
 
+    // Check plan access (starter+ required)
+    const { data: subscription } = await supabase
+      .from('company_subscriptions')
+      .select('subscription_plans ( slug )')
+      .eq('company_id', userData.company_id)
+      .eq('status', 'active')
+      .single();
+
+    const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
+    if (!['starter', 'business', 'teams', 'enterprise'].includes(planSlug)) {
+      return NextResponse.redirect(new URL(`${returnTo}?error=plan_required&message=Slack+requires+Starter+plan+or+higher`, request.url));
+    }
+
     const clientId = process.env.SLACK_CLIENT_ID;
     if (!clientId) {
       return NextResponse.redirect(new URL(`${returnTo}?error=not_configured`, request.url));

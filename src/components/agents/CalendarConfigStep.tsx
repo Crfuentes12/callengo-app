@@ -331,6 +331,48 @@ export default function CalendarConfigStep({
     fetchPlan();
   }, []);
 
+  // Load default Slack config from company_settings if set as default
+  useEffect(() => {
+    const loadSlackDefaults = async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('company_settings')
+          .select('settings')
+          .eq('company_id', companyId)
+          .single();
+        const settings = (data?.settings as Record<string, unknown>) || {};
+        const slackDefaults = settings.slack_default_config as {
+          enabled: boolean;
+          channelIds: string[];
+          channelNames: string[];
+          notifyOnCallCompleted: boolean;
+          notifyOnAppointment: boolean;
+          notifyOnFollowUp: boolean;
+          notifyOnNoShow: boolean;
+          setAsDefault: boolean;
+        } | undefined;
+
+        if (slackDefaults?.setAsDefault && !config.slackChannelId) {
+          onConfigChange({
+            ...config,
+            slackEnabled: slackDefaults.enabled,
+            slackChannelIds: slackDefaults.channelIds,
+            slackChannelNames: slackDefaults.channelNames,
+            slackChannelId: slackDefaults.channelIds[0] || '',
+            slackChannelName: slackDefaults.channelNames[0] || '',
+            slackNotifyOnCallCompleted: slackDefaults.notifyOnCallCompleted,
+            slackNotifyOnAppointment: slackDefaults.notifyOnAppointment,
+            slackNotifyOnFollowUp: slackDefaults.notifyOnFollowUp,
+            slackNotifyOnNoShow: slackDefaults.notifyOnNoShow,
+          });
+        }
+      } catch { /* ignore */ }
+    };
+    loadSlackDefaults();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId]);
+
   // Fetch integration statuses
   useEffect(() => {
     fetchIntegrationStatus();

@@ -23,6 +23,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(`${returnTo}?error=no_company`, request.url));
     }
 
+    // Check plan access (business+ required)
+    const { data: subscription } = await supabase
+      .from('company_subscriptions')
+      .select('subscription_plans ( slug )')
+      .eq('company_id', userData.company_id)
+      .eq('status', 'active')
+      .single();
+
+    const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
+    if (!['business', 'teams', 'enterprise'].includes(planSlug)) {
+      return NextResponse.redirect(new URL(`${returnTo}?error=plan_required&message=Microsoft+365+requires+Business+plan+or+higher`, request.url));
+    }
+
     const clientId = process.env.MICROSOFT_CLIENT_ID;
     const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
 
