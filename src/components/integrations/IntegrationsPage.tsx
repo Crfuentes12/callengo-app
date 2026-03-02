@@ -1,7 +1,7 @@
 // components/integrations/IntegrationsPage.tsx
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SiTwilio } from 'react-icons/si';
 import { FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
