@@ -555,10 +555,10 @@ function SlackConfigureModal({
       await supabase
         .from('company_settings')
         .update({
-          settings: {
+          settings: JSON.parse(JSON.stringify({
             ...existingSettings,
-            slack_default_config: config as unknown as Record<string, unknown>,
-          },
+            slack_default_config: config,
+          })),
         })
         .eq('company_id', companyId);
       onSave();
