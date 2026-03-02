@@ -97,11 +97,13 @@ export default function Header({
         .eq('status', 'active')
         .single();
 
+      const now = new Date().toISOString();
       const { data: usage } = await supabase
         .from('usage_tracking')
         .select('minutes_used, minutes_included')
         .eq('company_id', companyId)
-        .order('period_start', { ascending: false })
+        .lte('period_start', now)
+        .gte('period_end', now)
         .limit(1)
         .single();
 

@@ -92,12 +92,14 @@ export default async function DashboardPage() {
     .select('*')
     .eq('company_id', userData!.company_id);
 
-  // Fetch usage tracking
+  // Fetch usage tracking for current billing period
+  const now = new Date().toISOString();
   const { data: usageTracking } = await supabase
     .from('usage_tracking')
     .select('*')
     .eq('company_id', userData!.company_id)
-    .order('period_start', { ascending: false })
+    .lte('period_start', now)
+    .gte('period_end', now)
     .limit(1)
     .single();
 

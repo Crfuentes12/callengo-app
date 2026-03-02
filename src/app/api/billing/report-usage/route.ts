@@ -66,13 +66,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get current usage tracking
+    // Get current usage tracking (for current billing period)
+    const now = new Date().toISOString();
     const { data: usage, error: usageError } = await supabase
       .from('usage_tracking')
       .select('*')
       .eq('company_id', companyId)
       .eq('subscription_id', subscription.id)
-      .order('period_start', { ascending: false })
+      .lte('period_start', now)
+      .gte('period_end', now)
       .limit(1)
       .single();
 
@@ -280,13 +282,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get current usage
+    // Get current usage (for current billing period)
+    const getNow = new Date().toISOString();
     const { data: usage } = await supabase
       .from('usage_tracking')
       .select('*')
       .eq('company_id', userData.company_id)
       .eq('subscription_id', subscription.id)
-      .order('period_start', { ascending: false })
+      .lte('period_start', getNow)
+      .gte('period_end', getNow)
       .limit(1)
       .single();
 
