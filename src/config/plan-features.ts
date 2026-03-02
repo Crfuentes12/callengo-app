@@ -35,6 +35,9 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
   starter: [
     '1 active agent',
     '1 user (dashboard access)',
+    'Webhooks (Zapier, Make, n8n compatible)',
+    'Slack notifications',
+    'SimplyBook.me integration',
     'Basic async support',
     'Auto-rotated numbers from Callengo pool',
   ],
@@ -50,8 +53,9 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
     'Auto-rotated numbers from Callengo pool',
     'Twilio BYOP integration',
     'Microsoft 365 Outlook & Teams',
-    'Slack notifications',
-    'Salesforce CRM integration',
+    'HubSpot CRM integration',
+    'Pipedrive CRM integration',
+    'Zoho CRM integration',
   ],
 
   teams: [
@@ -63,11 +67,11 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
     'Advanced retry logic',
     'Priority support',
     'Salesforce CRM integration',
+    'Microsoft Dynamics 365',
+    'Clio (legal practice management)',
     'Auto-rotated numbers from Callengo pool',
     'Twilio BYOP integration',
     'Custom dialing pools',
-    'Microsoft 365 Outlook & Teams',
-    'Slack notifications',
   ],
 
   enterprise: [

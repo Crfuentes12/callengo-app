@@ -55,6 +55,9 @@ interface IntegrationItem {
   settingsUrl?: string;
   showSync?: boolean;
   manageUrl?: string;
+  alwaysActive?: boolean;
+  parentProvider?: string;
+  parentConnectUrl?: string;
 }
 
 // ============================================================================
@@ -116,12 +119,12 @@ function Tooltip({ text }: { text: string }) {
 }
 
 // Coming soon brand icons as simple SVG components
-function BooksyIcon({ className = 'w-7 h-7' }: { className?: string }) {
+function WebhookIcon({ className = 'w-7 h-7' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 256 256" fill="currentColor">
-      <g transform="translate(0,256) scale(0.1,-0.1)">
-        <path d="M1268 2109c-17-9-18-44-18-504l0-493 41-35c22-20 65-48 94-63 74-39 82-31 87 99 5 117 27 174 100 253 62 67 135 98 233 98 106 1 166-25 239-105 76-82 100-146 100-274 1-175-54-269-200-342-130-64-279-57-451 22-93 43-173 95-371 243-90 68-186 134-213 147-144 73-339 73-496-1-107-51-245-209-260-298-8-48 15-57 134-54l97 3 40 60c56 81 117 118 205 123 114 6 201-40 516-272 156-115 296-188 420-217 75-18 110-20 215-16 151 6 239 32 343 103 158 108 247 285 247 491 0 180-59 331-175 449-112 114-233 164-395 164-100 0-170-18-256-66-34-18-64-31-68-27-3 3-6 114-6 245 0 287 3 278-112 278-40 0-81-5-90-11z" />
-      </g>
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor">
+      <path d="M6.032 4.132c0-1.039.843-1.882 1.886-1.882.709 0 1.328.39 1.65.97a.75.75 0 101.311-.728A3.385 3.385 0 007.918.75a3.383 3.383 0 00-3.386 3.382c0 .94.385 1.79 1.003 2.402l-2.054 3.594a1.25 1.25 0 00.151 2.49h.007a1.25 1.25 0 001.146-1.75l2.369-4.144a.75.75 0 00-.249-1.005 1.879 1.879 0 01-.873-1.587z"/>
+      <path d="M7.793 5.375a1.25 1.25 0 01.125-2.494h.006a1.25 1.25 0 011.157 1.725l2.159 3.572a3.383 3.383 0 014.51 3.19 3.383 3.383 0 01-4.23 3.275.75.75 0 11.373-1.452 1.883 1.883 0 002.357-1.822 1.883 1.883 0 00-2.897-1.588.75.75 0 01-1.045-.245l-2.515-4.16z"/>
+      <path d="M2.002 10.429a.75.75 0 00-1.298-.752 3.383 3.383 0 002.932 5.073c1.61 0 2.96-1.124 3.301-2.632h4.42c.229.304.592.5 1.001.5h.007a1.25 1.25 0 000-2.5h-.007c-.409 0-.772.197-1 .5H6.271a.75.75 0 00-.75.75 1.883 1.883 0 01-1.886 1.882 1.883 1.883 0 01-1.633-2.821z"/>
     </svg>
   );
 }
@@ -136,46 +139,12 @@ function PipedriveIcon({ className = 'w-7 h-7' }: { className?: string }) {
 
 function ZohoIcon({ className = 'w-7 h-7' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 290 100" fill="none">
-      <defs>
-        <linearGradient id="zoho-yellow" x2="1" gradientTransform="matrix(-7e-6 -164.3 -164.3 7e-6 636.24 170.92)" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#ffe500" offset="0"/><stop stopColor="#fcb822" offset="1"/>
-        </linearGradient>
-        <linearGradient id="zoho-blue" x2="1" gradientTransform="matrix(161.08 -129.36 -129.36 -161.08 380.05 153.54)" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#168ccc" offset="0"/><stop stopColor="#00649e" offset="1"/>
-        </linearGradient>
-        <linearGradient id="zoho-green" x2="1" gradientTransform="matrix(-6e-6 -143.94 -143.94 6e-6 287.19 149.02)" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#25a149" offset="0"/><stop stopColor="#008a52" offset="1"/>
-        </linearGradient>
-        <linearGradient id="zoho-red" x2="1" gradientTransform="matrix(24.754 -149.44 -149.44 -24.754 78.386 163.11)" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#d92231" offset="0"/><stop stopColor="#ba2234" offset="1"/>
-        </linearGradient>
-      </defs>
-      <g transform="matrix(1.3333 0 0 -1.3333 0 100.08)">
-        <g transform="matrix(.29378 0 0 .29378 0 .042373)">
-          <g transform="translate(740.38 200.84)"><path d="m0 0v-175.61l-24.248-23.659v171.73l24.248 27.54" fill="#e79224"/></g>
-          <path d="m716.52 173.3h-160.57v-171.94h160.57z" fill="url(#zoho-yellow)"/>
-          <g transform="translate(581.1 200.72)"><path d="m0 0-25.151-27.424h160.57l23.857 27.54-159.28-.116" fill="#fef26f"/></g>
-          <g transform="translate(382.23 193.19)"><path d="M0,0 157.946,21.956 144.731-15.916-4.901-39.646-4.264-12.575 0,0" fill="#91c9ed"/></g>
-          <path d="m526.96 177.28 21.881-154.04-155.74-21.883-21.03 148.92 9.094 7.106 145.8 19.893" fill="url(#zoho-blue)"/>
-          <g transform="translate(540.18 215.15)"><path d="m0 0 .122-.93 20.484-157.73-11.94-33.25-21.881 154.04" fill="#0b9ad6"/></g>
-          <path d="m248.83 206.33 139.83-63.093-63.094-143.23-139.83 63.089 63.094 143.24" fill="url(#zoho-green)"/>
-          <g transform="translate(234.31 255.36)"><path d="M0,0 14.515-49.028 154.343-112.121 142.588-65.273 0,0" fill="#98d0a0"/></g>
-          <g transform="translate(234.31 255.36)"><path d="m0,0-56.279-133.569 7.7-58.697L14.515-49.028 0,0" fill="#68bf6b"/></g>
-          <path d="m156.3 177.5 23.047-151.58-154.53-24.23-24.82 151.87 156.3 23.932" fill="url(#zoho-red)"/>
-          <g transform="translate(0 153.57)"><path d="M0,0 10.852,54.119 166.879,79.129 156.304,23.932 0,0" fill="#ef463d"/></g>
-          <g transform="translate(166.88 232.7)"><path d="M0,0 22.877-153.042 12.472-206.773-10.575-55.197 0,0" fill="#761116"/></g>
-          <g transform="translate(500.47 147.76)"><path d="m0 0c-.703 4.784-2.337 8.434-4.985 10.825-2.105 1.91-4.753 2.875-7.771 2.87-.77 0-1.563-.062-2.386-.182-4.043-.581-7.14-2.454-9.038-5.546-1.38-2.234-2.05-4.929-2.05-8.029 0-1.187.099-2.438.293-3.75l5.681-40.081-44.78-6.59-5.681 40.089c-.687 4.66-2.298 8.273-4.91 10.729-2.109 1.991-4.739 3.009-7.705 3.002-.7 0-1.419-.056-2.153-.164-4.215-.607-7.425-2.445-9.374-5.491-1.414-2.194-2.096-4.902-2.096-8.051 0-1.209.103-2.487.298-3.835l15.322-104.24c.703-4.793 2.38-8.435 5.135-10.789 2.149-1.839 4.843-2.764 7.929-2.758.843 0 1.72.066 2.625.2 3.855.558 6.833 2.423 8.629 5.511 1.287 2.195 1.913 4.832 1.913 7.85 0 1.208-.099 2.474-.295 3.8l-6.261 41.184 44.778 6.581 6.265-41.183c.689-4.73 2.349-8.351 5.066-10.736 2.158-1.898 4.826-2.853 7.85-2.848.777 0 1.573.059 2.395.18 4.028.586 7.113 2.431 8.955 5.498 1.327 2.188 1.967 4.841 1.967 7.899 0 1.21-.097 2.483-.293 3.82zm-182.12-57.657c-5.269-12.41-12.224-20.924-20.83-25.641-4.612-2.527-9.338-3.777-14.227-3.779-4.248 0-8.627.949-13.149 2.863-9.786 4.172-15.882 10.877-18.521 20.334-.882 3.173-1.326 6.508-1.326 10.013 0 6.941 1.742 14.556 5.256 22.841 5.388 12.704 12.421 21.371 21.034 26.117 4.599 2.535 9.329 3.794 14.234 3.794 4.295 0 8.733-.961 13.33-2.912 9.724-4.137 15.759-10.857 18.35-20.357.842-3.106 1.266-6.375 1.266-9.817 0-7.088-1.791-14.909-5.417-23.456zm15.318 62.394c-5.494 5.794-12.167 10.351-19.993 13.67-7.768 3.3-15.622 4.946-23.537 4.946l-.365-2e-3c-8.037-.052-15.98-1.841-23.809-5.353v3e-3c-8.195-3.567-15.337-8.558-21.396-14.968-6.06-6.406-10.995-14.112-14.805-23.088-3.758-8.872-5.844-17.747-6.231-26.624-.045-1.004-.066-2.009-.066-3.01 0-7.834 1.343-15.509 4.027-23.008 2.848-7.916 7.047-14.769 12.584-20.545 5.535-5.776 12.344-10.373 20.401-13.782v2e-3c7.706-3.274 15.531-4.912 23.457-4.908h.203c7.994.037 15.922 1.75 23.76 5.117l7e-3 3e-3 5e-3 3e-3c8.245 3.679 15.436 8.737 21.568 15.139 6.129 6.408 11.084 14.092 14.872 23.017 3.787 8.924 5.85 17.809 6.189 26.647.032.852.048 1.702.048 2.55 0 7.947-1.404 15.734-4.214 23.352-2.974 8.094-7.214 15.047-12.705 20.839" fill="#fff"/></g>
-        </g>
-      </g>
-    </svg>
-  );
-}
-
-function ZapierIcon({ className = 'w-7 h-7' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 500 229" fill="#FF4A00">
-      <path d="M300.033 99.59H287.57c-.256-1.02-.447-2.203-.574-3.546a40.666 40.666 0 0 1 0-7.86c.127-1.34.318-2.522.574-3.548h31.06v98.353a46.42 46.42 0 0 1-4.697.572 65.11 65.11 0 0 1-4.7.19 62.93 62.93 0 0 1-4.502-.19 46.28 46.28 0 0 1-4.695-.575v-83.4.002zm108.127 24.734c0-3.58-.48-6.998-1.436-10.26-.96-3.257-2.37-6.1-4.218-8.53-1.857-2.426-4.22-4.377-7.096-5.846-2.875-1.47-6.295-2.206-10.257-2.206-7.796 0-13.772 2.368-17.925 7.095-4.154 4.728-6.677 11.31-7.573 19.747h48.506zm-48.696 14.186c.256 10.736 3.036 18.598 8.34 23.58 5.302 4.984 13.132 7.48 23.485 7.48 9.072 0 17.7-1.6 25.88-4.795 1.02 1.917 1.85 4.25 2.49 6.998a45.63 45.63 0 0 1 1.15 8.147c-4.215 1.794-8.852 3.13-13.897 4.027-5.052.892-10.643 1.342-16.774 1.342-8.95 0-16.62-1.25-23.007-3.74-6.392-2.495-11.664-6.01-15.818-10.545-4.153-4.536-7.19-9.905-9.107-16.105-1.916-6.197-2.877-13.004-2.877-20.417 0-7.285.926-14.092 2.78-20.42 1.85-6.323 4.7-11.82 8.53-16.485 3.836-4.667 8.66-8.372 14.476-11.12 5.813-2.748 12.682-4.124 20.61-4.124 6.773 0 12.716 1.152 17.83 3.452 5.11 2.3 9.393 5.464 12.845 9.49 3.45 4.027 6.07 8.82 7.86 14.377 1.788 5.562 2.686 11.6 2.686 18.12 0 1.79-.068 3.674-.195 5.654a192.677 192.677 0 0 1-.382 5.08H359.46l.002.003zm88.39-53.874a53.58 53.58 0 0 1 4.026-.574c1.275-.125 2.62-.19 4.026-.19 1.406 0 2.81.065 4.218.19 1.405.13 2.684.322 3.835.574.38 1.918.764 4.445 1.146 7.573.383 3.132.578 5.782.578 7.956 2.683-4.344 6.23-8.117 10.638-11.313 4.41-3.193 10.065-4.793 16.966-4.793 1.022 0 2.076.034 3.163.098.93.05 1.86.144 2.78.285.254 1.152.45 2.368.576 3.644.126 1.277.19 2.62.19 4.025 0 1.535-.095 3.134-.286 4.792a99.303 99.303 0 0 1-.67 4.792 13.208 13.208 0 0 0-3.165-.383h-2.59c-3.45 0-6.742.48-9.873 1.437-3.134.96-5.944 2.654-8.436 5.08-2.49 2.43-4.473 5.754-5.94 9.972-1.473 4.218-2.206 9.65-2.206 16.295v48.89c-1.555.27-3.123.463-4.698.574-1.723.128-3.29.19-4.695.19a64.51 64.51 0 0 1-4.698-.19 55.9 55.9 0 0 1-4.89-.573v-98.35zM313.3 32.12a19.054 19.054 0 0 1-1.223 6.718 19.08 19.08 0 0 1-6.72 1.224h-.028a19.06 19.06 0 0 1-6.72-1.223 19.035 19.035 0 0 1-1.225-6.72v-.03c0-2.365.434-4.63 1.22-6.72a19.018 19.018 0 0 1 6.722-1.223h.026c2.366 0 4.63.434 6.72 1.223a19.023 19.023 0 0 1 1.223 6.72v.03h.003zm23.426-5.32H318.15l13.134-13.135a31.954 31.954 0 0 0-7.502-7.5L310.646 19.3V.723A31.976 31.976 0 0 0 305.36.28h-.034c-1.802 0-3.567.154-5.287.443V19.3L286.9 6.164a31.78 31.78 0 0 0-4.06 3.436l-.006.006a32.025 32.025 0 0 0-3.433 4.06L292.54 26.8h-18.58s-.442 3.49-.442 5.294v.022c0 1.804.153 3.572.443 5.293h18.58L279.4 50.542a32.05 32.05 0 0 0 7.503 7.502L300.04 44.91v18.578c1.718.288 3.48.44 5.28.442h.045a32.11 32.11 0 0 0 5.28-.442V44.91l13.138 13.137a32.072 32.072 0 0 0 4.063-3.436h.003a32.135 32.135 0 0 0 3.432-4.063L318.147 37.41h18.58c.288-1.72.44-3.482.44-5.282v-.046c0-1.77-.148-3.535-.44-5.28V26.8z" />
+    <svg className={className} viewBox="0 0 1024 450" fill="none">
+      <path d="M458.1,353c-7.7,0-15.5-1.6-23-4.9l0,0l-160-71.3c-28.6-12.7-41.5-46.4-28.8-75l71.3-160c12.7-28.6,46.4-41.5,75-28.8l160,71.3c28.6,12.7,41.5,46.4,28.8,75l-71.3,160C500.6,340.5,479.8,353,458.1,353z M448.4,318.1c12.1,5.4,26.3-0.1,31.7-12.1l71.3-160c5.4-12.1-0.1-26.3-12.1-31.7L379.2,43c-12.1-5.4-26.3,0.1-31.7,12.1l-71.3,160c-5.4,12.1,0.1,26.3,12.1,31.7L448.4,318.1z" fill="#089949"/>
+      <path d="M960,353.1H784.8c-31.3,0-56.8-25.5-56.8-56.8V121.1c0-31.3,25.5-56.8,56.8-56.8H960c31.3,0,56.8,25.5,56.8,56.8v175.2C1016.8,327.6,991.3,353.1,960,353.1z M784.8,97.1c-13.2,0-24,10.8-24,24v175.2c0,13.2,10.8,24,24,24H960c13.2,0,24-10.8,24-24V121.1c0-13.2-10.8-24-24-24H784.8z" fill="#F9B21D"/>
+      <path d="M303.9,153.2L280.3,206c-0.3,0.6-0.6,1.1-0.9,1.6l9.2,56.8c2.1,13.1-6.8,25.4-19.8,27.5l-173,28c-6.3,1-12.7-0.5-17.9-4.2c-5.2-3.7-8.6-9.3-9.6-15.6l-28-173c-1-6.3,0.5-12.7,4.2-17.9c3.7-5.2,9.3-8.6,15.6-9.6l173-28c1.3-0.2,2.6-0.3,3.8-0.3c11.5,0,21.8,8.4,23.7,20.2l9.3,57.2L294.3,94l-1.3-7.7c-5-30.9-34.2-52-65.1-47l-173,28C40,69.6,26.8,77.7,18,90c-8.9,12.3-12.4,27.3-10,42.3l28,173c2.4,15,10.5,28.1,22.8,37C68.5,349.4,80,353,91.9,353c3,0,6.1-0.2,9.2-0.7l173-28c30.9-5,52-34.2,47-65.1L303.9,153.2z" fill="#E42527"/>
+      <path d="M511.4,235.8l25.4-56.9l-7.2-52.9c-0.9-6.3,0.8-12.6,4.7-17.7c3.9-5.1,9.5-8.4,15.9-9.2l173.6-23.6c1.1-0.1,2.2-0.2,3.3-0.2c5.2,0,10.2,1.7,14.5,4.9c0.8,0.6,1.5,1.3,2.2,1.9c7.7-8.1,17.8-13.9,29.1-16.4c-3.2-4.4-7-8.3-11.5-11.7c-12.1-9.2-27-13.1-42-11.1L545.6,66.5c-15,2-28.4,9.8-37.5,21.9c-9.2,12.1-13.1,27-11.1,42L511.4,235.8z" fill="#226DB4"/>
+      <path d="M806.8,265.1l-22.8-168c-12.8,0.4-23.1,11-23.1,23.9v49.3l13.5,99.2c0.9,6.3-0.8,12.6-4.7,17.7s-9.5,8.4-15.9,9.2l-173.6,23.6c-6.3,0.9-12.6-0.8-17.7-4.7c-5.1-3.9-8.4-9.5-9.2-15.9l-8-58.9l-25.4,56.9l0.9,6.4c2,15,9.8,28.4,21.9,37.5c10,7.6,21.9,11.6,34.3,11.6c2.6,0,5.2-0.2,7.8-0.5L758.2,329c15-2,28.4-9.8,37.5-21.9C804.9,295,808.8,280.1,806.8,265.1z" fill="#226DB4"/>
     </svg>
   );
 }
@@ -497,6 +466,259 @@ function TwilioSetupModal({
 }
 
 // ============================================================================
+// SLACK CONFIGURE MODAL
+// ============================================================================
+
+interface SlackChannel {
+  id: string;
+  name: string;
+}
+
+interface SlackDefaultConfig {
+  enabled: boolean;
+  channelIds: string[];
+  channelNames: string[];
+  notifyOnCallCompleted: boolean;
+  notifyOnAppointment: boolean;
+  notifyOnFollowUp: boolean;
+  notifyOnNoShow: boolean;
+  setAsDefault: boolean;
+}
+
+function SlackConfigureModal({
+  companyId,
+  slackTeamName,
+  slackChannelName,
+  onClose,
+  onSave,
+}: {
+  companyId: string;
+  slackTeamName?: string;
+  slackChannelName?: string;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const supabase = createClient();
+  const [channels, setChannels] = useState<SlackChannel[]>([]);
+  const [loadingChannels, setLoadingChannels] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [config, setConfig] = useState<SlackDefaultConfig>({
+    enabled: true,
+    channelIds: [],
+    channelNames: [],
+    notifyOnCallCompleted: true,
+    notifyOnAppointment: true,
+    notifyOnFollowUp: true,
+    notifyOnNoShow: true,
+    setAsDefault: true,
+  });
+
+  // Load channels and existing config
+  useEffect(() => {
+    const load = async () => {
+      // Fetch channels
+      try {
+        const res = await fetch('/api/integrations/slack/channels');
+        if (res.ok) {
+          const data = await res.json();
+          setChannels(data.channels || []);
+        }
+      } catch { /* ignore */ }
+      setLoadingChannels(false);
+
+      // Load existing default config from company_settings
+      try {
+        const { data } = await supabase
+          .from('company_settings')
+          .select('settings')
+          .eq('company_id', companyId)
+          .single();
+        const settings = (data?.settings as Record<string, unknown>) || {};
+        const saved = settings.slack_default_config as SlackDefaultConfig | undefined;
+        if (saved) {
+          setConfig(saved);
+        }
+      } catch { /* ignore */ }
+    };
+    load();
+  }, [companyId, supabase]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { data: current } = await supabase
+        .from('company_settings')
+        .select('settings')
+        .eq('company_id', companyId)
+        .single();
+      const existingSettings = (current?.settings as Record<string, unknown>) || {};
+      await supabase
+        .from('company_settings')
+        .update({
+          settings: {
+            ...existingSettings,
+            slack_default_config: config,
+          },
+        })
+        .eq('company_id', companyId);
+      onSave();
+    } catch {
+      // fail silently
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addChannel = (channelId: string) => {
+    const channel = channels.find(c => c.id === channelId);
+    if (!channel || config.channelIds.includes(channelId)) return;
+    setConfig(prev => ({
+      ...prev,
+      channelIds: [...prev.channelIds, channelId],
+      channelNames: [...prev.channelNames, channel.name],
+    }));
+  };
+
+  const removeChannel = (channelId: string) => {
+    setConfig(prev => {
+      const idx = prev.channelIds.indexOf(channelId);
+      if (idx === -1) return prev;
+      const newIds = prev.channelIds.filter((_, i) => i !== idx);
+      const newNames = prev.channelNames.filter((_, i) => i !== idx);
+      return { ...prev, channelIds: newIds, channelNames: newNames };
+    });
+  };
+
+  const notificationTypes = [
+    { key: 'notifyOnCallCompleted' as const, label: 'Call Completed', description: 'When an AI call finishes' },
+    { key: 'notifyOnAppointment' as const, label: 'Appointments', description: 'New, confirmed, or rescheduled appointments' },
+    { key: 'notifyOnFollowUp' as const, label: 'Follow-ups', description: 'When follow-up calls are scheduled' },
+    { key: 'notifyOnNoShow' as const, label: 'No-shows', description: 'When a contact is marked as no-show' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center">
+                <SlackIcon className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Slack Notifications</h3>
+                {slackTeamName && <p className="text-sm text-slate-500">{slackTeamName}</p>}
+              </div>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
+          {/* Channels */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Notification Channels</label>
+            {config.channelIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {config.channelIds.map((chId, idx) => (
+                  <span key={chId} className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 border border-purple-200 rounded-lg text-xs font-medium text-purple-700">
+                    #{config.channelNames[idx] || chId}
+                    <button onClick={() => removeChannel(chId)} className="text-purple-400 hover:text-red-500 transition-colors">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            {loadingChannels ? (
+              <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-400 text-sm animate-pulse">Loading channels...</div>
+            ) : (
+              <select
+                value=""
+                onChange={e => { if (e.target.value) addChannel(e.target.value); }}
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 outline-none"
+              >
+                <option value="">Add a channel...</option>
+                {channels.filter(ch => !config.channelIds.includes(ch.id)).map(ch => (
+                  <option key={ch.id} value={ch.id}>#{ch.name}</option>
+                ))}
+              </select>
+            )}
+            {config.channelIds.length === 0 && slackChannelName && (
+              <p className="text-[11px] text-slate-400 mt-1">Default: #{slackChannelName}</p>
+            )}
+          </div>
+
+          {/* Notification Types */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Notification Types</label>
+            <div className="space-y-2">
+              {notificationTypes.map(notif => (
+                <div key={notif.key} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-200">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">{notif.label}</p>
+                    <p className="text-[11px] text-slate-400">{notif.description}</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config[notif.key]}
+                      onChange={e => setConfig(prev => ({ ...prev, [notif.key]: e.target.checked }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Set as default */}
+          <div className="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-3 border border-purple-200">
+            <div>
+              <p className="text-sm font-bold text-purple-800">Set as default</p>
+              <p className="text-[11px] text-purple-600">New campaigns will use this Slack configuration automatically</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.setAsDefault}
+                onChange={e => setConfig(prev => ({ ...prev, setAsDefault: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-purple-200 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-purple-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+            </label>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 pt-0 flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+          >
+            {saving ? <Spinner className="w-4 h-4" /> : null}
+            {saving ? 'Saving...' : 'Save Configuration'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // CONFIGURE MODAL
 // ============================================================================
 
@@ -599,7 +821,7 @@ function ConfigureModal({
               Sync Now
             </button>
           )}
-          {isConnected && !item.settingsUrl && item.id !== 'zoom' && (
+          {isConnected && !item.settingsUrl && !item.alwaysActive && (
             <button
               onClick={() => onDisconnect(item.provider, item.name)}
               disabled={loadingAction === `disconnect-${item.provider}`}
@@ -645,6 +867,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   const [planFilter, setPlanFilter] = useState<PlanFilter>('all_plans');
   const [configItem, setConfigItem] = useState<IntegrationItem | null>(null);
   const [showTwilioSetup, setShowTwilioSetup] = useState(false);
+  const [showSlackConfig, setShowSlackConfig] = useState(false);
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -766,6 +989,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       category: 'video', requiredPlan: 'free',
       status: integrations.google_calendar.connected ? 'auto_enabled' : 'available',
       autoEnabledWith: 'Google Calendar',
+      parentProvider: 'google-calendar',
+      parentConnectUrl: '/api/integrations/google-calendar/connect?return_to=/integrations',
     },
     {
       id: 'microsoft-teams', provider: 'microsoft-teams', name: 'Microsoft Teams',
@@ -774,6 +999,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       category: 'video', requiredPlan: 'business',
       status: integrations.microsoft_outlook.connected ? 'auto_enabled' : 'available',
       autoEnabledWith: 'Microsoft 365 Outlook',
+      parentProvider: 'microsoft-outlook',
+      parentConnectUrl: '/api/integrations/microsoft-outlook/connect?return_to=/integrations',
     },
     {
       id: 'zoom', provider: 'zoom', name: 'Zoom',
@@ -781,13 +1008,14 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       icon: <BiLogoZoom className="w-7 h-7" />, iconColor: 'text-[#2D8CFF]', iconBg: 'bg-blue-50',
       category: 'video', requiredPlan: 'free',
       status: 'connected',
+      alwaysActive: true,
       connectedInfo: [{ label: 'Status', value: 'Always available' }],
     },
     {
       id: 'salesforce', provider: 'salesforce', name: 'Salesforce',
       description: 'Sync contacts, leads, and call data with your CRM',
       icon: <FaSalesforce className="w-7 h-7" />, iconColor: 'text-[#00A1E0]', iconBg: 'bg-blue-50',
-      category: 'crm', requiredPlan: 'business',
+      category: 'crm', requiredPlan: 'teams',
       status: integrations.salesforce.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/salesforce/connect?return_to=/integrations',
       syncUrl: '/api/integrations/salesforce/sync', showSync: true,
@@ -801,7 +1029,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'slack', provider: 'slack', name: 'Slack',
       description: 'Real-time notifications and slash commands',
       icon: <SlackIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-purple-50',
-      category: 'communication', requiredPlan: 'business',
+      category: 'communication', requiredPlan: 'starter',
       status: integrations.slack.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/slack/connect?return_to=/integrations',
       connectedInfo: integrations.slack.connected ? [
@@ -872,7 +1100,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'clio', provider: 'clio', name: 'Clio',
       description: 'Import contacts, matters, and calendar from your legal practice management software',
       icon: <img src="/clio-logo.png" alt="Clio" className="w-7 h-7" />, iconColor: '', iconBg: 'bg-[#1B2B5B]/5',
-      category: 'crm', requiredPlan: 'business',
+      category: 'crm', requiredPlan: 'teams',
       status: integrations.clio?.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/clio/connect?return_to=/integrations',
       disconnectUrl: '/api/integrations/clio/disconnect',
@@ -892,28 +1120,25 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       category: 'crm', requiredPlan: 'business', status: 'coming_soon',
     },
     {
-      id: 'booksy', provider: 'booksy', name: 'Booksy',
-      description: 'Confirm and manage salon & beauty appointments',
-      icon: <BooksyIcon className="w-6 h-6" />, iconColor: 'text-black', iconBg: 'bg-slate-50',
-      category: 'calendar', requiredPlan: 'business', status: 'coming_soon',
-    },
-    {
       id: 'simplybook', provider: 'simplybook', name: 'SimplyBook.me',
       description: 'Appointment scheduling and booking management',
       icon: <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-7 h-7 rounded" />, iconColor: '', iconBg: 'bg-sky-50',
       category: 'calendar', requiredPlan: 'starter', status: 'coming_soon',
     },
     {
-      id: 'zapier', provider: 'zapier', name: 'Zapier',
-      description: 'Connect Callengo to 5,000+ apps with automated workflows',
-      icon: <ZapierIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-orange-50',
-      category: 'communication', requiredPlan: 'business', status: 'coming_soon',
+      id: 'webhooks', provider: 'webhooks', name: 'Webhooks',
+      description: 'Receive real-time events via HTTP. Connect with Zapier, Make, n8n, or your own systems',
+      icon: <WebhookIcon className="w-6 h-6" />, iconColor: 'text-slate-700', iconBg: 'bg-slate-100',
+      category: 'communication', requiredPlan: 'starter',
+      status: 'available',
+      connectUrl: '/settings?section=webhooks',
+      connectMethod: 'redirect' as const,
     },
     {
       id: 'dynamics', provider: 'dynamics', name: 'Microsoft Dynamics',
       description: 'Sync contacts, leads, and opportunities with Dynamics 365',
       icon: <DynamicsIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-blue-50',
-      category: 'crm', requiredPlan: 'business', status: 'coming_soon',
+      category: 'crm', requiredPlan: 'teams', status: 'coming_soon',
     },
     {
       id: 'stripe', provider: 'stripe', name: 'Stripe',
@@ -921,6 +1146,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       icon: <StripeIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-indigo-50',
       category: 'payment', requiredPlan: 'free',
       status: 'connected',
+      alwaysActive: true,
       connectedInfo: [{ label: 'Status', value: 'Always available' }],
     },
   ], [integrations]);
@@ -1008,9 +1234,26 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             </span>
           )}
 
-          {!isComingSoon && (isConnected || isAutoEnabled) && (
+          {/* Always-active integrations (Stripe, Zoom) - no button, just a status label */}
+          {!isComingSoon && item.alwaysActive && (
+            <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Always Active
+            </span>
+          )}
+
+          {/* Auto-enabled (Google Meet when Google Calendar connected, Teams when Outlook connected) - no configure button */}
+          {!isComingSoon && !item.alwaysActive && isAutoEnabled && (
+            <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Active via {item.autoEnabledWith}
+            </span>
+          )}
+
+          {/* Connected integrations that are NOT always-active and NOT auto-enabled - show Configure */}
+          {!isComingSoon && !item.alwaysActive && isConnected && !isAutoEnabled && (
             <button
-              onClick={() => setConfigItem(item)}
+              onClick={() => item.provider === 'slack' ? setShowSlackConfig(true) : setConfigItem(item)}
               className="inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold text-[var(--color-primary)] bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/15 hover:bg-[var(--color-primary)]/10 transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1021,7 +1264,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             </button>
           )}
 
-          {!isComingSoon && !isConnected && !isAutoEnabled && item.connectUrl && (
+          {/* Not connected, not auto-enabled - show Connect button or parent connect */}
+          {!isComingSoon && !item.alwaysActive && !isConnected && !isAutoEnabled && item.connectUrl && (
             <button
               onClick={() => {
                 if (isLocked) return;
@@ -1047,7 +1291,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             </button>
           )}
 
-          {!isComingSoon && !isConnected && item.settingsUrl && !item.connectUrl && (
+          {!isComingSoon && !isConnected && item.settingsUrl && !item.connectUrl && !item.parentConnectUrl && (
             <Link
               href={isLocked ? '#' : item.settingsUrl}
               className={`inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
@@ -1065,10 +1309,29 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             </Link>
           )}
 
-          {!isComingSoon && !isConnected && !isAutoEnabled && !item.connectUrl && !item.settingsUrl && item.autoEnabledWith && (
-            <span className="inline-flex items-center justify-center w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-400 bg-slate-50 border border-slate-100">
-              Connect {item.autoEnabledWith} first
-            </span>
+          {/* Google Meet / Teams not connected - show Connect button that opens the parent (Google Calendar / Microsoft 365) */}
+          {!isComingSoon && !isConnected && !isAutoEnabled && !item.connectUrl && item.parentConnectUrl && (
+            <button
+              onClick={() => {
+                if (isLocked) return;
+                handleConnect(item.parentProvider!, item.parentConnectUrl!);
+              }}
+              disabled={isLocked || loadingAction === `connect-${item.parentProvider}`}
+              className={`inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                isLocked
+                  ? 'bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed'
+                  : 'btn-primary'
+              }`}
+            >
+              {isLocked ? (
+                <>
+                  <FaLock className="w-2.5 h-2.5" />
+                  Upgrade to {getPlanLabel(item.requiredPlan)}
+                </>
+              ) : (
+                `Connect ${item.autoEnabledWith}`
+              )}
+            </button>
           )}
         </div>
       </div>
@@ -1181,6 +1444,20 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             setShowTwilioSetup(false);
             showToast('Twilio connected successfully', 'success');
             router.refresh();
+          }}
+        />
+      )}
+
+      {/* Slack Configure Modal */}
+      {showSlackConfig && (
+        <SlackConfigureModal
+          companyId={companyId}
+          slackTeamName={integrations.slack.teamName}
+          slackChannelName={integrations.slack.channelName}
+          onClose={() => setShowSlackConfig(false)}
+          onSave={() => {
+            setShowSlackConfig(false);
+            showToast('Slack configuration saved', 'success');
           }}
         />
       )}

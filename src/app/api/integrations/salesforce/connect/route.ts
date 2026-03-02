@@ -33,9 +33,9 @@ export async function GET(request: NextRequest) {
       .single();
 
     const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
-    if (!['business', 'teams', 'enterprise'].includes(planSlug)) {
+    if (!['teams', 'enterprise'].includes(planSlug)) {
       return NextResponse.json(
-        { error: 'Salesforce integration requires Business plan or higher' },
+        { error: 'Salesforce integration requires Teams plan or higher' },
         { status: 403 }
       );
     }

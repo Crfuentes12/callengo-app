@@ -19,6 +19,7 @@ import {
 } from '@/lib/clio';
 // Google Sheets is import-only — no outbound push from webhooks
 import type { CalendarStepConfig } from '@/types/calendar';
+import { dispatchWebhookEvent } from '@/lib/webhooks';
 
 export async function POST(request: NextRequest) {
   try {
@@ -234,6 +235,12 @@ export async function POST(request: NextRequest) {
               callLogId,
               agentName: metadata?.agent_name,
             });
+            dispatchWebhookEvent(companyId, 'appointment.confirmed', {
+              event_id: metadata.calendar_event_id,
+              contact_id: contactId,
+              contact_name: contactName,
+              agent_name: metadata?.agent_name,
+            }).catch(() => {});
           } else if (needsReschedule && metadata?.calendar_event_id) {
             // Use new time from metadata if agent extracted it, otherwise use next available
             const newStart = metadata?.new_appointment_time;
@@ -252,6 +259,14 @@ export async function POST(request: NextRequest) {
                 videoProvider: calendarConfig.preferredVideoProvider || 'none',
                 agentName: metadata?.agent_name,
               });
+              dispatchWebhookEvent(companyId, 'appointment.rescheduled', {
+                event_id: metadata.calendar_event_id,
+                contact_id: contactId,
+                contact_name: contactName,
+                new_start: newStart,
+                new_end: newEnd,
+                reason: metadata?.reschedule_reason || 'Contact requested reschedule',
+              }).catch(() => {});
             }
           } else if (isNoShow && metadata?.calendar_event_id) {
             await syncHandleNoShow({
@@ -263,6 +278,12 @@ export async function POST(request: NextRequest) {
               calendarConfig,
               agentName: metadata?.agent_name,
             });
+            dispatchWebhookEvent(companyId, 'appointment.no_show', {
+              event_id: metadata.calendar_event_id,
+              contact_id: contactId,
+              contact_name: contactName,
+              agent_name: metadata?.agent_name,
+            }).catch(() => {});
           }
         }
 
@@ -293,6 +314,15 @@ export async function POST(request: NextRequest) {
               agentName: metadata?.agent_name,
               meetingType: 'meeting',
             });
+            dispatchWebhookEvent(companyId, 'appointment.scheduled', {
+              contact_id: contactId,
+              contact_name: contactName,
+              contact_phone: to,
+              start_time: startTime,
+              end_time: endTime,
+              agent_name: metadata?.agent_name,
+              type: 'meeting',
+            }).catch(() => {});
           }
         }
 
@@ -364,6 +394,57 @@ export async function POST(request: NextRequest) {
     }
 
     // Google Sheets: import-only — no outbound push to sheets from webhooks
+
+    // ================================================================
+    // OUTBOUND WEBHOOKS: Dispatch events to user-configured endpoints
+    // ================================================================
+    try {
+      const webhookData = {
+        call_id,
+        status,
+        completed: completed || false,
+        call_length,
+        to,
+        from,
+        answered_by,
+        recording_url,
+        transcript: concatenated_transcript,
+        summary,
+        contact_id: contactId || null,
+        agent_name: metadata?.agent_name || null,
+        campaign_id: metadata?.campaign_id || null,
+        price,
+      };
+
+      if (completed && status === 'completed') {
+        await dispatchWebhookEvent(companyId, 'call.completed', webhookData);
+      } else if (status === 'no_answer' || answered_by === 'no_answer') {
+        await dispatchWebhookEvent(companyId, 'call.no_answer', webhookData);
+      } else if (answered_by === 'voicemail' || status === 'voicemail') {
+        await dispatchWebhookEvent(companyId, 'call.voicemail', webhookData);
+      } else if (error_message || status === 'error' || status === 'failed') {
+        await dispatchWebhookEvent(companyId, 'call.failed', {
+          ...webhookData,
+          error_message,
+        });
+      }
+
+      // Dispatch contact.updated if contact was updated
+      if (contactId && completed) {
+        await dispatchWebhookEvent(companyId, 'contact.updated', {
+          contact_id: contactId,
+          call_id,
+          updates: {
+            call_status: status,
+            call_duration: call_length,
+            summary,
+          },
+        });
+      }
+    } catch (webhookError) {
+      // Don't fail the main webhook if outbound dispatch fails
+      console.error('Outbound webhook dispatch failed (non-fatal):', webhookError);
+    }
 
     return NextResponse.json({
       status: 'success',
