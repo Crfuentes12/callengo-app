@@ -1200,12 +1200,14 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             : 'border-slate-200 bg-white hover:shadow-md hover:border-slate-300'
         }`}
       >
-        {/* Plan badge - top right */}
-        <div className="absolute top-3 right-3">
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${getPlanBadgeColors(item.requiredPlan)} uppercase tracking-wider`}>
-            {item.requiredPlan === 'free' ? 'Free' : `${getPlanLabel(item.requiredPlan)}+`}
-          </span>
-        </div>
+        {/* Plan badge - top right (hide for free-tier items) */}
+        {item.requiredPlan !== 'free' && (
+          <div className="absolute top-3 right-3">
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${getPlanBadgeColors(item.requiredPlan)} uppercase tracking-wider`}>
+              {`${getPlanLabel(item.requiredPlan)}+`}
+            </span>
+          </div>
+        )}
 
         {/* Icon */}
         <div className={`w-12 h-12 rounded-xl ${item.iconBg} ${item.iconColor || ''} flex items-center justify-center mb-3`}>
