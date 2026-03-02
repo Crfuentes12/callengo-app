@@ -1167,6 +1167,121 @@ function ConfigureModal({
 }
 
 // ============================================================================
+// FEEDBACK SECTION
+// ============================================================================
+
+const FEEDBACK_TYPES = [
+  { value: 'suggestion', label: 'Suggestion' },
+  { value: 'new_integration', label: 'New Integration' },
+  { value: 'improvement', label: 'Improvement' },
+  { value: 'bug', label: 'Bug Report' },
+  { value: 'other', label: 'Other' },
+] as const;
+
+function FeedbackSection() {
+  const [message, setMessage] = useState('');
+  const [feedbackType, setFeedbackType] = useState<string>('suggestion');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/integrations/feedback')
+      .then(res => res.json())
+      .then(data => { if (data.has_submitted_today) setAlreadySubmitted(true); })
+      .catch(() => {});
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!message.trim()) return;
+    setSubmitting(true); setError('');
+    try {
+      const res = await fetch('/api/integrations/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback_type: feedbackType, message: message.trim() }),
+      });
+      if (res.status === 429) { setAlreadySubmitted(true); setError('You already submitted feedback today. Come back tomorrow!'); return; }
+      if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Failed to submit'); }
+      setSubmitted(true); setMessage('');
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Failed to submit'); }
+    finally { setSubmitting(false); }
+  };
+
+  if (submitted) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6 text-center">
+        <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+          <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <p className="text-sm font-bold text-emerald-800 mb-1">Thank you for your feedback!</p>
+        <p className="text-xs text-emerald-600">Our development team reviews every suggestion. Your input helps shape the future of Callengo.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary-50)] to-[var(--color-accent)]/5" />
+        <div className="relative px-6 py-5 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center shrink-0 shadow-sm">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-slate-900">Help us build better integrations</p>
+            <p className="text-xs text-slate-500">Your feedback goes directly to our development team. We read every single suggestion.</p>
+          </div>
+        </div>
+      </div>
+
+      {alreadySubmitted && !error ? (
+        <div className="px-6 py-5 border-t border-slate-100 text-center">
+          <p className="text-xs text-slate-500">You already submitted feedback today. Thanks! Come back tomorrow if you have more ideas.</p>
+        </div>
+      ) : (
+        <div className="px-6 py-5 border-t border-slate-100 space-y-3">
+          {error && (
+            <div className="text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+          )}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {FEEDBACK_TYPES.map(ft => (
+              <button key={ft.value} onClick={() => setFeedbackType(ft.value)}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                  feedbackType === ft.value
+                    ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}>
+                {ft.label}
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={message} onChange={e => setMessage(e.target.value)}
+            placeholder={feedbackType === 'new_integration' ? 'Which integration would you like to see? Tell us about your use case...' : 'Share your thoughts, ideas, or suggestions...'}
+            rows={3}
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm resize-none bg-slate-50/50"
+          />
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-slate-400">1 submission per day. No obligation, totally voluntary.</p>
+            <button onClick={handleSubmit} disabled={submitting || !message.trim()}
+              className="btn-primary text-xs px-4 py-2 disabled:opacity-50 inline-flex items-center gap-1.5">
+              {submitting ? <Spinner className="w-3 h-3" /> : (
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
+              )}
+              {submitting ? 'Sending...' : 'Send Feedback'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -1469,11 +1584,13 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   ], [integrations]);
 
   const filteredItems = useMemo(() => {
-    let items = allItems;
+    let items = allItems.filter(i => i.status !== 'coming_soon');
     if (activeFilter !== 'all') items = items.filter(i => i.category === activeFilter);
     if (planFilter !== 'all_plans') items = items.filter(i => planMeetsRequirement(planFilter, i.requiredPlan));
     return items;
   }, [allItems, activeFilter, planFilter]);
+
+  const comingSoonItems = useMemo(() => allItems.filter(i => i.status === 'coming_soon'), [allItems]);
 
   const activeCount = allItems.filter(i => i.status === 'connected' || i.status === 'auto_enabled').length;
 
@@ -1571,15 +1688,22 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
           isActive
             ? 'border-[var(--color-primary-100)] bg-white shadow-sm hover:shadow-md'
             : isLocked
-            ? 'border-slate-200 bg-white opacity-60 hover:opacity-80'
-            : isComingSoon
-            ? 'border-slate-200 bg-white opacity-50'
+            ? 'border-[var(--color-accent)]/15 bg-gradient-to-br from-white to-[var(--color-accent)]/[0.03] hover:shadow-md hover:border-[var(--color-accent)]/25'
             : 'border-slate-200 bg-white hover:shadow-md hover:border-[var(--color-primary-200)]'
         }`}
       >
         {/* Status indicator line at top */}
         {isActive && (
           <div className="absolute top-0 left-4 right-4 h-[2px] rounded-b-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]" />
+        )}
+
+        {/* Locked overlay accent */}
+        {isLocked && (
+          <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden rounded-tr-2xl">
+            <div className="absolute top-2 right-[-20px] w-[80px] text-center bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white text-[8px] font-bold uppercase tracking-wider py-0.5 rotate-45">
+              {getPlanLabel(item.requiredPlan)}
+            </div>
+          </div>
         )}
 
         {/* Header row: icon + name + status */}
@@ -1595,15 +1719,16 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
                 {isAutoEnabled ? `via ${item.autoEnabledWith}` : item.alwaysActive ? 'Always active' : 'Connected'}
               </span>
             )}
-            {isComingSoon && (
-              <span className="text-[10px] font-semibold text-slate-400 mt-0.5">Coming soon</span>
+            {isLocked && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--color-accent)] mt-0.5">
+                <FaLock className="w-2 h-2" />
+                Requires {getPlanLabel(item.requiredPlan)}
+              </span>
             )}
           </div>
-          {/* Minimal plan indicator */}
-          {item.requiredPlan !== 'free' && !isActive && (
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
-              isLocked ? 'bg-slate-100 text-slate-400' : 'bg-[var(--color-primary-50)] text-[var(--color-primary)]'
-            }`}>
+          {/* Minimal plan indicator for unlocked non-free */}
+          {item.requiredPlan !== 'free' && !isActive && !isLocked && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0 bg-[var(--color-primary-50)] text-[var(--color-primary)]">
               {getPlanLabel(item.requiredPlan)}
             </span>
           )}
@@ -1614,27 +1739,21 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
 
         {/* Action button */}
         <div>
-          {isComingSoon && (
-            <span className="inline-flex items-center px-3 py-2 rounded-xl text-[11px] font-medium text-slate-400 bg-slate-50 w-full justify-center">
-              Coming Soon
-            </span>
-          )}
-
-          {!isComingSoon && item.alwaysActive && (
+          {item.alwaysActive && (
             <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-[var(--color-primary)] bg-[var(--color-primary-50)]">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               Built-in
             </span>
           )}
 
-          {!isComingSoon && !item.alwaysActive && isAutoEnabled && (
+          {!item.alwaysActive && isAutoEnabled && (
             <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-emerald-600 bg-emerald-50">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               Auto-enabled
             </span>
           )}
 
-          {!isComingSoon && !item.alwaysActive && isConnected && !isAutoEnabled && (
+          {!item.alwaysActive && isConnected && !isAutoEnabled && (
             <button
               onClick={() => item.provider === 'slack' ? setShowSlackConfig(true) : item.provider === 'webhooks' ? setShowWebhooksSetup(true) : setConfigItem(item)}
               className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-[var(--color-primary)] bg-[var(--color-primary-50)] hover:bg-[var(--color-primary-100)] border border-[var(--color-primary-100)] transition-all"
@@ -1647,49 +1766,39 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             </button>
           )}
 
-          {!isComingSoon && !item.alwaysActive && !isConnected && !isAutoEnabled && item.connectUrl && (
-            <button
-              onClick={() => { if (!isLocked) handleConnect(item.provider, item.connectUrl!, item.connectMethod); }}
-              disabled={isLocked || loadingAction === `connect-${item.provider}`}
-              className={`inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold transition-all ${
-                isLocked
-                  ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
-                  : 'btn-primary'
-              }`}
-            >
-              {isLocked ? (
-                <>
-                  <FaLock className="w-2.5 h-2.5" />
-                  {getPlanLabel(item.requiredPlan)} Plan
-                </>
-              ) : loadingAction === `connect-${item.provider}` ? (
-                <Spinner className="w-3.5 h-3.5" />
-              ) : (
-                'Connect'
-              )}
-            </button>
-          )}
-
-          {!isComingSoon && !isConnected && item.settingsUrl && !item.connectUrl && !item.parentConnectUrl && (
-            <Link
-              href={isLocked ? '#' : item.settingsUrl}
-              className={`inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold transition-all ${
-                isLocked ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' : 'btn-primary'
-              }`}
-            >
-              {isLocked ? <><FaLock className="w-2.5 h-2.5" />Upgrade</> : 'Configure'}
+          {/* Locked - upgrade CTA */}
+          {isLocked && (
+            <Link href="/settings?section=billing"
+              className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded-xl text-[11px] font-bold transition-all bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white shadow-sm hover:shadow-md hover:translate-y-[-1px]">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+              Unlock with {getPlanLabel(item.requiredPlan)}
             </Link>
           )}
 
-          {!isComingSoon && !isConnected && !isAutoEnabled && !item.connectUrl && item.parentConnectUrl && (
+          {/* Not locked, not connected - connect button */}
+          {!isLocked && !isConnected && !isAutoEnabled && item.connectUrl && (
             <button
-              onClick={() => { if (!isLocked) handleConnect(item.parentProvider!, item.parentConnectUrl!); }}
-              disabled={isLocked || loadingAction === `connect-${item.parentProvider}`}
-              className={`inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold transition-all ${
-                isLocked ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed' : 'btn-primary'
-              }`}
+              onClick={() => handleConnect(item.provider, item.connectUrl!, item.connectMethod)}
+              disabled={loadingAction === `connect-${item.provider}`}
+              className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold transition-all btn-primary"
             >
-              {isLocked ? <><FaLock className="w-2.5 h-2.5" />{getPlanLabel(item.requiredPlan)} Plan</> : `Connect ${item.autoEnabledWith}`}
+              {loadingAction === `connect-${item.provider}` ? <Spinner className="w-3.5 h-3.5" /> : 'Connect'}
+            </button>
+          )}
+
+          {!isLocked && !isConnected && item.settingsUrl && !item.connectUrl && !item.parentConnectUrl && (
+            <Link href={item.settingsUrl}
+              className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold transition-all btn-primary">
+              Configure
+            </Link>
+          )}
+
+          {!isLocked && !isConnected && !isAutoEnabled && !item.connectUrl && item.parentConnectUrl && (
+            <button
+              onClick={() => handleConnect(item.parentProvider!, item.parentConnectUrl!)}
+              disabled={loadingAction === `connect-${item.parentProvider}`}
+              className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold transition-all btn-primary">
+              {`Connect ${item.autoEnabledWith}`}
             </button>
           )}
         </div>
@@ -1913,6 +2022,36 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
           </a>
         </div>
       </div>
+
+      {/* ================================================================== */}
+      {/* UPCOMING INTEGRATIONS                                              */}
+      {/* ================================================================== */}
+      {comingSoonItems.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-base font-bold text-slate-900">Upcoming Integrations</h2>
+            <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{comingSoonItems.length} planned</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {comingSoonItems.map(item => (
+              <div key={item.id} className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
+                <div className={`w-9 h-9 rounded-lg ${item.iconBg} ${item.iconColor || ''} flex items-center justify-center shrink-0 opacity-60`}>
+                  {item.icon}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-700">{item.name}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* FEEDBACK SECTION                                                   */}
+      {/* ================================================================== */}
+      <FeedbackSection />
 
       {/* Twilio Setup Modal */}
       {showTwilioSetup && (
