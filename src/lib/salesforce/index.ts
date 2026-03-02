@@ -21,4 +21,8 @@ export {
   syncSalesforceLeadsToCallengo,
   syncSelectedSalesforceContacts,
   syncSelectedSalesforceLeads,
+  createSalesforceTask,
+  pushCallResultToSalesforce,
+  pushContactUpdatesToSalesforce,
+  getActiveSalesforceIntegration,
 } from './sync';

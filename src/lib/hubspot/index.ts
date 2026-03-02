@@ -17,4 +17,8 @@ export {
   fetchHubSpotContactsByIds,
   syncHubSpotContactsToCallengo,
   syncSelectedHubSpotContacts,
+  createHubSpotNote,
+  pushCallResultToHubSpot,
+  pushContactUpdatesToHubSpot,
+  getActiveHubSpotIntegration,
 } from './sync';

@@ -11,6 +11,7 @@ import type {
   SalesforceUser,
   SalesforceQueryResponse,
   SalesforceSyncResult,
+  SalesforceOutboundSyncResult,
 } from '@/types/salesforce';
 
 // ============================================================================
@@ -657,4 +658,243 @@ export async function syncSalesforceLeadsToCallengo(
   }
 
   return result;
+}
+
+// ============================================================================
+// OUTBOUND SYNC: CALLENGO → SALESFORCE (Tasks + Notes)
+// ============================================================================
+
+/**
+ * Map a Callengo call status to a Salesforce Task subject
+ */
+function mapCallStatusToSalesforceSubject(callStatus: string, callOutcome: string | null, contactName: string): string {
+  switch (callStatus) {
+    case 'completed':
+      return `Call completed: ${contactName}`;
+    case 'no_answer':
+      return `No answer: ${contactName}`;
+    case 'voicemail':
+      return `Voicemail left: ${contactName}`;
+    case 'busy':
+      return `Busy/unavailable: ${contactName}`;
+    case 'failed':
+      return `Call failed: ${contactName}`;
+    default:
+      if (callOutcome === 'Follow-up Scheduled') {
+        return `Follow-up needed: ${contactName}`;
+      }
+      return `Callengo Call: ${contactName}`;
+  }
+}
+
+/**
+ * Build a plain-text note body from call data for Salesforce
+ */
+function buildSalesforceCallNoteContent(contact: Record<string, unknown>): string {
+  const parts: string[] = [];
+
+  parts.push('Callengo Call Log');
+  parts.push(`Date: ${contact.last_call_date || new Date().toISOString()}`);
+
+  if (contact.call_status) parts.push(`Call Status: ${contact.call_status}`);
+  if (contact.call_outcome) parts.push(`Outcome: ${contact.call_outcome}`);
+  if (contact.status) parts.push(`Contact Status: ${contact.status}`);
+
+  if (contact.call_duration) {
+    const mins = Math.floor((contact.call_duration as number) / 60);
+    const secs = (contact.call_duration as number) % 60;
+    parts.push(`Duration: ${mins}m ${secs}s`);
+  }
+
+  const analysis = contact.analysis as Record<string, unknown> | null;
+  if (analysis) {
+    if (analysis.callSentiment) parts.push(`Sentiment: ${analysis.callSentiment}`);
+    if (analysis.customerInterestLevel) parts.push(`Interest Level: ${analysis.customerInterestLevel}`);
+    if (analysis.callCategory) parts.push(`Category: ${analysis.callCategory}`);
+    if (analysis.outcomeNotes) parts.push(`Notes: ${analysis.outcomeNotes}`);
+    if (analysis.keyPoints && Array.isArray(analysis.keyPoints) && analysis.keyPoints.length > 0) {
+      parts.push(`Key Points:\n- ${(analysis.keyPoints as string[]).join('\n- ')}`);
+    }
+    if (analysis.followUpRequired) {
+      parts.push(`Follow-up Required: Yes${analysis.followUpReason ? ` — ${analysis.followUpReason}` : ''}`);
+    }
+  }
+
+  const metadata = contact.call_metadata as Record<string, unknown> | null;
+  if (metadata?.summary) parts.push(`\nAI Summary:\n${metadata.summary}`);
+  if (metadata?.answeredBy) parts.push(`Answered By: ${metadata.answeredBy}`);
+
+  if (contact.notes) parts.push(`\nManual Notes:\n${contact.notes}`);
+
+  return parts.join('\n');
+}
+
+/**
+ * Create a Salesforce Task for a call result.
+ * Uses the standard Salesforce Task sobject.
+ */
+export async function createSalesforceTask(
+  integration: SalesforceIntegration,
+  task: { subject: string; description: string; whoId: string; status: string; priority?: string; activityDate?: string }
+): Promise<{ success: boolean; taskId?: string; error?: string }> {
+  const client = await getSalesforceClient(integration);
+
+  const res = await client.fetch('/services/data/v59.0/sobjects/Task', {
+    method: 'POST',
+    body: JSON.stringify({
+      Subject: task.subject,
+      Description: task.description,
+      WhoId: task.whoId,
+      Status: task.status,
+      Priority: task.priority || 'Normal',
+      ActivityDate: task.activityDate || new Date().toISOString().split('T')[0],
+      Type: 'Call',
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    return { success: false, error: `Salesforce Task creation failed (${res.status}): ${errBody}` };
+  }
+
+  const data = await res.json();
+  return { success: true, taskId: data.id };
+}
+
+/**
+ * Push a single call result to Salesforce (Task on the Contact/Lead).
+ * Called from webhook after a call completes.
+ * IMPORTANT: This only CREATES tasks — it NEVER DELETES from Salesforce.
+ */
+export async function pushCallResultToSalesforce(
+  integration: SalesforceIntegration,
+  callengoContactId: string
+): Promise<{ success: boolean; taskId?: string; error?: string }> {
+  const { data: mapping } = await supabaseAdmin
+    .from('salesforce_contact_mappings')
+    .select('sf_contact_id, sf_lead_id, sf_object_type')
+    .eq('integration_id', integration.id)
+    .eq('callengo_contact_id', callengoContactId)
+    .maybeSingle();
+
+  if (!mapping) {
+    return { success: false, error: 'No Salesforce mapping for this contact' };
+  }
+
+  const whoId = mapping.sf_contact_id || mapping.sf_lead_id;
+  if (!whoId) {
+    return { success: false, error: 'No Salesforce Contact/Lead ID in mapping' };
+  }
+
+  const { data: contact } = await supabaseAdmin
+    .from('contacts')
+    .select('*')
+    .eq('id', callengoContactId)
+    .single();
+
+  if (!contact) {
+    return { success: false, error: 'Contact not found' };
+  }
+
+  const contactName = (contact.contact_name as string) || (contact.phone_number as string) || 'Unknown';
+  const callStatus = (contact.call_status as string) || 'completed';
+  const callOutcome = (contact.call_outcome as string) || null;
+
+  const subject = mapCallStatusToSalesforceSubject(callStatus, callOutcome, contactName);
+  const description = buildSalesforceCallNoteContent(contact as Record<string, unknown>);
+
+  const isCompleted = !['pending', 'queued', 'in_progress'].includes(callStatus);
+
+  const taskResult = await createSalesforceTask(integration, {
+    subject,
+    description,
+    whoId,
+    status: isCompleted ? 'Completed' : 'Not Started',
+    activityDate: new Date().toISOString().split('T')[0],
+  });
+
+  // Update mapping sync direction
+  await supabaseAdmin
+    .from('salesforce_contact_mappings')
+    .update({
+      last_synced_at: new Date().toISOString(),
+      sync_direction: 'bidirectional',
+    })
+    .eq('integration_id', integration.id)
+    .eq('callengo_contact_id', callengoContactId);
+
+  return taskResult;
+}
+
+/**
+ * Bulk outbound sync: push all recently updated Callengo contacts to Salesforce.
+ * IMPORTANT: Only pushes tasks — NEVER deletes Salesforce records.
+ */
+export async function pushContactUpdatesToSalesforce(
+  integration: SalesforceIntegration
+): Promise<SalesforceOutboundSyncResult> {
+  const result: SalesforceOutboundSyncResult = {
+    tasks_created: 0,
+    notes_created: 0,
+    errors: [],
+  };
+
+  try {
+    const { data: mappings } = await supabaseAdmin
+      .from('salesforce_contact_mappings')
+      .select('callengo_contact_id, sf_contact_id, sf_lead_id, last_synced_at')
+      .eq('integration_id', integration.id);
+
+    if (!mappings || mappings.length === 0) return result;
+
+    for (const mapping of mappings) {
+      try {
+        const { data: contact } = await supabaseAdmin
+          .from('contacts')
+          .select('*')
+          .eq('id', mapping.callengo_contact_id)
+          .single();
+
+        if (!contact) continue;
+
+        // Only sync contacts updated after last sync
+        const contactUpdated = new Date(contact.updated_at as string).getTime();
+        const lastSynced = mapping.last_synced_at ? new Date(mapping.last_synced_at).getTime() : 0;
+        if (contactUpdated <= lastSynced) continue;
+
+        // Push call result as Task
+        if (contact.call_status && contact.call_status !== 'pending' && contact.call_status !== 'queued') {
+          const callResult = await pushCallResultToSalesforce(integration, mapping.callengo_contact_id);
+          if (callResult.taskId) result.tasks_created++;
+          if (!callResult.success && callResult.error) {
+            result.errors.push(`Call sync for ${mapping.callengo_contact_id}: ${callResult.error}`);
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        result.errors.push(`Error pushing contact ${mapping.callengo_contact_id}: ${msg}`);
+      }
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    result.errors.push(`Outbound sync failed: ${msg}`);
+  }
+
+  return result;
+}
+
+/**
+ * Get the active Salesforce integration for a company (helper for webhook use).
+ */
+export async function getActiveSalesforceIntegration(
+  companyId: string
+): Promise<SalesforceIntegration | null> {
+  const { data } = await supabaseAdmin
+    .from('salesforce_integrations')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  return (data as unknown as SalesforceIntegration) || null;
 }
