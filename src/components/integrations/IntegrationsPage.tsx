@@ -49,7 +49,7 @@ interface IntegrationItem {
   connectedInfo?: { label: string; value: string }[];
   autoEnabledWith?: string;
   connectUrl?: string;
-  connectMethod?: 'redirect' | 'post' | 'twilio_inline';
+  connectMethod?: 'redirect' | 'post' | 'twilio_inline' | 'webhooks_inline';
   disconnectUrl?: string;
   syncUrl?: string;
   settingsUrl?: string;
@@ -719,6 +719,440 @@ function SlackConfigureModal({
 }
 
 // ============================================================================
+// WEBHOOKS SETUP MODAL
+// ============================================================================
+
+interface WebhookEndpointData {
+  id: string;
+  url: string;
+  description: string | null;
+  secret: string;
+  events: string[];
+  is_active: boolean;
+  last_triggered_at: string | null;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  consecutive_failures: number;
+  auto_disabled_at: string | null;
+}
+
+interface WebhookEventDef {
+  type: string;
+  label: string;
+  description: string;
+}
+
+function WebhooksSetupModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [endpoints, setEndpoints] = useState<WebhookEndpointData[]>([]);
+  const [availableEvents, setAvailableEvents] = useState<WebhookEventDef[]>([]);
+  const [error, setError] = useState('');
+
+  // Add form
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newUrl, setNewUrl] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newEvents, setNewEvents] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
+
+  // Actions
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<{ id: string; success: boolean; message: string } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [copiedSecret, setCopiedSecret] = useState<string | null>(null);
+  const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
+
+  // Load endpoints
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/webhooks/endpoints');
+        if (res.ok) {
+          const data = await res.json();
+          setEndpoints(data.endpoints || []);
+          setAvailableEvents(data.available_events || []);
+          if (!data.endpoints || data.endpoints.length === 0) {
+            setShowAddForm(true);
+          }
+        } else {
+          const data = await res.json().catch(() => ({}));
+          setError(data.error || 'Failed to load webhooks');
+        }
+      } catch {
+        setError('Failed to load webhooks');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const handleCreate = async () => {
+    if (!newUrl.trim()) { setError('URL is required'); return; }
+    if (newEvents.length === 0) { setError('Select at least one event'); return; }
+    setCreating(true);
+    setError('');
+    try {
+      const res = await fetch('/api/webhooks/endpoints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: newUrl.trim(), events: newEvents, description: newDescription.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create endpoint');
+      setEndpoints(prev => [data.endpoint, ...prev]);
+      setNewUrl('');
+      setNewDescription('');
+      setNewEvents([]);
+      setShowAddForm(false);
+      setRevealedSecrets(prev => new Set(prev).add(data.endpoint.id));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create endpoint');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/webhooks/endpoints/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setEndpoints(prev => prev.filter(e => e.id !== id));
+      }
+    } catch { /* ignore */ }
+    finally { setDeletingId(null); }
+  };
+
+  const handleTest = async (id: string) => {
+    setTestingId(id);
+    setTestResult(null);
+    try {
+      const res = await fetch(`/api/webhooks/endpoints/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test' }),
+      });
+      const data = await res.json();
+      setTestResult({
+        id,
+        success: data.success,
+        message: data.success ? `OK (${data.durationMs}ms)` : (data.error || 'Failed'),
+      });
+    } catch {
+      setTestResult({ id, success: false, message: 'Request failed' });
+    } finally {
+      setTestingId(null);
+    }
+  };
+
+  const handleToggleActive = async (ep: WebhookEndpointData) => {
+    try {
+      const res = await fetch(`/api/webhooks/endpoints/${ep.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !ep.is_active }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEndpoints(prev => prev.map(e => e.id === ep.id ? data.endpoint : e));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const copySecret = (id: string, secret: string) => {
+    navigator.clipboard.writeText(secret);
+    setCopiedSecret(id);
+    setTimeout(() => setCopiedSecret(null), 2000);
+  };
+
+  const toggleEvent = (eventType: string) => {
+    setNewEvents(prev =>
+      prev.includes(eventType) ? prev.filter(e => e !== eventType) : [...prev, eventType]
+    );
+  };
+
+  const selectAllEvents = () => {
+    if (newEvents.length === availableEvents.length) {
+      setNewEvents([]);
+    } else {
+      setNewEvents(availableEvents.map(e => e.type));
+    }
+  };
+
+  const toggleRevealSecret = (id: string) => {
+    setRevealedSecrets(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  // Group events by category
+  const eventsByCategory = useMemo(() => {
+    const groups: Record<string, WebhookEventDef[]> = {};
+    for (const ev of availableEvents) {
+      const cat = ev.type.split('.')[0];
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(ev);
+    }
+    return groups;
+  }, [availableEvents]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+                <WebhookIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Webhooks</h3>
+                <p className="text-sm text-slate-500">
+                  {endpoints.length === 0 ? 'Set up your first endpoint' : `${endpoints.length} endpoint${endpoints.length !== 1 ? 's' : ''}`}
+                </p>
+              </div>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-xs text-red-800 font-medium">{error}</p>
+            </div>
+          )}
+
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Spinner className="w-6 h-6 text-slate-400" />
+            </div>
+          )}
+
+          {/* Existing endpoints */}
+          {!loading && endpoints.map(ep => (
+            <div key={ep.id} className={`border rounded-xl p-4 space-y-3 ${ep.is_active ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50/50'}`}>
+              {/* Endpoint header */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${ep.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <p className="text-sm font-semibold text-slate-900 truncate">{ep.url}</p>
+                  </div>
+                  {ep.description && (
+                    <p className="text-xs text-slate-500 ml-4">{ep.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Toggle active */}
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={ep.is_active} onChange={() => handleToggleActive(ep)} className="sr-only peer" />
+                    <div className="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Events */}
+              <div className="flex flex-wrap gap-1 ml-4">
+                {ep.events.map(ev => (
+                  <span key={ev} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{ev}</span>
+                ))}
+              </div>
+
+              {/* Secret */}
+              <div className="ml-4 flex items-center gap-2">
+                <span className="text-[11px] text-slate-400 shrink-0">Secret:</span>
+                <code className="text-[11px] font-mono text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 truncate max-w-[240px]">
+                  {revealedSecrets.has(ep.id) ? ep.secret : `${ep.secret.slice(0, 10)}${'*'.repeat(16)}`}
+                </code>
+                <button onClick={() => toggleRevealSecret(ep.id)} className="text-slate-400 hover:text-slate-600 transition-colors" title={revealedSecrets.has(ep.id) ? 'Hide' : 'Reveal'}>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    {revealedSecrets.has(ep.id) ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                    ) : (
+                      <>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+                <button onClick={() => copySecret(ep.id, ep.secret)} className="text-slate-400 hover:text-slate-600 transition-colors" title="Copy">
+                  {copiedSecret === ep.id ? (
+                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
+                  )}
+                </button>
+              </div>
+
+              {/* Status info */}
+              {(ep.last_success_at || ep.last_failure_at || ep.auto_disabled_at) && (
+                <div className="ml-4 flex items-center gap-3 text-[11px]">
+                  {ep.last_success_at && (
+                    <span className="text-emerald-600">Last success: {formatLastSynced(ep.last_success_at)}</span>
+                  )}
+                  {ep.consecutive_failures > 0 && (
+                    <span className="text-amber-600">{ep.consecutive_failures} consecutive failure{ep.consecutive_failures !== 1 ? 's' : ''}</span>
+                  )}
+                  {ep.auto_disabled_at && (
+                    <span className="text-red-600 font-medium">Auto-disabled</span>
+                  )}
+                </div>
+              )}
+
+              {/* Test result */}
+              {testResult && testResult.id === ep.id && (
+                <div className={`ml-4 text-xs font-medium px-2.5 py-1.5 rounded-lg ${testResult.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  {testResult.success ? 'Test successful' : 'Test failed'}: {testResult.message}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="ml-4 flex items-center gap-2">
+                <button
+                  onClick={() => handleTest(ep.id)}
+                  disabled={testingId === ep.id}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all disabled:opacity-50"
+                >
+                  {testingId === ep.id ? <Spinner className="w-3 h-3" /> : (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
+                  )}
+                  Send Test
+                </button>
+                <button
+                  onClick={() => handleDelete(ep.id)}
+                  disabled={deletingId === ep.id}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-all disabled:opacity-50"
+                >
+                  {deletingId === ep.id ? <Spinner className="w-3 h-3" /> : (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                  )}
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* Add endpoint form */}
+          {!loading && showAddForm && (
+            <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 space-y-4">
+              <p className="text-sm font-bold text-slate-700">New Endpoint</p>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Endpoint URL</label>
+                <input
+                  type="url"
+                  value={newUrl}
+                  onChange={e => setNewUrl(e.target.value)}
+                  placeholder="https://your-server.com/webhooks/callengo"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-300 focus:border-slate-400 outline-none transition-all text-sm font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Description <span className="text-slate-400 font-normal">(optional)</span></label>
+                <input
+                  type="text"
+                  value={newDescription}
+                  onChange={e => setNewDescription(e.target.value)}
+                  placeholder="e.g. Zapier automation, internal CRM sync"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-300 focus:border-slate-400 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold text-slate-600">Events</label>
+                  <button onClick={selectAllEvents} className="text-[11px] font-medium text-slate-500 hover:text-slate-700 transition-colors">
+                    {newEvents.length === availableEvents.length ? 'Deselect all' : 'Select all'}
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {Object.entries(eventsByCategory).map(([category, events]) => (
+                    <div key={category}>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{category}</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {events.map(ev => (
+                          <label key={ev.type} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all text-xs ${
+                            newEvents.includes(ev.type)
+                              ? 'bg-slate-800 border-slate-800 text-white'
+                              : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                          }`}>
+                            <input type="checkbox" checked={newEvents.includes(ev.type)} onChange={() => toggleEvent(ev.type)} className="sr-only" />
+                            <span className="font-medium">{ev.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Add endpoint button (when endpoints exist and form is hidden) */}
+          {!loading && !showAddForm && endpoints.length > 0 && endpoints.length < 10 && (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-slate-200 text-sm font-medium text-slate-500 hover:border-slate-300 hover:text-slate-600 hover:bg-slate-50 transition-all"
+            >
+              + Add Endpoint
+            </button>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 pt-0 flex gap-2">
+          {showAddForm && (
+            <>
+              {endpoints.length > 0 && (
+                <button
+                  onClick={() => { setShowAddForm(false); setError(''); }}
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={handleCreate}
+                disabled={creating || !newUrl.trim() || newEvents.length === 0}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+              >
+                {creating ? <Spinner className="w-4 h-4" /> : null}
+                {creating ? 'Creating...' : 'Create Endpoint'}
+              </button>
+            </>
+          )}
+          {!showAddForm && (
+            <button
+              onClick={() => { onSuccess(); onClose(); }}
+              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 transition-all"
+            >
+              Done
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // CONFIGURE MODAL
 // ============================================================================
 
@@ -868,6 +1302,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   const [configItem, setConfigItem] = useState<IntegrationItem | null>(null);
   const [showTwilioSetup, setShowTwilioSetup] = useState(false);
   const [showSlackConfig, setShowSlackConfig] = useState(false);
+  const [showWebhooksSetup, setShowWebhooksSetup] = useState(false);
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -887,9 +1322,13 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   // Actions - OAuth opens in NEW TAB
   // --------------------------------------------------------------------------
 
-  const handleConnect = useCallback(async (provider: string, connectUrl: string, method?: 'redirect' | 'post' | 'twilio_inline') => {
+  const handleConnect = useCallback(async (provider: string, connectUrl: string, method?: 'redirect' | 'post' | 'twilio_inline' | 'webhooks_inline') => {
     if (method === 'twilio_inline') {
       setShowTwilioSetup(true);
+      return;
+    }
+    if (method === 'webhooks_inline') {
+      setShowWebhooksSetup(true);
       return;
     }
     if (method === 'post') {
@@ -1131,8 +1570,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       icon: <WebhookIcon className="w-6 h-6" />, iconColor: 'text-slate-700', iconBg: 'bg-slate-100',
       category: 'communication', requiredPlan: 'starter',
       status: 'available',
-      connectUrl: '/settings?section=webhooks',
-      connectMethod: 'redirect' as const,
+      connectUrl: '#webhooks-setup',
+      connectMethod: 'webhooks_inline' as const,
     },
     {
       id: 'dynamics', provider: 'dynamics', name: 'Microsoft Dynamics',
@@ -1255,7 +1694,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
           {/* Connected integrations that are NOT always-active and NOT auto-enabled - show Configure */}
           {!isComingSoon && !item.alwaysActive && isConnected && !isAutoEnabled && (
             <button
-              onClick={() => item.provider === 'slack' ? setShowSlackConfig(true) : setConfigItem(item)}
+              onClick={() => item.provider === 'slack' ? setShowSlackConfig(true) : item.provider === 'webhooks' ? setShowWebhooksSetup(true) : setConfigItem(item)}
               className="inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold text-[var(--color-primary)] bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/15 hover:bg-[var(--color-primary)]/10 transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1460,6 +1899,17 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
           onSave={() => {
             setShowSlackConfig(false);
             showToast('Slack configuration saved', 'success');
+          }}
+        />
+      )}
+
+      {/* Webhooks Setup Modal */}
+      {showWebhooksSetup && (
+        <WebhooksSetupModal
+          onClose={() => setShowWebhooksSetup(false)}
+          onSuccess={() => {
+            showToast('Webhook endpoint configured', 'success');
+            router.refresh();
           }}
         />
       )}
