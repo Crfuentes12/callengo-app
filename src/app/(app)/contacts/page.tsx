@@ -52,9 +52,10 @@ export default async function ContactsPage() {
   const hasHubSpotAccess = hasCrmAccess;
   const hasPipedriveAccess = hasCrmAccess;
   const hasClioAccess = hasCrmAccess;
+  const hasZohoAccess = hasCrmAccess;
 
   // Check CRM connections in parallel
-  const [sfResult, hsResult, pdResult, gsResult, clioResult] = await Promise.all([
+  const [sfResult, hsResult, pdResult, gsResult, clioResult, zohoResult] = await Promise.all([
     hasSalesforceAccess
       ? supabaseAdminRaw.from('salesforce_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -67,6 +68,9 @@ export default async function ContactsPage() {
     supabaseAdminRaw.from('google_sheets_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
     hasClioAccess
       ? supabaseAdminRaw.from('clio_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
+      : Promise.resolve({ data: null }),
+    hasZohoAccess
+      ? supabaseAdminRaw.from('zoho_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -85,6 +89,8 @@ export default async function ContactsPage() {
       gsConnected={!!gsResult.data}
       hasClioAccess={hasClioAccess}
       clioConnected={!!clioResult.data}
+      hasZohoAccess={hasZohoAccess}
+      zohoConnected={!!zohoResult.data}
     />
   );
 }

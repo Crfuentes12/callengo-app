@@ -69,6 +69,14 @@ export default async function Integrations() {
     .eq('is_active', true)
     .maybeSingle();
 
+  // Fetch Zoho CRM integration
+  const { data: zohoIntegration } = await supabaseAdminRaw
+    .from('zoho_integrations')
+    .select('id, zoho_user_email, zoho_user_name, zoho_org_name, zoho_org_id, last_synced_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+
   // Fetch Google Sheets integration
   const { data: gsIntegration } = await supabaseAdminRaw
     .from('google_sheets_integrations')
@@ -160,6 +168,15 @@ export default async function Integrations() {
           firmId: clioIntegration?.clio_firm_id || undefined,
           lastSynced: clioIntegration?.last_synced_at || undefined,
           integrationId: clioIntegration?.id || undefined,
+        },
+        zoho: {
+          connected: !!zohoIntegration,
+          email: zohoIntegration?.zoho_user_email || undefined,
+          displayName: zohoIntegration?.zoho_user_name || undefined,
+          orgName: zohoIntegration?.zoho_org_name || undefined,
+          orgId: zohoIntegration?.zoho_org_id || undefined,
+          lastSynced: zohoIntegration?.last_synced_at || undefined,
+          integrationId: zohoIntegration?.id || undefined,
         },
         google_sheets: {
           connected: !!gsIntegration,
