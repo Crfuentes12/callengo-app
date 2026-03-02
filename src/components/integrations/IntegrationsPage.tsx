@@ -29,6 +29,7 @@ interface IntegrationsPageProps {
     hubspot?: { connected: boolean; email?: string; displayName?: string; hubDomain?: string; lastSynced?: string; integrationId?: string };
     pipedrive?: { connected: boolean; email?: string; displayName?: string; companyName?: string; companyDomain?: string; lastSynced?: string; integrationId?: string };
     clio?: { connected: boolean; email?: string; displayName?: string; firmName?: string; firmId?: string; lastSynced?: string; integrationId?: string };
+    zoho?: { connected: boolean; email?: string; displayName?: string; orgName?: string; orgId?: string; lastSynced?: string; integrationId?: string };
     google_sheets?: { connected: boolean; email?: string; displayName?: string; lastUsed?: string; integrationId?: string };
   };
   planSlug: string;
@@ -1549,7 +1550,17 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'zoho', provider: 'zoho', name: 'Zoho CRM',
       description: 'Sync leads, contacts, and call logs bidirectionally',
       icon: <ZohoIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-red-50',
-      category: 'crm', requiredPlan: 'business', status: 'coming_soon',
+      category: 'crm', requiredPlan: 'business',
+      status: integrations.zoho?.connected ? 'connected' : 'available',
+      connectUrl: '/api/integrations/zoho/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/zoho/disconnect',
+      syncUrl: '/api/integrations/zoho/sync', showSync: true,
+      manageUrl: '/contacts/zoho',
+      connectedInfo: integrations.zoho?.connected ? [
+        ...(integrations.zoho.displayName || integrations.zoho.email ? [{ label: 'Account', value: integrations.zoho.displayName || integrations.zoho.email || '' }] : []),
+        ...(integrations.zoho.orgName ? [{ label: 'Org', value: integrations.zoho.orgName }] : []),
+        ...(integrations.zoho.lastSynced ? [{ label: 'Last Sync', value: formatLastSynced(integrations.zoho.lastSynced) }] : []),
+      ] : undefined,
     },
     {
       id: 'simplybook', provider: 'simplybook', name: 'SimplyBook.me',

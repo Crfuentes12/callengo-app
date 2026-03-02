@@ -6,6 +6,7 @@ import SalesforceOrgMembers from '@/components/settings/SalesforceOrgMembers';
 import HubSpotOrgMembers from '@/components/settings/HubSpotOrgMembers';
 import PipedriveOrgMembers from '@/components/settings/PipedriveOrgMembers';
 import ClioOrgMembers from '@/components/settings/ClioOrgMembers';
+import ZohoOrgMembers from '@/components/settings/ZohoOrgMembers';
 import Link from 'next/link';
 
 function TeamUpgradeCTA() {
@@ -178,6 +179,16 @@ export default async function TeamPage() {
     .maybeSingle();
   clioConnected = !!clioIntegration;
 
+  // Check Zoho CRM connection
+  let zohoConnected = false;
+  const { data: zohoIntegration } = await supabaseAdminRaw
+    .from('zoho_integrations')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+  zohoConnected = !!zohoIntegration;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -233,6 +244,13 @@ export default async function TeamPage() {
         companyId={companyId}
         planSlug={planSlug}
         clioConnected={clioConnected}
+      />
+
+      {/* Zoho CRM Org Members Preview */}
+      <ZohoOrgMembers
+        companyId={companyId}
+        planSlug={planSlug}
+        zohoConnected={zohoConnected}
       />
     </div>
   );
