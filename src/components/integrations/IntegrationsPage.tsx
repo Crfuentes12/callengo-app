@@ -754,21 +754,18 @@ function WebhooksSetupModal({
   const [availableEvents, setAvailableEvents] = useState<WebhookEventDef[]>([]);
   const [error, setError] = useState('');
 
-  // Add form
   const [showAddForm, setShowAddForm] = useState(false);
   const [newUrl, setNewUrl] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newEvents, setNewEvents] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
-  // Actions
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ id: string; success: boolean; message: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedSecret, setCopiedSecret] = useState<string | null>(null);
   const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
 
-  // Load endpoints
   useEffect(() => {
     const load = async () => {
       try {
@@ -777,18 +774,13 @@ function WebhooksSetupModal({
           const data = await res.json();
           setEndpoints(data.endpoints || []);
           setAvailableEvents(data.available_events || []);
-          if (!data.endpoints || data.endpoints.length === 0) {
-            setShowAddForm(true);
-          }
+          if (!data.endpoints || data.endpoints.length === 0) setShowAddForm(true);
         } else {
           const data = await res.json().catch(() => ({}));
           setError(data.error || 'Failed to load webhooks');
         }
-      } catch {
-        setError('Failed to load webhooks');
-      } finally {
-        setLoading(false);
-      }
+      } catch { setError('Failed to load webhooks'); }
+      finally { setLoading(false); }
     };
     load();
   }, []);
@@ -796,201 +788,137 @@ function WebhooksSetupModal({
   const handleCreate = async () => {
     if (!newUrl.trim()) { setError('URL is required'); return; }
     if (newEvents.length === 0) { setError('Select at least one event'); return; }
-    setCreating(true);
-    setError('');
+    setCreating(true); setError('');
     try {
       const res = await fetch('/api/webhooks/endpoints', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: newUrl.trim(), events: newEvents, description: newDescription.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create endpoint');
       setEndpoints(prev => [data.endpoint, ...prev]);
-      setNewUrl('');
-      setNewDescription('');
-      setNewEvents([]);
+      setNewUrl(''); setNewDescription(''); setNewEvents([]);
       setShowAddForm(false);
       setRevealedSecrets(prev => new Set(prev).add(data.endpoint.id));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create endpoint');
-    } finally {
-      setCreating(false);
-    }
+    } finally { setCreating(false); }
   };
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
-    try {
-      const res = await fetch(`/api/webhooks/endpoints/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setEndpoints(prev => prev.filter(e => e.id !== id));
-      }
-    } catch { /* ignore */ }
-    finally { setDeletingId(null); }
+    try { const res = await fetch(`/api/webhooks/endpoints/${id}`, { method: 'DELETE' }); if (res.ok) setEndpoints(prev => prev.filter(e => e.id !== id)); }
+    catch { /* ignore */ } finally { setDeletingId(null); }
   };
 
   const handleTest = async (id: string) => {
-    setTestingId(id);
-    setTestResult(null);
+    setTestingId(id); setTestResult(null);
     try {
-      const res = await fetch(`/api/webhooks/endpoints/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'test' }),
-      });
+      const res = await fetch(`/api/webhooks/endpoints/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'test' }) });
       const data = await res.json();
-      setTestResult({
-        id,
-        success: data.success,
-        message: data.success ? `OK (${data.durationMs}ms)` : (data.error || 'Failed'),
-      });
-    } catch {
-      setTestResult({ id, success: false, message: 'Request failed' });
-    } finally {
-      setTestingId(null);
-    }
+      setTestResult({ id, success: data.success, message: data.success ? `OK (${data.durationMs}ms)` : (data.error || 'Failed') });
+    } catch { setTestResult({ id, success: false, message: 'Request failed' }); }
+    finally { setTestingId(null); }
   };
 
   const handleToggleActive = async (ep: WebhookEndpointData) => {
     try {
-      const res = await fetch(`/api/webhooks/endpoints/${ep.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !ep.is_active }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setEndpoints(prev => prev.map(e => e.id === ep.id ? data.endpoint : e));
-      }
+      const res = await fetch(`/api/webhooks/endpoints/${ep.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !ep.is_active }) });
+      if (res.ok) { const data = await res.json(); setEndpoints(prev => prev.map(e => e.id === ep.id ? data.endpoint : e)); }
     } catch { /* ignore */ }
   };
 
-  const copySecret = (id: string, secret: string) => {
-    navigator.clipboard.writeText(secret);
-    setCopiedSecret(id);
-    setTimeout(() => setCopiedSecret(null), 2000);
-  };
+  const copySecret = (id: string, secret: string) => { navigator.clipboard.writeText(secret); setCopiedSecret(id); setTimeout(() => setCopiedSecret(null), 2000); };
+  const toggleEvent = (eventType: string) => { setNewEvents(prev => prev.includes(eventType) ? prev.filter(e => e !== eventType) : [...prev, eventType]); };
+  const selectAllEvents = () => { setNewEvents(newEvents.length === availableEvents.length ? [] : availableEvents.map(e => e.type)); };
+  const toggleRevealSecret = (id: string) => { setRevealedSecrets(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; }); };
 
-  const toggleEvent = (eventType: string) => {
-    setNewEvents(prev =>
-      prev.includes(eventType) ? prev.filter(e => e !== eventType) : [...prev, eventType]
-    );
-  };
-
-  const selectAllEvents = () => {
-    if (newEvents.length === availableEvents.length) {
-      setNewEvents([]);
-    } else {
-      setNewEvents(availableEvents.map(e => e.type));
-    }
-  };
-
-  const toggleRevealSecret = (id: string) => {
-    setRevealedSecrets(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  // Group events by category
   const eventsByCategory = useMemo(() => {
     const groups: Record<string, WebhookEventDef[]> = {};
-    for (const ev of availableEvents) {
-      const cat = ev.type.split('.')[0];
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(ev);
-    }
+    for (const ev of availableEvents) { const cat = ev.type.split('.')[0]; if (!groups[cat]) groups[cat] = []; groups[cat].push(ev); }
     return groups;
   }, [availableEvents]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="p-6 border-b border-slate-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
-                <WebhookIcon className="w-6 h-6" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scaleIn" onClick={e => e.stopPropagation()}>
+        {/* Header with gradient */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-gradient-start)] via-[var(--color-gradient-mid)] to-[var(--color-gradient-end)] opacity-[0.07]" />
+          <div className="relative p-6 border-b border-[var(--color-primary-100)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white flex items-center justify-center shadow-md">
+                  <WebhookIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Webhooks</h3>
+                  <p className="text-xs text-slate-500">
+                    {endpoints.length === 0 ? 'Set up your first endpoint' : `${endpoints.length} endpoint${endpoints.length !== 1 ? 's' : ''} configured`}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">Webhooks</h3>
-                <p className="text-sm text-slate-500">
-                  {endpoints.length === 0 ? 'Set up your first endpoint' : `${endpoints.length} endpoint${endpoints.length !== 1 ? 's' : ''}`}
-                </p>
-              </div>
+              <button onClick={onClose} className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
           </div>
         </div>
 
         {/* Body */}
         <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-xs text-red-800 font-medium">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
+              <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+              <p className="text-xs text-red-700 font-medium">{error}</p>
             </div>
           )}
 
           {loading && (
-            <div className="flex items-center justify-center py-8">
-              <Spinner className="w-6 h-6 text-slate-400" />
+            <div className="flex items-center justify-center py-12">
+              <Spinner className="w-6 h-6 text-[var(--color-primary)]" />
             </div>
           )}
 
           {/* Existing endpoints */}
           {!loading && endpoints.map(ep => (
-            <div key={ep.id} className={`border rounded-xl p-4 space-y-3 ${ep.is_active ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50/50'}`}>
-              {/* Endpoint header */}
+            <div key={ep.id} className={`rounded-xl border p-4 space-y-3 transition-all ${ep.is_active ? 'border-[var(--color-primary-100)] bg-[var(--color-primary-50)]/30' : 'border-slate-200 bg-slate-50/50 opacity-70'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`w-2 h-2 rounded-full shrink-0 ${ep.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                     <p className="text-sm font-semibold text-slate-900 truncate">{ep.url}</p>
                   </div>
-                  {ep.description && (
-                    <p className="text-xs text-slate-500 ml-4">{ep.description}</p>
-                  )}
+                  {ep.description && <p className="text-xs text-slate-500 ml-4">{ep.description}</p>}
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked={ep.is_active} onChange={() => handleToggleActive(ep)} className="sr-only peer" />
-                    <div className="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-                  </label>
-                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" checked={ep.is_active} onChange={() => handleToggleActive(ep)} className="sr-only peer" />
+                  <div className="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:bg-[var(--color-primary)] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" />
+                </label>
               </div>
 
-              {/* Events */}
               <div className="flex flex-wrap gap-1 ml-4">
                 {ep.events.map(ev => (
-                  <span key={ev} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{ev}</span>
+                  <span key={ev} className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-100)]">{ev}</span>
                 ))}
               </div>
 
-              {/* Secret */}
               <div className="ml-4 flex items-center gap-2">
                 <span className="text-[11px] text-slate-400 shrink-0">Secret:</span>
-                <code className="text-[11px] font-mono text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 truncate max-w-[240px]">
+                <code className="text-[11px] font-mono text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200 truncate max-w-[240px]">
                   {revealedSecrets.has(ep.id) ? ep.secret : `${ep.secret.slice(0, 10)}${'*'.repeat(16)}`}
                 </code>
-                <button onClick={() => toggleRevealSecret(ep.id)} className="text-slate-400 hover:text-slate-600 transition-colors" title={revealedSecrets.has(ep.id) ? 'Hide' : 'Reveal'}>
+                <button onClick={() => toggleRevealSecret(ep.id)} className="text-slate-400 hover:text-[var(--color-primary)] transition-colors" title={revealedSecrets.has(ep.id) ? 'Hide' : 'Reveal'}>
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     {revealedSecrets.has(ep.id) ? (
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
                     ) : (
-                      <>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </>
+                      <><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></>
                     )}
                   </svg>
                 </button>
-                <button onClick={() => copySecret(ep.id, ep.secret)} className="text-slate-400 hover:text-slate-600 transition-colors" title="Copy">
+                <button onClick={() => copySecret(ep.id, ep.secret)} className="text-slate-400 hover:text-[var(--color-primary)] transition-colors" title="Copy">
                   {copiedSecret === ep.id ? (
                     <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                   ) : (
@@ -999,48 +927,29 @@ function WebhooksSetupModal({
                 </button>
               </div>
 
-              {/* Status info */}
-              {(ep.last_success_at || ep.last_failure_at || ep.auto_disabled_at) && (
+              {(ep.last_success_at || ep.consecutive_failures > 0 || ep.auto_disabled_at) && (
                 <div className="ml-4 flex items-center gap-3 text-[11px]">
-                  {ep.last_success_at && (
-                    <span className="text-emerald-600">Last success: {formatLastSynced(ep.last_success_at)}</span>
-                  )}
-                  {ep.consecutive_failures > 0 && (
-                    <span className="text-amber-600">{ep.consecutive_failures} consecutive failure{ep.consecutive_failures !== 1 ? 's' : ''}</span>
-                  )}
-                  {ep.auto_disabled_at && (
-                    <span className="text-red-600 font-medium">Auto-disabled</span>
-                  )}
+                  {ep.last_success_at && <span className="text-emerald-600">Last success: {formatLastSynced(ep.last_success_at)}</span>}
+                  {ep.consecutive_failures > 0 && <span className="text-amber-600">{ep.consecutive_failures} failure{ep.consecutive_failures !== 1 ? 's' : ''}</span>}
+                  {ep.auto_disabled_at && <span className="text-red-600 font-medium">Auto-disabled</span>}
                 </div>
               )}
 
-              {/* Test result */}
               {testResult && testResult.id === ep.id && (
-                <div className={`ml-4 text-xs font-medium px-2.5 py-1.5 rounded-lg ${testResult.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                <div className={`ml-4 text-xs font-medium px-3 py-2 rounded-lg ${testResult.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                   {testResult.success ? 'Test successful' : 'Test failed'}: {testResult.message}
                 </div>
               )}
 
-              {/* Actions */}
               <div className="ml-4 flex items-center gap-2">
-                <button
-                  onClick={() => handleTest(ep.id)}
-                  disabled={testingId === ep.id}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all disabled:opacity-50"
-                >
-                  {testingId === ep.id ? <Spinner className="w-3 h-3" /> : (
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
-                  )}
+                <button onClick={() => handleTest(ep.id)} disabled={testingId === ep.id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--color-primary)] bg-[var(--color-primary-50)] hover:bg-[var(--color-primary-100)] border border-[var(--color-primary-100)] transition-all disabled:opacity-50">
+                  {testingId === ep.id ? <Spinner className="w-3 h-3" /> : <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" /></svg>}
                   Send Test
                 </button>
-                <button
-                  onClick={() => handleDelete(ep.id)}
-                  disabled={deletingId === ep.id}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-all disabled:opacity-50"
-                >
-                  {deletingId === ep.id ? <Spinner className="w-3 h-3" /> : (
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-                  )}
+                <button onClick={() => handleDelete(ep.id)} disabled={deletingId === ep.id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 transition-all disabled:opacity-50">
+                  {deletingId === ep.id ? <Spinner className="w-3 h-3" /> : <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>}
                   Delete
                 </button>
               </div>
@@ -1049,35 +958,22 @@ function WebhooksSetupModal({
 
           {/* Add endpoint form */}
           {!loading && showAddForm && (
-            <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 space-y-4">
-              <p className="text-sm font-bold text-slate-700">New Endpoint</p>
-
+            <div className="rounded-xl border-2 border-dashed border-[var(--color-primary-200)] bg-[var(--color-primary-50)]/20 p-5 space-y-4">
+              <p className="text-sm font-bold text-slate-800">New Endpoint</p>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Endpoint URL</label>
-                <input
-                  type="url"
-                  value={newUrl}
-                  onChange={e => setNewUrl(e.target.value)}
-                  placeholder="https://your-server.com/webhooks/callengo"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-300 focus:border-slate-400 outline-none transition-all text-sm font-mono"
-                />
+                <input type="url" value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://your-server.com/webhooks/callengo"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm font-mono bg-white" />
               </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Description <span className="text-slate-400 font-normal">(optional)</span></label>
-                <input
-                  type="text"
-                  value={newDescription}
-                  onChange={e => setNewDescription(e.target.value)}
-                  placeholder="e.g. Zapier automation, internal CRM sync"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-300 focus:border-slate-400 outline-none transition-all text-sm"
-                />
+                <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="e.g. Zapier automation, internal CRM sync"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm bg-white" />
               </div>
-
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-semibold text-slate-600">Events</label>
-                  <button onClick={selectAllEvents} className="text-[11px] font-medium text-slate-500 hover:text-slate-700 transition-colors">
+                  <button onClick={selectAllEvents} className="text-[11px] font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors">
                     {newEvents.length === availableEvents.length ? 'Deselect all' : 'Select all'}
                   </button>
                 </div>
@@ -1089,8 +985,8 @@ function WebhooksSetupModal({
                         {events.map(ev => (
                           <label key={ev.type} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all text-xs ${
                             newEvents.includes(ev.type)
-                              ? 'bg-slate-800 border-slate-800 text-white'
-                              : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                              ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white shadow-sm'
+                              : 'bg-white border-slate-200 text-slate-700 hover:border-[var(--color-primary-200)]'
                           }`}>
                             <input type="checkbox" checked={newEvents.includes(ev.type)} onChange={() => toggleEvent(ev.type)} className="sr-only" />
                             <span className="font-medium">{ev.label}</span>
@@ -1104,46 +1000,29 @@ function WebhooksSetupModal({
             </div>
           )}
 
-          {/* Add endpoint button (when endpoints exist and form is hidden) */}
           {!loading && !showAddForm && endpoints.length > 0 && endpoints.length < 10 && (
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-slate-200 text-sm font-medium text-slate-500 hover:border-slate-300 hover:text-slate-600 hover:bg-slate-50 transition-all"
-            >
+            <button onClick={() => setShowAddForm(true)}
+              className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-[var(--color-primary-200)] text-sm font-medium text-[var(--color-primary)] hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-50)]/30 transition-all">
               + Add Endpoint
             </button>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-6 pt-0 flex gap-2">
-          {showAddForm && (
+        <div className="p-6 pt-4 border-t border-slate-100 flex gap-2">
+          {showAddForm ? (
             <>
               {endpoints.length > 0 && (
-                <button
-                  onClick={() => { setShowAddForm(false); setError(''); }}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all"
-                >
-                  Cancel
-                </button>
+                <button onClick={() => { setShowAddForm(false); setError(''); }} className="flex-1 btn-secondary text-sm">Cancel</button>
               )}
-              <button
-                onClick={handleCreate}
-                disabled={creating || !newUrl.trim() || newEvents.length === 0}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
-              >
+              <button onClick={handleCreate} disabled={creating || !newUrl.trim() || newEvents.length === 0}
+                className="flex-1 btn-primary text-sm disabled:opacity-50 inline-flex items-center justify-center gap-2">
                 {creating ? <Spinner className="w-4 h-4" /> : null}
                 {creating ? 'Creating...' : 'Create Endpoint'}
               </button>
             </>
-          )}
-          {!showAddForm && (
-            <button
-              onClick={() => { onSuccess(); onClose(); }}
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 transition-all"
-            >
-              Done
-            </button>
+          ) : (
+            <button onClick={() => { onSuccess(); onClose(); }} className="flex-1 btn-primary text-sm">Done</button>
           )}
         </div>
       </div>
@@ -1617,6 +1496,63 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   ];
 
   // --------------------------------------------------------------------------
+  // Tier info for upgrade CTA
+  // --------------------------------------------------------------------------
+
+  const currentTier = planSlug as PlanTier;
+  const availableForPlan = allItems.filter(i => planMeetsRequirement(planSlug, i.requiredPlan) && i.status !== 'coming_soon').length;
+  const totalAvailable = allItems.filter(i => i.status !== 'coming_soon').length;
+
+  const upgradeInfo = useMemo(() => {
+    const tier = planSlug as PlanTier;
+    if (tier === 'free' || tier === 'starter') {
+      const nextTier = tier === 'free' ? 'Starter' : 'Business';
+      const nextItems = allItems.filter(i => !planMeetsRequirement(planSlug, i.requiredPlan) && i.status !== 'coming_soon');
+      return {
+        show: true,
+        nextTier,
+        unlocksCount: nextItems.length,
+        headline: tier === 'free'
+          ? 'Unlock Slack, webhooks, CRM sync, and more'
+          : 'Unlock Twilio, HubSpot, Pipedrive, and Microsoft 365',
+        cta: `Upgrade to ${nextTier}`,
+      };
+    }
+    if (tier === 'business') {
+      return {
+        show: true,
+        nextTier: 'Teams',
+        unlocksCount: allItems.filter(i => !planMeetsRequirement('business', i.requiredPlan) && i.status !== 'coming_soon').length,
+        headline: 'Unlock Salesforce, Clio, and enterprise-grade integrations',
+        cta: 'Upgrade to Teams',
+      };
+    }
+    if (tier === 'teams') {
+      return {
+        show: true,
+        nextTier: 'Enterprise',
+        unlocksCount: 0,
+        headline: 'Need custom integrations or dedicated support?',
+        cta: 'Contact Sales',
+      };
+    }
+    return { show: false, nextTier: '', unlocksCount: 0, headline: '', cta: '' };
+  }, [planSlug, allItems]);
+
+  // --------------------------------------------------------------------------
+  // Tier summary for hero
+  // --------------------------------------------------------------------------
+
+  const tierSummary: { tier: PlanTier; label: string; count: number }[] = useMemo(() => {
+    const tiers: PlanTier[] = ['free', 'starter', 'business', 'teams'];
+    return tiers.map(t => ({
+      tier: t,
+      label: getPlanLabel(t),
+      count: allItems.filter(i => planMeetsRequirement(t, i.requiredPlan) && i.status !== 'coming_soon').length,
+    }));
+  }, [allItems]);
+
+  // --------------------------------------------------------------------------
   // Render card
   // --------------------------------------------------------------------------
 
@@ -1626,77 +1562,84 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     const isAutoEnabled = item.status === 'auto_enabled';
     const meetsRequirement = planMeetsRequirement(planSlug, item.requiredPlan);
     const isLocked = !meetsRequirement && !isComingSoon;
+    const isActive = isConnected || isAutoEnabled;
 
     return (
       <div
         key={item.id}
-        className={`relative flex flex-col p-5 rounded-xl border transition-all ${
-          isConnected || isAutoEnabled
-            ? 'border-emerald-100 bg-white hover:shadow-md hover:border-emerald-200'
+        className={`group relative flex flex-col p-5 rounded-2xl border transition-all duration-200 ${
+          isActive
+            ? 'border-[var(--color-primary-100)] bg-white shadow-sm hover:shadow-md'
             : isLocked
-            ? 'border-slate-100 bg-slate-50/40'
-            : 'border-slate-200 bg-white hover:shadow-md hover:border-slate-300'
+            ? 'border-slate-200 bg-white opacity-60 hover:opacity-80'
+            : isComingSoon
+            ? 'border-slate-200 bg-white opacity-50'
+            : 'border-slate-200 bg-white hover:shadow-md hover:border-[var(--color-primary-200)]'
         }`}
       >
-        {/* Plan badge - top right (hide for free-tier items) */}
-        {item.requiredPlan !== 'free' && (
-          <div className="absolute top-3 right-3">
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${getPlanBadgeColors(item.requiredPlan)} uppercase tracking-wider`}>
-              {`${getPlanLabel(item.requiredPlan)}+`}
-            </span>
-          </div>
+        {/* Status indicator line at top */}
+        {isActive && (
+          <div className="absolute top-0 left-4 right-4 h-[2px] rounded-b-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]" />
         )}
 
-        {/* Icon */}
-        <div className={`w-12 h-12 rounded-xl ${item.iconBg} ${item.iconColor || ''} flex items-center justify-center mb-3`}>
-          {item.icon}
-        </div>
-
-        {/* Name */}
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="text-sm font-bold text-slate-900">{item.name}</h3>
-          {(isConnected || isAutoEnabled) && (
-            <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Active
+        {/* Header row: icon + name + status */}
+        <div className="flex items-start gap-3 mb-3">
+          <div className={`w-11 h-11 rounded-xl ${item.iconBg} ${item.iconColor || ''} flex items-center justify-center shrink-0`}>
+            {item.icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-slate-900 leading-tight">{item.name}</h3>
+            {isActive && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                {isAutoEnabled ? `via ${item.autoEnabledWith}` : item.alwaysActive ? 'Always active' : 'Connected'}
+              </span>
+            )}
+            {isComingSoon && (
+              <span className="text-[10px] font-semibold text-slate-400 mt-0.5">Coming soon</span>
+            )}
+          </div>
+          {/* Minimal plan indicator */}
+          {item.requiredPlan !== 'free' && !isActive && (
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
+              isLocked ? 'bg-slate-100 text-slate-400' : 'bg-[var(--color-primary-50)] text-[var(--color-primary)]'
+            }`}>
+              {getPlanLabel(item.requiredPlan)}
             </span>
           )}
         </div>
 
         {/* Description */}
-        <p className="text-xs text-slate-500 leading-relaxed mb-4 flex-1">{item.description}</p>
+        <p className="text-[11px] text-slate-500 leading-relaxed mb-4 flex-1">{item.description}</p>
 
         {/* Action button */}
         <div>
           {isComingSoon && (
-            <span className="inline-flex items-center px-3 py-2 rounded-lg text-xs font-medium text-slate-400 bg-slate-50 border border-slate-200 w-full justify-center">
+            <span className="inline-flex items-center px-3 py-2 rounded-xl text-[11px] font-medium text-slate-400 bg-slate-50 w-full justify-center">
               Coming Soon
             </span>
           )}
 
-          {/* Always-active integrations (Stripe, Zoom) - no button, just a status label */}
           {!isComingSoon && item.alwaysActive && (
-            <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Always Active
+            <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-[var(--color-primary)] bg-[var(--color-primary-50)]">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Built-in
             </span>
           )}
 
-          {/* Auto-enabled (Google Meet when Google Calendar connected, Teams when Outlook connected) - no configure button */}
           {!isComingSoon && !item.alwaysActive && isAutoEnabled && (
-            <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Active via {item.autoEnabledWith}
+            <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-emerald-600 bg-emerald-50">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Auto-enabled
             </span>
           )}
 
-          {/* Connected integrations that are NOT always-active and NOT auto-enabled - show Configure */}
           {!isComingSoon && !item.alwaysActive && isConnected && !isAutoEnabled && (
             <button
               onClick={() => item.provider === 'slack' ? setShowSlackConfig(true) : item.provider === 'webhooks' ? setShowWebhooksSetup(true) : setConfigItem(item)}
-              className="inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold text-[var(--color-primary)] bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/15 hover:bg-[var(--color-primary)]/10 transition-all"
+              className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-[var(--color-primary)] bg-[var(--color-primary-50)] hover:bg-[var(--color-primary-100)] border border-[var(--color-primary-100)] transition-all"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -1704,24 +1647,20 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             </button>
           )}
 
-          {/* Not connected, not auto-enabled - show Connect button or parent connect */}
           {!isComingSoon && !item.alwaysActive && !isConnected && !isAutoEnabled && item.connectUrl && (
             <button
-              onClick={() => {
-                if (isLocked) return;
-                handleConnect(item.provider, item.connectUrl!, item.connectMethod);
-              }}
+              onClick={() => { if (!isLocked) handleConnect(item.provider, item.connectUrl!, item.connectMethod); }}
               disabled={isLocked || loadingAction === `connect-${item.provider}`}
-              className={`inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold transition-all ${
                 isLocked
-                  ? 'bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed'
+                  ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
                   : 'btn-primary'
               }`}
             >
               {isLocked ? (
                 <>
                   <FaLock className="w-2.5 h-2.5" />
-                  Upgrade to {getPlanLabel(item.requiredPlan)}
+                  {getPlanLabel(item.requiredPlan)} Plan
                 </>
               ) : loadingAction === `connect-${item.provider}` ? (
                 <Spinner className="w-3.5 h-3.5" />
@@ -1734,43 +1673,23 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
           {!isComingSoon && !isConnected && item.settingsUrl && !item.connectUrl && !item.parentConnectUrl && (
             <Link
               href={isLocked ? '#' : item.settingsUrl}
-              className={`inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                isLocked ? 'bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed pointer-events-none' : 'btn-primary'
+              className={`inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold transition-all ${
+                isLocked ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' : 'btn-primary'
               }`}
             >
-              {isLocked ? (
-                <>
-                  <FaLock className="w-2.5 h-2.5" />
-                  Upgrade
-                </>
-              ) : (
-                'Configure'
-              )}
+              {isLocked ? <><FaLock className="w-2.5 h-2.5" />Upgrade</> : 'Configure'}
             </Link>
           )}
 
-          {/* Google Meet / Teams not connected - show Connect button that opens the parent (Google Calendar / Microsoft 365) */}
           {!isComingSoon && !isConnected && !isAutoEnabled && !item.connectUrl && item.parentConnectUrl && (
             <button
-              onClick={() => {
-                if (isLocked) return;
-                handleConnect(item.parentProvider!, item.parentConnectUrl!);
-              }}
+              onClick={() => { if (!isLocked) handleConnect(item.parentProvider!, item.parentConnectUrl!); }}
               disabled={isLocked || loadingAction === `connect-${item.parentProvider}`}
-              className={`inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                isLocked
-                  ? 'bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed'
-                  : 'btn-primary'
+              className={`inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold transition-all ${
+                isLocked ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed' : 'btn-primary'
               }`}
             >
-              {isLocked ? (
-                <>
-                  <FaLock className="w-2.5 h-2.5" />
-                  Upgrade to {getPlanLabel(item.requiredPlan)}
-                </>
-              ) : (
-                `Connect ${item.autoEnabledWith}`
-              )}
+              {isLocked ? <><FaLock className="w-2.5 h-2.5" />{getPlanLabel(item.requiredPlan)} Plan</> : `Connect ${item.autoEnabledWith}`}
             </button>
           )}
         </div>
@@ -1779,11 +1698,24 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   }
 
   // --------------------------------------------------------------------------
+  // Category icons
+  // --------------------------------------------------------------------------
+
+  const categoryIcons: Record<string, React.ReactNode> = {
+    all: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>,
+    crm: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>,
+    calendar: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>,
+    video: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" /></svg>,
+    communication: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" /></svg>,
+    payment: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" /></svg>,
+  };
+
+  // --------------------------------------------------------------------------
   // Render
   // --------------------------------------------------------------------------
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg border text-sm font-medium animate-slideDown ${
@@ -1793,43 +1725,145 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Integrations</h1>
-          <p className="text-slate-500 text-sm mt-1">Connect your tools to streamline your workflow</p>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-xs font-semibold text-emerald-700">{activeCount} active</span>
+      {/* ================================================================== */}
+      {/* HERO SECTION                                                       */}
+      {/* ================================================================== */}
+      <div className="relative overflow-hidden rounded-2xl">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-gradient-start)] via-[var(--color-gradient-mid)] to-[var(--color-gradient-end)]" />
+        {/* Subtle pattern overlay */}
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 25% 50%, rgba(255,255,255,0.2) 0%, transparent 50%), radial-gradient(circle at 75% 20%, rgba(255,255,255,0.15) 0%, transparent 40%)' }} />
+
+        <div className="relative px-8 py-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            {/* Left: headline + subtitle */}
+            <div className="max-w-xl">
+              <h1 className="text-2xl lg:text-3xl font-bold text-white leading-tight mb-2">
+                Unlock the full power of Callengo
+              </h1>
+              <p className="text-white/70 text-sm leading-relaxed">
+                Connect your favorite tools and automate your workflow. From CRM sync to real-time notifications, every integration makes your AI calling smarter.
+              </p>
+
+              {/* Stats row */}
+              <div className="flex items-center gap-5 mt-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur flex items-center justify-center">
+                    <span className="text-lg font-bold text-white">{activeCount}</span>
+                  </div>
+                  <span className="text-xs text-white/60 font-medium">Active</span>
+                </div>
+                <div className="w-px h-6 bg-white/15" />
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur flex items-center justify-center">
+                    <span className="text-lg font-bold text-white">{availableForPlan}</span>
+                  </div>
+                  <span className="text-xs text-white/60 font-medium">Available</span>
+                </div>
+                <div className="w-px h-6 bg-white/15" />
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur flex items-center justify-center">
+                    <span className="text-lg font-bold text-white">{totalAvailable}</span>
+                  </div>
+                  <span className="text-xs text-white/60 font-medium">Total</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Integration logos cloud + tier pills */}
+            <div className="flex flex-col items-end gap-4">
+              {/* Logo cloud */}
+              <div className="flex items-center -space-x-2">
+                {[
+                  <GoogleCalendarIcon key="gc" className="w-5 h-5" />,
+                  <SlackIcon key="sl" className="w-5 h-5" />,
+                  <FaSalesforce key="sf" className="w-5 h-5 text-[#00A1E0]" />,
+                  <FaHubspot key="hs" className="w-5 h-5 text-[#FF7A59]" />,
+                  <SiTwilio key="tw" className="w-4 h-4 text-[#F22F46]" />,
+                  <BiLogoZoom key="zm" className="w-5 h-5 text-[#2D8CFF]" />,
+                ].map((icon, i) => (
+                  <div key={i} className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center border-2 border-white/50">
+                    {icon}
+                  </div>
+                ))}
+                <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur shadow-md flex items-center justify-center border-2 border-white/30 text-white text-[10px] font-bold">
+                  +{totalAvailable - 6}
+                </div>
+              </div>
+
+              {/* Tier summary pills */}
+              <div className="flex items-center gap-2">
+                {tierSummary.map(t => (
+                  <div key={t.tier} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold ${
+                    currentTier === t.tier
+                      ? 'bg-white text-[var(--color-primary)] shadow-sm'
+                      : 'bg-white/10 text-white/70'
+                  }`}>
+                    {currentTier === t.tier && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                    {t.label}: {t.count}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Filter badges - category + plan */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 flex-wrap">
+      {/* ================================================================== */}
+      {/* UPGRADE CTA (subtle, tier-aware)                                   */}
+      {/* ================================================================== */}
+      {upgradeInfo.show && (
+        <div className="flex items-center justify-between gap-4 px-5 py-3.5 rounded-xl bg-gradient-to-r from-[var(--color-primary-50)] to-[var(--color-accent)]/5 border border-[var(--color-primary-100)]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center shrink-0">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-800">{upgradeInfo.headline}</p>
+              {upgradeInfo.unlocksCount > 0 && (
+                <p className="text-[11px] text-slate-500">{upgradeInfo.unlocksCount} more integration{upgradeInfo.unlocksCount !== 1 ? 's' : ''} available on {upgradeInfo.nextTier}</p>
+              )}
+            </div>
+          </div>
+          <Link href="/settings?section=billing" className="shrink-0 btn-primary text-xs px-4 py-2">
+            {upgradeInfo.cta}
+          </Link>
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* FILTERS                                                            */}
+      {/* ================================================================== */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* Category filters */}
+        <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl">
           {categoryBadges.map((badge) => (
             <button
               key={badge.id}
               onClick={() => setActiveFilter(badge.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all ${
                 activeFilter === badge.id
-                  ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                  ? 'bg-white text-[var(--color-primary)] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
               }`}
             >
+              {categoryIcons[badge.id]}
               {badge.label}
             </button>
           ))}
-          <span className="w-px h-5 bg-slate-200 mx-1" />
+        </div>
+
+        {/* Plan filter */}
+        <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-2">Plan</span>
           {planBadges.map((badge) => (
             <button
               key={badge.id}
               onClick={() => setPlanFilter(badge.id)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
                 planFilter === badge.id
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                  ? 'bg-white text-[var(--color-primary)] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
               }`}
             >
               {badge.label}
@@ -1838,41 +1872,46 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* ================================================================== */}
+      {/* GRID                                                               */}
+      {/* ================================================================== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredItems.map((item) => renderCard(item))}
       </div>
 
       {filteredItems.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-slate-400 text-sm">No integrations match your filters</p>
+        <div className="text-center py-16">
+          <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+          </div>
+          <p className="text-slate-400 text-sm font-medium">No integrations match your filters</p>
+          <button onClick={() => { setActiveFilter('all'); setPlanFilter('all_plans'); }} className="text-xs text-[var(--color-primary)] font-semibold mt-2 hover:underline">Clear filters</button>
         </div>
       )}
 
-      {/* Help Banner */}
-      <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl border border-slate-200 p-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-            </svg>
+      {/* ================================================================== */}
+      {/* HELP BANNER                                                        */}
+      {/* ================================================================== */}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200">
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary-50)] via-white to-[var(--color-accent)]/5" />
+        <div className="relative p-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center shrink-0 shadow-sm">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900">Need help setting up?</p>
+              <p className="text-xs text-slate-500 mt-0.5">Step-by-step guides for every integration</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Need help setting up integrations?</p>
-            <p className="text-xs text-slate-500 mt-0.5">Step-by-step guides for connecting all your tools with Callengo</p>
-          </div>
+          <a href="https://callengo.com/integrations" target="_blank" rel="noopener noreferrer"
+            className="btn-secondary text-xs px-4 py-2 shrink-0 inline-flex items-center gap-1.5">
+            View Guides
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+          </a>
         </div>
-        <a
-          href="https://callengo.com/integrations"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[var(--color-primary)] bg-white border border-[var(--color-primary)]/20 hover:bg-[var(--color-primary)]/5 transition-all shrink-0"
-        >
-          View Guides
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-          </svg>
-        </a>
       </div>
 
       {/* Twilio Setup Modal */}
