@@ -571,6 +571,16 @@ async function syncSinglePlan(plan: any) {
   // STEP 1: Create/Update Product
   // ============================================================================
 
+  // Verify the product actually exists in the current Stripe environment
+  if (productId) {
+    try {
+      await stripe.products.retrieve(productId);
+    } catch {
+      logVerbose(`Product ${productId} not found in ${CONFIG.ENV} mode, will create a new one`);
+      productId = null;
+    }
+  }
+
   if (!productId) {
     if (await confirmAction(`Create product for ${plan.name}`)) {
       logVerbose('Creating new product in Stripe...');
