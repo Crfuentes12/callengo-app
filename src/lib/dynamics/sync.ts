@@ -59,7 +59,7 @@ async function fetchAllPages<T>(
 
   while (nextLink && page < maxPages) {
     try {
-      const result = await fetchDynamicsPage<T>(integration, nextLink);
+      const result: DynamicsPaginatedResponse<T> = await fetchDynamicsPage<T>(integration, nextLink);
       if (result.value && result.value.length > 0) {
         allRecords.push(...result.value);
         nextLink = result['@odata.nextLink'] || null;
