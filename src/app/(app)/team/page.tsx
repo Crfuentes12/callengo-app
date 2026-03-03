@@ -7,6 +7,7 @@ import HubSpotOrgMembers from '@/components/settings/HubSpotOrgMembers';
 import PipedriveOrgMembers from '@/components/settings/PipedriveOrgMembers';
 import ClioOrgMembers from '@/components/settings/ClioOrgMembers';
 import ZohoOrgMembers from '@/components/settings/ZohoOrgMembers';
+import SimplyBookOrgMembers from '@/components/settings/SimplyBookOrgMembers';
 import Link from 'next/link';
 
 function TeamUpgradeCTA() {
@@ -189,6 +190,16 @@ export default async function TeamPage() {
     .maybeSingle();
   zohoConnected = !!zohoIntegration;
 
+  // Check SimplyBook.me connection (available on starter+ plans, but team page requires business+)
+  let sbConnected = false;
+  const { data: sbIntegration } = await supabaseAdminRaw
+    .from('simplybook_integrations')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+  sbConnected = !!sbIntegration;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -251,6 +262,13 @@ export default async function TeamPage() {
         companyId={companyId}
         planSlug={planSlug}
         zohoConnected={zohoConnected}
+      />
+
+      {/* SimplyBook.me Providers Preview */}
+      <SimplyBookOrgMembers
+        companyId={companyId}
+        planSlug={planSlug}
+        sbConnected={sbConnected}
       />
     </div>
   );

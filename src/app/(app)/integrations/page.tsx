@@ -77,6 +77,14 @@ export default async function Integrations() {
     .eq('is_active', true)
     .maybeSingle();
 
+  // Fetch SimplyBook.me integration
+  const { data: sbIntegration } = await supabaseAdminRaw
+    .from('simplybook_integrations')
+    .select('id, sb_user_email, sb_user_name, sb_company_name, sb_company_login, last_synced_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+
   // Fetch Google Sheets integration
   const { data: gsIntegration } = await supabaseAdminRaw
     .from('google_sheets_integrations')
@@ -177,6 +185,15 @@ export default async function Integrations() {
           orgId: zohoIntegration?.zoho_org_id || undefined,
           lastSynced: zohoIntegration?.last_synced_at || undefined,
           integrationId: zohoIntegration?.id || undefined,
+        },
+        simplybook: {
+          connected: !!sbIntegration,
+          email: sbIntegration?.sb_user_email || undefined,
+          displayName: sbIntegration?.sb_user_name || undefined,
+          companyName: sbIntegration?.sb_company_name || undefined,
+          companyLogin: sbIntegration?.sb_company_login || undefined,
+          lastSynced: sbIntegration?.last_synced_at || undefined,
+          integrationId: sbIntegration?.id || undefined,
         },
         google_sheets: {
           connected: !!gsIntegration,

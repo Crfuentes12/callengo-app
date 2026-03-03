@@ -30,6 +30,7 @@ interface IntegrationsPageProps {
     pipedrive?: { connected: boolean; email?: string; displayName?: string; companyName?: string; companyDomain?: string; lastSynced?: string; integrationId?: string };
     clio?: { connected: boolean; email?: string; displayName?: string; firmName?: string; firmId?: string; lastSynced?: string; integrationId?: string };
     zoho?: { connected: boolean; email?: string; displayName?: string; orgName?: string; orgId?: string; lastSynced?: string; integrationId?: string };
+    simplybook?: { connected: boolean; email?: string; displayName?: string; companyName?: string; companyLogin?: string; lastSynced?: string; integrationId?: string };
     google_sheets?: { connected: boolean; email?: string; displayName?: string; lastUsed?: string; integrationId?: string };
   };
   planSlug: string;
@@ -1564,9 +1565,20 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     },
     {
       id: 'simplybook', provider: 'simplybook', name: 'SimplyBook.me',
-      description: 'Appointment scheduling and booking management',
+      description: 'Sync clients, bookings, and providers from SimplyBook.me',
       icon: <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-7 h-7 rounded" />, iconColor: '', iconBg: 'bg-sky-50',
-      category: 'calendar', requiredPlan: 'starter', status: 'coming_soon',
+      category: 'calendar', requiredPlan: 'starter',
+      status: integrations.simplybook?.connected ? 'connected' : 'available',
+      connectUrl: '/contacts/simplybook',
+      connectMethod: 'redirect' as const,
+      disconnectUrl: '/api/integrations/simplybook/disconnect',
+      syncUrl: '/api/integrations/simplybook/sync', showSync: true,
+      manageUrl: '/contacts/simplybook',
+      connectedInfo: integrations.simplybook?.connected ? [
+        ...(integrations.simplybook.displayName || integrations.simplybook.email ? [{ label: 'Account', value: integrations.simplybook.displayName || integrations.simplybook.email || '' }] : []),
+        ...(integrations.simplybook.companyName ? [{ label: 'Company', value: integrations.simplybook.companyName }] : []),
+        ...(integrations.simplybook.lastSynced ? [{ label: 'Last Sync', value: formatLastSynced(integrations.simplybook.lastSynced) }] : []),
+      ] : undefined,
     },
     {
       id: 'webhooks', provider: 'webhooks', name: 'Webhooks',
