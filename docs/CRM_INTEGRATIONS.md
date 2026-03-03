@@ -4,6 +4,8 @@
 
 Callengo integrates with 5 CRM platforms, all with **bidirectional sync** and **deletion protection**. This document covers the complete architecture, setup, and behavior of every integration.
 
+> **Note**: SimplyBook.me (booking/scheduling platform) is documented separately in [SIMPLYBOOK_INTEGRATION.md](./SIMPLYBOOK_INTEGRATION.md) as it uses credential-based auth rather than OAuth and serves a different purpose (calendar/booking vs CRM).
+
 ---
 
 ## Table of Contents
