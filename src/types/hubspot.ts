@@ -244,6 +244,11 @@ export interface HubSpotSyncResult {
   errors: string[];
 }
 
+export interface HubSpotOutboundSyncResult {
+  notes_created: number;
+  errors: string[];
+}
+
 export interface HubSpotOrgMember {
   hs_owner_id: string;
   user_id: number;

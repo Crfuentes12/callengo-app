@@ -10,6 +10,7 @@ import type {
   HubSpotOwner,
   HubSpotPaginatedResponse,
   HubSpotSyncResult,
+  HubSpotOutboundSyncResult,
 } from '@/types/hubspot';
 
 // ============================================================================
@@ -444,4 +445,214 @@ export async function syncHubSpotContactsToCallengo(
   }
 
   return result;
+}
+
+// ============================================================================
+// OUTBOUND SYNC: CALLENGO → HUBSPOT (Notes via Engagements API)
+// ============================================================================
+
+/**
+ * Build a plain-text note body from call data for HubSpot
+ */
+function buildHubSpotCallNoteContent(contact: Record<string, unknown>): string {
+  const parts: string[] = [];
+
+  parts.push('Callengo Call Log');
+  parts.push(`Date: ${contact.last_call_date || new Date().toISOString()}`);
+
+  if (contact.call_status) parts.push(`Call Status: ${contact.call_status}`);
+  if (contact.call_outcome) parts.push(`Outcome: ${contact.call_outcome}`);
+  if (contact.status) parts.push(`Contact Status: ${contact.status}`);
+
+  if (contact.call_duration) {
+    const mins = Math.floor((contact.call_duration as number) / 60);
+    const secs = (contact.call_duration as number) % 60;
+    parts.push(`Duration: ${mins}m ${secs}s`);
+  }
+
+  const analysis = contact.analysis as Record<string, unknown> | null;
+  if (analysis) {
+    if (analysis.callSentiment) parts.push(`Sentiment: ${analysis.callSentiment}`);
+    if (analysis.customerInterestLevel) parts.push(`Interest Level: ${analysis.customerInterestLevel}`);
+    if (analysis.callCategory) parts.push(`Category: ${analysis.callCategory}`);
+    if (analysis.outcomeNotes) parts.push(`Notes: ${analysis.outcomeNotes}`);
+    if (analysis.keyPoints && Array.isArray(analysis.keyPoints) && analysis.keyPoints.length > 0) {
+      parts.push(`Key Points:\n- ${(analysis.keyPoints as string[]).join('\n- ')}`);
+    }
+    if (analysis.followUpRequired) {
+      parts.push(`Follow-up Required: Yes${analysis.followUpReason ? ` — ${analysis.followUpReason}` : ''}`);
+    }
+  }
+
+  const metadata = contact.call_metadata as Record<string, unknown> | null;
+  if (metadata?.summary) parts.push(`\nAI Summary:\n${metadata.summary}`);
+  if (metadata?.answeredBy) parts.push(`Answered By: ${metadata.answeredBy}`);
+
+  if (contact.notes) parts.push(`\nManual Notes:\n${contact.notes}`);
+
+  return parts.join('\n');
+}
+
+/**
+ * Create a HubSpot Note (engagement) on a contact.
+ * Uses the CRM v3 notes API.
+ */
+export async function createHubSpotNote(
+  integration: HubSpotIntegration,
+  note: { body: string; contactId: string; timestamp?: number }
+): Promise<{ success: boolean; noteId?: string; error?: string }> {
+  const client = await getHubSpotClient(integration);
+
+  // Create the note using CRM v3 objects/notes endpoint
+  const res = await client.fetch('/crm/v3/objects/notes', {
+    method: 'POST',
+    body: JSON.stringify({
+      properties: {
+        hs_timestamp: String(note.timestamp || Date.now()),
+        hs_note_body: note.body,
+      },
+      associations: [
+        {
+          to: { id: note.contactId },
+          types: [
+            {
+              associationCategory: 'HUBSPOT_DEFINED',
+              associationTypeId: 202, // Note to Contact
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    return { success: false, error: `HubSpot note creation failed (${res.status}): ${errBody}` };
+  }
+
+  const data = await res.json();
+  return { success: true, noteId: data.id };
+}
+
+/**
+ * Push a single call result to HubSpot (Note on the Contact).
+ * Called from webhook after a call completes.
+ * IMPORTANT: This only CREATES notes — it NEVER DELETES from HubSpot.
+ */
+export async function pushCallResultToHubSpot(
+  integration: HubSpotIntegration,
+  callengoContactId: string
+): Promise<{ success: boolean; noteId?: string; error?: string }> {
+  const { data: mapping } = await supabaseAdmin
+    .from('hubspot_contact_mappings')
+    .select('hs_contact_id')
+    .eq('integration_id', integration.id)
+    .eq('callengo_contact_id', callengoContactId)
+    .maybeSingle();
+
+  if (!mapping?.hs_contact_id) {
+    return { success: false, error: 'No HubSpot mapping for this contact' };
+  }
+
+  const { data: contact } = await supabaseAdmin
+    .from('contacts')
+    .select('*')
+    .eq('id', callengoContactId)
+    .single();
+
+  if (!contact) {
+    return { success: false, error: 'Contact not found' };
+  }
+
+  const noteBody = buildHubSpotCallNoteContent(contact as Record<string, unknown>);
+
+  const noteResult = await createHubSpotNote(integration, {
+    body: noteBody,
+    contactId: mapping.hs_contact_id,
+    timestamp: Date.now(),
+  });
+
+  // Update mapping sync direction
+  await supabaseAdmin
+    .from('hubspot_contact_mappings')
+    .update({
+      last_synced_at: new Date().toISOString(),
+      sync_direction: 'bidirectional',
+    })
+    .eq('integration_id', integration.id)
+    .eq('callengo_contact_id', callengoContactId);
+
+  return noteResult;
+}
+
+/**
+ * Bulk outbound sync: push all recently updated Callengo contacts to HubSpot.
+ * IMPORTANT: Only pushes notes — NEVER deletes HubSpot records.
+ */
+export async function pushContactUpdatesToHubSpot(
+  integration: HubSpotIntegration
+): Promise<HubSpotOutboundSyncResult> {
+  const result: HubSpotOutboundSyncResult = {
+    notes_created: 0,
+    errors: [],
+  };
+
+  try {
+    const { data: mappings } = await supabaseAdmin
+      .from('hubspot_contact_mappings')
+      .select('callengo_contact_id, hs_contact_id, last_synced_at')
+      .eq('integration_id', integration.id);
+
+    if (!mappings || mappings.length === 0) return result;
+
+    for (const mapping of mappings) {
+      try {
+        const { data: contact } = await supabaseAdmin
+          .from('contacts')
+          .select('*')
+          .eq('id', mapping.callengo_contact_id)
+          .single();
+
+        if (!contact) continue;
+
+        // Only sync contacts updated after last sync
+        const contactUpdated = new Date(contact.updated_at as string).getTime();
+        const lastSynced = mapping.last_synced_at ? new Date(mapping.last_synced_at).getTime() : 0;
+        if (contactUpdated <= lastSynced) continue;
+
+        // Push call result as Note
+        if (contact.call_status && contact.call_status !== 'pending' && contact.call_status !== 'queued') {
+          const callResult = await pushCallResultToHubSpot(integration, mapping.callengo_contact_id);
+          if (callResult.noteId) result.notes_created++;
+          if (!callResult.success && callResult.error) {
+            result.errors.push(`Call sync for ${mapping.callengo_contact_id}: ${callResult.error}`);
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        result.errors.push(`Error pushing contact ${mapping.callengo_contact_id}: ${msg}`);
+      }
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    result.errors.push(`Outbound sync failed: ${msg}`);
+  }
+
+  return result;
+}
+
+/**
+ * Get the active HubSpot integration for a company (helper for webhook use).
+ */
+export async function getActiveHubSpotIntegration(
+  companyId: string
+): Promise<HubSpotIntegration | null> {
+  const { data } = await supabaseAdmin
+    .from('hubspot_integrations')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  return (data as unknown as HubSpotIntegration) || null;
 }

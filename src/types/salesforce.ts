@@ -238,6 +238,12 @@ export interface SalesforceSyncResult {
   errors: string[];
 }
 
+export interface SalesforceOutboundSyncResult {
+  tasks_created: number;
+  notes_created: number;
+  errors: string[];
+}
+
 export interface SalesforceOrgMember {
   sf_user_id: string;
   username: string;
