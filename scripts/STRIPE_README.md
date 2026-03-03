@@ -37,9 +37,9 @@ npm run stripe:sync:live
 
 **Monthly and Annual** prices for each:
 - Starter: $99/mo or $1,068/yr ($89/mo equiv, save 10%)
-- Business: $279/mo or $2,988/yr ($249/mo equiv, save 11%)
-- Teams: $599/mo or $6,348/yr ($529/mo equiv, save 12%)
-- Enterprise: $1,500/mo or $16,200/yr ($1,350/mo equiv, save 10%)
+- Business: $299/mo or $3,228/yr ($269/mo equiv, save 10%)
+- Teams: $649/mo or $6,948/yr ($579/mo equiv, save 11%)
+- Enterprise: $1,499/mo or $16,188/yr ($1,349/mo equiv, save 10%)
 
 ### ✅ Promotional Coupons
 - **TOTAL100**: 100% off, limited to 5 redemptions (forever)
@@ -116,57 +116,53 @@ Features are organized in `/src/config/plan-features.ts`:
 - 15 one-time minutes
 - 3 min max per call
 - 1 concurrent call
-- 1 agent, 1 user
-- $0.80/min overage
+- 1 active agent (locked), 1 user
+- No overage (upgrade required)
 
 **Starter**:
 - 300 min/month
 - 3 min max per call
-- 1 concurrent call
-- 1 agent, 1 user
-- $0.60/min overage
-- Basic async support
+- 2 concurrent calls
+- 1 active agent (switchable), 1 user
+- $0.55/min overage
+- Voicemail detection
+- Follow-ups (max 2 attempts)
+- Slack, Zoom, SimplyBook.me, Webhooks
 
-**Business**:
+**Business** ($299/mo):
 - 1,200 min/month
 - 5 min max per call
-- 3 concurrent calls
+- 5 concurrent calls
 - Unlimited agents, 3 users
-- $0.35/min overage
-- Automatic follow-ups
-- Call scheduling
-- Simple campaigns
+- $0.39/min overage
+- Smart follow-ups (max 5 attempts)
+- Outlook, Teams, Twilio BYOP
+- HubSpot, Pipedrive, Zoho CRM
 - Priority email support
 
-**Teams**:
-- 2,400 min/month
+**Teams** ($649/mo):
+- 2,500 min/month
 - 8 min max per call
 - 10 concurrent calls
-- Unlimited agents, 5 users ($79/extra)
-- $0.22/min overage
+- Unlimited agents, 5 users ($69/extra)
+- $0.29/min overage
 - User permissions
-- Governance & logs
-- Agent/campaign analytics
-- Voicemail handling
-- Advanced retry logic
+- Advanced follow-ups (max 10)
+- Salesforce, Dynamics 365, Clio
+- All Business integrations
 - Priority support
-- CRM integrations (coming soon)
 
-**Enterprise**:
+**Enterprise** ($1,499/mo):
 - 6,000+ min/month
-- 15 min max per call (custom)
-- 50+ concurrent calls
+- 15 min max per call
+- 25+ concurrent calls
 - Unlimited agents & users
-- $0.18/min overage
-- Annual contract
+- $0.25/min overage
+- Unlimited follow-ups
+- All integrations (current + future)
 - SLA guarantee
 - Dedicated account manager
-- Priority infrastructure
-- Security & compliance
-- Full audit logs
-- Custom integrations
-- Full CRM integration
-- Roadmap influence
+- Annual contract
 
 ## 🔄 Migration from Old Scripts
 

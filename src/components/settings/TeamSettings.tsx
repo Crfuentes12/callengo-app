@@ -478,7 +478,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                       <p className="text-sm font-bold text-slate-900">Upgrade to Teams</p>
                     </div>
                     <p className="text-xs text-slate-600">
-                      Get <span className="font-semibold">5 seats included</span> plus add more at <span className="font-semibold">$79/mo</span> per additional seat. Collaborate with your full team without limits.
+                      Get <span className="font-semibold">5 seats included</span> plus add more at <span className="font-semibold">$69/mo</span> per additional seat. Collaborate with your full team without limits.
                     </p>
                   </div>
                   <a

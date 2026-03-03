@@ -308,6 +308,9 @@ export default function CalendarConfigStep({
   const planSlug = fetchedPlanSlug || propPlanSlug;
 
   const isPremium = ['business', 'teams', 'enterprise'].includes(planSlug);
+  const isFreePlan = planSlug === 'free';
+  const hasVoicemail = !isFreePlan; // Starter+ can use voicemail
+  const hasFollowUps = !isFreePlan; // Starter+ can use follow-ups
 
   const isAppointment = agentType === 'appointment_confirmation';
   const isLeadQual = agentType === 'lead_qualification';
@@ -857,29 +860,73 @@ export default function CalendarConfigStep({
           </div>
         ) : (
           <div className="space-y-2">
-            {/* Voicemail - available for all plans */}
-            <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-700">Voicemail detection</p>
-                <p className="text-[11px] text-slate-400">Leave a message when voicemail is detected</p>
+            {/* Voicemail - Starter+ */}
+            {hasVoicemail ? (
+              <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-700">Voicemail detection</p>
+                  <p className="text-[11px] text-slate-400">Leave a message when voicemail is detected</p>
+                </div>
+                <ToggleSwitch
+                  checked={config.voicemailEnabled}
+                  onChange={val => { update({ voicemailEnabled: val }); syncSettingsToCompany({ voicemailEnabled: val }); }}
+                />
               </div>
-              <ToggleSwitch
-                checked={config.voicemailEnabled}
-                onChange={val => { update({ voicemailEnabled: val }); syncSettingsToCompany({ voicemailEnabled: val }); }}
-              />
-            </div>
+            ) : (
+              <div className="relative overflow-hidden rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50/50 via-white to-amber-50/30">
+                <div className="px-3 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-md">
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                      Voicemail detection
+                      <span className="text-[9px] font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 rounded-full">STARTER</span>
+                    </p>
+                    <p className="text-[11px] text-slate-500">Detect and leave voicemails automatically</p>
+                  </div>
+                  <a href="/settings?tab=billing" className="flex-shrink-0 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[11px] font-bold rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all">
+                    Unlock
+                  </a>
+                </div>
+              </div>
+            )}
 
-            {/* Follow-ups - available for all plans */}
-            <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-700">Automatic follow-ups</p>
-                <p className="text-[11px] text-slate-400">Retry contacts who didn&apos;t answer</p>
+            {/* Follow-ups - Starter+ */}
+            {hasFollowUps ? (
+              <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-700">Automatic follow-ups</p>
+                  <p className="text-[11px] text-slate-400">Retry contacts who didn&apos;t answer</p>
+                </div>
+                <ToggleSwitch
+                  checked={config.followUpEnabled}
+                  onChange={val => { update({ followUpEnabled: val }); syncSettingsToCompany({ followUpEnabled: val }); }}
+                />
               </div>
-              <ToggleSwitch
-                checked={config.followUpEnabled}
-                onChange={val => { update({ followUpEnabled: val }); syncSettingsToCompany({ followUpEnabled: val }); }}
-              />
-            </div>
+            ) : (
+              <div className="relative overflow-hidden rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50/50 via-white to-amber-50/30">
+                <div className="px-3 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-md">
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                      Automatic follow-ups
+                      <span className="text-[9px] font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 rounded-full">STARTER</span>
+                    </p>
+                    <p className="text-[11px] text-slate-500">Auto-retry contacts who didn&apos;t answer</p>
+                  </div>
+                  <a href="/settings?tab=billing" className="flex-shrink-0 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[11px] font-bold rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all">
+                    Unlock
+                  </a>
+                </div>
+              </div>
+            )}
 
             {/* Follow-up config (if enabled) */}
             {config.followUpEnabled && (
