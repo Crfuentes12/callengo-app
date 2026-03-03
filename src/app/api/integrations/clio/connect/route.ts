@@ -33,9 +33,9 @@ export async function GET(request: NextRequest) {
       .single();
 
     const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
-    if (!['teams', 'enterprise'].includes(planSlug)) {
+    if (!['business', 'teams', 'enterprise'].includes(planSlug)) {
       return NextResponse.json(
-        { error: 'Clio integration requires Teams plan or higher' },
+        { error: 'Clio integration requires Business plan or higher' },
         { status: 403 }
       );
     }

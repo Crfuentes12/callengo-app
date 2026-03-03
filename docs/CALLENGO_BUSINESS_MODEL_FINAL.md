@@ -455,6 +455,7 @@ Total ARR con overage: $201,864
   - HubSpot CRM
   - Pipedrive CRM
   - Zoho CRM
+  - Clio (legal practice management)
 - Soporte: Email prioritario
 
 ## 6.6 Detalles del Plan TEAMS ($649/mo)
@@ -468,7 +469,6 @@ Total ARR con overage: $201,864
   - Follow-ups avanzados (max 10 intentos)
   - Salesforce CRM
   - Microsoft Dynamics 365
-  - Clio (legal practice management)
 - Soporte: Prioritario
 
 ## 6.7 Detalles del Plan ENTERPRISE ($1,499/mo)
@@ -595,7 +595,7 @@ Total ARR con overage: $201,864
 | HubSpot | - | - | Si | Si | Si |
 | Pipedrive | - | - | Si | Si | Si |
 | Zoho | - | - | Si | Si | Si |
-| Clio | - | - | - | Si | Si |
+| Clio | - | - | Si | Si | Si |
 | Salesforce | - | - | - | Si | Si |
 | Microsoft Dynamics | - | - | - | Si | Si |
 | **Data** | | | | | |
@@ -807,10 +807,10 @@ UPDATE subscription_plans SET
   ]'::jsonb
 WHERE slug = 'starter';
 
--- Business plan: $279 -> $299
+-- Business plan: $279 -> $299 (price_annual = monthly equiv for annual billing)
 UPDATE subscription_plans SET
   price_monthly = 299,
-  price_annual = 3228,
+  price_annual = 269,
   price_per_extra_minute = 0.39,
   max_agents = -1,
   description = 'For growing businesses ready to scale',
@@ -827,6 +827,7 @@ UPDATE subscription_plans SET
     "HubSpot CRM integration",
     "Pipedrive CRM integration",
     "Zoho CRM integration",
+    "Clio (legal practice management)",
     "Webhooks (Zapier, Make, n8n)",
     "Google Sheets import",
     "Call analytics & transcriptions",
@@ -838,7 +839,7 @@ WHERE slug = 'business';
 -- Teams plan: $599 -> $649, 2400 -> 2500 min
 UPDATE subscription_plans SET
   price_monthly = 649,
-  price_annual = 6948,
+  price_annual = 579,
   minutes_included = 2500,
   price_per_extra_minute = 0.29,
   max_agents = -1,
@@ -856,8 +857,7 @@ UPDATE subscription_plans SET
     "Twilio BYOP (own phone number)",
     "Salesforce CRM integration",
     "Microsoft Dynamics 365 integration",
-    "Clio (legal practice management)",
-    "HubSpot + Pipedrive + Zoho CRM",
+    "All Business integrations (Clio, HubSpot, Pipedrive, Zoho)",
     "Webhooks (Zapier, Make, n8n)",
     "Google Sheets import",
     "Call analytics & transcriptions",
@@ -869,7 +869,7 @@ WHERE slug = 'teams';
 -- Enterprise plan: $1500 -> $1499
 UPDATE subscription_plans SET
   price_monthly = 1499,
-  price_annual = 16188,
+  price_annual = 1349,
   price_per_extra_minute = 0.25,
   max_agents = -1,
   description = 'For large organizations with critical operations',
@@ -994,6 +994,7 @@ const PLAN_FEATURES = {
     'HubSpot CRM',
     'Pipedrive CRM',
     'Zoho CRM',
+    'Clio (legal)',
     'Priority email support',
   ],
 
@@ -1009,7 +1010,6 @@ const PLAN_FEATURES = {
     'Advanced follow-ups (max 10)',
     'Salesforce CRM',
     'Dynamics 365',
-    'Clio (legal)',
     'All Business integrations',
     'Priority support',
   ],
@@ -1051,7 +1051,7 @@ const PRODUCT_DESCRIPTIONS = {
   },
   teams: {
     short: 'Collaboration - 2,500 minutes/month',
-    long: 'For collaborative teams. 5 users, user permissions, enterprise CRMs (Salesforce, Dynamics 365, Clio).',
+    long: 'For collaborative teams. 5 users, user permissions, enterprise CRMs (Salesforce, Dynamics 365), all Business integrations.',
     statement_descriptor: 'CALLENGO TEAMS',
   },
   enterprise: {

@@ -95,18 +95,37 @@ const CURRENCIES: Record<string, CurrencyConfig> = {
 // ============================================================================
 
 const COUPONS = [
+  // ── Admin Access ──
   {
-    id: 'TOTAL100',
-    name: '100% Off - Full Access (Limited)',
+    id: 'ADMIN100',
+    name: '100% Off - Admin Lifetime Access',
     percent_off: 100,
     duration: 'forever' as const,
-    max_redemptions: 5,
     metadata: {
-      type: 'full_discount',
-      target: 'early_adopters',
-      campaign: 'launch_2024',
+      type: 'admin',
+      target: 'internal',
+      description: 'Lifetime free access for platform administrators',
     },
   },
+
+  // ── Tester Codes (10 codes, 100% off) ──
+  {
+    id: 'TESTER_100',
+    name: '100% Off - Tester Access',
+    percent_off: 100,
+    duration: 'repeating' as const,
+    duration_in_months: 3,
+    max_redemptions: 10,
+    metadata: {
+      type: 'tester',
+      target: 'qa_team',
+      description: '3-month free access for testers (10 codes max)',
+    },
+    // Custom promo codes: TESTER01 through TESTER10
+    promoCodes: ['TESTER01', 'TESTER02', 'TESTER03', 'TESTER04', 'TESTER05', 'TESTER06', 'TESTER07', 'TESTER08', 'TESTER09', 'TESTER10'],
+  },
+
+  // ── Launch & Campaign Promos ──
   {
     id: 'LAUNCH50',
     name: '50% Off - Launch Special',
@@ -116,7 +135,8 @@ const COUPONS = [
     max_redemptions: 100,
     metadata: {
       type: 'launch_special',
-      campaign: 'launch_2024',
+      campaign: 'launch_2026',
+      description: '50% off for 3 months — early launch campaign',
     },
   },
   {
@@ -127,16 +147,69 @@ const COUPONS = [
     max_redemptions: 500,
     metadata: {
       type: 'early_bird',
-      campaign: 'launch_2024',
+      campaign: 'launch_2026',
+      description: '25% off first month — early bird offer',
     },
   },
   {
     id: 'ANNUAL20',
-    name: '20% Off - Annual Upgrade',
+    name: '20% Off - Annual Upgrade Incentive',
     percent_off: 20,
     duration: 'forever' as const,
     metadata: {
       type: 'annual_incentive',
+      description: 'Permanent 20% discount for annual billing commitment',
+    },
+  },
+  {
+    id: 'CALLENGO30',
+    name: '30% Off - Callengo Campaign',
+    percent_off: 30,
+    duration: 'repeating' as const,
+    duration_in_months: 2,
+    max_redemptions: 250,
+    metadata: {
+      type: 'campaign',
+      campaign: 'general_promo',
+      description: '30% off for 2 months — general marketing campaign',
+    },
+  },
+  {
+    id: 'WELCOME15',
+    name: '15% Off - Welcome Offer',
+    percent_off: 15,
+    duration: 'once' as const,
+    max_redemptions: 1000,
+    metadata: {
+      type: 'welcome',
+      campaign: 'onboarding_2026',
+      description: '15% off first month — new user welcome offer',
+    },
+  },
+  {
+    id: 'PARTNER40',
+    name: '40% Off - Partner Referral',
+    percent_off: 40,
+    duration: 'repeating' as const,
+    duration_in_months: 6,
+    max_redemptions: 50,
+    metadata: {
+      type: 'partner',
+      campaign: 'partner_referral',
+      description: '40% off for 6 months — partner/referral program',
+    },
+  },
+  {
+    id: 'LEGAL20',
+    name: '20% Off - Legal Professionals',
+    percent_off: 20,
+    duration: 'repeating' as const,
+    duration_in_months: 12,
+    max_redemptions: 200,
+    metadata: {
+      type: 'vertical_promo',
+      campaign: 'legal_vertical',
+      description: '20% off for 12 months — targeted at law firms using Clio',
     },
   },
 ];
@@ -220,6 +293,7 @@ const PLAN_FEATURES = {
     'HubSpot CRM',
     'Pipedrive CRM',
     'Zoho CRM',
+    'Clio (legal)',
     'Priority email support',
   ],
 
@@ -235,7 +309,6 @@ const PLAN_FEATURES = {
     'Advanced follow-ups (max 10)',
     'Salesforce CRM',
     'Dynamics 365',
-    'Clio (legal)',
     'All Business integrations',
     'Priority support',
   ],
@@ -268,12 +341,12 @@ const PRODUCT_DESCRIPTIONS = {
   },
   business: {
     short: 'Growing teams - 1,200 minutes/month',
-    long: 'For growing businesses. Unlimited agents, 3 users, smart follow-ups, CRM integrations (HubSpot, Pipedrive, Zoho).',
+    long: 'For growing businesses. Unlimited agents, 3 users, smart follow-ups, CRM integrations (HubSpot, Pipedrive, Zoho, Clio).',
     statement_descriptor: 'CALLENGO BUSINESS',
   },
   teams: {
     short: 'Collaboration - 2,500 minutes/month',
-    long: 'For collaborative teams. 5 users, user permissions, enterprise CRMs (Salesforce, Dynamics 365, Clio).',
+    long: 'For collaborative teams. 5 users, user permissions, enterprise CRMs (Salesforce, Dynamics 365), all Business integrations.',
     statement_descriptor: 'CALLENGO TEAMS',
   },
   enterprise: {
@@ -397,20 +470,25 @@ async function syncCoupons() {
         log(`   Coupon already exists (${existingCoupon.times_redeemed || 0}/${existingCoupon.max_redemptions || '∞'} used)`, 'info');
       }
 
-      // Create promotion code
+      // Create promotion codes
       if (!CONFIG.DRY_RUN) {
-        try {
-          const promoCode = await stripe.promotionCodes.create({
-            coupon: couponConfig.id,
-            code: couponConfig.id,
-            max_redemptions: couponConfig.max_redemptions,
-          } as any);
-          log(`   Promotion code created: ${promoCode.code}`, 'success');
-        } catch (promoError: any) {
-          if (promoError.code === 'resource_already_exists' || promoError.message?.includes('already exists')) {
-            log(`   Promotion code already exists`, 'info');
-          } else {
-            logVerbose(`   Note: Could not create promotion code: ${promoError.message}`);
+        const config = couponConfig as any;
+        const codes: string[] = config.promoCodes || [couponConfig.id];
+
+        for (const code of codes) {
+          try {
+            const promoCode = await stripe.promotionCodes.create({
+              coupon: couponConfig.id,
+              code: code,
+              max_redemptions: config.promoCodes ? 1 : couponConfig.max_redemptions,
+            } as any);
+            log(`   Promotion code created: ${promoCode.code}`, 'success');
+          } catch (promoError: any) {
+            if (promoError.code === 'resource_already_exists' || promoError.message?.includes('already exists')) {
+              logVerbose(`   Promotion code ${code} already exists`);
+            } else {
+              logVerbose(`   Note: Could not create promotion code ${code}: ${promoError.message}`);
+            }
           }
         }
       }

@@ -2,7 +2,7 @@
 
 **Unified, production-ready script** for synchronizing all billing data to Stripe.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Sync to sandbox (test environment)
@@ -11,43 +11,50 @@ npm run stripe:sync
 # Preview changes without applying (dry-run)
 npm run stripe:sync:dry
 
-# Sync to LIVE production (⚠️ use with caution)
+# Sync to LIVE production
 npm run stripe:sync:live
 ```
 
-## 📋 What Gets Synced
+## What Gets Synced
 
-### ✅ Products
+### Products
 - 5 subscription plans (Free, Starter, Business, Teams, Enterprise)
 - Rich descriptions and metadata
 - Statement descriptors for bank statements
 - Environment tagging (sandbox/live)
 
-### ✅ Features (Entitlements)
+### Features (Entitlements)
 - **Entitlement features**: Tracked by Stripe for customer access
 - **Marketing features**: Displayed in pricing tables (up to 15 per product)
-- Coherent with product spec document
 - Common features for all plans (import/export, analytics, etc.)
 - Plan-specific features (minutes, calls, permissions, etc.)
 
-### ✅ Prices (Multi-Currency)
+### Prices (Multi-Currency)
 - **USD**: Primary currency
 - **EUR**: European market (~0.92 EUR = 1 USD)
 - **GBP**: UK market (~0.79 GBP = 1 USD)
 
 **Monthly and Annual** prices for each:
-- Starter: $99/mo or $1,068/yr ($89/mo equiv, save 10%)
-- Business: $299/mo or $3,228/yr ($269/mo equiv, save 10%)
-- Teams: $649/mo or $6,948/yr ($579/mo equiv, save 11%)
-- Enterprise: $1,499/mo or $16,188/yr ($1,349/mo equiv, save 10%)
+- Starter: $99/mo or $87/mo annual ($1,044/yr, save 12%)
+- Business: $299/mo or $269/mo annual ($3,228/yr, save 10%)
+- Teams: $649/mo or $579/mo annual ($6,948/yr, save 11%)
+- Enterprise: $1,499/mo or $1,349/mo annual ($16,188/yr, save 10%)
 
-### ✅ Promotional Coupons
-- **TOTAL100**: 100% off, limited to 5 redemptions (forever)
-- **LAUNCH50**: 50% off for 3 months, 100 redemptions max
-- **EARLY25**: 25% off once, 500 redemptions max
-- **ANNUAL20**: 20% off forever (annual plans only)
+### Promotional Coupons & Codes
 
-## 🔧 Script Flags
+| Code | Discount | Duration | Max Uses | Purpose |
+|------|----------|----------|----------|---------|
+| `ADMIN100` | 100% off | Forever | Unlimited | Admin lifetime access |
+| `TESTER01`-`TESTER10` | 100% off | 3 months | 1 each | QA/tester access (10 codes) |
+| `LAUNCH50` | 50% off | 3 months | 100 | Launch campaign |
+| `EARLY25` | 25% off | First month | 500 | Early bird offer |
+| `ANNUAL20` | 20% off | Forever | Unlimited | Annual billing incentive |
+| `CALLENGO30` | 30% off | 2 months | 250 | General marketing campaign |
+| `WELCOME15` | 15% off | First month | 1,000 | New user welcome |
+| `PARTNER40` | 40% off | 6 months | 50 | Partner/referral program |
+| `LEGAL20` | 20% off | 12 months | 200 | Legal vertical (Clio users) |
+
+## Script Flags
 
 ```bash
 --env=sandbox|live    # Environment (default: sandbox)
@@ -69,9 +76,12 @@ npm run stripe:sync -- --skip-coupons
 
 # Production sync (LIVE)
 npm run stripe:sync:live
+
+# Only sync coupons (skip prices and features)
+npm run stripe:sync -- --skip-prices --skip-features
 ```
 
-## 🛡️ Safety Features
+## Safety Features
 
 ### Idempotent
 - Safe to run multiple times
@@ -89,216 +99,229 @@ npm run stripe:sync:live
 - Explicit `--env=live` flag required for production
 - Clear confirmation messages
 
-### Dry-Run Mode
-- Preview all changes before applying
-- Shows what would be created/updated
-- No Stripe API mutations
+---
 
-## 📊 Feature Organization
+## Complete Setup: Sandbox to Live
 
-Features are organized in `/src/config/plan-features.ts`:
+### Step 1: Prerequisites
 
-### Common Features (All Plans)
-- CSV/Excel/Google Sheets import
-- JSON import/export
-- Phone normalization
-- Contact deduplication
-- Custom fields & tags
-- AI agent creation
-- Call analytics
-- Transcriptions
-- Usage dashboard
-- Billing alerts
+```bash
+# Install dependencies
+npm install
 
-### Plan-Specific Features
-
-**Free**:
-- 15 one-time minutes
-- 3 min max per call
-- 1 concurrent call
-- 1 active agent (locked), 1 user
-- No overage (upgrade required)
-
-**Starter**:
-- 300 min/month
-- 3 min max per call
-- 2 concurrent calls
-- 1 active agent (switchable), 1 user
-- $0.55/min overage
-- Voicemail detection
-- Follow-ups (max 2 attempts)
-- Slack, Zoom, SimplyBook.me, Webhooks
-
-**Business** ($299/mo):
-- 1,200 min/month
-- 5 min max per call
-- 5 concurrent calls
-- Unlimited agents, 3 users
-- $0.39/min overage
-- Smart follow-ups (max 5 attempts)
-- Outlook, Teams, Twilio BYOP
-- HubSpot, Pipedrive, Zoho CRM
-- Priority email support
-
-**Teams** ($649/mo):
-- 2,500 min/month
-- 8 min max per call
-- 10 concurrent calls
-- Unlimited agents, 5 users ($69/extra)
-- $0.29/min overage
-- User permissions
-- Advanced follow-ups (max 10)
-- Salesforce, Dynamics 365, Clio
-- All Business integrations
-- Priority support
-
-**Enterprise** ($1,499/mo):
-- 6,000+ min/month
-- 15 min max per call
-- 25+ concurrent calls
-- Unlimited agents & users
-- $0.25/min overage
-- Unlimited follow-ups
-- All integrations (current + future)
-- SLA guarantee
-- Dedicated account manager
-- Annual contract
-
-## 🔄 Migration from Old Scripts
-
-### Deprecated Scripts (DO NOT USE)
-- ❌ `sync-stripe-plans.ts` - Basic sync (incomplete)
-- ❌ `sync-stripe-advanced.ts` - Advanced but fragmented
-- ❌ `fix-annual-prices.ts` - One-time fix (now built-in)
-
-### Use Instead
-- ✅ `stripe-sync.ts` - Universal script with all features
-
-### Migration Steps
-1. Delete old price IDs from Supabase (optional)
-2. Run `npm run stripe:sync:dry` to preview
-3. Run `npm run stripe:sync` to apply
-4. Verify in Stripe Dashboard
-5. Archive old scripts (don't delete, keep for reference)
-
-## 📈 Output Example
-
-```
-╔═══════════════════════════════════════════════════════════╗
-║     CALLENGO - UNIVERSAL STRIPE SYNCHRONIZATION v3.0     ║
-╚═══════════════════════════════════════════════════════════╝
-
-ℹ️  Environment: SANDBOX
-⚠️  Dry run: YES
-ℹ️  Verbose: YES
-
-ℹ️  Testing Stripe connection...
-✅ Connected to Stripe account: Callengo sandbox
-
-💰 Starting coupon synchronization...
-
-  Processing coupon: TOTAL100 (100% Off - Full Access (Limited))
-✅    Coupon created: TOTAL100 (100% off)
-✅    Promotion code created: TOTAL100
-
-🚀 Starting subscription plans synchronization...
-ℹ️  Found 5 active plans to sync
-
-📦 Processing plan: Starter (starter)
-────────────────────────────────────────────────────────────
-✅  Product created: prod_xxx
-✅  Synced 7 features to product
-✅  USD Monthly: price_xxx ($99/mo)
-✅  USD Annual: price_xxx ($1068/yr = $89/mo, save 10%)
-✅  EUR Monthly: price_xxx (€91/mo)
-✅  EUR Annual: price_xxx (€983/yr = €82/mo, save 10%)
-✅  GBP Monthly: price_xxx (£78/mo)
-✅  GBP Annual: price_xxx (£844/yr = £70/mo, save 10%)
-✅ Completed: Starter
-
-╔═══════════════════════════════════════════════════════════╗
-║                    SYNC COMPLETED                         ║
-╚═══════════════════════════════════════════════════════════╝
-
-✅ All changes have been applied successfully!
-```
-
-## 🎯 Billing Page Integration
-
-The billing page (`/src/components/settings/BillingSettings.tsx`) now:
-- Loads features dynamically from `/src/config/plan-features.ts`
-- Shows coherent features for each plan
-- Displays correct pricing (annual = monthly × 12)
-- Integrates with Stripe Checkout and Billing Portal
-
-Features are rendered automatically - no hardcoded HTML.
-
-## 🔐 Environment Variables Required
-
-```env
-# Stripe
-STRIPE_SECRET_KEY=sk_test_...  # or sk_live_... for production
+# Ensure .env.local has:
+STRIPE_SECRET_KEY=sk_test_...           # Sandbox key
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-
-# Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://...
 SUPABASE_SERVICE_ROLE_KEY=...
-
-# App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-## 📝 Troubleshooting
+### Step 2: Run SQL Migrations
+
+Run these in your Supabase SQL Editor **in order**:
+
+1. `supabase/migrations/20260304000001_v3_pricing_feature_gating.sql` (V3 pricing)
+2. `supabase/migrations/20260304000002_fix_annual_pricing_clio_business.sql` (Annual fix + Clio)
+
+### Step 3: Sync to Sandbox
+
+```bash
+# Preview first
+npm run stripe:sync -- --dry-run --verbose
+
+# Apply to sandbox
+npm run stripe:sync -- --verbose
+
+# Verify in Stripe Dashboard (https://dashboard.stripe.com/test/products)
+```
+
+### Step 4: Test in Sandbox
+
+1. Open your app at `localhost:3000`
+2. Go to Settings > Billing
+3. Toggle Monthly/Annual - verify prices display correctly
+4. Test checkout flow with Stripe test card: `4242 4242 4242 4242`
+5. Verify coupons work: apply `WELCOME15` at checkout
+6. Check EUR/GBP pricing by changing currency
+
+### Step 5: Prepare for Live Mode
+
+```bash
+# In Stripe Dashboard (https://dashboard.stripe.com):
+# 1. Switch to LIVE mode (toggle in top-left)
+# 2. Go to Developers > API Keys
+# 3. Copy your LIVE keys
+```
+
+Update `.env.local` (or `.env.production`) for live:
+
+```bash
+STRIPE_SECRET_KEY=sk_live_...           # LIVE key
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+```
+
+### Step 6: Sync to Live
+
+```bash
+# ALWAYS preview first
+npm run stripe:sync:live -- --dry-run --verbose
+
+# If everything looks correct, apply
+npm run stripe:sync:live -- --verbose
+```
+
+### Step 7: Configure Live Webhooks
+
+In Stripe Dashboard > Developers > Webhooks:
+
+1. Click "Add endpoint"
+2. URL: `https://your-domain.com/api/stripe/webhook`
+3. Events to listen for:
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. Copy the webhook signing secret
+5. Set `STRIPE_WEBHOOK_SECRET=whsec_live_...` in production env
+
+### Step 8: Configure Multi-Currency (Live)
+
+Multi-currency is handled automatically by the sync script. Stripe creates separate prices for USD, EUR, and GBP. The checkout flow auto-selects currency based on user preference.
+
+To enable multi-currency in live mode:
+
+1. **Stripe Settings**: Dashboard > Settings > Business settings > Currency
+   - Ensure USD, EUR, GBP are all enabled as presentment currencies
+2. **Payout currencies**: Dashboard > Settings > Payouts
+   - Configure your bank accounts for each currency you want to receive
+   - Or let Stripe auto-convert to your primary currency
+3. **Tax settings** (optional): Dashboard > Settings > Tax
+   - Enable Stripe Tax for automatic tax calculation
+   - Set up tax registrations for EU VAT, UK VAT, etc.
+
+The app's `useUserCurrency()` hook auto-detects the user's currency via geolocation and displays converted prices. The actual Stripe checkout uses the currency-specific price IDs created by the sync script.
+
+### Step 9: Verify Live Setup
+
+```bash
+# Verify products exist
+# Go to: https://dashboard.stripe.com/products
+
+# Verify prices in all currencies
+# Click each product > Pricing section > check USD, EUR, GBP
+
+# Verify coupons
+# Go to: https://dashboard.stripe.com/coupons
+
+# Verify promotion codes
+# Go to: https://dashboard.stripe.com/promotion_codes
+```
+
+### Step 10: Test Live Checkout
+
+1. Use a real card (small amount plan like Starter)
+2. Apply coupon `ADMIN100` for 100% off (no charge)
+3. Verify subscription appears in Dashboard
+4. Cancel immediately after testing
+5. Or use your ADMIN100 code permanently
+
+---
+
+## Plan-Specific Features
+
+**Free**:
+- 15 one-time minutes, 1 agent (locked), 1 user
+- Google Calendar + Meet, Google Sheets
+- No overage
+
+**Starter** ($99/mo):
+- 300 min/month, 1 agent (switchable), 1 user
+- $0.55/min overage
+- Voicemail, follow-ups (2 max)
+- Slack, Zoom, SimplyBook.me, Webhooks
+
+**Business** ($299/mo):
+- 1,200 min/month, unlimited agents, 3 users
+- $0.39/min overage
+- Smart follow-ups (5 max)
+- Outlook, Teams, Twilio BYOP
+- HubSpot, Pipedrive, Zoho, Clio
+- Priority email support
+
+**Teams** ($649/mo):
+- 2,500 min/month, unlimited agents, 5 users ($69/extra)
+- $0.29/min overage
+- Advanced follow-ups (10 max), user permissions
+- Salesforce, Dynamics 365
+- All Business integrations
+
+**Enterprise** ($1,499/mo):
+- 6,000+ min/month, unlimited everything
+- $0.25/min overage
+- SLA, dedicated account manager
+- All integrations (current + future)
+
+## Deprecated Scripts
+
+- `sync-stripe-plans.ts` - Basic sync (incomplete)
+- `sync-stripe-advanced.ts` - Advanced but fragmented
+- `fix-annual-prices.ts` - One-time fix (now built-in)
+
+Use `stripe-sync.ts` for everything.
+
+## Troubleshooting
 
 ### "Failed to connect to Stripe"
-- Check your `STRIPE_SECRET_KEY` in `.env.local`
-- Ensure you're using the correct environment (sandbox vs live)
+- Check `STRIPE_SECRET_KEY` in `.env.local`
+- Ensure correct environment (test key for sandbox, live key for production)
 
 ### "Error fetching plans from database"
 - Check `SUPABASE_SERVICE_ROLE_KEY` is set
 - Verify plans exist in `subscription_plans` table
+- Run SQL migrations first
 
 ### Annual prices showing wrong amounts
 - Run the script - it auto-detects and fixes incorrect prices
 - Old prices are archived, new ones created
 - Existing subscriptions continue working
+- **Important**: `price_annual` in DB = monthly equivalent on annual billing (NOT yearly total)
 
 ### Features not appearing in Stripe
-- Entitlement features require `--skip-features=false` (default)
-- Check Stripe Dashboard > Products > [Product] > Features tab
+- Ensure `--skip-features` is NOT set
 - Marketing features have 15-item limit per product
+- Check: Stripe Dashboard > Products > [Product] > Features tab
 
-### Currency conversion issues
-- Default conversion rates in script (USD → EUR, GBP)
-- Update `CURRENCIES` object in script for custom rates
+### Coupon/promotion code errors
+- Coupons are idempotent (safe to re-run)
+- If a coupon already exists, the script skips creation
+- Promotion codes must be unique - if one exists with same code, it's skipped
+- To reset: delete coupons in Stripe Dashboard first, then re-run
+
+### Currency conversion
+- Rates are hardcoded in script (USD=1, EUR=0.92, GBP=0.79)
+- Update `CURRENCIES` object for custom rates
 - Stripe handles actual payment conversion at checkout
 
-## 🚦 Production Deployment Checklist
+## Production Deployment Checklist
 
-Before running in production (`--env=live`):
-
-- [ ] Backup current Stripe products/prices (export from dashboard)
-- [ ] Test in sandbox environment first
-- [ ] Run dry-run in production: `npm run stripe:sync:live -- --dry-run`
-- [ ] Verify environment variables are for LIVE Stripe account
-- [ ] Confirm all plans in database are correct
-- [ ] Check webhook endpoint is configured
-- [ ] Have rollback plan ready
-- [ ] Execute: `npm run stripe:sync:live`
-- [ ] Verify in Stripe Dashboard
-- [ ] Test checkout flow with test payment
-- [ ] Monitor for errors in first hour
-
-## 📞 Support
-
-Questions or issues?
-- Check this README first
-- Review script output (use `--verbose`)
-- Test with `--dry-run` flag
-- Contact: dev@callengo.ai
+- [ ] SQL migrations executed in Supabase
+- [ ] Test sync in sandbox: `npm run stripe:sync -- --verbose`
+- [ ] Verify sandbox checkout flow works
+- [ ] Switch to LIVE Stripe keys
+- [ ] Dry-run in live: `npm run stripe:sync:live -- --dry-run`
+- [ ] Execute live sync: `npm run stripe:sync:live -- --verbose`
+- [ ] Configure live webhook endpoint
+- [ ] Enable multi-currency in Stripe settings
+- [ ] Verify all products/prices in live Dashboard
+- [ ] Test live checkout with ADMIN100 coupon
+- [ ] Monitor webhook deliveries for first hour
+- [ ] Verify billing page shows correct pricing
 
 ---
 
-**Version**: 3.0.0
-**Last Updated**: January 2026
+**Version**: 3.1.0
+**Last Updated**: March 2026
 **Maintainer**: Callengo Engineering Team
