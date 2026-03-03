@@ -488,6 +488,7 @@ async function syncCoupons() {
               headers: {
                 'Authorization': `Bearer ${process.env.STRIPE_SECRET_KEY}`,
                 'Content-Type': 'application/x-www-form-urlencoded',
+                'Stripe-Version': '2024-12-18.acacia',
               },
               body: bodyParams.toString(),
             });
