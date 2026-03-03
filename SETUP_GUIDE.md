@@ -752,10 +752,10 @@ CREATE POLICY "Company retention_offer_log select" ON retention_offer_log
 INSERT INTO subscription_plans (name, slug, description, price_monthly, price_annual, minutes_included, max_call_duration, price_per_extra_minute, max_users, max_agents, max_concurrent_calls, auto_overage_default, display_order, is_active)
 VALUES
   ('Free', 'free', 'Try AI calling with 15 one-time minutes', 0, 0, 15, 3, 0, 1, 1, 1, false, 0, true),
-  ('Starter', 'starter', 'For solo founders and freelancers getting started', 99, 1068, 300, 3, 0.55, 1, 1, 2, false, 1, true),
-  ('Business', 'business', 'For growing businesses ready to scale', 299, 3228, 1200, 5, 0.39, 3, -1, 5, true, 2, true),
-  ('Teams', 'teams', 'For teams that need collaboration and enterprise CRMs', 649, 6948, 2500, 8, 0.29, 5, -1, 10, true, 3, true),
-  ('Enterprise', 'enterprise', 'For large organizations with critical operations', 1499, 16188, 6000, 15, 0.25, -1, -1, 25, true, 4, true)
+  ('Starter', 'starter', 'For solo founders and freelancers getting started', 99, 87, 300, 3, 0.55, 1, 1, 2, false, 1, true),
+  ('Business', 'business', 'For growing businesses ready to scale', 299, 269, 1200, 5, 0.39, 3, -1, 5, true, 2, true),
+  ('Teams', 'teams', 'For teams that need collaboration and enterprise CRMs', 649, 579, 2500, 8, 0.29, 5, -1, 10, true, 3, true),
+  ('Enterprise', 'enterprise', 'For large organizations with critical operations', 1499, 1349, 6000, 15, 0.25, -1, -1, 25, true, 4, true)
 ON CONFLICT (slug) DO UPDATE SET
   price_monthly = EXCLUDED.price_monthly,
   price_annual = EXCLUDED.price_annual,

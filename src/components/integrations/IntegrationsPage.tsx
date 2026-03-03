@@ -1693,7 +1693,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'clio', provider: 'clio', name: 'Clio',
       description: 'Import contacts, matters, and calendar from your legal practice management software',
       icon: <img src="/clio-logo.png" alt="Clio" className="w-7 h-7" />, iconColor: '', iconBg: 'bg-[#1B2B5B]/5',
-      category: 'crm', requiredPlan: 'teams',
+      category: 'crm', requiredPlan: 'business',
       status: integrations.clio?.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/clio/connect?return_to=/integrations',
       disconnectUrl: '/api/integrations/clio/disconnect',
@@ -1772,6 +1772,21 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       alwaysActive: true,
       connectedInfo: [{ label: 'Status', value: 'Always available' }],
     },
+    // ── Upcoming integrations ──
+    {
+      id: 'gohighlevel', provider: 'gohighlevel', name: 'GoHighLevel',
+      description: 'All-in-one marketing, CRM, and automation platform for agencies',
+      icon: <img src="/gohighlevel-logo.png" alt="GoHighLevel" className="w-7 h-7" />, iconColor: '', iconBg: 'bg-blue-50',
+      category: 'crm', requiredPlan: 'business',
+      status: 'coming_soon' as const,
+    },
+    {
+      id: 'acuity-scheduling', provider: 'acuity-scheduling', name: 'Acuity Scheduling',
+      description: 'Online appointment scheduling and calendar management for professionals',
+      icon: <img src="/acuity-scheduling-logo.png" alt="Acuity Scheduling" className="w-7 h-7" />, iconColor: '', iconBg: 'bg-emerald-50',
+      category: 'calendar', requiredPlan: 'starter',
+      status: 'coming_soon' as const,
+    },
   ], [integrations]);
 
   const filteredItems = useMemo(() => {
@@ -1831,7 +1846,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         show: true,
         nextTier: 'Teams',
         unlocksCount: allItems.filter(i => !planMeetsRequirement('business', i.requiredPlan) && i.status !== 'coming_soon').length,
-        headline: 'Unlock Salesforce, Clio, and enterprise-grade integrations',
+        headline: 'Unlock Salesforce, Dynamics 365, and enterprise-grade integrations',
         cta: 'Upgrade to Teams',
       };
     }
