@@ -432,7 +432,7 @@ export interface ZoomMeeting {
 // FEATURE GATING
 // ============================================================================
 
-export type PlanTier = 'free' | 'starter' | 'business' | 'enterprise';
+export type PlanTier = 'free' | 'starter' | 'business' | 'teams' | 'enterprise';
 
 export interface CalendarFeatureAccess {
   canConnectGoogleCalendar: boolean;     // free+
@@ -511,6 +511,25 @@ export function getCalendarFeatureAccess(planSlug: string): CalendarFeatureAcces
         canZoom: true,
         canAvailabilityCheck: true,
         maxCalendarIntegrations: 5,
+      };
+    case 'teams':
+      return {
+        canConnectGoogleCalendar: true,
+        canConnectMicrosoftOutlook: true,
+        canConnectSlack: true,
+        canConnectZoom: true,
+        canSyncAppointments: true,
+        canConfirmAppointments: true,
+        canRescheduleAppointments: true,
+        canSmartFollowUp: true,
+        canAutoScheduleFromContext: true,
+        canBidirectionalSync: true,
+        canWebhookIntegration: true,
+        canGoogleMeet: true,
+        canMicrosoftTeams: true,
+        canZoom: true,
+        canAvailabilityCheck: true,
+        maxCalendarIntegrations: 10,
       };
     case 'enterprise':
       return {

@@ -47,11 +47,11 @@ Callengo is an AI-powered voice calling platform that helps businesses automate 
 - **Billing**: Subscription plans (Free, Starter, Business, Teams, Enterprise) with minute-based usage tracking
 
 ### Plans & Pricing
-- Free: 15 minutes, 1 seat
-- Starter: More minutes, 1 seat
-- Business: More minutes, 3 seats
-- Teams: More minutes, 5 seats (+$79/extra seat)
-- Enterprise: Unlimited
+- Free: 15 minutes, 1 seat, 1 agent (locked)
+- Starter ($99/mo): 300 min, 1 seat, 1 agent (switchable)
+- Business ($299/mo): 1,200 min, 3 seats, unlimited agents
+- Teams ($649/mo): 2,500 min, 5 seats (+$69/extra), unlimited agents
+- Enterprise ($1,499/mo): 6,000 min, unlimited seats & agents
 
 ### Technical Stack
 - Next.js 14+ with App Router
