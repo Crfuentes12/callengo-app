@@ -135,12 +135,13 @@ export default async function TeamPage() {
   }
 
   // Check all integration connections in parallel
-  const [sfResult, hsResult, pdResult, clioResult, zohoResult, sbResult] = await Promise.all([
+  const [sfResult, hsResult, pdResult, clioResult, zohoResult, dynamicsResult, sbResult] = await Promise.all([
     supabaseAdminRaw.from('salesforce_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
     supabaseAdminRaw.from('hubspot_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
     supabaseAdminRaw.from('pipedrive_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
     supabaseAdminRaw.from('clio_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
     supabaseAdminRaw.from('zoho_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
+    supabaseAdminRaw.from('dynamics_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
     supabaseAdminRaw.from('simplybook_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
   ]);
 
@@ -150,6 +151,7 @@ export default async function TeamPage() {
     pipedrive: !!pdResult.data,
     clio: !!clioResult.data,
     zoho: !!zohoResult.data,
+    dynamics: !!dynamicsResult.data,
     simplybook: !!sbResult.data,
   };
 

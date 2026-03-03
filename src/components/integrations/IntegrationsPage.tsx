@@ -30,6 +30,7 @@ interface IntegrationsPageProps {
     pipedrive?: { connected: boolean; email?: string; displayName?: string; companyName?: string; companyDomain?: string; lastSynced?: string; integrationId?: string };
     clio?: { connected: boolean; email?: string; displayName?: string; firmName?: string; firmId?: string; lastSynced?: string; integrationId?: string };
     zoho?: { connected: boolean; email?: string; displayName?: string; orgName?: string; orgId?: string; lastSynced?: string; integrationId?: string };
+    dynamics?: { connected: boolean; email?: string; displayName?: string; orgName?: string; instanceUrl?: string; lastSynced?: string; integrationId?: string };
     simplybook?: { connected: boolean; email?: string; displayName?: string; companyName?: string; companyLogin?: string; lastSynced?: string; integrationId?: string };
     google_sheets?: { connected: boolean; email?: string; displayName?: string; lastUsed?: string; integrationId?: string };
   };
@@ -1751,7 +1752,16 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'dynamics', provider: 'dynamics', name: 'Microsoft Dynamics',
       description: 'Sync contacts, leads, and opportunities with Dynamics 365',
       icon: <DynamicsIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-blue-50',
-      category: 'crm', requiredPlan: 'teams', status: 'coming_soon',
+      category: 'crm', requiredPlan: 'teams',
+      status: integrations.dynamics ? 'connected' : 'available',
+      connectUrl: '/api/integrations/dynamics/connect?return_to=/integrations',
+      disconnectUrl: '/api/integrations/dynamics/disconnect',
+      syncUrl: '/api/integrations/dynamics/sync',
+      showSync: true,
+      manageUrl: '/contacts/microsoft-dynamics',
+      connectedInfo: integrations.dynamics ? [
+        { label: 'Account', value: (integrations as Record<string, unknown>).dynamics_email as string || 'Connected' },
+      ] : undefined,
     },
     {
       id: 'stripe', provider: 'stripe', name: 'Stripe',
