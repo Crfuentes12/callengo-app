@@ -53,10 +53,11 @@ export default async function ContactsPage() {
   const hasPipedriveAccess = hasCrmAccess;
   const hasClioAccess = hasCrmAccess;
   const hasZohoAccess = hasCrmAccess;
+  const hasDynamicsAccess = ['teams', 'enterprise'].includes(planSlug);
   const hasSimplyBookAccess = ['starter', 'business', 'teams', 'enterprise'].includes(planSlug);
 
   // Check CRM connections in parallel
-  const [sfResult, hsResult, pdResult, gsResult, clioResult, zohoResult, sbResult] = await Promise.all([
+  const [sfResult, hsResult, pdResult, gsResult, clioResult, zohoResult, dynamicsResult, sbResult] = await Promise.all([
     hasSalesforceAccess
       ? supabaseAdminRaw.from('salesforce_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -72,6 +73,9 @@ export default async function ContactsPage() {
       : Promise.resolve({ data: null }),
     hasZohoAccess
       ? supabaseAdminRaw.from('zoho_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
+      : Promise.resolve({ data: null }),
+    hasDynamicsAccess
+      ? supabaseAdminRaw.from('dynamics_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
       : Promise.resolve({ data: null }),
     hasSimplyBookAccess
       ? supabaseAdminRaw.from('simplybook_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle()
@@ -95,6 +99,8 @@ export default async function ContactsPage() {
       clioConnected={!!clioResult.data}
       hasZohoAccess={hasZohoAccess}
       zohoConnected={!!zohoResult.data}
+      hasDynamicsAccess={hasDynamicsAccess}
+      dynamicsConnected={!!dynamicsResult.data}
       hasSimplyBookAccess={hasSimplyBookAccess}
       sbConnected={!!sbResult.data}
     />

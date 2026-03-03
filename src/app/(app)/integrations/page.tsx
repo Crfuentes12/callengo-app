@@ -77,6 +77,14 @@ export default async function Integrations() {
     .eq('is_active', true)
     .maybeSingle();
 
+  // Fetch Microsoft Dynamics integration
+  const { data: dynamicsIntegration } = await supabaseAdminRaw
+    .from('dynamics_integrations')
+    .select('id, dynamics_user_email, dynamics_user_name, dynamics_org_name, dynamics_instance_url, last_synced_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+
   // Fetch SimplyBook.me integration
   const { data: sbIntegration } = await supabaseAdminRaw
     .from('simplybook_integrations')
@@ -185,6 +193,15 @@ export default async function Integrations() {
           orgId: zohoIntegration?.zoho_org_id || undefined,
           lastSynced: zohoIntegration?.last_synced_at || undefined,
           integrationId: zohoIntegration?.id || undefined,
+        },
+        dynamics: {
+          connected: !!dynamicsIntegration,
+          email: dynamicsIntegration?.dynamics_user_email || undefined,
+          displayName: dynamicsIntegration?.dynamics_user_name || undefined,
+          orgName: dynamicsIntegration?.dynamics_org_name || undefined,
+          instanceUrl: dynamicsIntegration?.dynamics_instance_url || undefined,
+          lastSynced: dynamicsIntegration?.last_synced_at || undefined,
+          integrationId: dynamicsIntegration?.id || undefined,
         },
         simplybook: {
           connected: !!sbIntegration,

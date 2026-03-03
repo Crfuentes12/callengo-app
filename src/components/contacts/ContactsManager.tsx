@@ -30,6 +30,8 @@ interface ContactsManagerProps {
   clioConnected?: boolean;
   hasZohoAccess?: boolean;
   zohoConnected?: boolean;
+  hasDynamicsAccess?: boolean;
+  dynamicsConnected?: boolean;
   hasSimplyBookAccess?: boolean;
   sbConnected?: boolean;
 }
@@ -132,7 +134,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
   );
 }
 
-export default function ContactsManager({ initialContacts, initialTotalCount, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false, hasPipedriveAccess = false, pdConnected = false, gsConnected = false, hasClioAccess = false, clioConnected = false, hasZohoAccess = false, zohoConnected = false, hasSimplyBookAccess = false, sbConnected = false }: ContactsManagerProps) {
+export default function ContactsManager({ initialContacts, initialTotalCount, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false, hasPipedriveAccess = false, pdConnected = false, gsConnected = false, hasClioAccess = false, clioConnected = false, hasZohoAccess = false, zohoConnected = false, hasDynamicsAccess = false, dynamicsConnected = false, hasSimplyBookAccess = false, sbConnected = false }: ContactsManagerProps) {
   const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
   const [total, setTotal] = useState(initialTotalCount);
   const [page, setPage] = useState(1);
@@ -945,6 +947,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                         { name: 'Pipedrive', icon: <svg className="w-4 h-4 text-black" viewBox="0 0 32 32" fill="currentColor"><path d="M16.3 7.8c-3.6 0-5.7 1.6-6.7 2.7-.1-1-.8-2.2-3.2-2.2H1v5.6h2.2c.4 0 .5.1.5.5v25.7h6.4V30v-.7c1 .9 2.9 2.2 5.9 2.2 6.3 0 10.7-5 10.7-12.1 0-7.3-4.2-12.1-10.4-12.1m-1.3 18.6c-3.5 0-5-3.3-5-6.4 0-4.8 2.6-6.6 5.1-6.6 3 0 5.1 2.6 5.1 6.5 0 4.5-2.6 6.5-5.2 6.5" transform="scale(0.85) translate(5, 0)" /></svg>, connected: pdConnected, hasAccess: hasPipedriveAccess, href: pdConnected ? '/contacts/pipedrive' : hasPipedriveAccess ? '/api/integrations/pipedrive/connect?return_to=/contacts/pipedrive' : '/settings?tab=billing' },
                         { name: 'Clio', icon: <img src="/clio-logo.png" alt="Clio" className="w-4 h-4" />, connected: clioConnected, hasAccess: hasClioAccess, href: clioConnected ? '/contacts/clio' : hasClioAccess ? '/api/integrations/clio/connect?return_to=/contacts/clio' : '/settings?tab=billing' },
                         { name: 'Zoho CRM', icon: <svg className="w-4 h-4" viewBox="0 0 1024 450" fill="none"><path d="M458.1,353c-7.7,0-15.5-1.6-23-4.9l-160-71.3c-28.6-12.7-41.5-46.4-28.8-75l71.3-160c12.7-28.6,46.4-41.5,75-28.8l160,71.3c28.6,12.7,41.5,46.4,28.8,75l-71.3,160C500.6,340.5,479.8,353,458.1,353z" fill="#089949"/><path d="M960,353.1H784.8c-31.3,0-56.8-25.5-56.8-56.8V121.1c0-31.3,25.5-56.8,56.8-56.8H960c31.3,0,56.8,25.5,56.8,56.8v175.2C1016.8,327.6,991.3,353.1,960,353.1z" fill="#F9B21D"/><path d="M303.9,153.2L280.3,206l9.2,56.8c2.1,13.1-6.8,25.4-19.8,27.5l-173,28c-13.1,2.1-25.4-6.8-27.5-19.8l-28-173c-2.1-13.1,6.8-25.4,19.8-27.5l173-28c11.5,0,21.8,8.4,23.7,20.2l9.3,57.2L294.3,94l-1.3-7.7c-5-30.9-34.2-52-65.1-47l-173,28c-30.9,5-52,34.2-47,65.1l28,173c5,30.9,34.2,52,65.1,47l173-28c30.9-5,52-34.2,47-65.1L303.9,153.2z" fill="#E42527"/><path d="M511.4,235.8l25.4-56.9l-7.2-52.9c-2-15,9.8-28.4,21.9-37.5c12.1-9.2,27-13.1,42-11.1L545.6,66.5c-15,2-28.4,9.8-37.5,21.9c-9.2,12.1-13.1,27-11.1,42L511.4,235.8z" fill="#226DB4"/><path d="M806.8,265.1l-22.8-168c-12.8,0.4-23.1,11-23.1,23.9v49.3l13.5,99.2c2,15-9.8,28.4-21.9,37.5c-12.1,9.2-27,13.1-42,11.1l-8-58.9l-25.4,56.9l0.9,6.4c2,15,9.8,28.4,21.9,37.5c12.1,9.2,27,13.1,42,11.1L758.2,329c15-2,28.4-9.8,37.5-21.9C804.9,295,808.8,280.1,806.8,265.1z" fill="#226DB4"/></svg>, connected: zohoConnected, hasAccess: hasZohoAccess, href: zohoConnected ? '/contacts/zoho' : hasZohoAccess ? '/api/integrations/zoho/connect?return_to=/contacts/zoho' : '/settings?tab=billing' },
+                        { name: 'Dynamics', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#002050" /><path d="M6 6h5v5H6V6z" fill="#0078D4" /><path d="M13 6h5v5h-5V6z" fill="#28A8EA" /><path d="M6 13h5v5H6v-5z" fill="#50E6FF" /><path d="M13 13h5v5h-5v-5z" fill="#0078D4" opacity="0.7" /></svg>, connected: dynamicsConnected, hasAccess: hasDynamicsAccess, href: dynamicsConnected ? '/contacts/microsoft-dynamics' : hasDynamicsAccess ? '/api/integrations/dynamics/connect?return_to=/contacts/microsoft-dynamics' : '/settings?tab=billing' },
                         { name: 'SimplyBook', icon: <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-4 h-4 rounded-sm" />, connected: sbConnected, hasAccess: hasSimplyBookAccess, href: sbConnected ? '/contacts/simplybook' : hasSimplyBookAccess ? '/contacts/simplybook' : '/settings?tab=billing' },
                       ] as const).map((crm) => (
                         <Link
