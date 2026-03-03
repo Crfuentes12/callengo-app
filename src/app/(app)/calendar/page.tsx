@@ -89,7 +89,17 @@ export default async function Calendar() {
     end: (additionalSettings.working_hours_end as string) || '18:00',
   };
 
-  const zoomConnected = !!additionalSettings.zoom_connected;
+  // Zoom uses Server-to-Server OAuth — always available (env-based, no user auth needed)
+  const zoomConnected = true;
+
+  // Check SimplyBook.me connection (booking/scheduling calendar integration)
+  const { data: sbIntegration } = await supabaseAdmin
+    .from('simplybook_integrations')
+    .select('id, sb_company_name, sb_company_login, last_synced_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .maybeSingle();
+  const simplyBookConnected = !!sbIntegration;
 
   const calendarSettings = {
     timezone: (additionalSettings.timezone as string) || geoTimezone || 'America/New_York',
@@ -110,6 +120,11 @@ export default async function Calendar() {
       timezone={calendarSettings.timezone}
       calendarSettings={calendarSettings}
       zoomConnected={zoomConnected}
+      simplyBookConnected={simplyBookConnected}
+      simplyBookInfo={sbIntegration ? {
+        companyName: sbIntegration.sb_company_name || sbIntegration.sb_company_login || 'SimplyBook.me',
+        lastSynced: sbIntegration.last_synced_at || undefined,
+      } : undefined}
       contacts={(contacts || []).map(c => ({
         id: c.id,
         contact_name: c.contact_name,

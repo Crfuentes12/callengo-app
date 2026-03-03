@@ -101,8 +101,8 @@ export default async function Integrations() {
   const slackTeamName = (settings.slack_team_name as string) || undefined;
   const slackChannelName = (settings.slack_channel_name as string) || undefined;
 
-  // Determine Zoom connection status
-  const zoomConnected = !!settings.zoom_connected;
+  // Zoom uses Server-to-Server OAuth — always available (env-based, no user auth needed)
+  const zoomConnected = true;
 
   // Fetch subscription plan slug
   let planSlug = 'free';

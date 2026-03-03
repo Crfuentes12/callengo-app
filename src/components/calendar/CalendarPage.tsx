@@ -29,6 +29,11 @@ interface CalendarPageProps {
   timezone: string;
   calendarSettings: CalendarSettings;
   zoomConnected?: boolean;
+  simplyBookConnected?: boolean;
+  simplyBookInfo?: {
+    companyName: string;
+    lastSynced?: string;
+  };
   contacts: {
     id: string;
     contact_name: string | null;
@@ -212,6 +217,8 @@ export default function CalendarPage({
   timezone: initialTimezone,
   calendarSettings: initialCalendarSettings,
   zoomConnected: initialZoomConnected = false,
+  simplyBookConnected = false,
+  simplyBookInfo,
   contacts,
 }: CalendarPageProps) {
   const router = useRouter();
@@ -1143,6 +1150,24 @@ export default function CalendarPage({
                   <span className="whitespace-nowrap">Outlook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
+              )}
+
+              {/* SimplyBook.me badge */}
+              {simplyBookConnected ? (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
+                  <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-3.5 h-3.5 rounded-sm shrink-0" />
+                  <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">SimplyBook</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                </div>
+              ) : (
+                <a
+                  href="/contacts/simplybook"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
+                >
+                  <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-3.5 h-3.5 rounded-sm shrink-0" />
+                  <span className="whitespace-nowrap">SimplyBook</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
+                </a>
               )}
 
               <button

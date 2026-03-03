@@ -880,80 +880,90 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 </svg>
               </button>
               {showAddContactsDropdown && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-fadeIn overflow-hidden">
-                  <div className="px-4 py-2.5 text-xs font-bold text-[var(--color-primary)] uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
-                    Add Contacts
+                <div className="absolute right-0 mt-2 w-[380px] bg-white rounded-2xl shadow-2xl border border-slate-200/80 z-50 animate-fadeIn overflow-hidden backdrop-blur-sm">
+                  {/* Header */}
+                  <div className="px-5 py-3.5 bg-gradient-to-r from-[var(--color-primary-50)] to-white border-b border-slate-100">
+                    <p className="text-sm font-bold text-slate-900">Add Contacts</p>
+                    <p className="text-[11px] text-slate-500">Choose a source to import contacts</p>
                   </div>
 
-                  <button
-                    onClick={handleManualAdd}
-                    className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  {/* Quick actions row */}
+                  <div className="px-4 py-3 flex gap-2">
+                    <button
+                      onClick={handleManualAdd}
+                      className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white hover:opacity-90 transition-all shadow-sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-slate-900">Add Manually</div>
-                      <div className="text-xs text-slate-500">Create a contact with custom fields</div>
-                    </div>
-                  </button>
-
-                  <div className="border-t border-slate-100">
-                    <div className="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50">Import From File</div>
-                    <div className="px-4 pb-3 pt-1 grid grid-cols-3 gap-2">
-                      {([
-                        { type: 'csv' as const, label: 'CSV', color: 'bg-green-500' },
-                        { type: 'xlsx' as const, label: 'XLSX', color: 'bg-emerald-500' },
-                        { type: 'txt' as const, label: 'TXT', color: 'bg-slate-400' },
-                        { type: 'xml' as const, label: 'XML', color: 'bg-orange-500' },
-                        { type: 'json' as const, label: 'JSON', color: 'bg-purple-500' },
-                      ]).map(({ type, label, color }) => (
-                        <button
-                          key={type}
-                          onClick={() => handleImportTypeSelect(type)}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
-                        >
-                          <span className={`w-2 h-2 rounded-full ${color} flex-shrink-0`}></span>
-                          {label}
-                        </button>
-                      ))}
+                      <span className="text-xs font-semibold">Manual</span>
+                    </button>
+                    {([
+                      { type: 'csv' as const, label: 'CSV' },
+                      { type: 'xlsx' as const, label: 'Excel' },
+                    ]).map(({ type, label }) => (
                       <button
-                        onClick={handleGoogleSheetsClick}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium text-slate-700"
+                        key={type}
+                        onClick={() => handleImportTypeSelect(type)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all"
                       >
-                        <GoogleSheetsIcon className="w-4 h-4 flex-shrink-0" />
-                        Sheets
+                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        </svg>
+                        <span className="text-xs font-semibold">{label}</span>
                       </button>
-                    </div>
+                    ))}
+                    <button
+                      onClick={handleGoogleSheetsClick}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all"
+                    >
+                      <GoogleSheetsIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="text-xs font-semibold">Sheets</span>
+                    </button>
                   </div>
 
-                  <div className="border-t border-slate-100">
-                    <div className="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50">Integrations</div>
-                    <div className="px-2 pb-2">
+                  {/* More formats link */}
+                  <div className="px-5 pb-2 flex gap-1.5">
+                    {(['txt', 'xml', 'json'] as const).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => handleImportTypeSelect(type)}
+                        className="text-[10px] font-semibold text-slate-400 hover:text-[var(--color-primary)] uppercase tracking-wider transition-colors"
+                      >
+                        .{type}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Integrations */}
+                  <div className="border-t border-slate-100 px-4 py-3">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">From Integrations</p>
+                    <div className="grid grid-cols-2 gap-1.5">
                       {([
-                        { name: 'Salesforce', icon: <FaSalesforce className="w-5 h-5 text-white" />, bg: 'bg-[#00A1E0]', connected: sfConnected, hasAccess: hasSalesforceAccess, href: sfConnected ? '/contacts/salesforce' : hasSalesforceAccess ? '/api/integrations/salesforce/connect?return_to=/contacts/salesforce' : '/settings?tab=billing', desc: 'Import contacts & leads' },
-                        { name: 'HubSpot', icon: <FaHubspot className="w-5 h-5 text-white" />, bg: 'bg-[#FF7A59]', connected: hsConnected, hasAccess: hasHubSpotAccess, href: hsConnected ? '/contacts/hubspot' : hasHubSpotAccess ? '/api/integrations/hubspot/connect?return_to=/contacts/hubspot' : '/settings?tab=billing', desc: 'Import contacts from HubSpot' },
-                        { name: 'Pipedrive', icon: <svg className="w-5 h-5 text-black" viewBox="0 0 32 32" fill="currentColor"><path d="M16.3 7.8c-3.6 0-5.7 1.6-6.7 2.7-.1-1-.8-2.2-3.2-2.2H1v5.6h2.2c.4 0 .5.1.5.5v25.7h6.4V30v-.7c1 .9 2.9 2.2 5.9 2.2 6.3 0 10.7-5 10.7-12.1 0-7.3-4.2-12.1-10.4-12.1m-1.3 18.6c-3.5 0-5-3.3-5-6.4 0-4.8 2.6-6.6 5.1-6.6 3 0 5.1 2.6 5.1 6.5 0 4.5-2.6 6.5-5.2 6.5" transform="scale(0.85) translate(5, 0)" /></svg>, bg: 'bg-slate-100', connected: pdConnected, hasAccess: hasPipedriveAccess, href: pdConnected ? '/contacts/pipedrive' : hasPipedriveAccess ? '/api/integrations/pipedrive/connect?return_to=/contacts/pipedrive' : '/settings?tab=billing', desc: 'Sync contacts with Pipedrive' },
-                        { name: 'Clio', icon: <img src="/clio-logo.png" alt="Clio" className="w-5 h-5" />, bg: 'bg-[#1B2B5B]/10', connected: clioConnected, hasAccess: hasClioAccess, href: clioConnected ? '/contacts/clio' : hasClioAccess ? '/api/integrations/clio/connect?return_to=/contacts/clio' : '/settings?tab=billing', desc: 'Import contacts from Clio' },
-                        { name: 'Zoho CRM', icon: <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#E42527"/><text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold" fontFamily="sans-serif">Z</text></svg>, bg: 'bg-red-50', connected: zohoConnected, hasAccess: hasZohoAccess, href: zohoConnected ? '/contacts/zoho' : hasZohoAccess ? '/api/integrations/zoho/connect?return_to=/contacts/zoho' : '/settings?tab=billing', desc: 'Import contacts & leads from Zoho' },
-                        { name: 'SimplyBook.me', icon: <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-5 h-5 rounded" />, bg: 'bg-sky-50', connected: sbConnected, hasAccess: hasSimplyBookAccess, href: sbConnected ? '/contacts/simplybook' : hasSimplyBookAccess ? '/contacts/simplybook' : '/settings?tab=billing', desc: 'Import clients from SimplyBook.me' },
+                        { name: 'Salesforce', icon: <FaSalesforce className="w-4 h-4 text-[#00A1E0]" />, connected: sfConnected, hasAccess: hasSalesforceAccess, href: sfConnected ? '/contacts/salesforce' : hasSalesforceAccess ? '/api/integrations/salesforce/connect?return_to=/contacts/salesforce' : '/settings?tab=billing' },
+                        { name: 'HubSpot', icon: <FaHubspot className="w-4 h-4 text-[#FF7A59]" />, connected: hsConnected, hasAccess: hasHubSpotAccess, href: hsConnected ? '/contacts/hubspot' : hasHubSpotAccess ? '/api/integrations/hubspot/connect?return_to=/contacts/hubspot' : '/settings?tab=billing' },
+                        { name: 'Pipedrive', icon: <svg className="w-4 h-4 text-black" viewBox="0 0 32 32" fill="currentColor"><path d="M16.3 7.8c-3.6 0-5.7 1.6-6.7 2.7-.1-1-.8-2.2-3.2-2.2H1v5.6h2.2c.4 0 .5.1.5.5v25.7h6.4V30v-.7c1 .9 2.9 2.2 5.9 2.2 6.3 0 10.7-5 10.7-12.1 0-7.3-4.2-12.1-10.4-12.1m-1.3 18.6c-3.5 0-5-3.3-5-6.4 0-4.8 2.6-6.6 5.1-6.6 3 0 5.1 2.6 5.1 6.5 0 4.5-2.6 6.5-5.2 6.5" transform="scale(0.85) translate(5, 0)" /></svg>, connected: pdConnected, hasAccess: hasPipedriveAccess, href: pdConnected ? '/contacts/pipedrive' : hasPipedriveAccess ? '/api/integrations/pipedrive/connect?return_to=/contacts/pipedrive' : '/settings?tab=billing' },
+                        { name: 'Clio', icon: <img src="/clio-logo.png" alt="Clio" className="w-4 h-4" />, connected: clioConnected, hasAccess: hasClioAccess, href: clioConnected ? '/contacts/clio' : hasClioAccess ? '/api/integrations/clio/connect?return_to=/contacts/clio' : '/settings?tab=billing' },
+                        { name: 'Zoho CRM', icon: <svg className="w-4 h-4" viewBox="0 0 1024 450" fill="none"><path d="M458.1,353c-7.7,0-15.5-1.6-23-4.9l-160-71.3c-28.6-12.7-41.5-46.4-28.8-75l71.3-160c12.7-28.6,46.4-41.5,75-28.8l160,71.3c28.6,12.7,41.5,46.4,28.8,75l-71.3,160C500.6,340.5,479.8,353,458.1,353z" fill="#089949"/><path d="M960,353.1H784.8c-31.3,0-56.8-25.5-56.8-56.8V121.1c0-31.3,25.5-56.8,56.8-56.8H960c31.3,0,56.8,25.5,56.8,56.8v175.2C1016.8,327.6,991.3,353.1,960,353.1z" fill="#F9B21D"/><path d="M303.9,153.2L280.3,206l9.2,56.8c2.1,13.1-6.8,25.4-19.8,27.5l-173,28c-13.1,2.1-25.4-6.8-27.5-19.8l-28-173c-2.1-13.1,6.8-25.4,19.8-27.5l173-28c11.5,0,21.8,8.4,23.7,20.2l9.3,57.2L294.3,94l-1.3-7.7c-5-30.9-34.2-52-65.1-47l-173,28c-30.9,5-52,34.2-47,65.1l28,173c5,30.9,34.2,52,65.1,47l173-28c30.9-5,52-34.2,47-65.1L303.9,153.2z" fill="#E42527"/><path d="M511.4,235.8l25.4-56.9l-7.2-52.9c-2-15,9.8-28.4,21.9-37.5c12.1-9.2,27-13.1,42-11.1L545.6,66.5c-15,2-28.4,9.8-37.5,21.9c-9.2,12.1-13.1,27-11.1,42L511.4,235.8z" fill="#226DB4"/><path d="M806.8,265.1l-22.8-168c-12.8,0.4-23.1,11-23.1,23.9v49.3l13.5,99.2c2,15-9.8,28.4-21.9,37.5c-12.1,9.2-27,13.1-42,11.1l-8-58.9l-25.4,56.9l0.9,6.4c2,15,9.8,28.4,21.9,37.5c12.1,9.2,27,13.1,42,11.1L758.2,329c15-2,28.4-9.8,37.5-21.9C804.9,295,808.8,280.1,806.8,265.1z" fill="#226DB4"/></svg>, connected: zohoConnected, hasAccess: hasZohoAccess, href: zohoConnected ? '/contacts/zoho' : hasZohoAccess ? '/api/integrations/zoho/connect?return_to=/contacts/zoho' : '/settings?tab=billing' },
+                        { name: 'SimplyBook', icon: <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-4 h-4 rounded-sm" />, connected: sbConnected, hasAccess: hasSimplyBookAccess, href: sbConnected ? '/contacts/simplybook' : hasSimplyBookAccess ? '/contacts/simplybook' : '/settings?tab=billing' },
                       ] as const).map((crm) => (
                         <Link
                           key={crm.name}
                           href={crm.href}
-                          className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-lg group"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all group"
                         >
-                          <div className={`w-9 h-9 rounded-lg ${crm.bg} flex items-center justify-center flex-shrink-0`}>{crm.icon}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-slate-900 flex items-center gap-2">
-                              {crm.name}
-                              {!crm.hasAccess && <span className="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.5 rounded-full">Business+</span>}
-                            </div>
-                            <div className="text-xs text-slate-500">{crm.desc}</div>
+                          <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center flex-shrink-0 group-hover:border-slate-200 transition-colors">
+                            {crm.icon}
                           </div>
-                          <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-semibold text-slate-700">{crm.name}</span>
+                          </div>
+                          {crm.connected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>}
+                          {!crm.hasAccess && (
+                            <svg className="w-3 h-3 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                            </svg>
+                          )}
                         </Link>
                       ))}
                     </div>

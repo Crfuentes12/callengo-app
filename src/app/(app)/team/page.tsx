@@ -2,12 +2,6 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import TeamSettings from '@/components/settings/TeamSettings';
-import SalesforceOrgMembers from '@/components/settings/SalesforceOrgMembers';
-import HubSpotOrgMembers from '@/components/settings/HubSpotOrgMembers';
-import PipedriveOrgMembers from '@/components/settings/PipedriveOrgMembers';
-import ClioOrgMembers from '@/components/settings/ClioOrgMembers';
-import ZohoOrgMembers from '@/components/settings/ZohoOrgMembers';
-import SimplyBookOrgMembers from '@/components/settings/SimplyBookOrgMembers';
 import Link from 'next/link';
 
 function TeamUpgradeCTA() {
@@ -140,65 +134,24 @@ export default async function TeamPage() {
     return <TeamUpgradeCTA />;
   }
 
-  // Check Salesforce connection
-  let sfConnected = false;
-  const { data: sfIntegration } = await supabaseAdminRaw
-    .from('salesforce_integrations')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .maybeSingle();
-  sfConnected = !!sfIntegration;
+  // Check all integration connections in parallel
+  const [sfResult, hsResult, pdResult, clioResult, zohoResult, sbResult] = await Promise.all([
+    supabaseAdminRaw.from('salesforce_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
+    supabaseAdminRaw.from('hubspot_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
+    supabaseAdminRaw.from('pipedrive_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
+    supabaseAdminRaw.from('clio_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
+    supabaseAdminRaw.from('zoho_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
+    supabaseAdminRaw.from('simplybook_integrations').select('id').eq('company_id', companyId).eq('is_active', true).maybeSingle(),
+  ]);
 
-  // Check HubSpot connection
-  let hsConnected = false;
-  const { data: hsIntegration } = await supabaseAdminRaw
-    .from('hubspot_integrations')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .maybeSingle();
-  hsConnected = !!hsIntegration;
-
-  // Check Pipedrive connection
-  let pdConnected = false;
-  const { data: pdIntegration } = await supabaseAdminRaw
-    .from('pipedrive_integrations')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .maybeSingle();
-  pdConnected = !!pdIntegration;
-
-  // Check Clio connection
-  let clioConnected = false;
-  const { data: clioIntegration } = await supabaseAdminRaw
-    .from('clio_integrations')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .maybeSingle();
-  clioConnected = !!clioIntegration;
-
-  // Check Zoho CRM connection
-  let zohoConnected = false;
-  const { data: zohoIntegration } = await supabaseAdminRaw
-    .from('zoho_integrations')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .maybeSingle();
-  zohoConnected = !!zohoIntegration;
-
-  // Check SimplyBook.me connection (available on starter+ plans, but team page requires business+)
-  let sbConnected = false;
-  const { data: sbIntegration } = await supabaseAdminRaw
-    .from('simplybook_integrations')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .maybeSingle();
-  sbConnected = !!sbIntegration;
+  const integrationConnections = {
+    salesforce: !!sfResult.data,
+    hubspot: !!hsResult.data,
+    pipedrive: !!pdResult.data,
+    clio: !!clioResult.data,
+    zoho: !!zohoResult.data,
+    simplybook: !!sbResult.data,
+  };
 
   return (
     <div className="space-y-6">
@@ -227,48 +180,7 @@ export default async function TeamPage() {
           full_name: userData!.full_name,
           role: userData!.role,
         }}
-      />
-
-      {/* Salesforce Org Members Preview */}
-      <SalesforceOrgMembers
-        companyId={companyId}
-        planSlug={planSlug}
-        sfConnected={sfConnected}
-      />
-
-      {/* HubSpot Org Members Preview */}
-      <HubSpotOrgMembers
-        companyId={companyId}
-        planSlug={planSlug}
-        hsConnected={hsConnected}
-      />
-
-      {/* Pipedrive Org Members Preview */}
-      <PipedriveOrgMembers
-        companyId={companyId}
-        planSlug={planSlug}
-        pdConnected={pdConnected}
-      />
-
-      {/* Clio Org Members Preview */}
-      <ClioOrgMembers
-        companyId={companyId}
-        planSlug={planSlug}
-        clioConnected={clioConnected}
-      />
-
-      {/* Zoho CRM Org Members Preview */}
-      <ZohoOrgMembers
-        companyId={companyId}
-        planSlug={planSlug}
-        zohoConnected={zohoConnected}
-      />
-
-      {/* SimplyBook.me Providers Preview */}
-      <SimplyBookOrgMembers
-        companyId={companyId}
-        planSlug={planSlug}
-        sbConnected={sbConnected}
+        integrationConnections={integrationConnections}
       />
     </div>
   );
