@@ -470,25 +470,39 @@ async function syncCoupons() {
         log(`   Coupon already exists (${existingCoupon.times_redeemed || 0}/${existingCoupon.max_redemptions || '∞'} used)`, 'info');
       }
 
-      // Create promotion codes
+      // Create promotion codes (using raw API to avoid SDK version issues)
       if (!CONFIG.DRY_RUN) {
         const config = couponConfig as any;
         const codes: string[] = config.promoCodes || [couponConfig.id];
 
         for (const code of codes) {
           try {
-            const promoCode = await stripe.promotionCodes.create({
-              coupon: couponConfig.id,
-              code: code,
-              max_redemptions: config.promoCodes ? 1 : couponConfig.max_redemptions,
-            } as any);
-            log(`   Promotion code created: ${promoCode.code}`, 'success');
-          } catch (promoError: any) {
-            if (promoError.code === 'resource_already_exists' || promoError.message?.includes('already exists')) {
-              logVerbose(`   Promotion code ${code} already exists`);
+            const maxRedemptions = config.promoCodes ? 1 : couponConfig.max_redemptions;
+            const bodyParams = new URLSearchParams();
+            bodyParams.set('coupon', couponConfig.id);
+            bodyParams.set('code', code);
+            if (maxRedemptions) bodyParams.set('max_redemptions', String(maxRedemptions));
+
+            const res = await fetch('https://api.stripe.com/v1/promotion_codes', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: bodyParams.toString(),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              if (data.error?.message?.includes('already exists') || data.error?.code === 'resource_already_exists') {
+                logVerbose(`   Promotion code ${code} already exists`);
+              } else {
+                logVerbose(`   Note: Could not create promotion code ${code}: ${data.error?.message || 'Unknown error'}`);
+              }
             } else {
-              logVerbose(`   Note: Could not create promotion code ${code}: ${promoError.message}`);
+              log(`   Promotion code created: ${data.code}`, 'success');
             }
+          } catch (promoError: any) {
+            logVerbose(`   Note: Could not create promotion code ${code}: ${promoError.message}`);
           }
         }
       }
@@ -629,12 +643,21 @@ async function syncSinglePlan(plan: any) {
         }
 
         if (!feature && !CONFIG.DRY_RUN) {
-          feature = await stripe.entitlements.features.create({
-            name: featureName.substring(0, 80),
-            lookup_key: featureLookupKey,
-            metadata: { plan: plan.slug },
-          } as any);
-          logVerbose(`     Created feature: ${featureName}`);
+          try {
+            feature = await stripe.entitlements.features.create({
+              name: featureName.substring(0, 80),
+              lookup_key: featureLookupKey,
+              metadata: { plan: plan.slug },
+            } as any);
+            logVerbose(`     Created feature: ${featureName}`);
+          } catch (createErr: any) {
+            // Feature already exists but wasn't in the first 100 results
+            if (createErr.message?.includes('lookup_key') || createErr.message?.includes('already')) {
+              logVerbose(`     Feature exists: ${featureName}`);
+            } else {
+              logVerbose(`     Warning: Could not create feature "${featureName}": ${createErr.message}`);
+            }
+          }
         } else if (feature) {
           logVerbose(`     Feature exists: ${featureName}`);
         }
