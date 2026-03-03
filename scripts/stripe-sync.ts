@@ -212,7 +212,7 @@ const COUPONS = [
       description: '20% off for 12 months — targeted at law firms using Clio',
     },
   },
-] as const;
+];
 
 // ============================================================================
 // FEATURES DEFINITION (COHERENT WITH PRODUCT SPEC)
