@@ -1870,7 +1870,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     const isAutoEnabled = item.status === 'auto_enabled';
     const meetsRequirement = planMeetsRequirement(planSlug, item.requiredPlan);
     const isLocked = !meetsRequirement && !isComingSoon;
-    const isActive = isConnected || isAutoEnabled;
+    const isActive = (isConnected || isAutoEnabled) && !isLocked;
 
     return (
       <div
