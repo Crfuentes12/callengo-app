@@ -784,6 +784,9 @@ const en = {
     autoRotated: 'Auto-rotated',
     autoRotatedByop: 'Auto-rotated + BYOP',
     keyFeatures: 'Key features',
+    extraSeatCost: 'Extra seat cost',
+    perSeat: '/seat',
+    includedSeats: 'Included seats',
     // Trial / Free plan
     trialEnded: 'Your trial has ended',
     trialEndedDesc: 'You\'ve used all 15 trial minutes. To continue making calls and unlock the full power of Callengo, upgrade to a paid plan below.',

@@ -75,6 +75,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     return Object.values(featureMap);
   };
 
+  // Extra seat pricing per plan (null = no extra seats available)
+  const EXTRA_SEAT_PRICE: Record<string, number | null> = { free: null, starter: null, business: null, teams: 69, enterprise: null };
+
   const { createCheckoutSession, openBillingPortal, loading: stripeLoading } = useStripe();
   const { currency } = useUserCurrency();
   const searchParams = useSearchParams();
@@ -501,10 +504,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">{t.billing.save} {discountPercent}%</div>
                       )}
                     </div>
-                    {/* Metrics — same 4 rows for all plans */}
+                    {/* Metrics — same rows for all plans */}
                     <div className="mb-4 space-y-2.5 text-xs">
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.minutesIncludedLabel}</span><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.usersLabel}</span><span className="font-semibold text-slate-900">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.usersLabel}</span><span className="font-semibold text-slate-900">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}{EXTRA_SEAT_PRICE[plan.slug] ? ` (${formatPrice(EXTRA_SEAT_PRICE[plan.slug]!)}${t.billing.perSeat})` : ''}</span></div>
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span></div>
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.overageRateLabel}</span><span className="font-semibold text-slate-900">{plan.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(plan.price_per_extra_minute)}${t.billing.min}` : '—'}</span></div>
                     </div>
@@ -572,6 +575,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       { label: t.billing.minutesIncludedLabel, render: (p: Plan) => <span className="font-semibold">{p.minutes_included.toLocaleString()}</span> },
                       { label: t.billing.maxCallDuration, render: (p: Plan) => <>{p.max_call_duration} {t.billing.min}</> },
                       { label: t.billing.usersLabel, render: (p: Plan) => <>{p.max_users === -1 ? t.billing.unlimited : p.max_users}</> },
+                      { label: t.billing.extraSeatCost, render: (p: Plan) => <>{EXTRA_SEAT_PRICE[p.slug] ? <span className="font-semibold">{formatPrice(EXTRA_SEAT_PRICE[p.slug]!)}{t.billing.perSeat}</span> : '—'}</> },
                       { label: t.billing.concurrentCallsLabel, render: (p: Plan) => <>{p.max_concurrent_calls}</> },
                       { label: t.billing.overageRateLabel, render: (p: Plan) => <>{p.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(p.price_per_extra_minute)}/${t.billing.min}` : '—'}</> },
                       { label: t.billing.callsPerHourLabel, render: (p: Plan) => <>{p.max_calls_per_hour ?? t.billing.unlimited}</> },
@@ -1277,7 +1281,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     </div>
                     <div className="mb-3 space-y-2 text-[11px]">
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.minutesIncludedLabel}</span><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.usersLabel}</span><span className="font-semibold text-slate-900">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.usersLabel}</span><span className="font-semibold text-slate-900">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}{EXTRA_SEAT_PRICE[plan.slug] ? ` (${formatPrice(EXTRA_SEAT_PRICE[plan.slug]!)}${t.billing.perSeat})` : ''}</span></div>
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span></div>
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.overageRateLabel}</span><span className="font-semibold text-slate-900">{plan.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(plan.price_per_extra_minute)}${t.billing.min}` : '—'}</span></div>
                     </div>
