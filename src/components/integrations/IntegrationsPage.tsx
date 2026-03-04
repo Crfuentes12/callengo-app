@@ -1346,7 +1346,7 @@ function FeedbackSection() {
     fetch('/api/integrations/feedback')
       .then(res => res.json())
       .then(data => { if (data.has_submitted_today) setAlreadySubmitted(true); })
-      .catch(() => {});
+      .catch((err) => console.warn('Non-critical fetch failed:', err?.message));
   }, []);
 
   const handleSubmit = async () => {

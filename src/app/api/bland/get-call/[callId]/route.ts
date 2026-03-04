@@ -17,7 +17,24 @@ export async function GET(
       );
     }
 
+    // MEDIA-003: Verify authentication and company ownership to prevent IDOR
     const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData || userData.company_id !== companyId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { data: settings } = await supabase
       .from('company_settings')
       .select('bland_api_key')

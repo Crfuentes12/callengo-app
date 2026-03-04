@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
+import { createServerClient } from '@/lib/supabase/server';
 import { exchangeSalesforceCode, getSalesforceUserInfo } from '@/lib/salesforce';
 
 export async function GET(request: NextRequest) {
@@ -38,6 +39,14 @@ export async function GET(request: NextRequest) {
 
     const { user_id, company_id, return_to } = stateData;
     const redirectBase = return_to || '/integrations';
+
+    // ALTA-005: Verify authenticated user matches the OAuth state
+    const supabaseAuth = await createServerClient();
+    const { data: { user: currentUser } } = await supabaseAuth.auth.getUser();
+    if (!currentUser || currentUser.id !== user_id) {
+      const errorRedirect = return_to || '/integrations';
+      return NextResponse.redirect(new URL(`${errorRedirect}?error=user_mismatch`, request.url));
+    }
 
     // Exchange code for tokens
     const tokens = await exchangeSalesforceCode(code);

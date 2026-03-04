@@ -40,25 +40,25 @@ export async function POST(req: NextRequest) {
 
     console.log(`📨 Received Stripe webhook: ${event.type} [${event.id}]`);
 
-    // Check if event was already processed (idempotency)
-    const { data: existingEvent } = await supabase
-      .from('stripe_events')
-      .select('id')
-      .eq('id', event.id)
-      .single();
-
-    if (existingEvent) {
-      console.log(`⏭️  Event ${event.id} already processed, skipping`);
-      return NextResponse.json({ received: true, skipped: true });
-    }
-
-    // Store event for idempotency
-    await supabase.from('stripe_events').insert({
+    // ALTA-001: Atomic idempotency check using INSERT + unique constraint
+    // Instead of check-then-insert (race-prone), attempt insert first
+    const { error: insertEventError } = await supabase.from('stripe_events').insert({
       id: event.id,
       type: event.type,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data: event.data as any,
       processed: false,
     });
+
+    // If unique constraint violation (code 23505), event was already processed
+    if (insertEventError) {
+      if (insertEventError.code === '23505') {
+        console.log(`⏭️  Event ${event.id} already processed, skipping`);
+        return NextResponse.json({ received: true, skipped: true });
+      }
+      console.error('Failed to record Stripe event:', insertEventError);
+      return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    }
 
     // Handle different event types
     switch (event.type) {
@@ -223,7 +223,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 /**
  * Handle customer.subscription.created
  */
-async function handleSubscriptionCreated(subscription: any) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleSubscriptionCreated(subscription: Stripe.Subscription & Record<string, any>) {
   console.log('📝 Subscription created:', subscription.id);
 
   const companyId = subscription.metadata?.company_id;
@@ -234,6 +235,7 @@ async function handleSubscriptionCreated(subscription: any) {
 
   // Get the metered subscription item (if any)
   const meteredItem = subscription.items?.data?.find(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (item: any) => item.price?.recurring?.usage_type === 'metered'
   );
 
@@ -256,7 +258,8 @@ async function handleSubscriptionCreated(subscription: any) {
 /**
  * Handle customer.subscription.updated
  */
-async function handleSubscriptionUpdated(subscription: any) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription & Record<string, any>) {
   console.log('🔄 Subscription updated:', subscription.id);
 
   // Find subscription by Stripe ID
@@ -273,6 +276,7 @@ async function handleSubscriptionUpdated(subscription: any) {
 
   // Get the metered subscription item (if any)
   const meteredItem = subscription.items?.data?.find(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (item: any) => item.price?.recurring?.usage_type === 'metered'
   );
 
@@ -346,7 +350,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 /**
  * Handle invoice.payment_succeeded
  */
-async function handleInvoicePaymentSucceeded(invoice: any) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice & Record<string, any>) {
   console.log('💳 Payment succeeded:', invoice.id);
 
   const subscriptionId = invoice.subscription;
@@ -393,10 +398,8 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
     cost_usd: invoice.amount_paid / 100,
   });
 
-  // Reset overage tracking if this is a new period
-  const now = new Date();
-  const periodEnd = new Date(subscription.current_period_end);
-  if (now < periodEnd) {
+  // ALTA-002: Only reset overage tracking on subscription cycle renewal, not on any payment
+  if (invoice.billing_reason === 'subscription_cycle' || invoice.billing_reason === 'subscription_create') {
     await supabase
       .from('company_subscriptions')
       .update({
@@ -411,7 +414,8 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
 /**
  * Handle invoice.payment_failed
  */
-async function handleInvoicePaymentFailed(invoice: any) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice & Record<string, any>) {
   console.log('❌ Payment failed:', invoice.id);
 
   const subscriptionId = invoice.subscription;

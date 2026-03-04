@@ -57,8 +57,24 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Allow API routes and OAuth callbacks through (they handle their own auth)
+  // MEDIA-006: API routes that handle their own auth (webhooks, OAuth callbacks, public endpoints)
+  const publicApiRoutes = [
+    '/api/webhooks/',          // Stripe webhook — has its own signature verification
+    '/api/bland/webhook',      // Bland webhook — has its own signature verification
+    '/api/auth/',              // Auth endpoints
+    '/api/integrations/',      // OAuth callbacks — handle their own auth flows
+  ];
+
   if (pathname.startsWith('/api/')) {
+    const isPublicApi = publicApiRoutes.some(route => pathname.startsWith(route));
+    if (isPublicApi) {
+      return supabaseResponse;
+    }
+
+    // For non-public API routes, verify authentication at the middleware level
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return supabaseResponse;
   }
 

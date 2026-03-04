@@ -4,6 +4,7 @@
  */
 
 import { supabaseAdmin as supabase } from '@/lib/supabase/service';
+import { getAppUrl } from '@/lib/config';
 
 export interface UsageReport {
   companyId: string;
@@ -38,7 +39,7 @@ export async function trackCallUsage(params: UsageReport): Promise<void> {
   try {
     // Call the report-usage API endpoint
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/billing/report-usage`,
+      `${getAppUrl()}/api/billing/report-usage`,
       {
         method: 'POST',
         headers: {

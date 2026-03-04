@@ -7,15 +7,11 @@ import type {
   SalesforceTokenResponse,
   SalesforceUserInfo,
 } from '@/types/salesforce';
+import { getAppUrl } from '@/lib/config';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-
-function getAppUrl() {
-  const url = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  return url.replace(/\/+$/, '');
-}
 
 export function getSalesforceConfig() {
   const clientId = process.env.SALESFORCE_CLIENT_ID;

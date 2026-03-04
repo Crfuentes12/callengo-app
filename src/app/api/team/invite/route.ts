@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
+import { getAppUrl } from '@/lib/config';
 
 /**
  * POST /api/team/invite
@@ -152,7 +153,7 @@ export async function POST(req: NextRequest) {
     // This uses Supabase's built-in email system to invite the user.
     // When the user clicks the link, they'll be redirected to the app's
     // auth callback which will handle accepting the team invitation.
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const appUrl = getAppUrl();
     const redirectTo = `${appUrl}/auth/callback?invite_token=${invitation.token}&type=team_invite`;
 
     const { data: inviteData, error: emailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(

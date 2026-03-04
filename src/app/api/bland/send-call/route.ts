@@ -1,7 +1,26 @@
 // app/api/bland/send-call/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
+import { expensiveLimiter } from '@/lib/rate-limit';
+
+// ALTA-006 + ALTA-007: Zod schema for input validation
+const sendCallSchema = z.object({
+  phone_number: z.string().regex(/^\+?[1-9]\d{6,14}$/, 'Invalid phone number format (E.164 expected)'),
+  task: z.string().min(1, 'Task is required').max(5000),
+  voice: z.string().default('maya'),
+  first_sentence: z.string().max(500).optional(),
+  wait_for_greeting: z.boolean().default(true),
+  record: z.boolean().default(true),
+  max_duration: z.number().int().min(1).max(60).default(5),
+  voicemail_action: z.enum(['leave_message', 'hangup', 'ignore']).default('leave_message'),
+  voicemail_message: z.string().max(1000).optional(),
+  answered_by_enabled: z.boolean().default(true),
+  webhook: z.string().url().refine(val => val.startsWith('https://'), { message: 'Webhook URL must use HTTPS' }).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  company_id: z.string().uuid({ message: 'Invalid company ID' }),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,29 +32,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const {
-      phone_number,
-      task,
-      voice = 'maya',
-      first_sentence,
-      wait_for_greeting = true,
-      record = true,
-      max_duration = 5,
-      voicemail_action = 'leave_message',
-      voicemail_message,
-      answered_by_enabled = true,
-      webhook,
-      metadata,
-      company_id,
-    } = body;
+    // Rate limiting: max 10 calls per minute per user
+    const { success: rateLimitOk } = expensiveLimiter.check(10, user.id);
+    if (!rateLimitOk) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
 
-    if (!phone_number || !task || !company_id) {
+    const rawBody = await request.json();
+    const parseResult = sendCallSchema.safeParse(rawBody);
+
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'phone_number, task, and company_id are required' },
+        { error: 'Validation failed', details: parseResult.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
+
+    const {
+      phone_number,
+      task,
+      voice,
+      first_sentence,
+      wait_for_greeting,
+      record,
+      max_duration,
+      voicemail_action,
+      voicemail_message,
+      answered_by_enabled,
+      webhook,
+      metadata,
+      company_id,
+    } = parseResult.data;
 
     // Verify user belongs to the specified company
     const { data: userData } = await supabase
@@ -81,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     if (first_sentence) blandPayload.first_sentence = first_sentence;
     if (voicemail_message) blandPayload.voicemail_message = voicemail_message;
-    if (webhook && webhook.startsWith('https://')) blandPayload.webhook = webhook;
+    if (webhook) blandPayload.webhook = webhook;
     if (metadata) blandPayload.metadata = metadata;
 
     const response = await fetch('https://api.bland.ai/v1/calls', {

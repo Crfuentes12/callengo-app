@@ -67,7 +67,7 @@ export default function ContactDetailDrawer({
       .then(data => {
         if (data.crmMappings) setCrmMappings(data.crmMappings);
       })
-      .catch(() => {});
+      .catch((err) => console.warn('Non-critical fetch failed:', err?.message));
   }, [contact.id]);
 
   const handleSave = async () => {

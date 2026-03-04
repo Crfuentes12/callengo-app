@@ -1,6 +1,7 @@
 // app/api/integrations/slack/connect/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { getAppUrl } from '@/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(`${returnTo}?error=not_configured`, request.url));
     }
 
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
+    const appUrl = getAppUrl();
     const redirectUri = `${appUrl}/api/integrations/slack/callback`;
 
     const state = JSON.stringify({
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
     authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('scope', scopes.join(','));
     authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('state', Buffer.from(state).toString('base64'));
+    authUrl.searchParams.set('state', Buffer.from(state).toString('base64url'));
 
     return NextResponse.redirect(authUrl.toString());
   } catch (error) {

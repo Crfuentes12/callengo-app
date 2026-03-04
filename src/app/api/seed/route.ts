@@ -60,6 +60,11 @@ async function getAgentTemplateIds() {
 
 export async function POST() {
   try {
+    // Block in production — seed endpoint is only for development/staging
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Seed endpoint is disabled in production' }, { status: 403 });
+    }
+
     const result = await getDemoUserCompany();
     if ('error' in result) {
       return NextResponse.json({ error: result.error }, { status: 404 });
@@ -221,6 +226,11 @@ export async function POST() {
 
 export async function DELETE() {
   try {
+    // Block in production — seed endpoint is only for development/staging
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Seed endpoint is disabled in production' }, { status: 403 });
+    }
+
     const result = await getDemoUserCompany();
     if ('error' in result) {
       return NextResponse.json({ error: result.error }, { status: 404 });

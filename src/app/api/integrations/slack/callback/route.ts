@@ -1,6 +1,8 @@
 // app/api/integrations/slack/callback/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
+import { createServerClient } from '@/lib/supabase/server';
+import { getAppUrl } from '@/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,12 +18,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/integrations?error=missing_params', request.url));
     }
 
-    const state = JSON.parse(Buffer.from(stateB64, 'base64').toString());
+    const state = JSON.parse(Buffer.from(stateB64, 'base64url').toString());
     const { userId, companyId, returnTo } = state;
+
+    // ALTA-005: Verify authenticated user matches the OAuth state
+    const supabaseAuth = await createServerClient();
+    const { data: { user: currentUser } } = await supabaseAuth.auth.getUser();
+    if (!currentUser || currentUser.id !== userId) {
+      const errorRedirect = returnTo || '/integrations';
+      return NextResponse.redirect(new URL(`${errorRedirect}?error=user_mismatch`, request.url));
+    }
 
     const clientId = process.env.SLACK_CLIENT_ID!;
     const clientSecret = process.env.SLACK_CLIENT_SECRET!;
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
+    const appUrl = getAppUrl();
     const redirectUri = `${appUrl}/api/integrations/slack/callback`;
 
     // Exchange code for token

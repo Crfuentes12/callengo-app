@@ -18,8 +18,9 @@ export async function GET() {
       .eq('id', user.id)
       .single();
 
+    // MEDIA-010: Include 'owner' role as admin — owners should have admin privileges
     return NextResponse.json({
-      isAdmin: userData?.role === 'admin'
+      isAdmin: userData?.role === 'admin' || userData?.role === 'owner'
     });
 
   } catch (error) {

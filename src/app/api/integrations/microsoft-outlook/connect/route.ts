@@ -1,6 +1,7 @@
 // app/api/integrations/microsoft-outlook/connect/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { getAppUrl } from '@/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(`${returnTo}?error=not_configured`, request.url));
     }
 
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
+    const appUrl = getAppUrl();
     const redirectUri = `${appUrl}/api/integrations/microsoft-outlook/callback`;
 
     const state = JSON.stringify({
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('redirect_uri', redirectUri);
     authUrl.searchParams.set('scope', scopes.join(' '));
-    authUrl.searchParams.set('state', Buffer.from(state).toString('base64'));
+    authUrl.searchParams.set('state', Buffer.from(state).toString('base64url'));
     authUrl.searchParams.set('response_mode', 'query');
     authUrl.searchParams.set('prompt', 'consent');
 

@@ -1,5 +1,6 @@
 // app/api/bland/analyze-call/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/server';
 
 interface CallAnalysisResult {
   verifiedAddress: string | null;
@@ -43,11 +44,32 @@ const analysisSchema = {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { transcript, companyName, companyId } = body;
 
     if (!transcript) {
       return NextResponse.json({ error: 'transcript is required' }, { status: 400 });
+    }
+
+    // Verify user belongs to the specified company
+    if (companyId) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      if (userData?.company_id !== companyId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
