@@ -7,15 +7,11 @@ import type {
   ClioTokenResponse,
   ClioUserInfo,
 } from '@/types/clio';
+import { getAppUrl } from '@/lib/config';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-
-function getAppUrl() {
-  const url = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  return url.replace(/\/+$/, '');
-}
 
 export function getClioConfig() {
   const clientId = process.env.CLIO_CLIENT_ID;

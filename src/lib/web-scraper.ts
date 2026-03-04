@@ -1,6 +1,8 @@
 // lib/web-scraper.ts
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import dns from 'dns/promises';
+import { isIP } from 'net';
 
 interface ScrapedData {
   title: string;
@@ -13,16 +15,65 @@ interface ScrapedData {
   metaTags: Record<string, string>;
 }
 
+// SSRF Protection: Block internal/private IP ranges
+const BLOCKED_IP_RANGES = [
+  /^127\./,                                        // Loopback
+  /^10\./,                                         // Private Class A
+  /^172\.(1[6-9]|2[0-9]|3[01])\./,                // Private Class B
+  /^192\.168\./,                                   // Private Class C
+  /^169\.254\./,                                   // Link-local / AWS metadata
+  /^0\./,                                          // Current network
+  /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,    // Carrier-grade NAT
+  /^::1$/,                                         // IPv6 loopback
+  /^fd/,                                           // IPv6 private
+  /^fe80:/,                                        // IPv6 link-local
+  /^fc/,                                           // IPv6 unique local
+];
+
+function isBlockedIP(ip: string): boolean {
+  return BLOCKED_IP_RANGES.some(range => range.test(ip));
+}
+
+async function validateUrlForSSRF(urlString: string): Promise<void> {
+  const parsed = new URL(urlString);
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error('Only HTTP/HTTPS protocols are allowed');
+  }
+
+  const hostname = parsed.hostname;
+  if (isIP(hostname)) {
+    if (isBlockedIP(hostname)) {
+      throw new Error('Access to internal network addresses is not allowed');
+    }
+  } else {
+    try {
+      const addresses = await dns.resolve4(hostname);
+      for (const addr of addresses) {
+        if (isBlockedIP(addr)) {
+          throw new Error('URL resolves to a blocked internal IP address');
+        }
+      }
+    } catch (err) {
+      if ((err as Error).message.includes('blocked')) throw err;
+      // DNS resolution failed — allow the request to proceed and let axios handle network errors
+    }
+  }
+}
+
 export async function scrapeWebsite(url: string): Promise<ScrapedData> {
   try {
     const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
-    
+
+    // Validate URL against SSRF attacks
+    await validateUrlForSSRF(normalizedUrl);
+
     const response = await axios.get(normalizedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
       timeout: 15000,
-      maxRedirects: 5,
+      maxRedirects: 3,
     });
 
     const $ = cheerio.load(response.data);

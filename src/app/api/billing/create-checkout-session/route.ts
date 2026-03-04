@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getOrCreateStripeCustomer, createCheckoutSession } from '@/lib/stripe';
+import { getAppUrl } from '@/lib/config';
 
 export async function POST(req: NextRequest) {
   try {
@@ -158,7 +159,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     // Create checkout session
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = getAppUrl();
     const session = await createCheckoutSession({
       customerId: stripeCustomer.id,
       priceId: stripePriceId,

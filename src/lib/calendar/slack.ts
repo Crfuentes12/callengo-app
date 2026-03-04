@@ -10,15 +10,11 @@ import type {
   CalendarEvent,
   CalendarEventType,
 } from '@/types/calendar';
+import { getAppUrl } from '@/lib/config';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-
-function getAppUrl(): string {
-  const url = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  return url.replace(/\/+$/, ''); // strip trailing slashes
-}
 
 function getSlackConfig() {
   const clientId = process.env.SLACK_CLIENT_ID;

@@ -9,15 +9,11 @@ import type {
   DynamicsUserInfo,
   DynamicsOrgInfo,
 } from '@/types/dynamics';
+import { getAppUrl } from '@/lib/config';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-
-function getAppUrl() {
-  const url = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  return url.replace(/\/+$/, '');
-}
 
 export function getDynamicsConfig() {
   const clientId = process.env.DYNAMICS_CLIENT_ID;

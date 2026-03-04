@@ -1,5 +1,6 @@
 // app/api/bland/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase/service';
 import { createAgentCallback, createAgentFollowUp } from '@/lib/calendar/sync';
 import {
@@ -21,10 +22,43 @@ import {
 import type { CalendarStepConfig } from '@/types/calendar';
 import { dispatchWebhookEvent } from '@/lib/webhooks';
 
+function verifyBlandSignature(rawBody: string, signature: string | null, secret: string): boolean {
+  if (!signature) return false;
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex');
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expected)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    
+    // Verify webhook signature if BLAND_WEBHOOK_SECRET is configured
+    const webhookSecret = process.env.BLAND_WEBHOOK_SECRET;
+    let body: Record<string, unknown>;
+
+    if (webhookSecret) {
+      const rawBody = await request.text();
+      const signature = request.headers.get('x-bland-signature') || request.headers.get('x-webhook-signature');
+      if (!verifyBlandSignature(rawBody, signature, webhookSecret)) {
+        console.error('Invalid Bland webhook signature');
+        return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
+      }
+      body = JSON.parse(rawBody);
+    } else {
+      body = await request.json();
+      console.warn('BLAND_WEBHOOK_SECRET not configured — webhook signature verification skipped');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const typedBody = body as any;
     const {
       call_id,
       status,
@@ -39,13 +73,13 @@ export async function POST(request: NextRequest) {
       error_message,
       price,
       metadata,
-    } = body;
+    } = typedBody;
 
     console.log('Webhook received for call:', call_id);
 
     // Extract company_id and contact_id from metadata
-    const companyId = metadata?.company_id;
-    const contactId = metadata?.contact_id;
+    const companyId = metadata?.company_id as string | undefined;
+    const contactId = metadata?.contact_id as string | undefined;
 
     if (!companyId) {
       console.error('No company_id in webhook metadata');
@@ -53,6 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the call
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await supabaseAdmin.from('call_logs').insert({
       company_id: companyId,
       contact_id: contactId || null,
@@ -66,8 +101,8 @@ export async function POST(request: NextRequest) {
       transcript: concatenated_transcript,
       summary,
       error_message,
-      metadata: body,
-    });
+      metadata: typedBody,
+    } as any);
 
     // If there's a contact_id, update the contact
     if (contactId && completed) {
@@ -240,7 +275,7 @@ export async function POST(request: NextRequest) {
               contact_id: contactId,
               contact_name: contactName,
               agent_name: metadata?.agent_name,
-            }).catch(() => {});
+            }).catch((err) => console.warn('Webhook dispatch failed (non-fatal):', err?.message));
           } else if (needsReschedule && metadata?.calendar_event_id) {
             // Use new time from metadata if agent extracted it, otherwise use next available
             const newStart = metadata?.new_appointment_time;
@@ -266,7 +301,7 @@ export async function POST(request: NextRequest) {
                 new_start: newStart,
                 new_end: newEnd,
                 reason: metadata?.reschedule_reason || 'Contact requested reschedule',
-              }).catch(() => {});
+              }).catch((err) => console.warn('Webhook dispatch failed (non-fatal):', err?.message));
             }
           } else if (isNoShow && metadata?.calendar_event_id) {
             await syncHandleNoShow({
@@ -283,7 +318,7 @@ export async function POST(request: NextRequest) {
               contact_id: contactId,
               contact_name: contactName,
               agent_name: metadata?.agent_name,
-            }).catch(() => {});
+            }).catch((err) => console.warn('Webhook dispatch failed (non-fatal):', err?.message));
           }
         }
 
@@ -322,7 +357,7 @@ export async function POST(request: NextRequest) {
               end_time: endTime,
               agent_name: metadata?.agent_name,
               type: 'meeting',
-            }).catch(() => {});
+            }).catch((err) => console.warn('Webhook dispatch failed (non-fatal):', err?.message));
           }
         }
 

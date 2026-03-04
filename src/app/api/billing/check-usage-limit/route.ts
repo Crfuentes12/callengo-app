@@ -10,10 +10,17 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerClient();
 
-    // Get current user
+    // MEDIA-004: Authentication is mandatory
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
     const body = await req.json();
     const { companyId } = body;
@@ -25,20 +32,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify user has access to this company (if authenticated)
-    if (user) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('company_id')
-        .eq('id', user.id)
-        .single();
+    // Verify user has access to this company
+    const { data: userData } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
 
-      if (userData?.company_id !== companyId) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 403 }
-        );
-      }
+    if (userData?.company_id !== companyId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
     }
 
     // Check usage limit

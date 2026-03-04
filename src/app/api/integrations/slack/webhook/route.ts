@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { confirmAppointment, cancelCalendarEvent, markEventNoShow } from '@/lib/calendar/sync';
 import crypto from 'crypto';
+import { getAppUrl } from '@/lib/config';
 
 function verifySlackSignature(request: NextRequest, body: string): boolean {
   const signingSecret = process.env.SLACK_SIGNING_SECRET;
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
                   accessory: {
                     type: 'button',
                     text: { type: 'plain_text', text: 'Open Dashboard' },
-                    url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/calendar`,
+                    url: `${getAppUrl()}/calendar`,
                     action_id: 'open_dashboard',
                   },
                 },

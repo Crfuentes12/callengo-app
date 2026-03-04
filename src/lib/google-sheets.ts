@@ -3,15 +3,11 @@
 
 import { google } from 'googleapis';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
+import { getAppUrl } from '@/lib/config';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-
-function getAppUrl() {
-  const url = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  return url.replace(/\/+$/, '');
-}
 
 function getGoogleConfig() {
   const clientId = process.env.GOOGLE_CLIENT_ID;

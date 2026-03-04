@@ -305,7 +305,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
           });
         }
       })
-      .catch(() => {});
+      .catch((err) => console.warn('Non-critical operation failed:', err?.message));
   }, []);
 
   // Reload contact count when selected lists change (no skeleton on list toggle)
@@ -333,7 +333,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
         .then(data => {
           if (data?.suggestions) setContextSuggestions(data.suggestions);
         })
-        .catch(() => {})
+        .catch((err) => console.warn('Non-critical operation failed:', err?.message))
         .finally(() => setLoadingSuggestions(false));
     }
   }, [step]);
@@ -1739,7 +1739,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ companyId, subscriptionId: overageData.subscriptionId, enabled: true, budget: amount }),
-                                  }).catch(() => {});
+                                  }).catch((err) => console.warn('Non-critical operation failed:', err?.message));
                                 }}
                                 className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${
                                   overageData.budget === amount
@@ -1771,7 +1771,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                                       method: 'POST',
                                       headers: { 'Content-Type': 'application/json' },
                                       body: JSON.stringify({ companyId, subscriptionId: overageData.subscriptionId, enabled: true, budget: val }),
-                                    }).catch(() => {});
+                                    }).catch((err) => console.warn('Non-critical operation failed:', err?.message));
                                   }
                                 }}
                                 className="w-16 pl-5 pr-1 py-1 rounded-md border border-slate-200 text-[11px] font-semibold text-slate-700 focus:ring-1 focus:ring-green-400 focus:border-green-400 outline-none"
