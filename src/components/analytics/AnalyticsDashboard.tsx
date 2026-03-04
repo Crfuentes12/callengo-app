@@ -1,7 +1,7 @@
 // components/analytics/AnalyticsDashboard.tsx
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { Database } from '@/types/supabase';
 import { formatDuration } from '@/lib/call-agent-utils';
 import { useTranslation } from '@/i18n';
@@ -193,6 +193,18 @@ export default function AnalyticsDashboard({
 
   const [hoveredPoint, setHoveredPoint] = useState<{ index: number; chart: 'daily' | 'hourly' } | null>(null);
   const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    if (showExportMenu) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showExportMenu]);
 
   // Export handlers
   const handleExportCalls = useCallback(() => {
@@ -360,24 +372,32 @@ export default function AnalyticsDashboard({
                 <option value="csv">CSV</option>
                 <option value="json">JSON</option>
               </select>
-              <div className="relative group">
-                <button className="btn-secondary flex items-center gap-2 text-sm">
+              <div className="relative" ref={exportRef}>
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="btn-secondary flex items-center gap-2 text-sm"
+                >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   {t.analytics.export}
+                  <svg className={`w-3 h-3 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50 hidden group-hover:block">
-                  <button onClick={handleExportCalls} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                    Export Calls
-                  </button>
-                  <button onClick={handleExportCampaigns} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                    Export Campaigns
-                  </button>
-                  <button onClick={handleExportContacts} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                    Export Contacts
-                  </button>
-                </div>
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50">
+                    <button onClick={() => { handleExportCalls(); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                      {t.analytics.exportCalls}
+                    </button>
+                    <button onClick={() => { handleExportCampaigns(); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                      {t.analytics.exportCampaigns}
+                    </button>
+                    <button onClick={() => { handleExportContacts(); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                      {t.analytics.exportContacts}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
