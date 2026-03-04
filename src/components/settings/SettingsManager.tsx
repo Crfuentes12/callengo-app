@@ -36,7 +36,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   const searchParams = useSearchParams();
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing' | 'general'>('company');
+  const [activeTab, setActiveTab] = useState<'general' | 'company' | 'calling' | 'billing'>('general');
   const [savingLanguage, setSavingLanguage] = useState(false);
 
   // Handle URL query params for deep linking (e.g., from Integrations → Twilio)
@@ -279,10 +279,10 @@ export default function SettingsManager({ company: initialCompany, settings: ini
         <div className="border-b border-slate-100">
           <nav className="flex">
             {[
+              { id: 'general', label: t.settings.tabs.general, icon: '⚙️' },
               { id: 'company', label: t.settings.tabs.company, icon: '🏢' },
               { id: 'calling', label: t.settings.tabs.calling, icon: '📞' },
               { id: 'billing', label: t.settings.tabs.billing, icon: '💳' },
-              { id: 'general', label: t.settings.tabs.general, icon: '⚙️' },
             ].map((tab) => (
               <button
                 key={tab.id}
