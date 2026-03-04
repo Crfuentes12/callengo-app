@@ -2,11 +2,11 @@
 const en = {
   // Language metadata
   _meta: {
-    code: 'en' as string,
-    name: 'English' as string,
-    nativeName: 'English' as string,
-    flag: '🇺🇸' as string,
-    direction: 'ltr' as string,
+    code: 'en',
+    name: 'English',
+    nativeName: 'English',
+    flag: '🇺🇸',
+    direction: 'ltr',
   },
 
   // ============================================================
@@ -898,7 +898,12 @@ const en = {
     fr: 'French',
     it: 'Italian',
   },
-} as const;
+};
 
-export type TranslationKeys = typeof en;
+// Recursively maps all leaf values to string
+type DeepStringify<T> = {
+  [K in keyof T]: T[K] extends string ? string : DeepStringify<T[K]>;
+};
+
+export type TranslationKeys = DeepStringify<typeof en>;
 export default en;

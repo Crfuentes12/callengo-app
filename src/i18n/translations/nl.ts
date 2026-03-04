@@ -900,6 +900,6 @@ const nl: TranslationKeys = {
     fr: 'Frans',
     it: 'Italiaans',
   },
-} as const;
+};
 
 export default nl;
