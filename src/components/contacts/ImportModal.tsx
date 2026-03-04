@@ -567,7 +567,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   <div key={field} className="flex items-center gap-4">
                     <label className="w-36 text-sm font-medium text-slate-700 flex-shrink-0">{label}</label>
                     <select
-                      value={(mapping as Record<string, unknown>)[field] as string || ''}
+                      value={(mapping as unknown as Record<string, unknown>)[field] as string || ''}
                       onChange={(e) => setMapping({ ...mapping, [field]: e.target.value || null })}
                       className="flex-1 px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white transition-all cursor-pointer text-sm"
                     >

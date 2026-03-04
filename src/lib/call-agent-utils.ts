@@ -142,10 +142,10 @@ export function detectColumnMapping(headers: string[]): ColumnMapping {
   headers.forEach((header) => {
     const normalizedHeader = header.toLowerCase().trim();
     for (const [field, fieldPatterns] of Object.entries(corePatterns)) {
-      if ((mapping as Record<string, unknown>)[field] === null) {
+      if ((mapping as unknown as Record<string, unknown>)[field] === null) {
         for (const pattern of fieldPatterns) {
           if (pattern.test(normalizedHeader)) {
-            (mapping as Record<string, unknown>)[field] = header;
+            (mapping as unknown as Record<string, unknown>)[field] = header;
             mappedHeaders.add(header);
             break;
           }

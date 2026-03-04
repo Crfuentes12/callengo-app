@@ -295,7 +295,7 @@ export async function POST(request: NextRequest) {
                 .update({
                   metadata: {
                     ...existingMeta,
-                    ai_intent_analysis: intentResult,
+                    ai_intent_analysis: JSON.parse(JSON.stringify(intentResult)),
                     analysis_timestamp: new Date().toISOString(),
                   },
                 })
@@ -495,7 +495,7 @@ export async function POST(request: NextRequest) {
             await supabaseAdmin
               .from('contacts')
               .update({
-                custom_fields: {
+                custom_fields: JSON.parse(JSON.stringify({
                   ...cf,
                   qualification_score: leadResult.qualificationScore,
                   budget: leadResult.budget || cf.budget,
@@ -503,7 +503,7 @@ export async function POST(request: NextRequest) {
                   need: leadResult.need || cf.need,
                   timeline: leadResult.timeline || cf.timeline,
                   ...leadResult.extractedData,
-                },
+                })),
                 updated_at: new Date().toISOString(),
               })
               .eq('id', contactId);
@@ -710,7 +710,7 @@ export async function POST(request: NextRequest) {
         const { _locked, _locked_at, _locked_by, _lock_call_id, ...restFields } = unlockCf;
         await supabaseAdmin
           .from('contacts')
-          .update({ custom_fields: restFields })
+          .update({ custom_fields: JSON.parse(JSON.stringify(restFields)) })
           .eq('id', contactId);
       } catch (unlockErr) {
         console.error('Failed to unlock contact (non-fatal):', unlockErr);
