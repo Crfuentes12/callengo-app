@@ -140,6 +140,9 @@ export interface ColumnMapping {
   zipCode: string | null;
   phoneNumber: string | null;
   email: string | null;
+  // Dynamic extra columns: maps custom field names to CSV header names
+  // All unmapped columns are stored in custom_fields automatically
+  extraFields?: Record<string, string>;
 }
 
 export interface DashboardStats {

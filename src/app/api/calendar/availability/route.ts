@@ -45,7 +45,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(availability);
     }
 
-    return NextResponse.json({ error: 'Missing date or start_time/end_time parameters' }, { status: 400 });
+    // Find the next available slot from now
+    const findNext = searchParams.get('find_next');
+    if (findNext === 'true') {
+      const { getNextAvailableSlot } = await import('@/lib/calendar/availability');
+      const durationMinutes = parseInt(searchParams.get('duration') || '30');
+      const slot = await getNextAvailableSlot(
+        userData.company_id,
+        new Date().toISOString(),
+        durationMinutes,
+        { maxDaysToSearch: 14 }
+      );
+      if (!slot) {
+        return NextResponse.json({ available: false, message: 'No available slots found in the next 14 days' });
+      }
+      return NextResponse.json({ available: true, slot });
+    }
+
+    return NextResponse.json({ error: 'Missing date or start_time/end_time parameters. Use ?find_next=true to find next available slot.' }, { status: 400 });
   } catch (error) {
     console.error('Error checking availability:', error);
     return NextResponse.json({ error: 'Failed to check availability' }, { status: 500 });

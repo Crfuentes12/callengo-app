@@ -56,7 +56,9 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
     zipCode: null,
     phoneNumber: null,
     email: null,
+    extraFields: {},
   });
+  const [showExtraFields, setShowExtraFields] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
   const [contactLists, setContactLists] = useState<ContactList[]>([]);
@@ -546,9 +548,10 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
           {step === 'mapping' && (
             <div>
               <p className="text-sm text-slate-600 mb-4">
-                Map your CSV columns to contact fields. Found <span className="font-semibold text-slate-900">{rows.length}</span> rows.
+                Map your CSV columns to contact fields. Found <span className="font-semibold text-slate-900">{rows.length}</span> rows with <span className="font-semibold text-slate-900">{headers.length}</span> columns.
               </p>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Core Fields</div>
                 {Object.entries({
                   firstName: 'First Name',
                   lastName: 'Last Name',
@@ -562,11 +565,11 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   zipCode: 'Zip Code',
                 }).map(([field, label]) => (
                   <div key={field} className="flex items-center gap-4">
-                    <label className="w-36 text-sm font-medium text-slate-700">{label}</label>
+                    <label className="w-36 text-sm font-medium text-slate-700 flex-shrink-0">{label}</label>
                     <select
-                      value={mapping[field as keyof ColumnMapping] || ''}
+                      value={(mapping as Record<string, unknown>)[field] as string || ''}
                       onChange={(e) => setMapping({ ...mapping, [field]: e.target.value || null })}
-                      className="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white transition-all cursor-pointer"
+                      className="flex-1 px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white transition-all cursor-pointer text-sm"
                     >
                       <option value="">-- Select Column --</option>
                       {headers.map((header) => (
@@ -576,6 +579,50 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   </div>
                 ))}
               </div>
+
+              {/* Extra Fields Section */}
+              {mapping.extraFields && Object.keys(mapping.extraFields).length > 0 && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => setShowExtraFields(!showExtraFields)}
+                    className="flex items-center gap-2 text-sm font-semibold text-[var(--color-primary)] hover:underline"
+                  >
+                    <svg className={`w-4 h-4 transition-transform ${showExtraFields ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    {Object.keys(mapping.extraFields).length} Additional Columns Detected (stored in Custom Fields)
+                  </button>
+                  {showExtraFields && (
+                    <div className="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1 border border-slate-100 rounded-xl p-3 bg-slate-50/50">
+                      {Object.entries(mapping.extraFields).map(([fieldName, headerName]) => (
+                        <div key={fieldName} className="flex items-center gap-3">
+                          <span className="w-40 text-xs font-medium text-slate-600 truncate flex-shrink-0" title={fieldName}>
+                            {fieldName.replace(/_/g, ' ')}
+                          </span>
+                          <svg className="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                          <span className="text-xs text-slate-500 truncate">{headerName}</span>
+                          <button
+                            onClick={() => {
+                              const newExtra = { ...mapping.extraFields };
+                              delete newExtra[fieldName];
+                              setMapping({ ...mapping, extraFields: newExtra });
+                            }}
+                            className="ml-auto flex-shrink-0 w-5 h-5 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-all"
+                            title="Remove this mapping"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setStep('list-select')}
