@@ -1,7 +1,7 @@
 // components/contacts/ContactDetailDrawer.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Contact, CallAnalysis, CallMetadata, ContactStatus } from '@/types/call-agent';
 import {
   formatPhoneForDisplay,
@@ -59,6 +59,75 @@ export default function ContactDetailDrawer({
 
   const analysis = contact.analysis as CallAnalysis | null;
   const metadata = contact.call_metadata as CallMetadata | null;
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+
+  // Categorize custom_fields for organized display
+  const customFieldCategories = useMemo(() => {
+    const cf = (contact.custom_fields as Record<string, unknown>) || {};
+    // Internal fields to hide
+    const hiddenKeys = new Set(['_locked', '_locked_at', '_locked_by', '_lock_call_id']);
+
+    const categories: Record<string, { label: string; color: string; fields: { key: string; value: unknown }[] }> = {
+      contact_info: { label: 'Additional Contact Info', color: 'blue', fields: [] },
+      medical: { label: 'Medical / Provider', color: 'emerald', fields: [] },
+      business: { label: 'Business / Qualification', color: 'purple', fields: [] },
+      validation: { label: 'Data Validation', color: 'amber', fields: [] },
+      ai_analysis: { label: 'AI Analysis', color: 'indigo', fields: [] },
+      scheduling: { label: 'Scheduling', color: 'rose', fields: [] },
+      other: { label: 'Other Fields', color: 'slate', fields: [] },
+    };
+
+    const contactKeys = /^(corporate_email|personal_email|fax|alt_phone|decision_maker|title|department|website|linkedin)/i;
+    const medicalKeys = /^(doctor|dr_|physician|provider|patient|medico|attending|specialty|diagnosis|treatment|insurance)/i;
+    const businessKeys = /^(qualification|budget|authority|need|timeline|revenue|employees|industry|company_size|lead_score)/i;
+    const validationKeys = /^(validation_status|validated_|data_validated|verification)/i;
+    const aiKeys = /^(ai_|sentiment|interest_level|confidence|intent|qualification_score)/i;
+    const schedulingKeys = /^(appointment|meeting|callback|follow_up|no_show|schedule|calendar)/i;
+
+    for (const [key, value] of Object.entries(cf)) {
+      if (hiddenKeys.has(key)) continue;
+      if (value === null || value === undefined || value === '') continue;
+
+      const entry = { key, value };
+      if (contactKeys.test(key)) categories.contact_info.fields.push(entry);
+      else if (medicalKeys.test(key)) categories.medical.fields.push(entry);
+      else if (businessKeys.test(key)) categories.business.fields.push(entry);
+      else if (validationKeys.test(key)) categories.validation.fields.push(entry);
+      else if (aiKeys.test(key)) categories.ai_analysis.fields.push(entry);
+      else if (schedulingKeys.test(key)) categories.scheduling.fields.push(entry);
+      else categories.other.fields.push(entry);
+    }
+
+    // Only return categories with fields
+    return Object.entries(categories).filter(([, cat]) => cat.fields.length > 0);
+  }, [contact.custom_fields]);
+
+  const toggleCategory = (key: string) => {
+    setExpandedCategories(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const formatFieldName = (key: string): string => {
+    return key
+      .replace(/_/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/^./, c => c.toUpperCase());
+  };
+
+  const formatFieldValue = (value: unknown): string => {
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (typeof value === 'number') return String(value);
+    if (value instanceof Date) return value.toLocaleString();
+    if (typeof value === 'string') {
+      // Check if ISO date
+      if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+        try { return new Date(value).toLocaleString(); } catch { return value; }
+      }
+      return value;
+    }
+    if (Array.isArray(value)) return value.join(', ');
+    if (typeof value === 'object' && value !== null) return JSON.stringify(value, null, 2);
+    return String(value);
+  };
 
   useEffect(() => {
     // Fetch CRM mappings
@@ -365,6 +434,58 @@ export default function ContactDetailDrawer({
                       </ul>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Custom Fields — Collapsable Categories */}
+              {customFieldCategories.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Custom Fields</h3>
+                  {customFieldCategories.map(([catKey, cat]) => {
+                    const isExpanded = expandedCategories[catKey] ?? (cat.fields.length <= 4);
+                    const colorMap: Record<string, string> = {
+                      blue: 'bg-blue-50/80 border-blue-100 text-blue-700',
+                      emerald: 'bg-emerald-50/80 border-emerald-100 text-emerald-700',
+                      purple: 'bg-purple-50/80 border-purple-100 text-purple-700',
+                      amber: 'bg-amber-50/80 border-amber-100 text-amber-700',
+                      indigo: 'bg-indigo-50/80 border-indigo-100 text-indigo-700',
+                      rose: 'bg-rose-50/80 border-rose-100 text-rose-700',
+                      slate: 'bg-slate-50/80 border-slate-100 text-slate-700',
+                    };
+                    const colors = colorMap[cat.color] || colorMap.slate;
+                    return (
+                      <div key={catKey} className={`rounded-xl border ${colors.split(' ').slice(0, 2).join(' ')}`}>
+                        <button
+                          onClick={() => toggleCategory(catKey)}
+                          className="w-full flex items-center justify-between px-4 py-2.5 text-left"
+                        >
+                          <span className={`text-xs font-bold uppercase tracking-wider ${colors.split(' ')[2]}`}>
+                            {cat.label} ({cat.fields.length})
+                          </span>
+                          <svg
+                            className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {isExpanded && (
+                          <div className="px-4 pb-3 space-y-2">
+                            {cat.fields.map(({ key, value }) => (
+                              <div key={key} className="flex justify-between items-start gap-2">
+                                <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide whitespace-nowrap min-w-0 flex-shrink-0">
+                                  {formatFieldName(key)}
+                                </span>
+                                <span className="text-xs text-slate-800 text-right break-words max-w-[60%]">
+                                  {formatFieldValue(value)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
