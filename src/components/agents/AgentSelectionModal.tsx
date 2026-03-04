@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { AgentTemplate } from '@/types/supabase';
 import Image from 'next/image';
+import { useTranslation } from '@/i18n';
 
 interface AgentSelectionModalProps {
   agentTemplates: AgentTemplate[];
@@ -12,6 +13,7 @@ interface AgentSelectionModalProps {
 }
 
 export default function AgentSelectionModal({ agentTemplates, onSelect, onClose }: AgentSelectionModalProps) {
+  const { t } = useTranslation();
   const [userInput, setUserInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recommendedAgent, setRecommendedAgent] = useState<AgentTemplate | null>(null);
@@ -95,10 +97,10 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
           {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 tracking-tight">
-              What do you want to do today?
+              {t.agents.title}
             </h2>
             <p className="text-sm text-slate-500">
-              Tell us about your challenge, and we&apos;ll find the perfect AI agent for you
+              {t.agents.subtitle}
             </p>
           </div>
 
@@ -139,7 +141,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    Find My Agent
+                    {t.agents.useAgent}
                   </>
                 )}
               </button>
@@ -176,7 +178,7 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
           {/* Divider */}
           <div className="flex items-center gap-4 mb-8">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-            <span className="text-sm text-slate-400 font-semibold uppercase tracking-wider">Or choose manually</span>
+            <span className="text-sm text-slate-400 font-semibold uppercase tracking-wider">{t.agents.customizeAgent}</span>
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
           </div>
 
@@ -229,14 +231,14 @@ export default function AgentSelectionModal({ agentTemplates, onSelect, onClose 
               onClick={onClose}
               className="px-6 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-lg hover:bg-slate-200 transition-all"
             >
-              Cancel
+              {t.common.cancel}
             </button>
             <button
               onClick={handleContinue}
               disabled={!selectedAgentId && !recommendedAgent}
               className="px-8 py-2.5 gradient-bg text-white font-semibold rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              Continue
+              {t.common.next}
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>

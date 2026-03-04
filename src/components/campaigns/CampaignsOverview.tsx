@@ -3,6 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useTranslation } from '@/i18n';
 import { AgentTemplate, Company } from '@/types/supabase';
 import AgentSelectionModal from '@/components/agents/AgentSelectionModal';
 import AgentConfigModal from '@/components/agents/AgentConfigModal';
@@ -61,6 +62,7 @@ export default function CampaignsOverview({
   company,
   companySettings,
 }: CampaignsOverviewProps) {
+  const { t } = useTranslation();
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAgentSelection, setShowAgentSelection] = useState(false);
@@ -122,12 +124,12 @@ export default function CampaignsOverview({
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; text: string; bgColor: string }> = {
-      running: { color: 'text-emerald-700', text: 'Running', bgColor: 'bg-emerald-50 border-emerald-200' },
-      active: { color: 'text-emerald-700', text: 'Active', bgColor: 'bg-emerald-50 border-emerald-200' },
-      completed: { color: 'text-blue-700', text: 'Completed', bgColor: 'bg-blue-50 border-blue-200' },
-      paused: { color: 'text-amber-700', text: 'Paused', bgColor: 'bg-amber-50 border-amber-200' },
-      failed: { color: 'text-red-700', text: 'Failed', bgColor: 'bg-red-50 border-red-200' },
-      draft: { color: 'text-slate-700', text: 'Draft', bgColor: 'bg-slate-50 border-slate-200' },
+      running: { color: 'text-emerald-700', text: t.campaigns.running, bgColor: 'bg-emerald-50 border-emerald-200' },
+      active: { color: 'text-emerald-700', text: t.campaigns.running, bgColor: 'bg-emerald-50 border-emerald-200' },
+      completed: { color: 'text-blue-700', text: t.campaigns.completed, bgColor: 'bg-blue-50 border-blue-200' },
+      paused: { color: 'text-amber-700', text: t.campaigns.paused, bgColor: 'bg-amber-50 border-amber-200' },
+      failed: { color: 'text-red-700', text: t.calls.failed, bgColor: 'bg-red-50 border-red-200' },
+      draft: { color: 'text-slate-700', text: t.campaigns.draft, bgColor: 'bg-slate-50 border-slate-200' },
     };
 
     const config = statusConfig[status] || statusConfig.draft;
@@ -151,19 +153,19 @@ export default function CampaignsOverview({
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Campaigns' }]} />
+      <Breadcrumbs items={[{ label: t.campaigns.title }]} />
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Campaigns</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t.campaigns.title}</h1>
           <p className="text-slate-600 mt-1">Track and manage your AI calling campaigns</p>
         </div>
         <button
           onClick={() => setShowAgentSelection(true)}
           className="btn-primary"
         >
-          + New Campaign
+          + {t.campaigns.newCampaign}
         </button>
       </div>
 
@@ -171,16 +173,16 @@ export default function CampaignsOverview({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Active</span>
+            <span className="text-sm font-medium text-slate-500">{t.dashboard.activeCampaigns}</span>
             <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
           </div>
           <div className="text-2xl font-bold text-slate-900">{stats.active}</div>
-          <div className="text-xs text-slate-500 mt-1">Running campaigns</div>
+          <div className="text-xs text-slate-500 mt-1">{t.campaigns.running}</div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Completed</span>
+            <span className="text-sm font-medium text-slate-500">{t.campaigns.completed}</span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -188,12 +190,12 @@ export default function CampaignsOverview({
             </div>
           </div>
           <div className="text-2xl font-bold text-slate-900">{stats.completed}</div>
-          <div className="text-xs text-slate-500 mt-1">Total finished</div>
+          <div className="text-xs text-slate-500 mt-1">{t.campaigns.completed}</div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Success Rate</span>
+            <span className="text-sm font-medium text-slate-500">{t.campaigns.successRate}</span>
             <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-50)] flex items-center justify-center">
               <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -201,12 +203,12 @@ export default function CampaignsOverview({
             </div>
           </div>
           <div className="text-2xl font-bold text-slate-900">{stats.successRate}%</div>
-          <div className="text-xs text-slate-500 mt-1">Across {stats.totalCalls} calls</div>
+          <div className="text-xs text-slate-500 mt-1">{stats.totalCalls} {t.campaigns.calls}</div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Follow-ups</span>
+            <span className="text-sm font-medium text-slate-500">{t.followUps.title}</span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -214,7 +216,7 @@ export default function CampaignsOverview({
             </div>
           </div>
           <div className="text-2xl font-bold text-slate-900">{stats.pendingFollowUps}</div>
-          <div className="text-xs text-slate-500 mt-1">Pending · {stats.completedFollowUps} done</div>
+          <div className="text-xs text-slate-500 mt-1">{t.followUps.pending} · {stats.completedFollowUps} {t.followUps.completed}</div>
         </div>
       </div>
 
@@ -222,25 +224,34 @@ export default function CampaignsOverview({
       <div className="bg-white rounded-xl border border-slate-200 p-4">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-wrap">
-            {(['all', 'active', 'completed', 'paused', 'failed'] as FilterStatus[]).map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                  filterStatus === status
-                    ? 'gradient-bg text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
+            {(['all', 'active', 'completed', 'paused', 'failed'] as FilterStatus[]).map((status) => {
+              const filterLabels: Record<FilterStatus, string> = {
+                all: t.common.all,
+                active: t.campaigns.running,
+                completed: t.campaigns.completed,
+                paused: t.campaigns.paused,
+                failed: t.calls.failed,
+              };
+              return (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                    filterStatus === status
+                      ? 'gradient-bg text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {filterLabels[status]}
+                </button>
+              );
+            })}
           </div>
 
           <div className="relative w-full sm:w-64">
             <input
               type="text"
-              placeholder="Search campaigns..."
+              placeholder={t.campaigns.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-colors"
@@ -266,16 +277,16 @@ export default function CampaignsOverview({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">No campaigns found</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">{t.campaigns.noCampaigns}</h3>
             <p className="text-slate-600 mb-6">
-              {searchQuery || filterStatus !== 'all' ? 'Try adjusting your filters' : 'Create your first campaign to get started'}
+              {searchQuery || filterStatus !== 'all' ? t.common.noResults : t.campaigns.noCampaignsDesc}
             </p>
             {!searchQuery && filterStatus === 'all' && (
               <Link
                 href="/agents"
                 className="btn-primary"
               >
-                + Create Campaign
+                + {t.campaigns.newCampaign}
               </Link>
             )}
           </div>
@@ -284,13 +295,13 @@ export default function CampaignsOverview({
             <table className="w-full">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">Campaign</th>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">Agent</th>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">Status</th>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">Progress</th>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">Success Rate</th>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">Features</th>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">Created</th>
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">{t.campaigns.campaignName}</th>
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">{t.campaigns.selectAgent}</th>
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">{t.campaigns.status}</th>
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">{t.campaigns.overview}</th>
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">{t.campaigns.successRate}</th>
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">{t.billing.features}</th>
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase">{t.campaigns.created}</th>
                 </tr>
               </thead>
               <tbody>
@@ -310,7 +321,7 @@ export default function CampaignsOverview({
                       <td className="py-4 px-6">
                         <Link href={`/campaigns/${campaign.id}`} className="font-semibold text-slate-900 hover:text-[var(--color-primary)] transition-colors">{campaign.name}</Link>
                         <div className="text-xs text-slate-500 mt-1">
-                          {campaign.total_contacts} contacts
+                          {campaign.total_contacts} {t.campaigns.contacts}
                         </div>
                       </td>
                       <td className="py-4 px-6">

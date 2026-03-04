@@ -1,4 +1,11 @@
+'use client';
+
+import LanguageSelector from '@/components/LanguageSelector';
+import { useTranslation } from '@/i18n';
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
+
   return (
     <div
       className="min-h-screen relative overflow-hidden flex items-center justify-center p-4 sm:p-6"
@@ -13,6 +20,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       {/* Soft vignette */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.25)_100%)] pointer-events-none" />
+
+      {/* Language selector - top right corner */}
+      <div className="absolute top-4 right-4 z-20">
+        <LanguageSelector compact dark />
+      </div>
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-[420px]">
@@ -29,7 +41,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         {/* Footer */}
         <p className="mt-6 text-center text-[11px] text-white/20">
-          &copy; {new Date().getFullYear()} Callengo. All rights reserved.
+          &copy; {new Date().getFullYear()} Callengo. {t.auth.footer}
         </p>
       </div>
     </div>

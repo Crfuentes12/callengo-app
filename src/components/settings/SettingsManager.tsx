@@ -9,6 +9,9 @@ import BillingSettings from './BillingSettings';
 import CallSettings from './CallSettings';
 import NotificationSettings from './NotificationSettings';
 import VoiceSelector from '@/components/voice/VoiceSelector';
+import { useTranslation, useLanguage } from '@/i18n';
+import LanguageSelector from '@/components/LanguageSelector';
+import type { SupportedLanguage } from '@/i18n/translations';
 
 type Company = Database['public']['Tables']['companies']['Row'];
 type CompanySettings = Database['public']['Tables']['company_settings']['Row'];
@@ -31,12 +34,15 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing' | 'notifications'>('company');
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguage();
+  const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing' | 'notifications' | 'language'>('company');
+  const [savingLanguage, setSavingLanguage] = useState(false);
 
   // Handle URL query params for deep linking (e.g., from Integrations → Twilio)
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'calling' || tab === 'billing' || tab === 'notifications' || tab === 'company') {
+    if (tab === 'calling' || tab === 'billing' || tab === 'notifications' || tab === 'company' || tab === 'language') {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -123,14 +129,14 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       if (!response.ok) throw new Error('Failed to update logo');
 
       setCompany({ ...company, favicon_url: logoUrl });
-      setSuccess('Company logo updated successfully');
+      setSuccess(t.settings.company.logoUploadSuccess);
       setFaviconTimestamp(Date.now()); // Force favicon refresh
 
       // Refresh the page to update all components with new logo
       router.refresh();
     } catch (error) {
       console.error('Logo upload error:', error);
-      alert('Failed to upload logo. Please try again.');
+      alert(t.settings.company.logoUploadError);
     } finally {
       setUploadingLogo(false);
     }
@@ -158,7 +164,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
 
       // Update local state to match saved data
       setCompany({ ...company, website: websiteInput });
-      setSuccess('Company information updated successfully');
+      setSuccess(t.settings.company.updateSuccess);
       setFaviconTimestamp(Date.now()); // Force favicon refresh
 
       // Refresh the page to update all components with new company data
@@ -166,7 +172,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
         window.location.reload();
       }, 500);
     } catch (error) {
-      alert('Failed to update company information');
+      alert(t.settings.company.updateError);
     } finally {
       setLoading(false);
     }
@@ -199,9 +205,9 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       }));
       setFaviconTimestamp(Date.now()); // Force favicon refresh
 
-      setSuccess('Website analyzed! Review the extracted information (including company name) and click "Save Company Info" to apply changes.');
+      setSuccess(t.settings.company.analyzeSuccess);
     } catch (error) {
-      alert('Failed to analyze website');
+      alert(t.settings.company.analyzeError);
     } finally {
       setLoading(false);
     }
@@ -246,9 +252,9 @@ export default function SettingsManager({ company: initialCompany, settings: ini
 
       if (error) throw error;
 
-      setSuccess('Call settings updated successfully');
+      setSuccess(t.settings.calling.success);
     } catch (error) {
-      alert('Failed to update settings');
+      alert(t.settings.calling.error);
     } finally {
       setLoading(false);
     }
@@ -273,10 +279,11 @@ export default function SettingsManager({ company: initialCompany, settings: ini
         <div className="border-b border-slate-100">
           <nav className="flex">
             {[
-              { id: 'company', label: 'Company Info', icon: '🏢' },
-              { id: 'calling', label: 'Call Settings', icon: '📞' },
-              { id: 'billing', label: 'Billing & Plans', icon: '💳' },
-              { id: 'notifications', label: 'Notifications', icon: '🔔' },
+              { id: 'company', label: t.settings.tabs.company, icon: '🏢' },
+              { id: 'calling', label: t.settings.tabs.calling, icon: '📞' },
+              { id: 'billing', label: t.settings.tabs.billing, icon: '💳' },
+              { id: 'notifications', label: t.settings.tabs.notifications, icon: '🔔' },
+              { id: 'language', label: t.settings.language.title, icon: '🌐' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -333,7 +340,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                             <svg className="w-6 h-6 text-white mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span className="text-xs text-white font-medium">Upload</span>
+                            <span className="text-xs text-white font-medium">{t.settings.company.uploadLogo}</span>
                           </>
                         )}
                       </div>
@@ -351,20 +358,20 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                   {/* Company Info Header */}
                   <div className="flex-1">
                     <h2 className="text-3xl font-bold text-slate-900 mb-2">
-                      {company.name || 'Your Company'}
+                      {company.name || t.settings.company.companyName}
                     </h2>
                     <p className="text-[var(--color-primary)] font-medium mb-3">
-                      {company.industry || 'Set your industry'}
+                      {company.industry || t.settings.company.setIndustry}
                     </p>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                        <span className="text-xs text-slate-600 font-semibold">Active</span>
+                        <span className="text-xs text-slate-600 font-semibold">{t.settings.company.active}</span>
                       </div>
                       <div className="h-4 w-px bg-slate-300"></div>
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
-                        <span className="text-xs text-slate-600 font-semibold">Connected</span>
+                        <span className="text-xs text-slate-600 font-semibold">{t.settings.company.connected}</span>
                       </div>
                     </div>
                   </div>
@@ -377,7 +384,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                       <span className="w-6 h-6 rounded-md bg-[var(--color-primary-50)] text-[var(--color-primary)] flex items-center justify-center text-xs">🏢</span>
-                      Company Name
+                      {t.settings.company.companyName}
                     </label>
                     <input
                       type="text"
@@ -391,13 +398,13 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                       <span className="w-6 h-6 rounded-md bg-purple-100 text-purple-600 flex items-center justify-center text-xs">🏭</span>
-                      Industry
+                      {t.settings.company.industry}
                     </label>
                     <input
                       type="text"
                       value={company.industry}
                       onChange={(e) => setCompany({ ...company, industry: e.target.value })}
-                      placeholder="e.g., Technology, Healthcare, Retail"
+                      placeholder={t.settings.company.industryPlaceholder}
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all bg-white hover:border-slate-300"
                     />
                   </div>
@@ -406,7 +413,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                     <span className="w-6 h-6 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center text-xs">🌐</span>
-                    Website
+                    {t.settings.company.website}
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -419,7 +426,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                           handleScrapeWebsite();
                         }
                       }}
-                      placeholder="example.com"
+                      placeholder={t.settings.company.websitePlaceholder}
                       className="flex-1 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all bg-white hover:border-slate-300"
                     />
                     <button
@@ -431,27 +438,27 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
-                      {loading ? 'Analyzing...' : 'Analyze'}
+                      {loading ? t.settings.company.analyzing : t.settings.company.analyze}
                     </button>
                   </div>
                   <p className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    We'll extract company info from your website to improve AI conversations
+                    {t.settings.company.websiteHint}
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                     <span className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs">📝</span>
-                    Description
+                    {t.settings.company.description}
                   </label>
                   <textarea
                     value={company.description}
                     onChange={(e) => setCompany({ ...company, description: e.target.value })}
                     rows={5}
-                    placeholder="Brief description of your company and what you do..."
+                    placeholder={t.settings.company.descriptionPlaceholder}
                     className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all resize-none bg-white hover:border-slate-300"
                   />
                 </div>
@@ -464,10 +471,10 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                   {loading ? (
                     <span className="flex items-center justify-center gap-3">
                       <div className="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Saving...
+                      {t.settings.company.saving}
                     </span>
                   ) : (
-                    'Save Company Info'
+                    t.settings.company.saveButton
                   )}
                 </button>
               </form>
@@ -504,6 +511,58 @@ export default function SettingsManager({ company: initialCompany, settings: ini
               userId={user.id}
               initialEnabled={user.notifications_enabled ?? true}
             />
+          )}
+
+          {/* Language Tab */}
+          {activeTab === 'language' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">{t.settings.language.title}</h3>
+                <p className="text-sm text-slate-500">{t.settings.language.subtitle}</p>
+              </div>
+
+              <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                <label className="block text-sm font-semibold text-slate-700 mb-3">
+                  {t.settings.language.selectLanguage}
+                </label>
+                <LanguageSelector value={language} onChange={(lang) => setLanguage(lang)} />
+                <p className="text-xs text-slate-500 mt-3">{t.settings.language.description}</p>
+              </div>
+
+              <button
+                onClick={async () => {
+                  setSavingLanguage(true);
+                  try {
+                    // Save language preference to company settings JSON
+                    const existingJsonSettings = (initialSettings.settings as Record<string, unknown>) || {};
+                    const { error } = await supabase
+                      .from('company_settings')
+                      .update({
+                        settings: { ...existingJsonSettings, language }
+                      })
+                      .eq('company_id', initialCompany.id);
+                    if (error) throw error;
+
+                    setSuccess(t.settings.language.success);
+                  } catch {
+                    alert(t.settings.language.error);
+                  } finally {
+                    setSavingLanguage(false);
+                  }
+                }}
+                disabled={savingLanguage}
+                className="btn-primary w-full py-4 font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg"
+              >
+                {savingLanguage ? (
+                  <span className="flex items-center justify-center gap-3">
+                    <div className="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                    {t.settings.language.saving}
+                  </span>
+                ) : (
+                  t.settings.language.saveButton
+                )}
+              </button>
+            </div>
           )}
         </div>
       </div>

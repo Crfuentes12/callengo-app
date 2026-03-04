@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { BiLogoZoom } from 'react-icons/bi';
 import { GoogleCalendarIcon, OutlookIcon, GoogleMeetIcon, TeamsIcon, SlackIcon } from '@/components/icons/BrandIcons';
 import { createClient } from '@/lib/supabase/client';
+import { useTranslation } from '@/i18n';
 import type { CalendarStepConfig } from '@/types/calendar';
 
 // Re-export for consumers
@@ -290,6 +291,7 @@ export default function CalendarConfigStep({
   planSlug: propPlanSlug = 'free',
   companySettings,
 }: CalendarConfigStepProps) {
+  const { t } = useTranslation();
   const [integrations, setIntegrations] = useState<IntegrationStatuses>({
     google_calendar: { connected: false },
     microsoft_outlook: { connected: false },

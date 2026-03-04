@@ -4,6 +4,7 @@
 import { useState, useMemo } from 'react';
 import CallDetailModal from '@/components/calls/CallDetailModal';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import { useTranslation } from '@/i18n';
 
 interface FollowUp {
   id: string;
@@ -41,6 +42,7 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'pending' | 'scheduled' | 'completed'>('all');
   const [search, setSearch] = useState('');
   const [selectedFollowUp, setSelectedFollowUp] = useState<FollowUp | null>(null);
@@ -84,19 +86,19 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Follow-ups' }]} />
+      <Breadcrumbs items={[{ label: t.followUps.title }]} />
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Follow-ups</h1>
-        <p className="text-slate-600 mt-1">Manage scheduled follow-up calls and retry attempts</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t.followUps.title}</h1>
+        <p className="text-slate-600 mt-1">{t.followUps.noFollowUpsDesc}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Total Follow-ups</span>
+            <span className="text-sm font-medium text-slate-500">{t.common.total} {t.followUps.title}</span>
             <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-50)] flex items-center justify-center">
               <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -108,7 +110,7 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Pending</span>
+            <span className="text-sm font-medium text-slate-500">{t.followUps.pending}</span>
             <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -120,7 +122,7 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Completed</span>
+            <span className="text-sm font-medium text-slate-500">{t.followUps.completed}</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -132,7 +134,7 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Failed</span>
+            <span className="text-sm font-medium text-slate-500">{t.followUps.failed}</span>
             <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -151,7 +153,7 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
           </svg>
           <input
             type="text"
-            placeholder="Search by contact, company, or reason..."
+            placeholder={t.common.search}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
@@ -168,7 +170,7 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              {f === 'all' ? 'All' : f}
+              {f === 'all' ? t.common.filter : f === 'pending' ? t.followUps.pending : f === 'scheduled' ? t.calendar.scheduled : t.followUps.completed}
             </button>
           ))}
         </div>
@@ -180,12 +182,12 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Contact</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Campaign</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Status</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Attempt</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Reason</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Next Attempt</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.followUps.contact}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.followUps.campaign}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.followUps.status}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.followUps.attempts}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.followUps.reason}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.followUps.nextAttempt}</th>
               </tr>
             </thead>
             <tbody>
@@ -237,8 +239,8 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                       </div>
-                      <p className="text-sm font-medium text-slate-900">No follow-ups found</p>
-                      <p className="text-xs text-slate-500 mt-1">Follow-up calls will appear here when scheduled</p>
+                      <p className="text-sm font-medium text-slate-900">{t.followUps.noFollowUps}</p>
+                      <p className="text-xs text-slate-500 mt-1">{t.followUps.noFollowUpsDesc}</p>
                     </div>
                   </td>
                 </tr>

@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@/i18n';
 
 interface Campaign {
   id: string;
@@ -37,6 +38,7 @@ interface ReportsPageProps {
 }
 
 export default function ReportsPage({ campaigns, callStats, contacts, companyId }: ReportsPageProps) {
+  const { t } = useTranslation();
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
 
   const stats = useMemo(() => {
@@ -128,8 +130,8 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Reports</h1>
-          <p className="text-slate-600 mt-1">Analyze your campaign performance and call metrics</p>
+          <h1 className="text-2xl font-bold text-slate-900">{t.reports.title}</h1>
+          <p className="text-slate-600 mt-1">{t.reports.campaignReport}</p>
         </div>
         <div className="flex items-center gap-3">
           {/* Period Selector */}
@@ -152,7 +154,7 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Export CSV
+            {t.reports.download} CSV
           </button>
         </div>
       </div>
@@ -161,7 +163,7 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Total Calls</span>
+            <span className="text-sm font-medium text-slate-500">{t.reports.callSummary}</span>
             <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-50)] flex items-center justify-center">
               <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -174,7 +176,7 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Success Rate</span>
+            <span className="text-sm font-medium text-slate-500">{t.dashboard.successRate}</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -187,7 +189,7 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Avg Duration</span>
+            <span className="text-sm font-medium text-slate-500">{t.analytics.avgDuration}</span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -200,7 +202,7 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Campaigns</span>
+            <span className="text-sm font-medium text-slate-500">{t.nav.campaigns}</span>
             <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
@@ -223,8 +225,8 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
               </svg>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Call Volume</h3>
-              <p className="text-xs text-slate-500">Daily call activity</p>
+              <h3 className="text-sm font-semibold text-slate-900">{t.analytics.callVolume}</h3>
+              <p className="text-xs text-slate-500">{t.analytics.callsOverTime}</p>
             </div>
           </div>
           {(() => {
@@ -289,8 +291,8 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
               </svg>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Top Campaigns</h3>
-              <p className="text-xs text-slate-500">By success rate</p>
+              <h3 className="text-sm font-semibold text-slate-900">{t.analytics.campaignPerformance}</h3>
+              <p className="text-xs text-slate-500">{t.dashboard.successRate}</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -321,7 +323,7 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
               })
             ) : (
               <div className="text-center py-8">
-                <p className="text-sm text-slate-500">No campaign data yet</p>
+                <p className="text-sm text-slate-500">{t.reports.noReports}</p>
               </div>
             )}
           </div>
@@ -331,19 +333,19 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
       {/* Campaign Summary Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="p-6 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-900">Campaign Summary</h3>
-          <p className="text-xs text-slate-500 mt-1">Detailed breakdown of all campaigns</p>
+          <h3 className="text-sm font-semibold text-slate-900">{t.reports.callSummary}</h3>
+          <p className="text-xs text-slate-500 mt-1">{t.reports.campaignReport}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Campaign</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Agent</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Status</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Calls</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Success</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Date</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.nav.campaigns}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.nav.agents}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.common.status}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.campaigns.calls}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.dashboard.successRate}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.common.date}</th>
               </tr>
             </thead>
             <tbody>
@@ -392,7 +394,7 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
               ) : (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-sm text-slate-500">
-                    No campaigns yet
+                    {t.campaigns.noCampaigns}
                   </td>
                 </tr>
               )}

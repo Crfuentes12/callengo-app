@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from '@/i18n';
 import { GoogleSheetsIcon } from '@/components/icons/BrandIcons';
 
 interface SpreadsheetInfo {
@@ -57,6 +58,7 @@ export default function GoogleSheetsPickerModal({
   onShowToast,
   onSyncStart,
 }: GoogleSheetsPickerModalProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<PickerStep>('home');
   const [loading, setLoading] = useState(true);
   const [spreadsheets, setSpreadsheets] = useState<SpreadsheetInfo[]>([]);
@@ -323,12 +325,12 @@ export default function GoogleSheetsPickerModal({
                   {(step === 'loading-data' || step === 'linking' || step === 'syncing') && 'Processing...'}
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {step === 'home' && 'Import contacts or link a sheet for sync'}
-                  {step === 'spreadsheets' && 'Choose from your Google Sheets'}
-                  {step === 'tabs' && 'Select which tab to use'}
+                  {step === 'home' && t.contacts.importContacts}
+                  {step === 'spreadsheets' && t.contacts.importContacts}
+                  {step === 'tabs' && t.contacts.importContacts}
                   {step === 'action' && `${selectedSpreadsheet?.name} / ${selectedTab?.title}`}
-                  {step === 'loading-data' && 'Reading spreadsheet data...'}
-                  {step === 'linking' && 'Linking and syncing...'}
+                  {step === 'loading-data' && t.common.loading}
+                  {step === 'linking' && t.common.loading}
                 </p>
               </div>
             </div>
@@ -404,13 +406,13 @@ export default function GoogleSheetsPickerModal({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                   </svg>
                                 )}
-                                Sync
+                                {t.common.save}
                               </button>
                               <button
                                 onClick={() => handleUnlinkSheet(ls.id)}
                                 className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
                               >
-                                Unlink
+                                {t.common.delete}
                               </button>
                             </div>
                           </div>
@@ -452,7 +454,7 @@ export default function GoogleSheetsPickerModal({
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
-                  Back
+                  {t.common.back}
                 </button>
                 <div className="relative">
                   <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -460,7 +462,7 @@ export default function GoogleSheetsPickerModal({
                   </svg>
                   <input
                     type="text"
-                    placeholder="Search spreadsheets..."
+                    placeholder={t.contacts.searchPlaceholder}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all"
@@ -529,7 +531,7 @@ export default function GoogleSheetsPickerModal({
                           <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
                           Loading...
                         </>
-                      ) : 'Load More Spreadsheets'}
+                      ) : t.common.showMore}
                     </button>
                   )}
                 </div>
@@ -547,7 +549,7 @@ export default function GoogleSheetsPickerModal({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                Back to spreadsheets
+                {t.common.back}
               </button>
 
               {loading ? (
@@ -599,7 +601,7 @@ export default function GoogleSheetsPickerModal({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                Back to tabs
+                {t.common.back}
               </button>
 
               <div className="space-y-3">
@@ -614,7 +616,7 @@ export default function GoogleSheetsPickerModal({
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-900">Import Once</p>
+                    <p className="text-sm font-semibold text-slate-900">{t.contacts.importContacts}</p>
                     <p className="text-xs text-slate-500">Load data from this sheet now and map columns to contact fields</p>
                   </div>
                 </button>

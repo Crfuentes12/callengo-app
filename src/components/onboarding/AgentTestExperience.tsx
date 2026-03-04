@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '@/i18n';
 import { BLAND_VOICES } from '@/lib/voices/bland-voices';
 import { determineGender } from '@/lib/voices/voice-utils';
 import VoiceSelector from '@/components/voice/VoiceSelector';
@@ -64,6 +65,7 @@ export default function AgentTestExperience({
   onComplete,
   onSkip,
 }: AgentTestExperienceProps) {
+  const { t } = useTranslation();
   const agent = AGENT_CONFIG[agentSlug];
   const [step, setStep] = useState<'setup' | 'calling' | 'analysis'>('setup');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -88,7 +90,7 @@ export default function AgentTestExperience({
 
   const startCall = async () => {
     if (!phoneNumber.trim() || !selectedVoice) {
-      alert('Please enter your phone number and select a voice');
+      alert(t.onboarding.agentTest.enterPhoneAndVoice);
       return;
     }
 
@@ -140,7 +142,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
     } catch (error) {
       console.error('Error starting call:', error);
-      alert('Failed to start call. Please try again.');
+      alert(t.onboarding.agentTest.failedToStartCall);
       setLoading(false);
       setStep('setup');
       setCallStatus('idle');
@@ -216,11 +218,11 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
   const getStatusText = () => {
     switch (callStatus) {
-      case 'dialing': return 'Dialing...';
-      case 'ringing': return 'Ringing...';
-      case 'connected': return 'Connected';
-      case 'ended': return 'Call Ended';
-      default: return 'Ready';
+      case 'dialing': return t.onboarding.agentTest.dialing;
+      case 'ringing': return t.onboarding.agentTest.ringing;
+      case 'connected': return t.onboarding.agentTest.connected;
+      case 'ended': return t.onboarding.agentTest.callEnded;
+      default: return t.onboarding.agentTest.ready;
     }
   };
 
@@ -237,9 +239,9 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
               <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${agent.color} mb-4 shadow-lg`}>
                 <span className="text-3xl">{agent.icon}</span>
               </div>
-              <h2 className="text-3xl font-bold text-white mb-2">Test Your {agentTitle}</h2>
+              <h2 className="text-3xl font-bold text-white mb-2">{t.onboarding.agentTest.testYourAgent.replace('{agentTitle}', agentTitle)}</h2>
               <p className="text-slate-400">
-                Experience how {agentName} will interact with your contacts
+                {t.onboarding.agentTest.experienceAgent.replace('{agentName}', agentName)}
               </p>
             </div>
 
@@ -248,21 +250,21 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
               {/* Agent Name */}
               <div>
                 <label className="block text-sm font-bold text-slate-300 mb-2">
-                  Agent Name
+                  {t.onboarding.agentTest.agentName}
                 </label>
                 <input
                   type="text"
                   value={agentName}
                   onChange={(e) => setAgentName(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
-                  placeholder="e.g., Sarah, Mike, Alex"
+                  placeholder={t.onboarding.agentTest.agentNamePlaceholder}
                 />
               </div>
 
               {/* Phone Number */}
               <div>
                 <label className="block text-sm font-bold text-slate-300 mb-2">
-                  Your Phone Number
+                  {t.onboarding.agentTest.yourPhoneNumber}
                 </label>
                 <input
                   type="tel"
@@ -272,14 +274,14 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                   placeholder="+1 (555) 123-4567"
                 />
                 <p className="text-xs text-slate-500 mt-2">
-                  You'll receive a call from the AI agent in a few seconds
+                  {t.onboarding.agentTest.phoneHint}
                 </p>
               </div>
 
               {/* Voice Selector */}
               <div>
                 <label className="block text-sm font-bold text-slate-300 mb-2">
-                  Select Voice
+                  {t.onboarding.agentTest.selectVoice}
                 </label>
                 <VoiceSelector
                   selectedVoiceId={selectedVoice}
@@ -290,7 +292,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
               {/* Demo Data Info */}
               <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
-                <h3 className="text-sm font-bold text-white mb-2">Demo Data</h3>
+                <h3 className="text-sm font-bold text-white mb-2">{t.onboarding.agentTest.demoData}</h3>
                 <div className="space-y-1">
                   {Object.entries(agent.demoData).map(([key, value]) => (
                     <div key={key} className="flex justify-between text-sm">
@@ -315,13 +317,13 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  Start Test Call
+                  {t.onboarding.agentTest.startTestCall}
                 </button>
                 <button
                   onClick={onSkip}
                   className="px-6 py-4 bg-slate-800 text-slate-300 rounded-lg font-medium hover:bg-slate-700 transition-colors"
                 >
-                  Skip
+                  {t.onboarding.agentTest.skip}
                 </button>
               </div>
             </div>
@@ -339,7 +341,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
             </div>
 
             <h2 className="text-4xl font-bold text-white mb-2">{getStatusText()}</h2>
-            <p className="text-xl text-slate-400 mb-6">{agentName} is calling you...</p>
+            <p className="text-xl text-slate-400 mb-6">{t.onboarding.agentTest.callingYou.replace('{agentName}', agentName)}</p>
 
             {callStatus === 'connected' && (
               <div className="text-6xl font-bold text-white tabular-nums">
@@ -350,11 +352,11 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
             <div className="mt-8 bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Phone:</span>
+                  <span className="text-slate-400">{t.onboarding.agentTest.phone}</span>
                   <span className="text-white font-mono">{phoneNumber}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Agent:</span>
+                  <span className="text-slate-400">{t.onboarding.agentTest.agent}</span>
                   <span className="text-white">{agentName}</span>
                 </div>
               </div>
@@ -372,9 +374,9 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-3xl font-bold text-white mb-2">Call Complete!</h2>
+              <h2 className="text-3xl font-bold text-white mb-2">{t.onboarding.agentTest.callComplete}</h2>
               <p className="text-slate-400">
-                Here's how {agentName} performed
+                {t.onboarding.agentTest.agentPerformance.replace('{agentName}', agentName)}
               </p>
             </div>
 
@@ -382,27 +384,27 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-white mb-1">{formatDuration(callDuration)}</div>
-                <div className="text-xs text-slate-400">Duration</div>
+                <div className="text-xs text-slate-400">{t.onboarding.agentTest.duration}</div>
               </div>
               <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-emerald-400 mb-1">Demo</div>
-                <div className="text-xs text-slate-400">Call Type</div>
+                <div className="text-2xl font-bold text-emerald-400 mb-1">{t.onboarding.agentTest.demo}</div>
+                <div className="text-xs text-slate-400">{t.onboarding.agentTest.callType}</div>
               </div>
               <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-white mb-1">✓</div>
-                <div className="text-xs text-slate-400">Completed</div>
+                <div className="text-xs text-slate-400">{t.onboarding.agentTest.completed}</div>
               </div>
             </div>
 
             {/* Analysis */}
             {callAnalysis && (
               <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-bold text-white mb-4">Call Analysis</h3>
+                <h3 className="text-lg font-bold text-white mb-4">{t.onboarding.agentTest.callAnalysis}</h3>
                 <div className="space-y-3 text-slate-300">
-                  <p>{callAnalysis.summary || 'Call completed successfully.'}</p>
+                  <p>{callAnalysis.summary || t.onboarding.agentTest.callCompletedSuccess}</p>
                   {callAnalysis.key_points && callAnalysis.key_points.length > 0 && (
                     <div>
-                      <p className="text-sm font-bold text-slate-400 mb-2">Key Points:</p>
+                      <p className="text-sm font-bold text-slate-400 mb-2">{t.onboarding.agentTest.keyPoints}</p>
                       <ul className="list-disc list-inside space-y-1">
                         {callAnalysis.key_points.map((point: string, idx: number) => (
                           <li key={idx} className="text-sm">{point}</li>
@@ -422,7 +424,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2
               `}
             >
-              Continue to Dashboard
+              {t.onboarding.agentTest.continueToDashboard}
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -432,7 +434,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
               onClick={onSkip}
               className="w-full mt-3 px-6 py-3 text-slate-400 hover:text-slate-300 text-sm font-medium transition-colors"
             >
-              Skip to dashboard without testing
+              {t.onboarding.agentTest.skipToDashboard}
             </button>
           </div>
         )}

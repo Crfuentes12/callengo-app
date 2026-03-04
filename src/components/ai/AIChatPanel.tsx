@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { createClient } from '@/lib/supabase/client';
+import { useTranslation } from '@/i18n';
 
 const PAGE_ROUTES: Record<string, string> = {
   'Dashboard': '/dashboard',
@@ -58,6 +59,7 @@ interface AIChatPanelProps {
 
 export default function AIChatPanel({ isOpen, onClose, userId, companyId, userName }: AIChatPanelProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const supabase = createClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -194,7 +196,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: t.aiChat.error,
         created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -265,14 +267,14 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900">Cali</h3>
-              <p className="text-[10px] text-slate-400 font-medium">AI Assistant &middot; Online</p>
+              <p className="text-[10px] text-slate-400 font-medium">{t.aiChat.title}</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setShowHistory(!showHistory)}
               className={`p-1.5 rounded-lg transition-colors ${showHistory ? 'text-[var(--color-primary)] bg-[var(--color-primary-50)]' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-              title="Chat history"
+              title={t.aiChat.history}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -281,7 +283,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             <button
               onClick={startNewConversation}
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-              title="New conversation"
+              title={t.aiChat.newConversation}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -313,9 +315,9 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
       {showHistory && (
         <div className="border-b border-slate-100 max-h-52 overflow-y-auto bg-slate-50/80 animate-slideDown shrink-0">
           <div className="p-3">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">Recent Conversations</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">{t.aiChat.history}</p>
             {conversations.length === 0 ? (
-              <p className="text-xs text-slate-400 px-1 py-2">No conversations yet</p>
+              <p className="text-xs text-slate-400 px-1 py-2">{t.aiChat.noHistory}</p>
             ) : (
               <div className="space-y-0.5">
                 {conversations.map(conv => (
@@ -331,7 +333,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
                         : 'text-slate-600 hover:bg-white'
                     }`}
                   >
-                    <p className="truncate font-medium">{conv.title || 'New conversation'}</p>
+                    <p className="truncate font-medium">{conv.title || t.aiChat.newConversation}</p>
                     <p className="text-[10px] text-slate-400 mt-0.5">{formatDate(conv.updated_at)}</p>
                   </button>
                 ))}
@@ -447,7 +449,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
                     <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium">Cali is thinking...</span>
+                <span className="text-[10px] text-slate-400 font-medium">{t.aiChat.thinking}</span>
               </div>
               <div className="bg-slate-100 rounded-2xl rounded-tl-md px-4 py-3">
                 <div className="flex gap-1.5">
@@ -471,7 +473,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Cali anything..."
+            placeholder={t.aiChat.placeholder}
             rows={1}
             className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all max-h-24 overflow-y-auto"
             style={{ minHeight: '40px' }}

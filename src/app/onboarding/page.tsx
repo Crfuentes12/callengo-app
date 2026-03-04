@@ -7,8 +7,11 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import PainSelection from '@/components/onboarding/PainSelection';
 import AgentTestExperience from '@/components/onboarding/AgentTestExperience';
+import { useLanguage } from '@/i18n';
+import LanguageSelector from '@/components/LanguageSelector';
 
 type OnboardingStep =
+  | 'language_selection'
   | 'form'
   | 'creating_company'
   | 'setting_up_account'
@@ -43,9 +46,10 @@ interface Pain {
 export default function OnboardingPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { t, language, setLanguage, detectedLanguage, detectedCountry, isAutoDetected } = useLanguage();
   const supabase = createClient();
 
-  const [step, setStep] = useState<OnboardingStep>('form');
+  const [step, setStep] = useState<OnboardingStep>('language_selection');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [scrapedData, setScrapedData] = useState<ScrapedResults | null>(null);
@@ -84,7 +88,7 @@ export default function OnboardingPage() {
     setError('');
 
     if (!formData.companyName) {
-      setError('Company name is required');
+      setError(t.common.required);
       return;
     }
 
@@ -225,7 +229,7 @@ export default function OnboardingPage() {
 
     } catch (err: any) {
       console.error('Onboarding error:', err);
-      setError(err.message || 'Failed to set up your account');
+      setError(err.message || t.common.somethingWentWrong);
       setStep('error');
     }
   };
@@ -265,17 +269,17 @@ export default function OnboardingPage() {
   const getStepMessage = () => {
     switch (step) {
       case 'creating_company':
-        return 'Creating your company profile...';
+        return t.onboarding.steps.creatingCompany;
       case 'setting_up_account':
-        return 'Setting up your account...';
+        return t.onboarding.steps.settingUpAccount;
       case 'analyzing_website':
-        return 'Analyzing your website to personalize your experience...';
+        return t.onboarding.steps.analyzingWebsite;
       case 'showing_results':
-        return 'Here\'s what we found about your business!';
+        return t.onboarding.steps.showingResults;
       case 'complete':
-        return 'All set! Redirecting to dashboard...';
+        return t.onboarding.steps.complete;
       case 'error':
-        return 'Something went wrong';
+        return t.onboarding.steps.error;
       default:
         return '';
     }
@@ -327,7 +331,50 @@ export default function OnboardingPage() {
     );
   };
 
-  const isProcessing = step !== 'form' && step !== 'error' && step !== 'pain_selection' && step !== 'agent_test';
+  const isProcessing = step !== 'form' && step !== 'language_selection' && step !== 'error' && step !== 'pain_selection' && step !== 'agent_test';
+
+  // Language Selection Step
+  if (step === 'language_selection') {
+    const detectedLangName = detectedLanguage ? t.languages[detectedLanguage as keyof typeof t.languages] || detectedLanguage : language;
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="w-full max-w-md relative z-10">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-bg mb-6 shadow-md">
+              <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+            </div>
+            <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">{t.onboarding.languageDetection.title}</h1>
+            {isAutoDetected && detectedCountry && (
+              <p className="text-slate-300 text-lg">
+                {t.onboarding.languageDetection.detected} <span className="font-semibold text-white">{detectedCountry}</span>.
+                <br />
+                {t.onboarding.languageDetection.defaultLanguage} <span className="font-semibold text-white">{detectedLangName}</span>.
+              </p>
+            )}
+            {!isAutoDetected && (
+              <p className="text-slate-300 text-lg">{t.onboarding.languageDetection.selectLanguage}</p>
+            )}
+          </div>
+
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
+            <p className="text-sm text-slate-600 mb-4">{t.onboarding.languageDetection.changePrompt}</p>
+            <LanguageSelector value={language} onChange={(lang) => setLanguage(lang)} />
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setStep('form')}
+                className="w-full py-4 gradient-bg text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-md transform hover:-translate-y-0.5"
+              >
+                {t.onboarding.languageDetection.confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (step === 'form') {
     return (
@@ -339,8 +386,8 @@ export default function OnboardingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
-            <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">Tell us about your company</h1>
-            <p className="text-slate-300 text-lg">We'll personalize your experience</p>
+            <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">{t.onboarding.form.title}</h1>
+            <p className="text-slate-300 text-lg">{t.onboarding.form.companyNamePlaceholder}</p>
           </div>
 
           <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
@@ -356,7 +403,7 @@ export default function OnboardingPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Company Name <span className="text-red-500">*</span>
+                  {t.onboarding.form.companyNameLabel} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -369,7 +416,7 @@ export default function OnboardingPage() {
                     value={formData.companyName}
                     onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                     className="w-full pl-12 pr-4 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
-                    placeholder="Acme Corporation"
+                    placeholder={t.onboarding.form.companyNamePlaceholder}
                     required
                   />
                 </div>
@@ -377,7 +424,7 @@ export default function OnboardingPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Company Website <span className="text-slate-400">(optional)</span>
+                  {t.onboarding.form.websiteLabel} <span className="text-slate-400">({t.common.optional})</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -390,14 +437,14 @@ export default function OnboardingPage() {
                     value={formData.companyWebsite}
                     onChange={(e) => setFormData({ ...formData, companyWebsite: e.target.value })}
                     className="w-full pl-12 pr-4 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
-                    placeholder="example.com"
+                    placeholder={t.onboarding.form.websitePlaceholder}
                   />
                 </div>
                 <p className="text-xs text-slate-500 mt-2 flex items-start gap-1.5">
                   <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
-                  We'll analyze your website to personalize your experience
+                  {t.settings.company.websiteHint}
                 </p>
               </div>
 
@@ -405,13 +452,13 @@ export default function OnboardingPage() {
                 type="submit"
                 className="w-full py-4 gradient-bg text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-md transform hover:-translate-y-0.5"
               >
-                Continue to Dashboard
+                {t.onboarding.form.submitButton}
               </button>
             </form>
           </div>
 
           <p className="text-center text-slate-300 text-sm mt-8">
-            You can update this information later in settings
+            {t.settings.language.description}
           </p>
         </div>
 
@@ -457,7 +504,7 @@ export default function OnboardingPage() {
 
             {/* Message */}
             <h2 className="text-2xl font-bold text-slate-900 mb-3">
-              {step === 'error' ? 'Setup Failed' : 'Setting Up Your Workspace'}
+              {step === 'error' ? t.onboarding.steps.error : t.onboarding.steps.settingUpAccount}
             </h2>
 
             <p className="text-slate-600 mb-8">
@@ -488,7 +535,7 @@ export default function OnboardingPage() {
                     onClick={() => router.push('/auth/login')}
                     className="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
                   >
-                    Back to Login
+                    {t.auth.forgotPassword.backToSignIn}
                   </button>
                   <button
                     onClick={() => {
@@ -498,7 +545,7 @@ export default function OnboardingPage() {
                     }}
                     className="flex-1 px-4 py-3 gradient-bg text-white rounded-lg hover:opacity-90 font-medium"
                   >
-                    Try Again
+                    {t.common.tryAgain}
                   </button>
                 </div>
               </div>
@@ -539,7 +586,7 @@ export default function OnboardingPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                       </svg>
                       <div>
-                        <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide mb-1">AI Summary</p>
+                        <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide mb-1">{t.calls.summary}</p>
                         <p className="text-sm text-blue-900">{scrapedData.summary}</p>
                       </div>
                     </div>
@@ -586,7 +633,7 @@ export default function OnboardingPage() {
                       ? 'text-emerald-900'
                       : 'text-slate-600'
                   }`}>
-                    Creating company profile
+                    {t.onboarding.steps.creatingCompany}
                   </span>
                 </div>
 
@@ -609,7 +656,7 @@ export default function OnboardingPage() {
                       ? 'text-emerald-900'
                       : 'text-slate-600'
                   }`}>
-                    Setting up your account
+                    {t.onboarding.steps.settingUpAccount}
                   </span>
                 </div>
 
@@ -633,7 +680,7 @@ export default function OnboardingPage() {
                         ? 'text-emerald-900'
                         : 'text-slate-600'
                     }`}>
-                      Personalizing experience
+                      {t.onboarding.steps.analyzingWebsite}
                     </span>
                   </div>
                 )}
@@ -644,7 +691,7 @@ export default function OnboardingPage() {
 
         {isProcessing && (
           <p className="text-center text-slate-300 text-sm mt-8">
-            This will only take a moment...
+            {t.common.loading}
           </p>
         )}
       </div>

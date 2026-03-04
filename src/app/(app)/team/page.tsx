@@ -3,8 +3,10 @@ import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import TeamSettings from '@/components/settings/TeamSettings';
 import Link from 'next/link';
+import { getTranslationSync } from '@/i18n';
 
 function TeamUpgradeCTA() {
+  const t = getTranslationSync('en');
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -17,8 +19,8 @@ function TeamUpgradeCTA() {
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">Team</h2>
-              <p className="text-slate-500 font-medium">Collaborate with your team to scale your outreach</p>
+              <h2 className="text-2xl font-bold text-slate-900">{t.team.title}</h2>
+              <p className="text-slate-500 font-medium">{t.team.title}</p>
             </div>
           </div>
         </div>
@@ -32,7 +34,7 @@ function TeamUpgradeCTA() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">Unlock Team Collaboration</h3>
+          <h3 className="text-xl font-bold text-slate-900 mb-2">{t.team.title}</h3>
           <p className="text-sm text-slate-500 mb-6 leading-relaxed">
             Upgrade to Business or higher to access powerful team features and work together on campaigns.
           </p>
@@ -45,7 +47,7 @@ function TeamUpgradeCTA() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Invite team members</p>
+                <p className="text-sm font-semibold text-slate-900">{t.team.inviteMember}</p>
                 <p className="text-xs text-slate-500 mt-0.5">Add colleagues to your organization and assign roles</p>
               </div>
             </div>
@@ -103,6 +105,7 @@ function TeamUpgradeCTA() {
 }
 
 export default async function TeamPage() {
+  const t = getTranslationSync('en');
   const supabase = await createServerClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -167,8 +170,8 @@ export default async function TeamPage() {
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">Team</h2>
-              <p className="text-slate-500 font-medium">Manage your team members, roles, and invitations</p>
+              <h2 className="text-2xl font-bold text-slate-900">{t.team.title}</h2>
+              <p className="text-slate-500 font-medium">{t.team.title}</p>
             </div>
           </div>
         </div>

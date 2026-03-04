@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useTranslation } from '@/i18n';
 
 interface SearchResult {
   id: string;
@@ -55,6 +56,7 @@ const TYPE_PILL: Record<string, string> = {
 
 export default function CommandCenter({ isOpen, onClose, companyId }: CommandCenterProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [dbResults, setDbResults] = useState<SearchResult[]>([]);
@@ -246,7 +248,7 @@ export default function CommandCenter({ isOpen, onClose, companyId }: CommandCen
           type="text"
           value={query}
           onChange={e => { setQuery(e.target.value); setSelectedIndex(0); }}
-          placeholder="Search pages, contacts, campaigns..."
+          placeholder={t.commandCenter.placeholder}
           className="flex-1 text-sm text-slate-900 placeholder-slate-400 outline-none bg-transparent"
         />
         {searching ? (
@@ -266,8 +268,8 @@ export default function CommandCenter({ isOpen, onClose, companyId }: CommandCen
       >
         {groups.length === 0 && query && !searching && (
           <div className="px-5 py-10 text-center">
-            <p className="text-sm font-medium text-slate-500">No results for &ldquo;{query}&rdquo;</p>
-            <p className="text-xs text-slate-400 mt-1">Try a different search term</p>
+            <p className="text-sm font-medium text-slate-500">{t.commandCenter.noResults} &ldquo;{query}&rdquo;</p>
+            <p className="text-xs text-slate-400 mt-1">{t.common.noResults}</p>
           </div>
         )}
 

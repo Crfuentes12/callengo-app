@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useTranslation } from '@/i18n';
 
 interface NotificationSettingsProps {
   userId: string;
@@ -10,6 +11,7 @@ interface NotificationSettingsProps {
 }
 
 export default function NotificationSettings({ userId, initialEnabled }: NotificationSettingsProps) {
+  const { t } = useTranslation();
   const supabase = createClient();
   const [notificationsEnabled, setNotificationsEnabled] = useState(initialEnabled);
   const [loading, setLoading] = useState(false);
@@ -30,13 +32,13 @@ export default function NotificationSettings({ userId, initialEnabled }: Notific
       if (error) throw error;
 
       setNotificationsEnabled(newValue);
-      setSuccess(`Notifications ${newValue ? 'enabled' : 'disabled'} successfully`);
+      setSuccess(`${t.settings.notifications.title} ${newValue ? t.common.enabled.toLowerCase() : t.common.disabled.toLowerCase()} ${t.common.success.toLowerCase()}`);
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Error updating notification settings:', error);
-      alert('Failed to update notification settings');
+      alert(t.common.error);
     } finally {
       setLoading(false);
     }
@@ -67,9 +69,9 @@ export default function NotificationSettings({ userId, initialEnabled }: Notific
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Enable Notifications</h3>
+                <h3 className="text-lg font-bold text-slate-900">{t.settings.notifications.enableAll}</h3>
                 <p className="text-sm text-slate-500 mt-1">
-                  Receive real-time updates about your campaigns, calls, and account activity
+                  {t.settings.notifications.emailNotifications}
                 </p>
               </div>
               <button
@@ -96,7 +98,7 @@ export default function NotificationSettings({ userId, initialEnabled }: Notific
           <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          What you'll be notified about:
+          {t.settings.notifications.title}:
         </h4>
         <ul className="space-y-3">
           {[
@@ -104,29 +106,29 @@ export default function NotificationSettings({ userId, initialEnabled }: Notific
               icon: '✓',
               color: 'text-emerald-600',
               bg: 'bg-emerald-50',
-              title: 'Campaign Completed',
-              description: 'When your calling campaigns finish successfully',
+              title: t.settings.notifications.campaignUpdates,
+              description: t.settings.notifications.campaignUpdates,
             },
             {
               icon: '⚠',
               color: 'text-red-600',
               bg: 'bg-red-50',
-              title: 'Campaign Issues',
-              description: 'Alerts for failed campaigns or high failure rates',
+              title: t.settings.notifications.callAlerts,
+              description: t.settings.notifications.callAlerts,
             },
             {
               icon: '🕒',
               color: 'text-amber-600',
               bg: 'bg-amber-50',
-              title: 'Usage Alerts',
-              description: 'When you approach or exceed your monthly minutes limit',
+              title: t.settings.notifications.billingAlerts,
+              description: t.settings.notifications.billingAlerts,
             },
             {
               icon: 'ℹ',
               color: 'text-blue-600',
               bg: 'bg-blue-50',
-              title: 'System Updates',
-              description: 'Important updates and new features',
+              title: t.settings.notifications.emailNotifications,
+              description: t.settings.notifications.emailNotifications,
             },
           ].map((item, idx) => (
             <li key={idx} className="flex items-start gap-3">
@@ -148,9 +150,9 @@ export default function NotificationSettings({ userId, initialEnabled }: Notific
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <div>
-          <p className="text-sm text-blue-900 font-medium">About Notifications</p>
+          <p className="text-sm text-blue-900 font-medium">{t.settings.notifications.title}</p>
           <p className="text-xs text-blue-700 mt-1">
-            Notifications are displayed in the header and automatically updated in real-time. You can mark them as read or delete them individually.
+            {t.settings.notifications.emailNotifications}
           </p>
         </div>
       </div>

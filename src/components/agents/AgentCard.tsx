@@ -3,6 +3,7 @@
 
 import Image from 'next/image';
 import { AgentTemplate } from '@/types/supabase';
+import { useTranslation } from '@/i18n';
 
 interface AgentCardProps {
   agent: AgentTemplate;
@@ -37,6 +38,7 @@ const getAvatarImage = (name: string) => {
 };
 
 export default function AgentCard({ agent, onSelect }: AgentCardProps) {
+  const { t } = useTranslation();
   const avatarImage = getAvatarImage(agent.name);
 
   return (
@@ -70,7 +72,7 @@ export default function AgentCard({ agent, onSelect }: AgentCardProps) {
             </div>
 
             <p className="text-xs text-slate-200 line-clamp-2 leading-relaxed drop-shadow-md mt-1.5">
-              {agent.description || 'Specialized AI agent for your business operations'}
+              {agent.description || t.agents.subtitle}
             </p>
           </div>
         </div>

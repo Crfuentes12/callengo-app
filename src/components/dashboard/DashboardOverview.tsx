@@ -3,6 +3,7 @@
 
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
+import { useTranslation } from '@/i18n';
 import { Company, AgentTemplate, AgentRun, ContactList } from '@/types/supabase';
 import { Contact } from '@/types/call-agent';
 import { formatDuration } from '@/lib/call-agent-utils';
@@ -104,6 +105,7 @@ export default function DashboardOverview({
   subscription,
   contactStats: serverStats,
 }: DashboardOverviewProps) {
+  const { t } = useTranslation();
   const [showAgentSelection, setShowAgentSelection] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentTemplate | null>(null);
@@ -184,10 +186,10 @@ export default function DashboardOverview({
           </div>
           <div>
             <h2 className="text-2xl font-bold text-slate-900">
-              Dashboard
+              {t.dashboard.title}
             </h2>
             <p className="text-slate-600 mt-0.5">
-              Real-time overview of your AI calling operations
+              {t.dashboard.overview}
             </p>
           </div>
         </div>
@@ -197,28 +199,28 @@ export default function DashboardOverview({
           <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-              <span className="text-xs text-slate-500 font-medium">Active Agents</span>
+              <span className="text-xs text-slate-500 font-medium">{t.agents.active} {t.nav.agents}</span>
             </div>
             <span className="text-2xl text-slate-900 font-bold">{companyAgents.length}</span>
           </div>
           <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
-              <span className="text-xs text-slate-500 font-medium">Campaigns</span>
+              <span className="text-xs text-slate-500 font-medium">{t.nav.campaigns}</span>
             </div>
             <span className="text-2xl text-slate-900 font-bold">{stats.activeCampaigns}</span>
           </div>
           <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full"></div>
-              <span className="text-xs text-slate-500 font-medium">Total Calls</span>
+              <span className="text-xs text-slate-500 font-medium">{t.dashboard.totalCalls}</span>
             </div>
             <span className="text-2xl text-slate-900 font-bold">{recentCalls.length}</span>
           </div>
           <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-xs text-slate-500 font-medium">Success Rate</span>
+              <span className="text-xs text-slate-500 font-medium">{t.dashboard.successRate}</span>
             </div>
             <span className="text-2xl text-slate-900 font-bold">{stats.successRate.toFixed(0)}%</span>
           </div>
@@ -235,15 +237,15 @@ export default function DashboardOverview({
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-bold text-red-900 mb-1">Your trial has ended</h3>
+              <h3 className="text-base font-bold text-red-900 mb-1">{t.billing.upgradePlan}</h3>
               <p className="text-sm text-red-800 mb-3">
-                You&apos;ve used all your trial minutes. Upgrade to a paid plan to continue making calls and access the full power of Callengo.
+                {t.dashboard.minutesRemaining}: 0
               </p>
               <a
                 href="/settings?tab=billing"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-red-600 to-orange-600 text-white text-sm font-semibold hover:opacity-90 transition-all shadow-md"
               >
-                Upgrade Now
+                {t.billing.upgradePlan}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
@@ -264,16 +266,16 @@ export default function DashboardOverview({
             </div>
             <div className="flex-1">
               <h3 className="text-base font-semibold text-slate-900 mb-1">
-                Free Trial — {usageTracking ? Math.max(0, (subscription.subscription_plans?.minutes_included || 0) - usageTracking.minutes_used) : (subscription.subscription_plans?.minutes_included || 0)} minutes remaining
+                {t.billing.free} — {usageTracking ? Math.max(0, (subscription.subscription_plans?.minutes_included || 0) - usageTracking.minutes_used) : (subscription.subscription_plans?.minutes_included || 0)} {t.dashboard.minutesRemaining.toLowerCase()}
               </h3>
               <p className="text-sm text-slate-700 mb-3">
-                Experience the full power of AI calling. Your trial includes {subscription.subscription_plans?.minutes_included || 15} one-time minutes — no overage, no recharge. Create a campaign, see the magic, and upgrade when you&apos;re ready.
+                {t.billing.minutesIncluded}: {subscription.subscription_plans?.minutes_included || 15} {t.common.minutes}
               </p>
               <a
                 href="/settings?tab=billing"
                 className="btn-primary text-sm"
               >
-                View Plans
+                {t.billing.changePlan}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
@@ -289,12 +291,12 @@ export default function DashboardOverview({
         <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">Total Contacts</p>
+              <p className="text-sm font-medium text-slate-500">{t.campaigns.totalContacts}</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{stats.total.toLocaleString()}</p>
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-slate-400">{stats.pending} pending</span>
+                <span className="text-xs text-slate-400">{stats.pending} {t.contacts.pending.toLowerCase()}</span>
                 <span className="text-xs text-slate-300">·</span>
-                <span className="text-xs text-emerald-600 font-medium">{stats.verified} verified</span>
+                <span className="text-xs text-emerald-600 font-medium">{stats.verified} {t.common.success.toLowerCase()}</span>
               </div>
             </div>
             <div className="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center shadow-sm">
@@ -309,9 +311,9 @@ export default function DashboardOverview({
         <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">Verified</p>
+              <p className="text-sm font-medium text-slate-500">{t.campaigns.successfulCalls}</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{stats.verified.toLocaleString()}</p>
-              <p className="text-sm text-emerald-600 mt-2 font-medium">{stats.successRate.toFixed(1)}% success rate</p>
+              <p className="text-sm text-emerald-600 mt-2 font-medium">{stats.successRate.toFixed(1)}% {t.dashboard.successRate.toLowerCase()}</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center shadow-sm">
               <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -325,9 +327,9 @@ export default function DashboardOverview({
         <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">Avg Call Time</p>
+              <p className="text-sm font-medium text-slate-500">{t.calls.duration}</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{formatDuration(stats.avgCallDuration)}</p>
-              <p className="text-sm text-slate-400 mt-2">per successful call</p>
+              <p className="text-sm text-slate-400 mt-2">{t.campaigns.successfulCalls.toLowerCase()}</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-sm">
               <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -341,14 +343,14 @@ export default function DashboardOverview({
         <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">Minutes Remaining</p>
+              <p className="text-sm font-medium text-slate-500">{t.dashboard.minutesRemaining}</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">
                 {usageTracking && subscription?.subscription_plans
                   ? (subscription.subscription_plans.minutes_included - (usageTracking.minutes_used || 0)).toLocaleString()
                   : subscription?.subscription_plans?.minutes_included?.toLocaleString() || '0'}
               </p>
               <p className="text-sm text-slate-400 mt-2">
-                of {subscription?.subscription_plans?.minutes_included?.toLocaleString() || '0'} included
+                {t.dashboard.of} {subscription?.subscription_plans?.minutes_included?.toLocaleString() || '0'} {t.billing.minutesIncluded.toLowerCase()}
               </p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center shadow-sm">
@@ -371,15 +373,15 @@ export default function DashboardOverview({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Active AI Agents</h3>
-                <p className="text-sm text-slate-500">Currently deployed and ready to call</p>
+                <h3 className="text-lg font-semibold text-slate-900">{t.agents.active} {t.agents.title}</h3>
+                <p className="text-sm text-slate-500">{t.agents.subtitle}</p>
               </div>
             </div>
             <a
               href="/agents"
               className="text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors flex items-center gap-1"
             >
-              View all
+              {t.common.viewAll}
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -403,11 +405,11 @@ export default function DashboardOverview({
                         {agent.name}
                       </h4>
                       <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                        {agent.agent_templates?.description || 'AI calling agent'}
+                        {agent.agent_templates?.description || t.agents.title}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                        <span className="text-xs text-emerald-600 font-medium">Active</span>
+                        <span className="text-xs text-emerald-600 font-medium">{t.agents.active}</span>
                       </div>
                     </div>
                   </div>
@@ -429,8 +431,8 @@ export default function DashboardOverview({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Recent Campaigns</h3>
-                <p className="text-sm text-slate-500">{stats.activeCampaigns} active, {stats.completedCampaigns} completed</p>
+                <h3 className="text-lg font-semibold text-slate-900">{t.dashboard.recentActivity}</h3>
+                <p className="text-sm text-slate-500">{stats.activeCampaigns} {t.agents.active.toLowerCase()}, {stats.completedCampaigns} {t.calls.completed.toLowerCase()}</p>
               </div>
             </div>
           </div>
@@ -456,15 +458,15 @@ export default function DashboardOverview({
                         </div>
                         <div className="grid grid-cols-3 gap-4 mt-3">
                           <div>
-                            <p className="text-xs text-slate-500 font-medium mb-1">Total Contacts</p>
+                            <p className="text-xs text-slate-500 font-medium mb-1">{t.campaigns.totalContacts}</p>
                             <p className="text-xl font-bold text-slate-900">{run.total_contacts}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500 font-medium mb-1">Completed</p>
+                            <p className="text-xs text-slate-500 font-medium mb-1">{t.campaigns.completedCalls}</p>
                             <p className="text-xl font-bold text-blue-600">{run.completed_calls}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500 font-medium mb-1">Successful</p>
+                            <p className="text-xs text-slate-500 font-medium mb-1">{t.campaigns.successfulCalls}</p>
                             <p className="text-xl font-bold text-emerald-600">{run.successful_calls}</p>
                           </div>
                         </div>
@@ -474,7 +476,7 @@ export default function DashboardOverview({
                     {/* Progress Bar */}
                     <div className="mt-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-slate-600">Progress</span>
+                        <span className="text-xs font-medium text-slate-600">{t.campaigns.overview}</span>
                         <span className="text-xs font-semibold text-slate-900">{progress.toFixed(1)}%</span>
                       </div>
                       <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
@@ -485,7 +487,7 @@ export default function DashboardOverview({
                       </div>
                       {run.completed_calls > 0 && (
                         <p className="text-xs text-emerald-600 font-medium mt-2">
-                          {successRate.toFixed(1)}% success rate
+                          {successRate.toFixed(1)}% {t.dashboard.successRate.toLowerCase()}
                         </p>
                       )}
                     </div>
@@ -503,28 +505,28 @@ export default function DashboardOverview({
           <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
-          Contact Status Distribution
+          {t.contacts.allStatuses}
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-200">
             <p className="text-2xl font-bold text-slate-900">{stats.pending}</p>
-            <p className="text-xs text-slate-500 font-medium mt-1.5">Pending</p>
+            <p className="text-xs text-slate-500 font-medium mt-1.5">{t.contacts.pending}</p>
           </div>
           <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
             <p className="text-2xl font-bold text-blue-900">{stats.calling}</p>
-            <p className="text-xs text-blue-600 font-medium mt-1.5">In Progress</p>
+            <p className="text-xs text-blue-600 font-medium mt-1.5">{t.calls.inProgress}</p>
           </div>
           <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
             <p className="text-2xl font-bold text-emerald-900">{stats.verified}</p>
-            <p className="text-xs text-emerald-600 font-medium mt-1.5">Verified</p>
+            <p className="text-xs text-emerald-600 font-medium mt-1.5">{t.calls.completed}</p>
           </div>
           <div className="text-center p-4 bg-amber-50 rounded-xl border border-amber-200">
             <p className="text-2xl font-bold text-amber-900">{stats.noAnswer}</p>
-            <p className="text-xs text-amber-600 font-medium mt-1.5">No Answer</p>
+            <p className="text-xs text-amber-600 font-medium mt-1.5">{t.calls.noAnswer}</p>
           </div>
           <div className="text-center p-4 bg-violet-50 rounded-xl border border-violet-200">
             <p className="text-2xl font-bold text-violet-900">{stats.callback}</p>
-            <p className="text-xs text-violet-600 font-medium mt-1.5">Callback</p>
+            <p className="text-xs text-violet-600 font-medium mt-1.5">{t.contacts.callBack}</p>
           </div>
         </div>
       </div>
@@ -539,15 +541,15 @@ export default function DashboardOverview({
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-900">Recent Call Activity</h3>
-              <p className="text-sm text-slate-500">Latest {recentCalls.length} calls</p>
+              <h3 className="text-lg font-semibold text-slate-900">{t.dashboard.recentActivity}</h3>
+              <p className="text-sm text-slate-500">{recentCalls.length} {t.dashboard.totalCalls.toLowerCase()}</p>
             </div>
           </div>
           <a
             href="/calls"
             className="text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors flex items-center gap-1"
           >
-            View all
+            {t.common.viewAll}
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -561,8 +563,8 @@ export default function DashboardOverview({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
               </svg>
             </div>
-            <p className="text-slate-900 font-semibold text-lg mb-2">No calls yet</p>
-            <p className="text-sm text-slate-500 mb-6">Select an AI agent and build your first campaign</p>
+            <p className="text-slate-900 font-semibold text-lg mb-2">{t.calls.noCalls}</p>
+            <p className="text-sm text-slate-500 mb-6">{t.calls.noCallsDesc}</p>
             <button
               onClick={() => setShowAgentSelection(true)}
               className="btn-primary"
@@ -570,7 +572,7 @@ export default function DashboardOverview({
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
-              Create Campaign
+              {t.dashboard.newCampaign}
             </button>
           </div>
         ) : (
@@ -579,19 +581,19 @@ export default function DashboardOverview({
               <thead>
                 <tr className="bg-slate-50">
                   <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Call ID
+                    {t.campaigns.callLog}
                   </th>
                   <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Status
+                    {t.common.status}
                   </th>
                   <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Duration
+                    {t.calls.duration}
                   </th>
                   <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Answered By
+                    {t.calls.contact}
                   </th>
                   <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Date
+                    {t.common.date}
                   </th>
                 </tr>
               </thead>
@@ -605,7 +607,7 @@ export default function DashboardOverview({
                     </td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusStyles(call.status || 'unknown')}`}>
-                        {call.status || 'Unknown'}
+                        {call.status || t.common.noData}
                       </span>
                     </td>
                     <td className="py-4 px-6">
@@ -621,7 +623,7 @@ export default function DashboardOverview({
                           ? 'bg-amber-50 text-amber-700'
                           : 'bg-slate-50 text-slate-600'
                       }`}>
-                        {call.answered_by || 'Unknown'}
+                        {call.answered_by || t.common.noData}
                       </span>
                     </td>
                     <td className="py-4 px-6">
@@ -656,9 +658,9 @@ export default function DashboardOverview({
             </div>
             <div>
               <h4 className="font-semibold text-slate-900 group-hover:text-[var(--color-primary)] transition-colors">
-                Import Contacts
+                {t.contacts.importContacts}
               </h4>
-              <p className="text-sm text-slate-500 mt-0.5">Add contacts to call</p>
+              <p className="text-sm text-slate-500 mt-0.5">{t.dashboard.addContacts}</p>
             </div>
           </div>
         </a>
@@ -675,9 +677,9 @@ export default function DashboardOverview({
             </div>
             <div>
               <h4 className="font-semibold text-slate-900 group-hover:text-emerald-600 transition-colors">
-                Start Campaign
+                {t.dashboard.newCampaign}
               </h4>
-              <p className="text-sm text-slate-500 mt-0.5">Launch AI calling agent</p>
+              <p className="text-sm text-slate-500 mt-0.5">{t.agents.subtitle}</p>
             </div>
           </div>
         </button>
@@ -695,9 +697,9 @@ export default function DashboardOverview({
             </div>
             <div>
               <h4 className="font-semibold text-slate-900 group-hover:text-violet-600 transition-colors">
-                Settings
+                {t.nav.settings}
               </h4>
-              <p className="text-sm text-slate-500 mt-0.5">Configure your account</p>
+              <p className="text-sm text-slate-500 mt-0.5">{t.settings.title}</p>
             </div>
           </div>
         </a>
@@ -716,9 +718,9 @@ export default function DashboardOverview({
             </div>
             <div>
               <h4 className="font-semibold text-slate-900 group-hover:text-amber-600 transition-colors">
-                Help Center
+                {t.agents.support}
               </h4>
-              <p className="text-sm text-slate-500 mt-0.5">Learn how to use Callengo</p>
+              <p className="text-sm text-slate-500 mt-0.5">{t.common.info}</p>
             </div>
           </div>
         </a>

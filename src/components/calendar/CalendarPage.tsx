@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { BiLogoZoom } from 'react-icons/bi';
 import { GoogleCalendarIcon, GoogleMeetIcon, OutlookIcon, TeamsIcon } from '@/components/icons/BrandIcons';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
+import { useTranslation } from '@/i18n';
 
 // ============================================================================
 // TYPES
@@ -223,6 +224,7 @@ export default function CalendarPage({
 }: CalendarPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
 
   // Calendar settings state (from calendarSettings prop)
   const [calSettings, setCalSettings] = useState<CalendarSettings>({
@@ -1119,8 +1121,8 @@ export default function CalendarPage({
                 <CalendarIcon className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">Calendar</h2>
-                <p className="text-slate-500 font-medium">Manage appointments, follow-ups, and scheduling</p>
+                <h2 className="text-2xl font-bold text-slate-900">{t.calendar.title}</h2>
+                <p className="text-slate-500 font-medium">{t.calendar.noEvents}</p>
                 <p className="text-xs text-slate-400 mt-0.5">Timezone: {TIMEZONE_OPTIONS.find(t => t.value === calSettings.timezone)?.label || calSettings.timezone}</p>
               </div>
             </div>
@@ -1129,13 +1131,13 @@ export default function CalendarPage({
               {googleIntegration?.connected ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
                   <GoogleCalendarIcon className="w-3.5 h-3.5 shrink-0" />
-                  <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">Google Calendar</span>
+                  <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">{t.calendar.googleCalendar}</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                   <button
                     onClick={() => handleSync('google_calendar')}
                     disabled={syncing.google_calendar}
                     className="p-0.5 hover:bg-slate-100 rounded transition-colors disabled:opacity-50"
-                    onMouseEnter={e => showCalTooltip(e, 'Sync Google Calendar')}
+                    onMouseEnter={e => showCalTooltip(e, `${t.calendar.syncCalendar} - ${t.calendar.googleCalendar}`)}
                     onMouseLeave={hideCalTooltip}
                   >
                     <svg className={`w-3 h-3 text-slate-400 ${syncing.google_calendar ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1149,7 +1151,7 @@ export default function CalendarPage({
                   className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 transition-all text-[11px] font-semibold text-slate-500"
                 >
                   <GoogleCalendarIcon className="w-3.5 h-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">Google Calendar</span>
+                  <span className="whitespace-nowrap">{t.calendar.googleCalendar}</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                 </button>
               )}
@@ -1164,7 +1166,7 @@ export default function CalendarPage({
                     onClick={() => handleSync('microsoft_outlook')}
                     disabled={syncing.microsoft_outlook}
                     className="p-0.5 hover:bg-slate-100 rounded transition-colors disabled:opacity-50"
-                    onMouseEnter={e => showCalTooltip(e, 'Sync Microsoft Outlook')}
+                    onMouseEnter={e => showCalTooltip(e, `${t.calendar.syncCalendar} - ${t.calendar.outlookCalendar}`)}
                     onMouseLeave={hideCalTooltip}
                   >
                     <svg className={`w-3 h-3 text-slate-400 ${syncing.microsoft_outlook ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1214,7 +1216,7 @@ export default function CalendarPage({
                 <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
-                Schedule Event
+                {t.calendar.newEvent}
               </button>
             </div>
           </div>
@@ -1224,7 +1226,7 @@ export default function CalendarPage({
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span className="text-xs text-slate-500 font-semibold">Today</span>
+                <span className="text-xs text-slate-500 font-semibold">{t.calendar.today}</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{stats.todayCount}</span>
               <p className="text-xs text-slate-500 mt-1">events scheduled</p>
@@ -1275,7 +1277,7 @@ export default function CalendarPage({
                 <ChevronLeftIcon className="w-4 h-4 text-slate-600" />
               </button>
               <button onClick={goToToday} className="px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                Today
+                {t.calendar.today}
               </button>
               <button onClick={() => navigateMonth(1)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                 <ChevronRightIcon className="w-4 h-4 text-slate-600" />
@@ -1337,7 +1339,7 @@ export default function CalendarPage({
                     viewMode === mode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  {mode}
+                  {mode === 'month' ? t.calendar.month : mode === 'week' ? t.calendar.week : mode === 'day' ? t.calendar.day : mode}
                 </button>
               ))}
             </div>
@@ -1349,7 +1351,7 @@ export default function CalendarPage({
                   setShowSettingsMenu(!showSettingsMenu);
                 }}
                 className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500 hover:text-slate-700"
-                onMouseEnter={e => showCalTooltip(e, 'Calendar Settings')}
+                onMouseEnter={e => showCalTooltip(e, t.calendar.title)}
                 onMouseLeave={hideCalTooltip}
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -1363,7 +1365,7 @@ export default function CalendarPage({
               {showSettingsMenu && (
                 <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                    <h4 className="text-sm font-bold text-slate-900">Calendar Settings</h4>
+                    <h4 className="text-sm font-bold text-slate-900">{t.calendar.title}</h4>
                     <p className="text-xs text-slate-500 mt-0.5">Configure your working hours and preferences</p>
                   </div>
                   <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
@@ -1479,14 +1481,14 @@ export default function CalendarPage({
                       onClick={() => setShowSettingsMenu(false)}
                       className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                     >
-                      Cancel
+                      {t.common.cancel}
                     </button>
                     <button
                       onClick={handleSaveSettings}
                       disabled={savingSettings}
                       className="px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)] rounded-lg transition-colors disabled:opacity-50 shadow-sm"
                     >
-                      {savingSettings ? 'Saving...' : 'Save'}
+                      {savingSettings ? t.common.loading : t.common.save}
                     </button>
                   </div>
                 </div>
@@ -1914,7 +1916,7 @@ export default function CalendarPage({
                                     <div className="flex items-center gap-2 mt-0.5">
                                       <SourceBadge source={event.source} />
                                       {event.confirmation_status === 'confirmed' && (
-                                        <span className="text-[10px] text-emerald-600 font-medium">Confirmed</span>
+                                        <span className="text-[10px] text-emerald-600 font-medium">{t.calendar.confirmed}</span>
                                       )}
                                     </div>
                                   )}
@@ -1961,8 +1963,8 @@ export default function CalendarPage({
                       <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
                         <CalendarIcon className="w-8 h-8 text-slate-400" />
                       </div>
-                      <p className="text-slate-900 font-semibold">No upcoming events</p>
-                      <p className="text-sm text-slate-500 mt-1">Schedule a call or connect your calendar to get started</p>
+                      <p className="text-slate-900 font-semibold">{t.calendar.noEvents}</p>
+                      <p className="text-sm text-slate-500 mt-1">{t.calendar.connectCalendar}</p>
                     </div>
                   );
                 }
@@ -2008,7 +2010,7 @@ export default function CalendarPage({
                                       onClick={() => handleConfirm(event.id)}
                                       className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                                     >
-                                      Confirm
+                                      {t.common.confirm}
                                     </button>
                                   )}
                                   <button
@@ -2127,24 +2129,24 @@ export default function CalendarPage({
                     )}
                     {(ev.notes || ev.ai_notes) && (
                       <div className="pt-2 border-t border-slate-100">
-                        <p className="text-xs font-semibold text-slate-500 mb-1">Notes</p>
+                        <p className="text-xs font-semibold text-slate-500 mb-1">{t.calendar.eventNotes}</p>
                         <p className="text-sm text-slate-600 whitespace-pre-wrap">{ev.notes || ev.ai_notes}</p>
                       </div>
                     )}
                     <div className="pt-2 border-t border-slate-100 flex items-center gap-2 flex-wrap">
                       <SourceBadge source={ev.source} />
-                      {ev.confirmation_status === 'confirmed' && <span className="text-[10px] text-emerald-600 font-semibold">Confirmed</span>}
-                      {ev.confirmation_status === 'unconfirmed' && <span className="text-[10px] text-yellow-600 font-semibold">Unconfirmed</span>}
+                      {ev.confirmation_status === 'confirmed' && <span className="text-[10px] text-emerald-600 font-semibold">{t.calendar.confirmed}</span>}
+                      {ev.confirmation_status === 'unconfirmed' && <span className="text-[10px] text-yellow-600 font-semibold">{t.calendar.scheduled}</span>}
                       {ev.rescheduled_count > 0 && <span className="text-[10px] text-amber-600 font-semibold">Rescheduled {ev.rescheduled_count}x</span>}
                     </div>
                   </div>
                   {(ev.status === 'scheduled' || ev.status === 'pending_confirmation') && (
                     <div className="p-3 border-t border-slate-100 flex items-center gap-2">
                       {ev.confirmation_status !== 'confirmed' && (
-                        <button onClick={() => { handleConfirm(ev.id); closePanel(); }} disabled={isLoading} className="flex-1 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors disabled:opacity-50">Confirm</button>
+                        <button onClick={() => { handleConfirm(ev.id); closePanel(); }} disabled={isLoading} className="flex-1 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors disabled:opacity-50">{t.common.confirm}</button>
                       )}
                       <button onClick={() => { handleMarkNoShow(ev.id); closePanel(); }} disabled={isLoading} className="flex-1 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors disabled:opacity-50">No-Show</button>
-                      <button onClick={() => { handleCancel(ev.id); closePanel(); }} disabled={isLoading} className="flex-1 px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors disabled:opacity-50">Cancel</button>
+                      <button onClick={() => { handleCancel(ev.id); closePanel(); }} disabled={isLoading} className="flex-1 px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors disabled:opacity-50">{t.common.cancel}</button>
                     </div>
                   )}
                 </>
@@ -2156,7 +2158,7 @@ export default function CalendarPage({
               <>
                 <div className="p-4 border-b border-slate-100">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-slate-900">New Event</h4>
+                    <h4 className="text-sm font-bold text-slate-900">{t.calendar.newEvent}</h4>
                     <button onClick={closePanel} className="p-1 hover:bg-slate-100 rounded-lg -mr-1 -mt-1">
                       <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -2175,7 +2177,7 @@ export default function CalendarPage({
                   )}
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Type</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">{t.calendar.eventType}</label>
                     <select
                       value={scheduleForm.event_type}
                       onChange={e => setScheduleForm(prev => ({ ...prev, event_type: e.target.value }))}
@@ -2190,7 +2192,7 @@ export default function CalendarPage({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Contact</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">{t.calls.contact}</label>
                     <select
                       value={scheduleForm.contact_id}
                       onChange={e => setScheduleForm(prev => ({ ...prev, contact_id: e.target.value }))}
@@ -2204,16 +2206,16 @@ export default function CalendarPage({
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Date</label>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">{t.calendar.eventDate}</label>
                       <input type="date" value={scheduleForm.date} onChange={e => setScheduleForm(prev => ({ ...prev, date: e.target.value }))} className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Time</label>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">{t.calendar.eventTime}</label>
                       <input type="time" value={scheduleForm.time} onChange={e => setScheduleForm(prev => ({ ...prev, time: e.target.value }))} className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Duration (min)</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">{t.calendar.eventDuration} ({t.calendar.minutesDuration})</label>
                     <input type="number" value={scheduleForm.duration} onChange={e => setScheduleForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 15 }))} min={5} max={480} className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none" />
                   </div>
 
@@ -2245,7 +2247,7 @@ export default function CalendarPage({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Notes</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">{t.calendar.eventNotes}</label>
                     <textarea rows={2} value={scheduleForm.notes} onChange={e => setScheduleForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="Add notes..." className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none resize-none" />
                   </div>
 
@@ -2266,9 +2268,9 @@ export default function CalendarPage({
                   </div>
                 </div>
                 <div className="p-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                  <button onClick={closePanel} className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" disabled={schedulingEvent}>Cancel</button>
+                  <button onClick={closePanel} className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" disabled={schedulingEvent}>{t.common.cancel}</button>
                   <button onClick={handleScheduleSubmit} className="px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)] rounded-lg shadow-sm transition-colors disabled:opacity-50" disabled={schedulingEvent}>
-                    {schedulingEvent ? 'Scheduling...' : 'Schedule'}
+                    {schedulingEvent ? t.common.loading : t.common.save}
                   </button>
                 </div>
               </>

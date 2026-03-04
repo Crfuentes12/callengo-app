@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Database } from '@/types/supabase';
+import { useTranslation } from '@/i18n';
 type Company = Database['public']['Tables']['companies']['Row'];
 interface SidebarProps {
   company: Company;
@@ -123,6 +124,7 @@ export default function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -141,28 +143,28 @@ export default function Sidebar({
 
   const navGroups = [
     [
-      { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+      { name: t.nav.dashboard, href: '/dashboard', icon: HomeIcon },
     ],
     [
-      { name: 'Contacts', href: '/contacts', icon: UsersIcon },
-      { name: 'Campaigns', href: '/campaigns', icon: CampaignsIcon },
-      { name: 'Agents', href: '/agents', icon: AgentsIcon },
+      { name: t.nav.contacts, href: '/contacts', icon: UsersIcon },
+      { name: t.nav.campaigns, href: '/campaigns', icon: CampaignsIcon },
+      { name: t.nav.agents, href: '/agents', icon: AgentsIcon },
     ],
     [
-      { name: 'Call History', href: '/calls', icon: PhoneIcon },
-      { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
-      { name: 'Voicemails', href: '/voicemails', icon: VoicemailIcon },
-      { name: 'Follow-ups', href: '/follow-ups', icon: FollowUpIcon },
+      { name: t.nav.callHistory, href: '/calls', icon: PhoneIcon },
+      { name: t.nav.calendar, href: '/calendar', icon: CalendarIcon },
+      { name: t.nav.voicemails, href: '/voicemails', icon: VoicemailIcon },
+      { name: t.nav.followUps, href: '/follow-ups', icon: FollowUpIcon },
     ],
     [
-      { name: 'Analytics', href: '/analytics', icon: ChartIcon },
-      { name: 'Integrations', href: '/integrations', icon: IntegrationsIcon },
-      { name: 'Team', href: '/team', icon: TeamIcon },
+      { name: t.nav.analytics, href: '/analytics', icon: ChartIcon },
+      { name: t.nav.integrations, href: '/integrations', icon: IntegrationsIcon },
+      { name: t.nav.team, href: '/team', icon: TeamIcon },
     ],
   ];
 
   const adminNavigation = [
-    { name: 'Admin Finances', href: '/admin/finances', icon: ShieldIcon },
+    { name: t.nav.adminFinances, href: '/admin/finances', icon: ShieldIcon },
   ];
 
   const sidebarWidth = isCollapsed ? 67 : 200;
@@ -316,7 +318,7 @@ export default function Sidebar({
       <div className="p-3 border-t border-white/10 shrink-0">
         <button
           onClick={onLogout}
-          onMouseEnter={(e) => showTooltip(e, 'Sign out')}
+          onMouseEnter={(e) => showTooltip(e, t.nav.signOut)}
           onMouseLeave={hideTooltip}
           className="
             w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
@@ -327,7 +329,7 @@ export default function Sidebar({
           <span
             className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}
           >
-            Sign out
+            {t.nav.signOut}
           </span>
         </button>
       </div>

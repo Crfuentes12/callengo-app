@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from '@/i18n';
 import { Contact } from '@/types/call-agent';
 import { formatPhoneForDisplay, getStatusColor } from '@/lib/call-agent-utils';
 
@@ -61,6 +62,7 @@ export default function ContactsTable({
   onPageChange,
   onPageSizeChange,
 }: ContactsTableProps) {
+  const { t } = useTranslation();
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const columnMenuRef = useRef<HTMLTableCellElement>(null);
   const [visibleColumns, setVisibleColumns] = useState({
@@ -131,17 +133,17 @@ export default function ContactsTable({
                   className="w-4 h-4 text-[var(--color-primary)] bg-white border-slate-300 rounded focus:ring-[var(--color-primary)] focus:ring-2 cursor-pointer"
                 />
               </th>
-              <SortableHeader field="company_name">Company</SortableHeader>
-              <SortableHeader field="phone_number">Phone</SortableHeader>
-              <SortableHeader field="city">Location</SortableHeader>
-              {visibleColumns.address && <SortableHeader field="city">Address</SortableHeader>}
-              {visibleColumns.zipCode && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Zip</th>}
-              <SortableHeader field="status">Status</SortableHeader>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">List</th>
-              <SortableHeader field="contact_name">Contact</SortableHeader>
-              <SortableHeader field="email">Email</SortableHeader>
-              {visibleColumns.lastCallDate && <SortableHeader field="last_call_date">Last Call</SortableHeader>}
-              {visibleColumns.callAttempts && <SortableHeader field="call_attempts">Attempts</SortableHeader>}
+              <SortableHeader field="company_name">{t.contacts.company}</SortableHeader>
+              <SortableHeader field="phone_number">{t.contacts.phone}</SortableHeader>
+              <SortableHeader field="city">{t.contacts.city}</SortableHeader>
+              {visibleColumns.address && <SortableHeader field="city">{t.contacts.address}</SortableHeader>}
+              {visibleColumns.zipCode && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.contacts.zipCode}</th>}
+              <SortableHeader field="status">{t.contacts.status}</SortableHeader>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.contacts.list}</th>
+              <SortableHeader field="contact_name">{t.contacts.name}</SortableHeader>
+              <SortableHeader field="email">{t.contacts.email}</SortableHeader>
+              {visibleColumns.lastCallDate && <SortableHeader field="last_call_date">{t.contacts.lastCall}</SortableHeader>}
+              {visibleColumns.callAttempts && <SortableHeader field="call_attempts">{t.contacts.call}</SortableHeader>}
               {visibleColumns.source && <SortableHeader field="source">Source</SortableHeader>}
               <th className="px-4 py-3 w-12 relative" ref={columnMenuRef}>
                 <button
@@ -155,12 +157,12 @@ export default function ContactsTable({
                 </button>
                 {showColumnMenu && (
                   <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-xl border border-slate-200 py-1.5 z-50">
-                    <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Toggle Columns</div>
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.contacts.filters}</div>
                     {Object.entries({
-                      address: 'Address',
-                      zipCode: 'Zip Code',
-                      lastCallDate: 'Last Call Date',
-                      callAttempts: 'Call Attempts',
+                      address: t.contacts.address,
+                      zipCode: t.contacts.zipCode,
+                      lastCallDate: t.contacts.lastCall,
+                      callAttempts: t.contacts.call,
                       source: 'Source',
                     }).map(([key, label]) => (
                       <button
@@ -337,8 +339,8 @@ export default function ContactsTable({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <p className="text-slate-700 font-semibold">No contacts found</p>
-          <p className="text-sm text-slate-500 mt-1">Try adjusting your filters or import contacts</p>
+          <p className="text-slate-700 font-semibold">{t.contacts.noContacts}</p>
+          <p className="text-sm text-slate-500 mt-1">{t.contacts.noContactsDesc}</p>
         </div>
       )}
 
@@ -347,7 +349,7 @@ export default function ContactsTable({
         <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-xs text-slate-500">
-              Showing <span className="font-semibold text-slate-700">{from.toLocaleString()}</span>–<span className="font-semibold text-slate-700">{to.toLocaleString()}</span> of <span className="font-semibold text-slate-700">{total.toLocaleString()}</span>
+              <span className="font-semibold text-slate-700">{from.toLocaleString()}</span>–<span className="font-semibold text-slate-700">{to.toLocaleString()}</span> {t.common.of} <span className="font-semibold text-slate-700">{total.toLocaleString()}</span>
             </span>
             <select
               value={pageSize}

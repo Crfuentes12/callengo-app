@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useStripe } from '@/hooks/useStripe';
 import { getPlanFeatures } from '@/config/plan-features';
 import { useUserCurrency } from '@/hooks/useAutoGeolocation';
+import { useTranslation } from '@/i18n';
 
 interface Plan {
   id: string;
@@ -65,6 +66,7 @@ const CANCELLATION_REASONS = [
 type CancelStep = 'hidden' | 'confirm' | 'feedback' | 'retention' | 'final';
 
 export default function BillingSettings({ companyId }: BillingSettingsProps) {
+  const { t } = useTranslation();
   const { createCheckoutSession, openBillingPortal, loading: stripeLoading } = useStripe();
   const { currency } = useUserCurrency();
   const searchParams = useSearchParams();
@@ -129,7 +131,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   useEffect(() => {
     const isSuccess = searchParams.get('success') === 'true';
     if (!isSuccess) return;
-    setSuccess('Your subscription has been upgraded successfully!');
+    setSuccess(t.common.success);
     let attempts = 0;
     const maxAttempts = 6;
     const pollInterval = setInterval(async () => {
@@ -162,14 +164,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       await createCheckoutSession({ planId, billingCycle, currency });
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      alert('Failed to start checkout process');
+      alert(t.common.error);
       setChanging(false);
     }
   };
 
   const handleToggleOverage = async (enabled: boolean) => {
     if (!subscription) return;
-    if (enabled && overageBudget <= 0) { alert('Please set a budget greater than $0'); return; }
+    if (enabled && overageBudget <= 0) { alert(t.common.error); return; }
     try {
       const response = await fetch('/api/billing/update-overage', {
         method: 'POST',
@@ -177,7 +179,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         body: JSON.stringify({ companyId, subscriptionId: subscription.id, enabled, budget: enabled ? overageBudget : 0 })
       });
       if (response.ok) {
-        setSuccess(enabled ? 'Overage enabled successfully' : 'Overage disabled');
+        setSuccess(enabled ? `${t.billing.overageCost} ${t.common.enabled.toLowerCase()}` : `${t.billing.overageCost} ${t.common.disabled.toLowerCase()}`);
         await fetchData();
         setShowOverageModal(false);
       } else {
@@ -186,7 +188,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       }
     } catch (error) {
       console.error('Error updating overage:', error);
-      alert('Failed to update overage settings');
+      alert(t.common.error);
     }
   };
 
@@ -318,7 +320,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-sm text-slate-500">Loading billing information...</p>
+          <p className="text-sm text-slate-500">{t.common.loading}</p>
         </div>
       </div>
     );
@@ -368,14 +370,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {/* ── Your Subscription Card ── */}
         <div>
-          <h3 className="text-lg font-bold text-slate-900 mb-4">Your Subscription</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">{t.billing.currentPlan}</h3>
           <div className="gradient-bg-subtle border border-slate-200 rounded-xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="text-2xl font-bold text-slate-900">{currentPlan.name}</h4>
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">
-                    {subscription.status === 'trial' ? 'Trial' : 'Active'}
+                    {subscription.status === 'trial' ? t.billing.free : t.billing.paid}
                   </span>
                 </div>
                 <p className="text-sm text-slate-600">{currentPlan.description}</p>
@@ -384,14 +386,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <div className="text-3xl font-bold text-slate-900">
                   {formatPrice(subscription.billing_cycle === 'monthly' ? currentPlan.price_monthly : currentPlan.price_annual)}
                 </div>
-                <div className="text-sm text-slate-500">/{subscription.billing_cycle === 'monthly' ? 'month' : 'year'}</div>
+                <div className="text-sm text-slate-500">{subscription.billing_cycle === 'monthly' ? t.billing.perMonth : t.billing.perYear}</div>
               </div>
             </div>
 
             {usage && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-slate-700">Minutes Used</span>
+                  <span className="font-medium text-slate-700">{t.billing.minutesUsed}</span>
                   <span className="font-bold text-slate-900">{usage.minutes_used.toLocaleString()} / {usage.minutes_included.toLocaleString()} min</span>
                 </div>
                 <div className="h-2 bg-white/80 rounded-full overflow-hidden">
@@ -411,21 +413,21 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {/* ── Overage Controls (right after subscription) ── */}
         <div>
-          <h3 className="text-lg font-bold text-slate-900 mb-4">Overage Controls</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">{t.billing.overageCost}</h3>
           <div className="bg-white border border-slate-200 rounded-xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h4 className="font-semibold text-slate-900 mb-1">Auto-Overage Billing</h4>
-                <p className="text-sm text-slate-600">Continue making calls even after your monthly minutes run out</p>
+                <h4 className="font-semibold text-slate-900 mb-1">{t.billing.overageCost}</h4>
+                <p className="text-sm text-slate-600">{t.billing.overageMinutes}</p>
               </div>
               <button onClick={() => setShowOverageModal(true)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${subscription.overage_enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
-                {subscription.overage_enabled ? 'Enabled' : 'Disabled'}
+                {subscription.overage_enabled ? t.common.enabled : t.common.disabled}
               </button>
             </div>
             {subscription.overage_enabled && (
               <div className="space-y-3 pt-4 border-t border-slate-100">
-                <div className="flex justify-between items-center"><span className="text-sm text-slate-600">Overage Budget</span><span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_budget)}</span></div>
-                <div className="flex justify-between items-center"><span className="text-sm text-slate-600">Overage Spent</span><span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_spent)}</span></div>
+                <div className="flex justify-between items-center"><span className="text-sm text-slate-600">{t.billing.overageCost}</span><span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_budget)}</span></div>
+                <div className="flex justify-between items-center"><span className="text-sm text-slate-600">{t.billing.overageCost}</span><span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_spent)}</span></div>
                 <div className="space-y-1">
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div className={`h-full transition-all duration-500 ${subscription.overage_spent >= subscription.overage_budget ? 'bg-red-500' : subscription.overage_spent >= subscription.overage_budget * 0.85 ? 'bg-orange-500' : 'bg-green-500'}`} style={{ width: `${Math.min((subscription.overage_spent / subscription.overage_budget) * 100, 100)}%` }} />
@@ -441,13 +443,13 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-bold text-slate-900 mb-1">Your Plan</h3>
-              <p className="text-sm text-slate-500">{higherPlans.length > 0 ? 'Compare and upgrade your plan' : 'Your current plan details'}</p>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">{t.billing.changePlan}</h3>
+              <p className="text-sm text-slate-500">{higherPlans.length > 0 ? t.billing.upgradePlan : t.billing.currentPlan}</p>
             </div>
             <div className="inline-flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
-              <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>Monthly</button>
+              <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>{t.billing.monthly}</button>
               <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
-                Annual<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 12%</span>
+                {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 12%</span>
               </button>
             </div>
           </div>
@@ -465,12 +467,12 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <div key={plan.id} className="relative flex pt-6">
                   {isCurrent && (
                     <div className="absolute -top-0 left-1/2 -translate-x-1/2 z-10">
-                      <div className="bg-slate-800 text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">CURRENT PLAN</div>
+                      <div className="bg-slate-800 text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">{t.billing.current}</div>
                     </div>
                   )}
                   {isRecommended && (
                     <div className="absolute -top-0 left-1/2 -translate-x-1/2 z-10">
-                      <div className="gradient-bg text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">RECOMMENDED</div>
+                      <div className="gradient-bg text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">{t.billing.popular}</div>
                     </div>
                   )}
                   <div className={`rounded-xl p-5 transition-all flex flex-col h-full w-full ${isCurrent ? 'border-2 border-slate-800 bg-white shadow-lg' : isRecommended ? 'border-2 border-[var(--color-primary)] bg-white shadow-xl shadow-[var(--color-primary)]/10' : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'}`}>
@@ -490,7 +492,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       )}
                     </div>
                     <div className="flex-grow mb-4">
-                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">What&apos;s included</p>
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{t.billing.features}</p>
                       <div className="space-y-2 text-xs">
                         <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.minutes_included.toLocaleString()}</strong> min/month</span></div>
                         <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_call_duration} min</strong> max call</span></div>
@@ -503,7 +505,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     </div>
                     {isCurrent ? (
                       <div className="w-full py-2.5 rounded-lg text-sm font-semibold text-center text-slate-500 bg-slate-100 mt-auto">
-                        Current Plan
+                        {t.billing.currentPlan}
                       </div>
                     ) : (
                       <button
@@ -511,7 +513,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         disabled={changing}
                         className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto ${isRecommended ? 'gradient-bg text-white hover:opacity-90 shadow-md' : isEnterprise ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white hover:from-purple-700 hover:to-fuchsia-700' : 'bg-slate-800 text-white hover:bg-slate-900'}`}
                       >
-                        {changing ? 'Processing...' : isEnterprise ? 'Contact Sales' : `Upgrade to ${plan.name}`}
+                        {changing ? t.common.loading : isEnterprise ? t.billing.changePlan : `${t.billing.upgradePlan} ${plan.name}`}
                       </button>
                     )}
                   </div>
@@ -530,7 +532,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             <svg className={`w-4 h-4 transition-transform ${showBillingDetails ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-            <span>Billing & Account Details</span>
+            <span>{t.billing.billingHistory}</span>
           </button>
 
           {showBillingDetails && (
@@ -539,34 +541,34 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <div className="bg-white border border-slate-200 rounded-xl p-6">
                 <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                  Payment Information
+                  {t.billing.paymentMethod}
                 </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Payment Method</span>
+                    <span className="text-sm text-slate-600">{t.billing.paymentMethod}</span>
                     <span className="text-sm text-slate-900 font-medium">Managed via Stripe</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Billing Cycle</span>
+                    <span className="text-sm text-slate-600">{t.billing.monthly}</span>
                     <span className="text-sm text-slate-900 font-medium capitalize">{subscription.billing_cycle}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Current Plan</span>
+                    <span className="text-sm text-slate-600">{t.billing.currentPlan}</span>
                     <span className="text-sm text-slate-900 font-medium">{currentPlan.name}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Amount</span>
+                    <span className="text-sm text-slate-600">{t.billing.amount}</span>
                     <span className="text-sm text-slate-900 font-medium">
                       {formatPrice(subscription.billing_cycle === 'monthly' ? currentPlan.price_monthly : currentPlan.price_annual)}/{subscription.billing_cycle === 'monthly' ? 'mo' : 'yr'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Next Payment</span>
+                    <span className="text-sm text-slate-600">{t.billing.nextBilling}</span>
                     <span className="text-sm text-slate-900 font-medium">{subscription.current_period_end ? formatDate(subscription.current_period_end) : 'N/A'}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Status</span>
-                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">Active</span>
+                    <span className="text-sm text-slate-600">{t.billing.status}</span>
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">{t.billing.paid}</span>
                   </div>
                 </div>
               </div>
@@ -579,38 +581,38 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Account Type</span>
+                    <span className="text-sm text-slate-600">{t.billing.currentPlan}</span>
                     <span className="text-sm text-slate-900 font-medium">{currentPlan.name} Plan</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Max Users</span>
+                    <span className="text-sm text-slate-600">{t.billing.features}</span>
                     <span className="text-sm text-slate-900 font-medium">{currentPlan.max_users === -1 ? 'Unlimited' : currentPlan.max_users}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Minutes Included</span>
+                    <span className="text-sm text-slate-600">{t.billing.minutesIncluded}</span>
                     <span className="text-sm text-slate-900 font-medium">{currentPlan.minutes_included.toLocaleString()}/mo</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Max Call Duration</span>
+                    <span className="text-sm text-slate-600">{t.billing.features}</span>
                     <span className="text-sm text-slate-900 font-medium">{currentPlan.max_call_duration} min</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Concurrent Calls</span>
+                    <span className="text-sm text-slate-600">{t.billing.features}</span>
                     <span className="text-sm text-slate-900 font-medium">{currentPlan.max_concurrent_calls}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">Overage Rate</span>
+                    <span className="text-sm text-slate-600">{t.billing.overageCost}</span>
                     <span className="text-sm text-slate-900 font-medium">{formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/min</span>
                   </div>
                   {currentPlan.max_calls_per_hour && (
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">Rate Limit (hourly)</span>
+                      <span className="text-sm text-slate-600">{t.billing.features}</span>
                       <span className="text-sm text-slate-900 font-medium">{currentPlan.max_calls_per_hour} calls/hr</span>
                     </div>
                   )}
                   {currentPlan.max_calls_per_day && (
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">Rate Limit (daily)</span>
+                      <span className="text-sm text-slate-600">{t.billing.features}</span>
                       <span className="text-sm text-slate-900 font-medium">{currentPlan.max_calls_per_day} calls/day</span>
                     </div>
                   )}
@@ -621,37 +623,37 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <div className="bg-white border border-slate-200 rounded-xl p-6">
                 <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-                  Usage Summary (Current Period)
+                  {t.billing.usage}
                 </h4>
                 {usage ? (
                   <div className="space-y-3">
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">Minutes Used</span>
+                      <span className="text-sm text-slate-600">{t.billing.minutesUsed}</span>
                       <span className="text-sm text-slate-900 font-medium">{usage.minutes_used.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">Minutes Included</span>
+                      <span className="text-sm text-slate-600">{t.billing.minutesIncluded}</span>
                       <span className="text-sm text-slate-900 font-medium">{usage.minutes_included.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">Overage Minutes</span>
+                      <span className="text-sm text-slate-600">{t.billing.overageMinutes}</span>
                       <span className="text-sm text-slate-900 font-medium">{usage.overage_minutes.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">Minutes Remaining</span>
+                      <span className="text-sm text-slate-600">{t.billing.minutesIncluded}</span>
                       <span className="text-sm text-slate-900 font-medium">{Math.max(0, usage.minutes_included - usage.minutes_used).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">Usage Percentage</span>
+                      <span className="text-sm text-slate-600">{t.billing.usage}</span>
                       <span className="text-sm text-slate-900 font-medium">{usagePercent.toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">Approx Calls Made</span>
+                      <span className="text-sm text-slate-600">{t.billing.usage}</span>
                       <span className="text-sm text-slate-900 font-medium">~{getApproxCalls(usage.minutes_used)}</span>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500">No usage data available for the current period.</p>
+                  <p className="text-sm text-slate-500">{t.common.noData}</p>
                 )}
               </div>
 
@@ -686,7 +688,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   onClick={handleStartCancel}
                   className="text-xs text-slate-400 hover:text-red-500 transition-colors underline underline-offset-2"
                 >
-                  Cancel subscription
+                  {t.billing.cancelPlan}
                 </button>
               </div>
             </div>
@@ -734,13 +736,13 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   onClick={handleCloseCancelFlow}
                   className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all"
                 >
-                  Keep My Plan
+                  {t.billing.currentPlan}
                 </button>
                 <button
                   onClick={handleConfirmCancel}
                   className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                 >
-                  Continue Cancelling
+                  {t.billing.cancelPlan}
                 </button>
               </div>
             </div>
@@ -800,14 +802,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   onClick={handleCloseCancelFlow}
                   className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all"
                 >
-                  Keep My Plan
+                  {t.billing.currentPlan}
                 </button>
                 <button
                   onClick={handleSubmitFeedback}
                   disabled={!cancelReason || cancelLoading}
                   className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {cancelLoading ? 'Processing...' : 'Submit & Continue'}
+                  {cancelLoading ? t.common.loading : t.common.confirm}
                 </button>
               </div>
             </div>
@@ -854,13 +856,13 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       disabled={retentionLoading}
                       className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
                     >
-                      {retentionLoading ? 'Applying...' : 'Claim Free Month'}
+                      {retentionLoading ? t.common.loading : t.billing.free}
                     </button>
                     <button
                       onClick={handleDeclineRetention}
                       className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                     >
-                      No thanks, cancel
+                      {t.billing.cancelPlan}
                     </button>
                   </div>
                 </>
@@ -881,7 +883,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     onClick={handleCloseCancelFlow}
                     className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all"
                   >
-                    Back to Settings
+                    {t.common.back}
                   </button>
                 </>
               )}
@@ -918,14 +920,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   onClick={handleCloseCancelFlow}
                   className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all"
                 >
-                  I Changed My Mind
+                  {t.common.back}
                 </button>
                 <button
                   onClick={handleFinalCancel}
                   disabled={stripeLoading}
                   className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50"
                 >
-                  {stripeLoading ? 'Redirecting...' : 'Proceed to Cancel'}
+                  {stripeLoading ? t.common.loading : t.billing.cancelPlan}
                 </button>
               </div>
             </div>
@@ -936,11 +938,11 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         {showOverageModal && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 min-h-screen">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative z-10">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">{subscription.overage_enabled ? 'Disable' : 'Enable'} Auto-Overage</h3>
-              <p className="text-sm text-slate-600 mb-6">{subscription.overage_enabled ? 'Disabling auto-overage will stop all calls once you reach your plan limits.' : 'Enable auto-overage to continue making calls beyond your plan limits.'}</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">{subscription.overage_enabled ? t.common.disabled : t.common.enabled} {t.billing.overageCost}</h3>
+              <p className="text-sm text-slate-600 mb-6">{t.billing.overageMinutes}</p>
               {!subscription.overage_enabled && (
                 <div className="mb-6">
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">Monthly Overage Budget</label>
+                  <label className="block text-sm font-semibold text-slate-900 mb-2">{t.billing.overageCost}</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
                     <input type="number" min="0" step="50" value={overageBudget} onChange={(e) => setOverageBudget(Number(e.target.value))} className="w-full pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" placeholder="100" />
@@ -949,8 +951,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               )}
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6"><p className="text-xs text-blue-900"><span className="font-semibold">Overage rate:</span> {formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/minute</p></div>
               <div className="flex gap-3">
-                <button onClick={() => setShowOverageModal(false)} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">Cancel</button>
-                <button onClick={() => handleToggleOverage(!subscription.overage_enabled)} className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors ${subscription.overage_enabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}>{subscription.overage_enabled ? 'Disable Overage' : 'Enable Overage'}</button>
+                <button onClick={() => setShowOverageModal(false)} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">{t.common.cancel}</button>
+                <button onClick={() => handleToggleOverage(!subscription.overage_enabled)} className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors ${subscription.overage_enabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}>{subscription.overage_enabled ? `${t.common.disabled} ${t.billing.overageCost}` : `${t.common.enabled} ${t.billing.overageCost}`}</button>
               </div>
             </div>
           </div>
@@ -994,7 +996,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-red-600 to-orange-600 text-white text-sm font-semibold hover:opacity-90 transition-all shadow-md"
               >
-                Upgrade Now
+                {t.billing.upgradePlan}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
@@ -1007,14 +1009,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       {/* Current Free Trial Plan */}
       {currentPlan && usage && (
         <div>
-          <h3 className="text-lg font-bold text-slate-900 mb-4">Free Trial</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">{t.billing.free}</h3>
           <div className="gradient-bg-subtle border border-slate-200 rounded-xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="text-2xl font-bold text-slate-900">Free Trial</h4>
+                  <h4 className="text-2xl font-bold text-slate-900">{t.billing.free}</h4>
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${usage.minutes_used >= usage.minutes_included ? 'bg-red-100 text-red-700 border-red-200' : 'bg-green-100 text-green-700 border-green-200'}`}>
-                    {usage.minutes_used >= usage.minutes_included ? 'Expired' : 'Active'}
+                    {usage.minutes_used >= usage.minutes_included ? t.billing.failed : t.billing.paid}
                   </span>
                 </div>
                 <p className="text-sm text-slate-600">Experience the full power of AI calling</p>
@@ -1026,7 +1028,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-700">Trial Minutes Used</span>
+                <span className="font-medium text-slate-700">{t.billing.minutesUsed}</span>
                 <span className="font-bold text-slate-900">{usage.minutes_used.toLocaleString()} / {usage.minutes_included.toLocaleString()} min</span>
               </div>
               <div className="h-2 bg-white/80 rounded-full overflow-hidden">
@@ -1051,14 +1053,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       <div id="plans-section">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-xl font-bold text-slate-900 mb-1">Upgrade Your Plan</h3>
-            <p className="text-sm text-slate-600">Choose a plan to unlock unlimited AI calling with overage support</p>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">{t.billing.upgradePlan}</h3>
+            <p className="text-sm text-slate-600">{t.billing.changePlan}</p>
           </div>
           {plans.length > 0 && (
             <div className="inline-flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
-              <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>Monthly</button>
+              <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>{t.billing.monthly}</button>
               <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
-                Annual<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 12%</span>
+                {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 12%</span>
               </button>
             </div>
           )}
@@ -1066,8 +1068,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {plans.length === 0 ? (
           <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200">
-            <h4 className="text-sm font-semibold text-slate-700 mb-1">Billing Setup Required</h4>
-            <p className="text-xs text-slate-500">Run the billing migration script in your Supabase SQL editor.</p>
+            <h4 className="text-sm font-semibold text-slate-700 mb-1">{t.billing.title}</h4>
+            <p className="text-xs text-slate-500">{t.common.noData}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -1082,7 +1084,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <div key={plan.id} className="relative flex pt-6">
                   {isPopular && (
                     <div className="absolute -top-0 left-1/2 -translate-x-1/2 z-10">
-                      <div className="gradient-bg text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">BEST VALUE</div>
+                      <div className="gradient-bg text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">{t.billing.popular}</div>
                     </div>
                   )}
                   <div className={`rounded-xl p-4 transition-all flex flex-col h-full w-full ${isPopular ? 'border-2 border-[var(--color-primary)] bg-white shadow-xl shadow-[var(--color-primary)]/10 scale-105' : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'}`}>
@@ -1116,7 +1118,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       </div>
                     </div>
                     <button onClick={() => handleChangePlan(plan.id)} disabled={changing} className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto ${isPopular ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-slate-800 text-white hover:bg-slate-900'}`}>
-                      {changing ? 'Processing...' : isEnterprise ? 'Contact Sales' : 'Get Started'}
+                      {changing ? t.common.loading : isEnterprise ? t.billing.changePlan : t.billing.upgradePlan}
                     </button>
                   </div>
                 </div>

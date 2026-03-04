@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useTranslation } from '@/i18n';
 import NotificationsDropdown from '@/components/notifications/NotificationsDropdown';
 import AIChatPanel from '@/components/ai/AIChatPanel';
 import CommandCenter from './CommandCenter';
@@ -69,6 +70,7 @@ export default function Header({
   onToggleSidebar,
 }: HeaderProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCommandCenter, setShowCommandCenter] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
@@ -191,7 +193,7 @@ export default function Header({
             <button
               onClick={onMenuClick}
               className="lg:hidden p-1.5 -ml-1 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              aria-label="Open navigation"
+              aria-label={t.nav.closeNavigation}
             >
               <MenuIcon className="w-5 h-5" />
             </button>
@@ -228,7 +230,7 @@ export default function Header({
               <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
-              <span className="text-xs font-medium truncate">Search...</span>
+              <span className="text-xs font-medium truncate">{t.common.search}...</span>
               <kbd className="hidden md:inline-flex items-center gap-0.5 ml-auto px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/10 border border-white/10 rounded shrink-0">
                 <span className="text-[10px]">⌘</span>K
               </kbd>
@@ -251,7 +253,7 @@ export default function Header({
               <div className="relative group/notif [&_button]:text-white/60 [&_button]:hover:text-white [&_button]:hover:bg-white/10 [&_button]:rounded-lg [&_button]:transition-colors">
                 <NotificationsDropdown companyId={companyId} userId={user.id} />
                 <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover/notif:flex items-center px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-lg whitespace-nowrap z-[100] pointer-events-none">
-                  Notifications
+                  {t.notifications.title}
                 </div>
               </div>
             )}
@@ -268,7 +270,7 @@ export default function Header({
                 </svg>
               </button>
               <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover/settings:flex items-center px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-lg whitespace-nowrap z-[100] pointer-events-none">
-                Settings
+                {t.nav.settings}
               </div>
             </div>
 
@@ -293,7 +295,7 @@ export default function Header({
                 </svg>
               </button>
               <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover/cali:flex items-center px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-lg whitespace-nowrap z-[100] pointer-events-none">
-                Ask Cali
+                {t.aiChat.title}
               </div>
             </div>
 
@@ -322,7 +324,7 @@ export default function Header({
                         {initials}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{user.full_name || 'User'}</p>
+                        <p className="text-sm font-semibold text-slate-900 truncate">{user.full_name || user.email}</p>
                         <p className="text-xs text-slate-500 truncate">{user.email}</p>
                       </div>
                     </div>
@@ -351,7 +353,7 @@ export default function Header({
                             onClick={() => { setShowUserMenu(false); router.push('/settings?tab=billing'); }}
                             className="text-[11px] font-semibold text-[var(--color-primary)] hover:underline flex items-center gap-1"
                           >
-                            Upgrade
+                            {t.billing.upgradePlan}
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
                             </svg>
@@ -359,7 +361,7 @@ export default function Header({
                         </div>
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-500 font-medium">Minutes used</span>
+                            <span className="text-slate-500 font-medium">{t.billing.minutesUsed}</span>
                             <span className="font-bold text-slate-900">
                               {planInfo.minutesUsed.toFixed(1)} / {planInfo.minutesIncluded} min
                             </span>
@@ -386,12 +388,12 @@ export default function Header({
                   {teamMembers.length > 1 && (
                     <div className="px-4 py-3 border-b border-slate-100">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.nav.team}</span>
                         <button
                           onClick={() => { setShowUserMenu(false); router.push('/team'); }}
                           className="text-[10px] text-[var(--color-primary)] font-semibold hover:underline"
                         >
-                          Manage
+                          {t.common.edit}
                         </button>
                       </div>
                       <div className="flex items-center -space-x-2">
@@ -422,21 +424,21 @@ export default function Header({
                       <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
                       </svg>
-                      Settings
+                      {t.nav.settings}
                     </button>
                     <button onClick={() => { setShowUserMenu(false); router.push('/settings?tab=billing'); }}
                       className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3">
                       <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                       </svg>
-                      Billing & Plans
+                      {t.nav.billing}
                     </button>
                     <button onClick={() => { setShowUserMenu(false); router.push('/help'); }}
                       className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3">
                       <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Help & Support
+                      {t.common.info}
                     </button>
                   </div>
 
@@ -450,7 +452,7 @@ export default function Header({
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
                       </svg>
-                      Sign Out
+                      {t.nav.signOut}
                     </button>
                   </div>
                 </div>

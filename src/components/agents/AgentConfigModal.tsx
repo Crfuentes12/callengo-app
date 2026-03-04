@@ -10,6 +10,7 @@ import VoiceSelector from '@/components/voice/VoiceSelector';
 import { BLAND_VOICES } from '@/lib/voices/bland-voices';
 import { determineGender, determineCategory } from '@/lib/voices/voice-utils';
 import CalendarConfigStep, { type CalendarStepConfig } from '@/components/agents/CalendarConfigStep';
+import { useTranslation } from '@/i18n';
 
 interface AgentConfigModalProps {
   agent: AgentTemplate;
@@ -186,6 +187,7 @@ const StatBar = ({ label, value, color }: { label: string; value: number; color:
 );
 
 export default function AgentConfigModal({ agent, companyId, company, companySettings, onClose }: AgentConfigModalProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const supabase = createClient();
   const [step, setStep] = useState<'preview' | 'contacts' | 'calendar' | 'confirm'>('preview');
@@ -766,7 +768,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             <div className="grid md:grid-cols-2 gap-4">
               {/* LEFT: Agent Identity */}
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-                <h3 className="text-xs font-bold text-slate-900 uppercase">Agent Identity</h3>
+                <h3 className="text-xs font-bold text-slate-900 uppercase">{t.agents.agentName}</h3>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
@@ -941,7 +943,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       </div>
                       <div className="text-left">
                         <span className="block text-sm font-bold">
-                          {settings.voice ? 'Test Your Agent Now' : 'Select a voice to test'}
+                          {settings.voice ? t.agents.preview : t.agents.preview}
                         </span>
                         {settings.voice && (
                           <span className="block text-[10px] font-medium opacity-80">Receive a live demo call on your phone</span>
@@ -964,7 +966,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 onClick={onClose}
                 className="flex-1 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 font-bold text-sm transition-all duration-300"
               >
-                Cancel
+                {t.common.cancel}
               </button>
               <button
                 onClick={() => {
@@ -975,7 +977,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 disabled={!settings.voice}
                 className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg font-semibold text-sm transition-all duration-300 relative overflow-hidden ${!settings.voice ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
               >
-                <span className="relative z-10">Configure Campaign</span>
+                <span className="relative z-10">{t.agents.configure}</span>
               </button>
             </div>
           </div>
