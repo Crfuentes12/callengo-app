@@ -1,6 +1,6 @@
 // components/layout/Sidebar.tsx
 'use client';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Database } from '@/types/supabase';
@@ -167,7 +167,33 @@ export default function Sidebar({
     { name: t.nav.adminFinances, href: '/admin/finances', icon: ShieldIcon },
   ];
 
-  const sidebarWidth = isCollapsed ? 67 : 200;
+  // Dynamically calculate sidebar width based on widest nav item
+  const allNavLabels = useMemo(() => {
+    const labels = navGroups.flat().map(item => item.name);
+    labels.push(...adminNavigation.map(item => item.name));
+    labels.push(t.nav.signOut);
+    return labels;
+  }, [t]);
+
+  const expandedWidth = useMemo(() => {
+    if (typeof document === 'undefined') return 200;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return 200;
+    // Match the sidebar font: 14px font-medium (500 weight)
+    ctx.font = '500 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    let maxTextWidth = 0;
+    for (const label of allNavLabels) {
+      const width = ctx.measureText(label).width;
+      if (width > maxTextWidth) maxTextWidth = width;
+    }
+    // icon (20px) + gap (12px) + text + px padding (12px each side) + buffer
+    const totalWidth = Math.ceil(maxTextWidth + 20 + 12 + 24 + 8);
+    // Clamp between 180 and 280px
+    return Math.max(180, Math.min(totalWidth, 280));
+  }, [allNavLabels]);
+
+  const sidebarWidth = isCollapsed ? 67 : expandedWidth;
 
   return (
     <aside
@@ -177,11 +203,10 @@ export default function Sidebar({
         flex flex-col h-screen
         transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        ${isCollapsed ? 'lg:w-[67px]' : 'lg:w-[200px]'}
-        w-[200px]
         gradient-bg-shell lg:bg-transparent
         shadow-xl lg:shadow-none
       `}
+      style={{ width: isCollapsed ? 67 : expandedWidth }}
     >
       {/* Tooltip rendered at sidebar level — escapes overflow containers */}
       {isCollapsed && tooltip && (

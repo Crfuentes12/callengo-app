@@ -52,21 +52,21 @@ const CURRENCY_RATES: Record<string, { symbol: string; multiplier: number }> = {
   GBP: { symbol: '\u00A3', multiplier: 0.79 },
 };
 
-const CANCELLATION_REASONS = [
-  { id: 'too_expensive', label: 'The pricing is too high for my budget' },
-  { id: 'missing_features', label: 'Missing features I need' },
-  { id: 'found_alternative', label: 'I found a better alternative' },
-  { id: 'not_needed', label: 'I no longer need this service' },
-  { id: 'too_complicated', label: 'Too complicated to use' },
-  { id: 'poor_quality', label: 'Call quality or accuracy issues' },
-  { id: 'temporary_pause', label: 'I need to pause temporarily' },
-  { id: 'other', label: 'Other reason' },
-];
-
 type CancelStep = 'hidden' | 'confirm' | 'feedback' | 'retention' | 'final';
 
 export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const { t } = useTranslation();
+
+  const CANCELLATION_REASONS = [
+    { id: 'too_expensive', label: t.billing.cancelReasons.tooExpensive },
+    { id: 'missing_features', label: t.billing.cancelReasons.missingFeatures },
+    { id: 'found_alternative', label: t.billing.cancelReasons.foundAlternative },
+    { id: 'not_needed', label: t.billing.cancelReasons.notNeeded },
+    { id: 'too_complicated', label: t.billing.cancelReasons.tooComplicated },
+    { id: 'poor_quality', label: t.billing.cancelReasons.poorQuality },
+    { id: 'temporary_pause', label: t.billing.cancelReasons.temporaryPause },
+    { id: 'other', label: t.billing.cancelReasons.other },
+  ];
   const { createCheckoutSession, openBillingPortal, loading: stripeLoading } = useStripe();
   const { currency } = useUserCurrency();
   const searchParams = useSearchParams();
@@ -362,8 +362,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
             </div>
             <div>
-              <p className="text-sm text-emerald-700 font-semibold">Your free month has been applied!</p>
-              <p className="text-xs text-emerald-600 mt-0.5">Your next billing cycle will be on us. Enjoy!</p>
+              <p className="text-sm text-emerald-700 font-semibold">{t.billing.retentionBannerTitle}</p>
+              <p className="text-xs text-emerald-600 mt-0.5">{t.billing.retentionBannerDesc}</p>
             </div>
           </div>
         )}
@@ -399,13 +399,13 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <div className="h-2 bg-white/80 rounded-full overflow-hidden">
                   <div className="h-full gradient-bg transition-all duration-500" style={{ width: `${usagePercent}%` }} />
                 </div>
-                <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} calls made · ~{getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining</p>
+                <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} {t.billing.callsMade} · ~{getApproxCalls(usage.minutes_included - usage.minutes_used)} {t.billing.remaining}</p>
               </div>
             )}
 
             {subscription.current_period_end && (
               <div className="mt-4 pt-4 border-t border-slate-200">
-                <p className="text-xs text-slate-600">Renews on <span className="font-semibold text-slate-900">{formatDate(subscription.current_period_end)}</span></p>
+                <p className="text-xs text-slate-600">{t.billing.renewsOn} <span className="font-semibold text-slate-900">{formatDate(subscription.current_period_end)}</span></p>
               </div>
             )}
           </div>
@@ -432,7 +432,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div className={`h-full transition-all duration-500 ${subscription.overage_spent >= subscription.overage_budget ? 'bg-red-500' : subscription.overage_spent >= subscription.overage_budget * 0.85 ? 'bg-orange-500' : 'bg-green-500'}`} style={{ width: `${Math.min((subscription.overage_spent / subscription.overage_budget) * 100, 100)}%` }} />
                   </div>
-                  <p className="text-xs text-slate-500">{formatPrice(subscription.overage_budget - subscription.overage_spent)} remaining</p>
+                  <p className="text-xs text-slate-500">{formatPrice(subscription.overage_budget - subscription.overage_spent)} {t.billing.remaining}</p>
                 </div>
               </div>
             )}
@@ -449,7 +449,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             <div className="inline-flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
               <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>{t.billing.monthly}</button>
               <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
-                {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 12%</span>
+                {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">{t.billing.saveUpTo}</span>
               </button>
             </div>
           </div>
@@ -483,21 +483,21 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     <div className="mb-4 pb-4 border-b border-slate-100">
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-bold text-slate-900">{formatPrice(monthlyPrice)}</span>
-                        {!isEnterprise && <span className="text-sm text-slate-500">/mo</span>}
-                        {isEnterprise && <span className="text-sm text-slate-500">/mo</span>}
+                        {!isEnterprise && <span className="text-sm text-slate-500">{t.billing.mo}</span>}
+                        {isEnterprise && <span className="text-sm text-slate-500">{t.billing.mo}</span>}
                       </div>
-                      {!isEnterprise && billingCycle === 'annual' && <div className="text-xs text-slate-500 mt-1">{formatPrice(yearlyTotal)}/year</div>}
+                      {!isEnterprise && billingCycle === 'annual' && <div className="text-xs text-slate-500 mt-1">{formatPrice(yearlyTotal)}{t.billing.yr}</div>}
                       {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
-                        <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">Save {discountPercent}%</div>
+                        <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">{t.billing.save} {discountPercent}%</div>
                       )}
                     </div>
                     <div className="flex-grow mb-4">
                       <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{t.billing.features}</p>
                       <div className="space-y-2 text-xs">
-                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.minutes_included.toLocaleString()}</strong> min/month</span></div>
-                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_call_duration} min</strong> max call</span></div>
-                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_concurrent_calls}</strong> concurrent calls</span></div>
-                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_users === -1 ? 'Unlimited' : plan.max_users}</strong> users</span></div>
+                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.minutes_included.toLocaleString()}</strong> {t.billing.minPerMonth}</span></div>
+                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_call_duration} min</strong> {t.billing.maxCall}</span></div>
+                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_concurrent_calls}</strong> {t.billing.concurrentCalls}</span></div>
+                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}</strong> {t.billing.users}</span></div>
                         {getPlanFeatures(plan.slug).slice(0, 5).map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700">{feature}</span></div>
                         ))}
@@ -546,7 +546,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.paymentMethod}</span>
-                    <span className="text-sm text-slate-900 font-medium">Managed via Stripe</span>
+                    <span className="text-sm text-slate-900 font-medium">{t.billing.managedViaStripe}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.monthly}</span>
@@ -559,12 +559,12 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.amount}</span>
                     <span className="text-sm text-slate-900 font-medium">
-                      {formatPrice(subscription.billing_cycle === 'monthly' ? currentPlan.price_monthly : currentPlan.price_annual)}/{subscription.billing_cycle === 'monthly' ? 'mo' : 'yr'}
+                      {formatPrice(subscription.billing_cycle === 'monthly' ? currentPlan.price_monthly : currentPlan.price_annual)}/{subscription.billing_cycle === 'monthly' ? t.billing.mo : t.billing.yr}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.nextBilling}</span>
-                    <span className="text-sm text-slate-900 font-medium">{subscription.current_period_end ? formatDate(subscription.current_period_end) : 'N/A'}</span>
+                    <span className="text-sm text-slate-900 font-medium">{subscription.current_period_end ? formatDate(subscription.current_period_end) : t.billing.na}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.status}</span>
@@ -577,24 +577,24 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <div className="bg-white border border-slate-200 rounded-xl p-6">
                 <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  Account Details
+                  {t.billing.accountDetails}
                 </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.currentPlan}</span>
-                    <span className="text-sm text-slate-900 font-medium">{currentPlan.name} Plan</span>
+                    <span className="text-sm text-slate-900 font-medium">{currentPlan.name} {t.billing.plan}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.features}</span>
-                    <span className="text-sm text-slate-900 font-medium">{currentPlan.max_users === -1 ? 'Unlimited' : currentPlan.max_users}</span>
+                    <span className="text-sm text-slate-900 font-medium">{currentPlan.max_users === -1 ? t.billing.unlimited : currentPlan.max_users}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.minutesIncluded}</span>
-                    <span className="text-sm text-slate-900 font-medium">{currentPlan.minutes_included.toLocaleString()}/mo</span>
+                    <span className="text-sm text-slate-900 font-medium">{currentPlan.minutes_included.toLocaleString()}/{t.billing.mo}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.features}</span>
-                    <span className="text-sm text-slate-900 font-medium">{currentPlan.max_call_duration} min</span>
+                    <span className="text-sm text-slate-900 font-medium">{currentPlan.max_call_duration} {t.billing.min}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.features}</span>
@@ -602,18 +602,18 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-50">
                     <span className="text-sm text-slate-600">{t.billing.overageCost}</span>
-                    <span className="text-sm text-slate-900 font-medium">{formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/min</span>
+                    <span className="text-sm text-slate-900 font-medium">{formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/{t.billing.perMin}</span>
                   </div>
                   {currentPlan.max_calls_per_hour && (
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
                       <span className="text-sm text-slate-600">{t.billing.features}</span>
-                      <span className="text-sm text-slate-900 font-medium">{currentPlan.max_calls_per_hour} calls/hr</span>
+                      <span className="text-sm text-slate-900 font-medium">{currentPlan.max_calls_per_hour} {t.billing.callsPerHr}</span>
                     </div>
                   )}
                   {currentPlan.max_calls_per_day && (
                     <div className="flex justify-between items-center py-2 border-b border-slate-50">
                       <span className="text-sm text-slate-600">{t.billing.features}</span>
-                      <span className="text-sm text-slate-900 font-medium">{currentPlan.max_calls_per_day} calls/day</span>
+                      <span className="text-sm text-slate-900 font-medium">{currentPlan.max_calls_per_day} {t.billing.callsPerDay}</span>
                     </div>
                   )}
                 </div>
@@ -661,13 +661,13 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <div className="bg-white border border-slate-200 rounded-xl p-6">
                 <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
-                  Terms & Policies
+                  {t.billing.termsAndPolicies}
                 </h4>
                 <div className="space-y-2 text-sm text-slate-600">
-                  <p>Your subscription automatically renews each billing cycle. Charges are processed through Stripe, our secure payment processor.</p>
+                  <p>{t.billing.termsAutoRenew}</p>
                   <p>Overage charges are calculated at {formatPriceWithDecimals(currentPlan.price_per_extra_minute)} per minute beyond your included {currentPlan.minutes_included.toLocaleString()} minutes, up to your set budget limit.</p>
-                  <p>Changes to your subscription take effect at the start of the next billing period. Downgrades and cancellations will continue until the end of the current period.</p>
-                  <p className="text-xs text-slate-400 mt-4">By using Callengo, you agree to our Terms of Service and Privacy Policy.</p>
+                  <p>{t.billing.termsChanges}</p>
+                  <p className="text-xs text-slate-400 mt-4">{t.billing.termsAgreement}</p>
                 </div>
               </div>
 
@@ -676,8 +676,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <div className="flex gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   <div className="text-sm text-blue-900">
-                    <p className="font-semibold mb-1">Need help with your subscription?</p>
-                    <p className="text-blue-700">Contact us at <a href="mailto:billing@callengo.ai" className="underline">billing@callengo.ai</a></p>
+                    <p className="font-semibold mb-1">{t.billing.needHelp}</p>
+                    <p className="text-blue-700">{t.billing.contactUsAt} <a href="mailto:billing@callengo.ai" className="underline">billing@callengo.ai</a></p>
                   </div>
                 </div>
               </div>
@@ -709,10 +709,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Are you sure you want to cancel?</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{t.billing.cancelConfirmTitle}</h3>
                 <p className="text-sm text-slate-600">
-                  You&apos;re currently on the <strong>{currentPlan.name}</strong> plan with <strong>{currentPlan.minutes_included.toLocaleString()}</strong> minutes/month.
-                  Cancelling will remove access to all premium features at the end of your current billing period.
+                  {t.billing.cancelCurrentPlan} <strong>{currentPlan.name}</strong> {t.billing.cancelPlanWith} <strong>{currentPlan.minutes_included.toLocaleString()}</strong> {t.billing.cancelMinutesMonth} {t.billing.cancelConsequence}
                 </p>
               </div>
 
@@ -720,12 +719,12 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <div className="flex gap-2">
                   <svg className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
                   <div className="text-xs text-amber-900">
-                    <p className="font-semibold">You will lose access to:</p>
+                    <p className="font-semibold">{t.billing.youWillLose}</p>
                     <ul className="mt-1 space-y-0.5 list-disc list-inside text-amber-800">
-                      <li>{currentPlan.minutes_included.toLocaleString()} monthly minutes</li>
-                      <li>{currentPlan.max_concurrent_calls} concurrent calls</li>
-                      <li>All premium agent features</li>
-                      <li>Priority support</li>
+                      <li>{currentPlan.minutes_included.toLocaleString()} {t.billing.monthlyMinutes}</li>
+                      <li>{currentPlan.max_concurrent_calls} {t.billing.concurrentCalls}</li>
+                      <li>{t.billing.allPremiumFeatures}</li>
+                      <li>{t.billing.prioritySupport}</li>
                     </ul>
                   </div>
                 </div>
@@ -736,13 +735,13 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   onClick={handleCloseCancelFlow}
                   className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all"
                 >
-                  {t.billing.currentPlan}
+                  {t.billing.keepMyPlan}
                 </button>
                 <button
                   onClick={handleConfirmCancel}
                   className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                 >
-                  {t.billing.cancelPlan}
+                  {t.billing.yesCancelPlan}
                 </button>
               </div>
             </div>
@@ -754,10 +753,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="mb-6">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">We&apos;d love to hear why</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{t.billing.feedbackTitle}</h3>
                 <p className="text-sm text-slate-600">
-                  Your feedback is incredibly valuable and helps us improve Callengo for everyone.
-                  Please tell us why you&apos;re considering cancelling.
+                  {t.billing.feedbackDesc}
                 </p>
               </div>
 
@@ -786,14 +784,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
               <div className="mb-6">
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Anything else you&apos;d like us to know? (optional)
+                  {t.billing.feedbackAdditional}
                 </label>
                 <textarea
                   value={cancelDetails}
                   onChange={(e) => setCancelDetails(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none"
-                  placeholder="Share any additional details..."
+                  placeholder={t.billing.feedbackPlaceholder}
                 />
               </div>
 
@@ -802,7 +800,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   onClick={handleCloseCancelFlow}
                   className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all"
                 >
-                  {t.billing.currentPlan}
+                  {t.billing.keepMyPlan}
                 </button>
                 <button
                   onClick={handleSubmitFeedback}
@@ -828,10 +826,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                       </svg>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Wait! We have something for you</h3>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">{t.billing.retentionTitle}</h3>
                     <p className="text-sm text-slate-600">
-                      We understand pricing can be a concern. As a valued customer, we&apos;d like to offer you
-                      <strong> one month completely free</strong> so you can continue using {currentPlan.name} without any commitment.
+                      {t.billing.retentionDesc}
                     </p>
                   </div>
 
@@ -841,10 +838,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-emerald-900">1 Month Free — No strings attached</p>
+                        <p className="text-sm font-semibold text-emerald-900">{t.billing.retentionOfferTitle}</p>
                         <p className="text-xs text-emerald-700 mt-0.5">
-                          Your next billing cycle ({formatPrice(subscription.billing_cycle === 'monthly' ? currentPlan.price_monthly : currentPlan.price_annual)}) will be waived.
-                          You keep all your features and can cancel anytime after.
+                          {t.billing.retentionOfferDesc}
                         </p>
                       </div>
                     </div>
@@ -856,13 +852,13 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       disabled={retentionLoading}
                       className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
                     >
-                      {retentionLoading ? t.common.loading : t.billing.free}
+                      {retentionLoading ? t.common.loading : t.billing.acceptOffer}
                     </button>
                     <button
                       onClick={handleDeclineRetention}
                       className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                     >
-                      {t.billing.cancelPlan}
+                      {t.billing.declineOffer}
                     </button>
                   </div>
                 </>
@@ -874,9 +870,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Your free month is active!</h3>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">{t.billing.retentionAppliedTitle}</h3>
                     <p className="text-sm text-slate-600">
-                      Your next billing cycle will be completely free. We hope you enjoy the extra time with Callengo!
+                      {t.billing.retentionAppliedDesc}
                     </p>
                   </div>
                   <button
@@ -901,17 +897,16 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">We&apos;re sorry to see you go</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{t.billing.finalCancelTitle}</h3>
                 <p className="text-sm text-slate-600">
-                  Thank you for being a Callengo customer. You&apos;ll be redirected to our secure billing portal
-                  to complete the cancellation process. Your plan will remain active until the end of your current billing period.
+                  {t.billing.finalCancelDesc}
                 </p>
               </div>
 
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-6">
                 <div className="text-xs text-slate-600 space-y-1">
-                  <p>Your {currentPlan.name} plan will stay active until <strong>{subscription.current_period_end ? formatDate(subscription.current_period_end) : 'end of period'}</strong>.</p>
-                  <p>You can resubscribe at any time from the billing page.</p>
+                  <p>{currentPlan.name} {t.billing.planActiveUntil} <strong>{subscription.current_period_end ? formatDate(subscription.current_period_end) : t.billing.endOfPeriod}</strong>.</p>
+                  <p>{t.billing.resubscribeAnytime}</p>
                 </div>
               </div>
 
@@ -949,7 +944,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   </div>
                 </div>
               )}
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6"><p className="text-xs text-blue-900"><span className="font-semibold">Overage rate:</span> {formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/minute</p></div>
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6"><p className="text-xs text-blue-900"><span className="font-semibold">{t.billing.overageRate}</span> {formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/{t.billing.perMinute}</p></div>
               <div className="flex gap-3">
                 <button onClick={() => setShowOverageModal(false)} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">{t.common.cancel}</button>
                 <button onClick={() => handleToggleOverage(!subscription.overage_enabled)} className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors ${subscription.overage_enabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}>{subscription.overage_enabled ? `${t.common.disabled} ${t.billing.overageCost}` : `${t.common.enabled} ${t.billing.overageCost}`}</button>
@@ -985,9 +980,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-bold text-red-900 mb-1">Your trial has ended</h3>
+              <h3 className="text-base font-bold text-red-900 mb-1">{t.billing.trialEnded}</h3>
               <p className="text-sm text-red-800 mb-3">
-                You&apos;ve used all 15 trial minutes. To continue making calls and unlock the full power of Callengo, upgrade to a paid plan below.
+                {t.billing.trialEndedDesc}
               </p>
               <button
                 onClick={() => {
@@ -1019,11 +1014,11 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     {usage.minutes_used >= usage.minutes_included ? t.billing.failed : t.billing.paid}
                   </span>
                 </div>
-                <p className="text-sm text-slate-600">Experience the full power of AI calling</p>
+                <p className="text-sm text-slate-600">{t.billing.experienceFullPower}</p>
               </div>
               <div className="text-right">
                 <div className="text-3xl font-bold text-slate-900">$0</div>
-                <div className="text-sm text-slate-500">one-time</div>
+                <div className="text-sm text-slate-500">{t.billing.oneTime}</div>
               </div>
             </div>
             <div className="space-y-2">
@@ -1034,14 +1029,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <div className="h-2 bg-white/80 rounded-full overflow-hidden">
                 <div className={`h-full transition-all duration-500 ${usagePercent >= 100 ? 'bg-red-500' : 'bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)]'}`} style={{ width: `${usagePercent}%` }} />
               </div>
-              <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} calls made · {usage.minutes_used >= usage.minutes_included ? 'No minutes remaining — upgrade to continue' : `~${getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining`}</p>
+              <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} {t.billing.callsMade} · {usage.minutes_used >= usage.minutes_included ? t.billing.noMinutesRemaining : `~${getApproxCalls(usage.minutes_included - usage.minutes_used)} ${t.billing.remaining}`}</p>
             </div>
             <div className="mt-4 pt-4 border-t border-amber-200 bg-amber-50/50 -m-6 p-4 rounded-b-xl">
               <div className="flex items-start gap-2">
                 <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <div>
-                  <p className="text-xs font-semibold text-amber-900">Trial — No Overage Available</p>
-                  <p className="text-xs text-amber-800 mt-0.5">Your 15 trial minutes are <strong>one-time only</strong> and do not renew. There is no overage or recharge option. Upgrade to a paid plan for ongoing use with overage capabilities.</p>
+                  <p className="text-xs font-semibold text-amber-900">{t.billing.trialNoOverage}</p>
+                  <p className="text-xs text-amber-800 mt-0.5">{t.billing.trialNoOverageDesc}</p>
                 </div>
               </div>
             </div>
@@ -1060,7 +1055,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             <div className="inline-flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
               <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>{t.billing.monthly}</button>
               <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
-                {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">Save up to 12%</span>
+                {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">{t.billing.saveUpTo}</span>
               </button>
             </div>
           )}
@@ -1094,23 +1089,23 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     </div>
                     <div className="mb-3 pb-3 border-b border-slate-100">
                       <div className="flex items-baseline gap-1">
-                        {isEnterprise && <span className="text-xs text-slate-500 font-medium">From</span>}
+                        {isEnterprise && <span className="text-xs text-slate-500 font-medium">{t.billing.from}</span>}
                         <span className="text-2xl font-bold text-slate-900">{formatPrice(monthlyPrice)}</span>
-                        {!isEnterprise && <span className="text-xs text-slate-500">/mo</span>}
+                        {!isEnterprise && <span className="text-xs text-slate-500">/{t.billing.mo}</span>}
                       </div>
-                      {!isEnterprise && billingCycle === 'annual' && <div className="text-[10px] text-slate-500 mt-1">{formatPrice(yearlyTotal)}/year</div>}
+                      {!isEnterprise && billingCycle === 'annual' && <div className="text-[10px] text-slate-500 mt-1">{formatPrice(yearlyTotal)}/{t.billing.yr}</div>}
                       {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
-                        <div className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">Save {discountPercent}%</div>
+                        <div className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">{t.billing.save} {discountPercent}%</div>
                       )}
                     </div>
                     <div className="flex-grow mb-3">
                       <div className="space-y-1.5 text-[11px]">
-                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span> min/mo</span></div>
-                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.max_call_duration} min</span> max call</span></div>
-                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{formatPriceWithDecimals(plan.price_per_extra_minute)}</span> overage</span></div>
-                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span> concurrent</span></div>
+                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span> {t.billing.minMo}</span></div>
+                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.max_call_duration} {t.billing.min}</span> {t.billing.maxCall}</span></div>
+                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{formatPriceWithDecimals(plan.price_per_extra_minute)}</span> {t.billing.overage}</span></div>
+                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span> {t.billing.concurrent}</span></div>
                         {(plan.max_calls_per_hour || plan.max_calls_per_day) && (
-                          <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700">{plan.max_calls_per_hour && <><span className="font-semibold text-slate-900">{plan.max_calls_per_hour}</span>/hr</>}{plan.max_calls_per_hour && plan.max_calls_per_day && ', '}{plan.max_calls_per_day && <><span className="font-semibold text-slate-900">{plan.max_calls_per_day}</span>/day</>}</span></div>
+                          <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700">{plan.max_calls_per_hour && <><span className="font-semibold text-slate-900">{plan.max_calls_per_hour}</span>{t.billing.perHr}</>}{plan.max_calls_per_hour && plan.max_calls_per_day && ', '}{plan.max_calls_per_day && <><span className="font-semibold text-slate-900">{plan.max_calls_per_day}</span>{t.billing.perDay}</>}</span></div>
                         )}
                         {getPlanFeatures(plan.slug).map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700 leading-tight">{feature}</span></div>
@@ -1133,8 +1128,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         <div className="flex gap-3">
           <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <div className="text-sm text-blue-900">
-            <p className="font-semibold mb-1">Need help choosing a plan?</p>
-            <p className="text-blue-700">Contact us at <a href="mailto:billing@callengo.ai" className="underline">billing@callengo.ai</a> or view our <a href="#" className="underline">pricing FAQ</a>.</p>
+            <p className="font-semibold mb-1">{t.billing.needHelpChoosing}</p>
+            <p className="text-blue-700">{t.billing.contactUsAt} <a href="mailto:billing@callengo.ai" className="underline">billing@callengo.ai</a> {t.billing.orViewOur} <a href="#" className="underline">{t.billing.pricingFaq}</a>.</p>
           </div>
         </div>
       </div>
