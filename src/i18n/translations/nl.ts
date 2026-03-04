@@ -902,5 +902,4 @@ const nl: TranslationKeys = {
   },
 } as const;
 
-export type TranslationKeys = typeof nl;
 export default nl;

@@ -902,5 +902,4 @@ const fr: TranslationKeys = {
   },
 } as const;
 
-export type TranslationKeys = typeof fr;
 export default fr;

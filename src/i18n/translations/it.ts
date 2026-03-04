@@ -902,5 +902,4 @@ const it: TranslationKeys = {
   },
 } as const;
 
-export type TranslationKeys = typeof it;
 export default it;
