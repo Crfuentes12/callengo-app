@@ -2,11 +2,11 @@
 const en = {
   // Language metadata
   _meta: {
-    code: 'en',
-    name: 'English',
-    nativeName: 'English',
-    flag: '🇺🇸',
-    direction: 'ltr',
+    code: 'en' as string,
+    name: 'English' as string,
+    nativeName: 'English' as string,
+    flag: '🇺🇸' as string,
+    direction: 'ltr' as string,
   },
 
   // ============================================================
