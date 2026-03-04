@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 import { SiTwilio } from 'react-icons/si';
+import { useTranslation } from '@/i18n';
 
 interface CallSettingsProps {
   settings: {
@@ -61,6 +62,7 @@ interface PhoneNumber {
 }
 
 export default function CallSettings({ settings, onSettingsChange, onSubmit, loading, success, companyId, initialSection }: CallSettingsProps) {
+  const { t } = useTranslation();
   const supabase = createClient();
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
@@ -429,14 +431,14 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
             {usageStats && (
               <div className="text-right">
                 <div className="text-2xl font-bold text-[var(--color-primary)]">{usageStats.minutesUsed}/{usageStats.minutesIncluded}</div>
-                <div className="text-xs text-slate-600 font-medium">minutes used</div>
+                <div className="text-xs text-slate-600 font-medium">{t.common.minutes} used</div>
               </div>
             )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white/80 backdrop-blur rounded-lg p-3 border border-slate-200"><div className="text-xs text-slate-600 font-medium mb-1">Max Duration</div><div className="text-lg font-bold text-slate-900">{plan.max_call_duration} min</div></div>
+            <div className="bg-white/80 backdrop-blur rounded-lg p-3 border border-slate-200"><div className="text-xs text-slate-600 font-medium mb-1">{t.settings.calling.maxDuration}</div><div className="text-lg font-bold text-slate-900">{plan.max_call_duration} min</div></div>
             <div className="bg-white/80 backdrop-blur rounded-lg p-3 border border-slate-200"><div className="text-xs text-slate-600 font-medium mb-1">Concurrent Calls</div><div className="text-lg font-bold text-slate-900">{plan.max_concurrent_calls}</div></div>
-            {plan.max_calls_per_day && (<div className="bg-white/80 backdrop-blur rounded-lg p-3 border border-slate-200"><div className="text-xs text-slate-600 font-medium mb-1">Max Calls/Day</div><div className="text-lg font-bold text-slate-900">{plan.max_calls_per_day}</div></div>)}
+            {plan.max_calls_per_day && (<div className="bg-white/80 backdrop-blur rounded-lg p-3 border border-slate-200"><div className="text-xs text-slate-600 font-medium mb-1">{t.settings.calling.maxCallsPerDay}</div><div className="text-lg font-bold text-slate-900">{plan.max_calls_per_day}</div></div>)}
             {usageStats && usageStats.averageCallDuration && (<div className="bg-white/80 backdrop-blur rounded-lg p-3 border border-emerald-100"><div className="text-xs text-slate-600 font-medium mb-1">Avg Call Duration</div><div className="text-lg font-bold text-emerald-600">{usageStats.averageCallDuration} min</div></div>)}
           </div>
           {usageStats && usageStats.totalCalls > 0 && (
@@ -659,8 +661,8 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
                   </div>
                   {twilioError && <div className="bg-red-50 border border-red-200 rounded-lg p-3"><p className="text-xs text-red-800 font-medium">{twilioError}</p></div>}
                   <div className="flex gap-3 pt-2">
-                    <button type="button" onClick={() => { setTwilioStep(1); setTwilioError(''); }} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">Back</button>
-                    <button type="button" onClick={() => { if (twilioAccountSid && twilioAuthToken) setTwilioStep(3); else setTwilioError('Fill in both fields to continue'); }} disabled={!twilioAccountSid || !twilioAuthToken} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all disabled:opacity-50">Next: Import Numbers</button>
+                    <button type="button" onClick={() => { setTwilioStep(1); setTwilioError(''); }} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">{t.common.back}</button>
+                    <button type="button" onClick={() => { if (twilioAccountSid && twilioAuthToken) setTwilioStep(3); else setTwilioError('Fill in both fields to continue'); }} disabled={!twilioAccountSid || !twilioAuthToken} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all disabled:opacity-50">{t.common.next}: Import Numbers</button>
                   </div>
                 </div>
               )}
@@ -686,7 +688,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
                   </div>
                   {twilioError && <div className="bg-red-50 border border-red-200 rounded-lg p-3"><p className="text-xs text-red-800 font-medium">{twilioError}</p></div>}
                   <div className="flex gap-3 pt-2">
-                    <button type="button" onClick={() => { setTwilioStep(2); setTwilioError(''); }} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">Back</button>
+                    <button type="button" onClick={() => { setTwilioStep(2); setTwilioError(''); }} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">{t.common.back}</button>
                     <button type="button" onClick={handleConnectTwilio} disabled={twilioConnecting} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                       {twilioConnecting ? (<><div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin"></div>Connecting...</>) : (<><SiTwilio className="w-4 h-4" />Connect Twilio</>)}
                     </button>
@@ -707,7 +709,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
           </h4>
           <div>
             <div className="flex items-end justify-between mb-3">
-              <label className="block text-sm font-bold text-slate-700">Maximum Call Duration</label>
+              <label className="block text-sm font-bold text-slate-700">{t.settings.calling.maxDuration}</label>
               <div className="text-right">
                 <div className="text-2xl font-bold text-[var(--color-primary)]">{settings.default_max_duration % 1 === 0 ? `${settings.default_max_duration} min` : `${Math.floor(settings.default_max_duration)} min ${Math.round((settings.default_max_duration % 1) * 60)} sec`}</div>
                 <div className="text-xs text-slate-500">~{approximateCalls} calls/month</div>
@@ -732,35 +734,35 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
         {/* Voice & Language */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
           <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>Voice & Language</h4>
-          <div><label className="block text-sm font-bold text-slate-700 mb-3">Default Voice</label><VoiceSelector selectedVoiceId={settings.default_voice} onVoiceSelect={(voiceId) => onSettingsChange({ ...settings, default_voice: voiceId })} /></div>
+          <div><label className="block text-sm font-bold text-slate-700 mb-3">{t.settings.calling.voice}</label><VoiceSelector selectedVoiceId={settings.default_voice} onVoiceSelect={(voiceId) => onSettingsChange({ ...settings, default_voice: voiceId })} /></div>
         </div>
 
         {/* Call Timing */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
           <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Call Scheduling</h4>
           <div className="grid md:grid-cols-2 gap-6">
-            <div><label className="block text-sm font-bold text-slate-700 mb-2">Interval Between Calls (min)</label><input type="number" min="1" max="60" value={settings.default_interval_minutes} onChange={(e) => onSettingsChange({ ...settings, default_interval_minutes: parseInt(e.target.value) })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" /></div>
-            <div><label className="block text-sm font-bold text-slate-700 mb-2">Max Calls Per Day{plan && plan.max_calls_per_day && <span className="ml-2 text-xs text-[var(--color-primary)]">(Plan limit: {plan.max_calls_per_day})</span>}</label><input type="number" min="1" max={plan?.max_calls_per_day || 1000} value={settings.max_calls_per_day} onChange={(e) => onSettingsChange({ ...settings, max_calls_per_day: parseInt(e.target.value) })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" /></div>
+            <div><label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.calling.interval} ({t.common.minutes})</label><input type="number" min="1" max="60" value={settings.default_interval_minutes} onChange={(e) => onSettingsChange({ ...settings, default_interval_minutes: parseInt(e.target.value) })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" /></div>
+            <div><label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.calling.maxCallsPerDay}{plan && plan.max_calls_per_day && <span className="ml-2 text-xs text-[var(--color-primary)]">(Plan limit: {plan.max_calls_per_day})</span>}</label><input type="number" min="1" max={plan?.max_calls_per_day || 1000} value={settings.max_calls_per_day} onChange={(e) => onSettingsChange({ ...settings, max_calls_per_day: parseInt(e.target.value) })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" /></div>
           </div>
         </div>
 
         {/* Working Hours */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
-          <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg>Working Hours & Schedule</h4>
+          <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg>{t.settings.calling.workingHours}</h4>
           <div className="grid md:grid-cols-3 gap-6">
             <div><label className="block text-sm font-bold text-slate-700 mb-2">Start Time</label><input type="time" value={settings.working_hours_start} onChange={(e) => onSettingsChange({ ...settings, working_hours_start: e.target.value })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" /></div>
             <div><label className="block text-sm font-bold text-slate-700 mb-2">End Time</label><input type="time" value={settings.working_hours_end} onChange={(e) => onSettingsChange({ ...settings, working_hours_end: e.target.value })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" /></div>
-            <div><label className="block text-sm font-bold text-slate-700 mb-2">Timezone</label><select value={settings.timezone} onChange={(e) => onSettingsChange({ ...settings, timezone: e.target.value })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white outline-none transition-all cursor-pointer hover:border-slate-300"><option value="America/New_York">Eastern Time (ET)</option><option value="America/Chicago">Central Time (CT)</option><option value="America/Denver">Mountain Time (MT)</option><option value="America/Los_Angeles">Pacific Time (PT)</option><option value="America/Phoenix">Arizona (MST)</option><option value="America/Anchorage">Alaska (AKT)</option><option value="Pacific/Honolulu">Hawaii (HST)</option><option value="Europe/London">London (GMT)</option><option value="Europe/Paris">Paris (CET)</option><option value="Asia/Tokyo">Tokyo (JST)</option><option value="Australia/Sydney">Sydney (AEDT)</option></select></div>
+            <div><label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.calling.timezone}</label><select value={settings.timezone} onChange={(e) => onSettingsChange({ ...settings, timezone: e.target.value })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white outline-none transition-all cursor-pointer hover:border-slate-300"><option value="America/New_York">Eastern Time (ET)</option><option value="America/Chicago">Central Time (CT)</option><option value="America/Denver">Mountain Time (MT)</option><option value="America/Los_Angeles">Pacific Time (PT)</option><option value="America/Phoenix">Arizona (MST)</option><option value="America/Anchorage">Alaska (AKT)</option><option value="Pacific/Honolulu">Hawaii (HST)</option><option value="Europe/London">London (GMT)</option><option value="Europe/Paris">Paris (CET)</option><option value="Asia/Tokyo">Tokyo (JST)</option><option value="Australia/Sydney">Sydney (AEDT)</option></select></div>
           </div>
-          <div><label className="block text-sm font-bold text-slate-700 mb-3">Working Days</label><div className="grid grid-cols-7 gap-2">{['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => { const dayLower = day.toLowerCase(); const isSelected = settings.working_days?.includes(dayLower) ?? true; return (<button key={day} type="button" onClick={() => { const currentDays = settings.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']; const newDays = isSelected ? currentDays.filter(d => d !== dayLower) : [...currentDays, dayLower]; onSettingsChange({ ...settings, working_days: newDays }); }} className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border ${isSelected ? 'gradient-bg text-white border-[var(--color-primary)] hover:opacity-90' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>{day.slice(0, 3)}</button>); })}</div><p className="text-xs text-slate-500 mt-2">Select which days of the week calls should be placed</p></div>
-          <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-lg p-4"><input type="checkbox" id="exclude-holidays" checked={settings.exclude_holidays ?? false} onChange={(e) => onSettingsChange({ ...settings, exclude_holidays: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 cursor-pointer" /><div className="flex-1"><label htmlFor="exclude-holidays" className="text-sm font-bold text-slate-700 cursor-pointer block mb-1">Exclude US Federal Holidays</label><p className="text-xs text-slate-600">Automatically skip calls on major US federal holidays.</p></div></div>
+          <div><label className="block text-sm font-bold text-slate-700 mb-3">{t.settings.calling.workingDays}</label><div className="grid grid-cols-7 gap-2">{['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => { const dayLower = day.toLowerCase(); const isSelected = settings.working_days?.includes(dayLower) ?? true; return (<button key={day} type="button" onClick={() => { const currentDays = settings.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']; const newDays = isSelected ? currentDays.filter(d => d !== dayLower) : [...currentDays, dayLower]; onSettingsChange({ ...settings, working_days: newDays }); }} className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border ${isSelected ? 'gradient-bg text-white border-[var(--color-primary)] hover:opacity-90' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>{day.slice(0, 3)}</button>); })}</div><p className="text-xs text-slate-500 mt-2">Select which days of the week calls should be placed</p></div>
+          <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-lg p-4"><input type="checkbox" id="exclude-holidays" checked={settings.exclude_holidays ?? false} onChange={(e) => onSettingsChange({ ...settings, exclude_holidays: e.target.checked })} className="mt-1 w-4 h-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 cursor-pointer" /><div className="flex-1"><label htmlFor="exclude-holidays" className="text-sm font-bold text-slate-700 cursor-pointer block mb-1">{t.settings.calling.excludeHolidays}</label><p className="text-xs text-slate-600">Automatically skip calls on major US federal holidays.</p></div></div>
         </div>
 
         {/* Voicemail & Follow-up Settings */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
           <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
             <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-            Voicemail & Follow-ups
+            {t.settings.calling.voicemail} & {t.settings.calling.followUp}s
           </h4>
           <p className="text-xs text-slate-500 -mt-4">Configure automatic voicemail detection and follow-up call behavior. Available from Starter plan and above.</p>
 
@@ -778,7 +780,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
               <div className="flex items-start gap-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <label htmlFor="voicemail-enabled" className="text-sm font-bold text-slate-700 cursor-pointer">Voicemail Detection</label>
+                    <label htmlFor="voicemail-enabled" className="text-sm font-bold text-slate-700 cursor-pointer">{t.settings.calling.voicemail}</label>
                     {plan && plan.slug !== 'starter' && (
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">Custom Message</span>
                     )}
@@ -795,7 +797,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
               <div className="flex items-start gap-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <label htmlFor="followup-enabled" className="text-sm font-bold text-slate-700 cursor-pointer">Automatic Follow-ups</label>
+                    <label htmlFor="followup-enabled" className="text-sm font-bold text-slate-700 cursor-pointer">{t.settings.calling.followUp}</label>
                     {plan && plan.slug === 'starter' && (
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">Max 1</span>
                     )}
@@ -815,12 +817,12 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
                 <div className="ml-4 pl-4 border-l-2 border-[var(--color-primary)]/20 space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Max Follow-up Attempts</label>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.calling.followUp} Max Attempts</label>
                       <input type="number" min="1" max={plan && plan.slug === 'starter' ? 1 : 10} value={settings.followup_max_attempts ?? 1} onChange={(e) => onSettingsChange({ ...settings, followup_max_attempts: parseInt(e.target.value) })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" />
                       {plan && plan.slug === 'starter' && <p className="text-xs text-slate-400 mt-1">Starter plan limited to 1 follow-up</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Follow-up Interval (hours)</label>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.calling.followUp} {t.settings.calling.interval} ({t.common.hours})</label>
                       <input type="number" min="1" max="168" value={settings.followup_interval_hours ?? 24} onChange={(e) => onSettingsChange({ ...settings, followup_interval_hours: parseInt(e.target.value) })} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" />
                       <p className="text-xs text-slate-400 mt-1">Time between follow-up attempts</p>
                     </div>
@@ -831,7 +833,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
                     <div className="flex items-start gap-4 bg-purple-50 border border-purple-200 rounded-lg p-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <label htmlFor="smart-followup" className="text-sm font-bold text-slate-700 cursor-pointer">Smart Follow-up</label>
+                          <label htmlFor="smart-followup" className="text-sm font-bold text-slate-700 cursor-pointer">{t.settings.calling.smartFollowUp}</label>
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">Business+</span>
                         </div>
                         <p className="text-xs text-slate-500">When a contact requests a callback at a specific time (e.g., &quot;call me Friday at 5 PM&quot;), Callengo will automatically schedule the follow-up for that exact time instead of using the default interval.</p>
@@ -851,11 +853,11 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
         {/* Test Phone */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
           <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>Test Configuration</h4>
-          <div><label className="block text-sm font-bold text-slate-700 mb-2">Test Phone Number</label><input type="tel" value={settings.test_phone_number} onChange={(e) => onSettingsChange({ ...settings, test_phone_number: e.target.value })} placeholder="+1 (555) 123-4567" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" /><p className="text-xs text-slate-500 mt-2">Use this number for testing agent configurations before launching campaigns</p></div>
+          <div><label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.calling.testPhone}</label><input type="tel" value={settings.test_phone_number} onChange={(e) => onSettingsChange({ ...settings, test_phone_number: e.target.value })} placeholder="+1 (555) 123-4567" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all hover:border-slate-300" /><p className="text-xs text-slate-500 mt-2">Use this number for testing agent configurations before launching campaigns</p></div>
         </div>
 
         <button type="submit" disabled={loading} className="w-full px-6 py-4 gradient-bg text-white rounded-xl font-semibold text-base hover:opacity-90 transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-          {loading ? (<><svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Saving...</span></>) : 'Save Call Settings'}
+          {loading ? (<><svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>{t.settings.calling.saving}</span></>) : t.settings.calling.saveButton}
         </button>
 
         {success && (<div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4"><div className="flex gap-3"><svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><p className="text-sm font-medium text-emerald-800">{success}</p></div></div>)}

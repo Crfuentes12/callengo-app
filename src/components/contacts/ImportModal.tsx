@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@/i18n';
 import { parseCSV, detectColumnMapping } from '@/lib/call-agent-utils';
 import { parseFile } from '@/lib/import-parsers';
 import { ColumnMapping } from '@/types/call-agent';
@@ -39,6 +40,7 @@ const getImportTypeInfo = (type?: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'j
 };
 
 export default function ImportModal({ companyId, onClose, onComplete, importType, onShowToast, preloadedData }: ImportModalProps) {
+  const { t } = useTranslation();
   const typeInfo = getImportTypeInfo(importType);
   const supabase = createClient();
   const [step, setStep] = useState<ImportStep>('upload');
@@ -391,9 +393,9 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                       </div>
-                      <p className="text-slate-700 font-semibold">Drag and drop your {typeInfo.title.replace('Import ', '')} file here</p>
-                      <p className="text-sm text-slate-500 mt-1">or click to browse</p>
-                      <p className="text-xs text-slate-400 mt-3">Supported: {typeInfo.accept}</p>
+                      <p className="text-slate-700 font-semibold">{t.contacts.importModal.dragDrop}</p>
+                      <p className="text-sm text-slate-500 mt-1">{t.contacts.importModal.supportedFormats}</p>
+                      <p className="text-xs text-slate-400 mt-3">{typeInfo.accept}</p>
                     </>
                   )}
                 </div>
@@ -429,8 +431,8 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">No List (All Contacts)</p>
-                      <p className="text-xs text-slate-500">Import without assigning to a list</p>
+                      <p className="text-sm font-semibold text-slate-900">{t.contacts.allLists}</p>
+                      <p className="text-xs text-slate-500">{t.contacts.importContacts}</p>
                     </div>
                   </div>
                 </button>
@@ -484,13 +486,13 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Create New List
+                  {t.common.create} {t.contacts.list}
                 </button>
               ) : (
                 <div className="border border-[var(--color-primary)]/20 rounded-lg p-4 bg-[var(--color-primary)]/5">
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">List Name</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t.contacts.name}</label>
                       <input
                         type="text"
                         value={newListName}
@@ -500,7 +502,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Description (Optional)</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t.common.description}</label>
                       <input
                         type="text"
                         value={newListDescription}
@@ -514,14 +516,14 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                         onClick={() => setShowCreateList(false)}
                         className="flex-1 px-3 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
                       >
-                        Cancel
+                        {t.common.cancel}
                       </button>
                       <button
                         onClick={handleCreateList}
                         disabled={!newListName.trim() || loading}
                         className="flex-1 px-3 py-2 gradient-bg text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
                       >
-                        {loading ? 'Creating...' : 'Create'}
+                        {loading ? t.common.loading : t.common.create}
                       </button>
                     </div>
                   </div>
@@ -533,13 +535,13 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   onClick={() => setStep('upload')}
                   className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
                 >
-                  Back
+                  {t.common.back}
                 </button>
                 <button
                   onClick={() => setStep('mapping')}
                   className="flex-1 px-4 py-2.5 gradient-bg text-white rounded-xl hover:opacity-90 transition-all font-medium"
                 >
-                  Continue
+                  {t.common.next}
                 </button>
               </div>
             </div>
@@ -551,7 +553,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                 Map your CSV columns to contact fields. Found <span className="font-semibold text-slate-900">{rows.length}</span> rows with <span className="font-semibold text-slate-900">{headers.length}</span> columns.
               </p>
               <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Core Fields</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t.contacts.importModal.mapping}</div>
                 {Object.entries({
                   firstName: 'First Name',
                   lastName: 'Last Name',
@@ -628,14 +630,14 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   onClick={() => setStep('list-select')}
                   className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
                 >
-                  Back
+                  {t.common.back}
                 </button>
                 <button
                   onClick={() => setStep('preview')}
                   disabled={!mapping.phoneNumber}
                   className="flex-1 px-4 py-2.5 gradient-bg text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
                 >
-                  Preview
+                  {t.contacts.importModal.preview}
                 </button>
               </div>
             </div>
@@ -671,14 +673,14 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   onClick={() => setStep('mapping')}
                   className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
                 >
-                  Back
+                  {t.common.back}
                 </button>
                 <button
                   onClick={handleImport}
                   disabled={loading}
                   className="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-sm"
                 >
-                  {loading ? 'Importing...' : `Import ${rows.length} Contacts`}
+                  {loading ? t.contacts.importModal.importing : `${t.contacts.importModal.importButton} ${rows.length} ${t.contacts.title}`}
                 </button>
               </div>
             </div>
@@ -691,16 +693,16 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Import Complete!</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">{t.contacts.importModal.success}</h3>
               <p className="text-slate-600 mb-6">
-                Successfully imported <span className="font-semibold text-emerald-600">{result.imported}</span> contacts.
-                {result.skipped > 0 && <span className="text-amber-600"> Skipped {result.skipped} invalid rows.</span>}
+                <span className="font-semibold text-emerald-600">{result.imported}</span> {t.contacts.importModal.success}
+                {result.skipped > 0 && <span className="text-amber-600"> {result.skipped}</span>}
               </p>
               <button
                 onClick={onComplete}
                 className="px-6 py-2.5 gradient-bg text-white rounded-xl hover:opacity-90 transition-all font-medium shadow-sm"
               >
-                View Contacts
+                {t.contacts.viewDetails}
               </button>
             </div>
           )}

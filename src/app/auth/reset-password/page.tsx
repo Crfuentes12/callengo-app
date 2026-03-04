@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/i18n';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const { updatePassword } = useAuth();
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,11 +21,11 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
-    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+    if (password.length < 6) { setError(t.auth.resetPassword.errorPasswordLength); return; }
+    if (password !== confirmPassword) { setError(t.auth.resetPassword.passwordsNoMatch); return; }
     setLoading(true);
     const { error: updateError } = await updatePassword(password);
-    if (updateError) { setError(updateError.message || 'Failed to reset password'); setLoading(false); }
+    if (updateError) { setError(updateError.message || t.auth.resetPassword.errorGeneric); setLoading(false); }
     else { router.push('/dashboard'); }
   };
 
@@ -39,8 +41,8 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="animate-fade-in">
-      <h1 className="text-2xl font-bold text-white tracking-tight">Set new password</h1>
-      <p className="text-white/40 text-sm mt-1 mb-6">Choose a strong password for your account</p>
+      <h1 className="text-2xl font-bold text-white tracking-tight">{t.auth.resetPassword.title}</h1>
+      <p className="text-white/40 text-sm mt-1 mb-6">{t.auth.resetPassword.subtitle}</p>
 
       {error && (
         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-300 text-xs flex items-center gap-2">
@@ -51,12 +53,12 @@ export default function ResetPasswordPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-medium text-white/40 mb-1.5">New Password</label>
+          <label className="block text-xs font-medium text-white/40 mb-1.5">{t.auth.resetPassword.newPasswordLabel}</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="w-4 h-4 text-white/25" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
             </div>
-            <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="auth-input" style={{ paddingRight: '2.5rem' }} placeholder="Enter new password" minLength={6} required disabled={loading} autoComplete="new-password" />
+            <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="auth-input" style={{ paddingRight: '2.5rem' }} placeholder={t.auth.resetPassword.newPasswordPlaceholder} minLength={6} required disabled={loading} autoComplete="new-password" />
             <EyeToggle show={showPassword} onToggle={() => setShowPassword(!showPassword)} />
           </div>
           {password.length > 0 && (
@@ -69,26 +71,26 @@ export default function ResetPasswordPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-white/40 mb-1.5">Confirm Password</label>
+          <label className="block text-xs font-medium text-white/40 mb-1.5">{t.auth.resetPassword.confirmPasswordLabel}</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="w-4 h-4 text-white/25" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
             </div>
-            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`auth-input ${!passwordsMatch ? '!border-red-400/40 !shadow-[0_0_0_3px_rgba(239,68,68,0.08)]' : ''}`} placeholder="Confirm password" minLength={6} required disabled={loading} autoComplete="new-password" />
+            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`auth-input ${!passwordsMatch ? '!border-red-400/40 !shadow-[0_0_0_3px_rgba(239,68,68,0.08)]' : ''}`} placeholder={t.auth.resetPassword.confirmPasswordPlaceholder} minLength={6} required disabled={loading} autoComplete="new-password" />
           </div>
-          {!passwordsMatch && <p className="text-[10px] text-red-300 mt-1">Passwords do not match</p>}
+          {!passwordsMatch && <p className="text-[10px] text-red-300 mt-1">{t.auth.resetPassword.passwordsNoMatch}</p>}
         </div>
 
         <button type="submit" disabled={loading || !isValid} className="auth-submit-btn flex items-center justify-center gap-2">
           {loading ? (
-            <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Updating...</>
-          ) : 'Update password'}
+            <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>{t.auth.resetPassword.submitting}</>
+          ) : t.auth.resetPassword.submitButton}
         </button>
       </form>
 
       <p className="mt-4 text-center text-[10px] text-white/20 flex items-center justify-center gap-1">
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-        Encrypted and stored securely
+        {t.auth.resetPassword.securityNote}
       </p>
     </div>
   );

@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react';
 import { formatDuration } from '@/lib/call-agent-utils';
 import CallDetailModal from './CallDetailModal';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import { useTranslation } from '@/i18n';
 
 interface CallLogWithContact {
   id: string;
@@ -41,6 +42,7 @@ interface CallsHistoryProps {
 }
 
 export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryProps) {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [agentFilter, setAgentFilter] = useState<string>('all');
@@ -110,7 +112,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Call History' }]} />
+      <Breadcrumbs items={[{ label: t.calls.title }]} />
 
       {/* Section Header */}
       <div className="gradient-bg-subtle rounded-2xl p-10 shadow-sm border border-slate-200">
@@ -122,10 +124,10 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
           </div>
           <div>
             <h2 className="text-3xl font-bold text-slate-900">
-              Call History
+              {t.calls.title}
             </h2>
             <p className="text-base text-slate-500 font-medium">
-              Complete record of all AI calling activity
+              {t.calls.summary}
             </p>
           </div>
         </div>
@@ -134,28 +136,28 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
           <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
-              <span className="text-xs text-slate-500 uppercase font-semibold">Total Calls</span>
+              <span className="text-xs text-slate-500 uppercase font-semibold">{t.common.total} {t.calls.title}</span>
             </div>
             <span className="text-3xl text-slate-900 font-bold">{stats.total.toLocaleString()}</span>
           </div>
           <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-              <span className="text-xs text-slate-500 uppercase font-semibold">Successful</span>
+              <span className="text-xs text-slate-500 uppercase font-semibold">{t.calls.completed}</span>
             </div>
             <span className="text-3xl text-slate-900 font-bold">{stats.successful.toLocaleString()}</span>
           </div>
           <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-xs text-slate-500 uppercase font-semibold">Failed</span>
+              <span className="text-xs text-slate-500 uppercase font-semibold">{t.calls.failed}</span>
             </div>
             <span className="text-3xl text-slate-900 font-bold">{stats.failed.toLocaleString()}</span>
           </div>
           <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-              <span className="text-xs text-slate-500 uppercase font-semibold">Avg Duration</span>
+              <span className="text-xs text-slate-500 uppercase font-semibold">{t.calls.duration}</span>
             </div>
             <span className="text-3xl text-slate-900 font-bold">{formatDuration(stats.avgDuration)}</span>
           </div>
@@ -173,7 +175,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
               </svg>
               <input
                 type="text"
-                placeholder="Search by call ID, company, or phone..."
+                placeholder={t.calls.searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-900 placeholder-slate-400 font-medium"
@@ -188,11 +190,11 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer font-medium"
             >
-              <option value="all">All Status</option>
-              <option value="completed">Completed</option>
-              <option value="in_progress">In Progress</option>
-              <option value="failed">Failed</option>
-              <option value="no_answer">No Answer</option>
+              <option value="all">{t.common.filter} {t.calls.status}</option>
+              <option value="completed">{t.calls.completed}</option>
+              <option value="in_progress">{t.calls.inProgress}</option>
+              <option value="failed">{t.calls.failed}</option>
+              <option value="no_answer">{t.calls.noAnswer}</option>
             </select>
 
             <select
@@ -213,7 +215,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
             >
               <option value="all">All Types</option>
               <option value="human">Human</option>
-              <option value="voicemail">Voicemail</option>
+              <option value="voicemail">{t.calls.voicemail}</option>
             </select>
 
             <button
@@ -223,7 +225,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Reset
+              {t.common.refresh}
             </button>
           </div>
         </div>
@@ -245,8 +247,8 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
             </div>
-            <p className="text-slate-900 font-semibold text-lg mb-2">No calls found</p>
-            <p className="text-sm text-slate-500">Try adjusting your filters or search terms</p>
+            <p className="text-slate-900 font-semibold text-lg mb-2">{t.calls.noCalls}</p>
+            <p className="text-sm text-slate-500">{t.calls.noCallsDesc}</p>
           </div>
         ) : (
           <>
@@ -258,22 +260,22 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                       Call ID
                     </th>
                     <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Contact
+                      {t.calls.contact}
                     </th>
                     <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Status
+                      {t.calls.status}
                     </th>
                     <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Duration
+                      {t.calls.duration}
                     </th>
                     <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Answered By
+                      {t.calls.voicemail}
                     </th>
                     <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Date
+                      {t.calls.date}
                     </th>
                     <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Actions
+                      {t.common.actions}
                     </th>
                   </tr>
                 </thead>
@@ -340,7 +342,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-2 rounded-lg text-[var(--color-primary)] hover:bg-slate-50 transition-all"
-                              title="Play Recording"
+                              title={t.calls.playRecording}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -351,7 +353,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                           {call.transcript && (
                             <button
                               className="p-2 rounded-lg text-purple-600 hover:bg-purple-50 transition-all"
-                              title="View Transcript"
+                              title={t.calls.viewTranscript}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -370,7 +372,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
             {totalPages > 1 && (
               <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
                 <p className="text-sm text-slate-600 font-medium">
-                  Page <span className="font-bold text-slate-900">{currentPage}</span> of <span className="font-bold text-slate-900">{totalPages}</span>
+                  {t.common.page} <span className="font-bold text-slate-900">{currentPage}</span> {t.common.of} <span className="font-bold text-slate-900">{totalPages}</span>
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -378,14 +380,14 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                     disabled={currentPage === 1}
                     className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-white hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                   >
-                    Previous
+                    {t.common.previous}
                   </button>
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
                     className="btn-primary px-4 py-2 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                   >
-                    Next
+                    {t.common.next}
                   </button>
                 </div>
               </div>

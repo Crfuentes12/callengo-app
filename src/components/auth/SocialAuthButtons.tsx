@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/i18n';
 
 type OAuthProvider = 'google' | 'azure' | 'slack_oidc';
 
@@ -46,6 +47,7 @@ const providers: { id: OAuthProvider; name: string; Icon: React.FC }[] = [
 
 export default function SocialAuthButtons({ mode }: { mode: 'signin' | 'signup' }) {
   const { signInWithProvider } = useAuth();
+  const { t } = useTranslation();
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null);
   const [error, setError] = useState('');
 
@@ -54,7 +56,7 @@ export default function SocialAuthButtons({ mode }: { mode: 'signin' | 'signup' 
     setLoadingProvider(provider);
     const { error: authError } = await signInWithProvider(provider);
     if (authError) {
-      setError(authError.message || 'Authentication failed. Try again.');
+      setError(authError.message || t.common.error);
       setLoadingProvider(null);
     }
   };

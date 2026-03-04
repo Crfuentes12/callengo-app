@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from '@/i18n';
 import { Contact, CallAnalysis, CallMetadata, ContactStatus } from '@/types/call-agent';
 import {
   formatPhoneForDisplay,
@@ -38,6 +39,7 @@ export default function ContactDetailDrawer({
   hsConnected,
   pdConnected,
 }: ContactDetailDrawerProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('details');
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
@@ -269,7 +271,7 @@ export default function ContactDetailDrawer({
                   onClick={() => setIsEditing(true)}
                   className="px-3 py-1.5 text-xs font-medium bg-white/15 text-white rounded-lg hover:bg-white/25 transition-all border border-white/20"
                 >
-                  Edit
+                  {t.contacts.edit}
                 </button>
               ) : (
                 <button
@@ -277,7 +279,7 @@ export default function ContactDetailDrawer({
                   disabled={saving}
                   className="px-3 py-1.5 text-xs font-medium bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : 'Save'}
+                  {saving ? t.common.loading : t.common.save}
                 </button>
               )}
               <button
@@ -346,22 +348,22 @@ export default function ContactDetailDrawer({
 
               {/* Contact Info */}
               <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100 space-y-3">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Contact Information</h3>
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.contacts.viewDetails}</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <InputField label="Company" field="company_name" />
-                  <InputField label="Contact Name" field="contact_name" />
-                  <InputField label="Email" field="email" type="email" />
-                  <InputField label="Phone" field="phone_number" type="tel" />
-                  <InputField label="Address" field="address" />
-                  <InputField label="City" field="city" />
-                  <InputField label="State" field="state" />
-                  <InputField label="Zip Code" field="zip_code" />
+                  <InputField label={t.contacts.company} field="company_name" />
+                  <InputField label={t.contacts.name} field="contact_name" />
+                  <InputField label={t.contacts.email} field="email" type="email" />
+                  <InputField label={t.contacts.phone} field="phone_number" type="tel" />
+                  <InputField label={t.contacts.address} field="address" />
+                  <InputField label={t.contacts.city} field="city" />
+                  <InputField label={t.contacts.state} field="state" />
+                  <InputField label={t.contacts.zipCode} field="zip_code" />
                 </div>
               </div>
 
               {/* Notes */}
               <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Notes</h3>
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t.contacts.notes}</h3>
                 {isEditing ? (
                   <textarea
                     value={editData.notes}
@@ -371,7 +373,7 @@ export default function ContactDetailDrawer({
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none resize-none"
                   />
                 ) : (
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{contact.notes || <span className="text-slate-300">No notes</span>}</p>
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{contact.notes || <span className="text-slate-300">{t.contacts.notes}</span>}</p>
                 )}
               </div>
 
@@ -390,22 +392,22 @@ export default function ContactDetailDrawer({
               {/* Analysis */}
               {analysis && (
                 <div className="bg-emerald-50/80 rounded-xl p-4 border border-emerald-100 space-y-3">
-                  <h3 className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Call Analysis</h3>
+                  <h3 className="text-xs font-bold text-emerald-700 uppercase tracking-wider">{t.contacts.call}</h3>
                   {analysis.verifiedAddress && (
                     <div>
-                      <p className="text-[10px] text-emerald-600 uppercase tracking-wide font-semibold">Verified Address</p>
+                      <p className="text-[10px] text-emerald-600 uppercase tracking-wide font-semibold">{t.contacts.address}</p>
                       <p className="text-sm text-slate-900 mt-0.5">{analysis.verifiedAddress}</p>
                     </div>
                   )}
                   {analysis.contactName && (
                     <div>
-                      <p className="text-[10px] text-emerald-600 uppercase tracking-wide font-semibold">Contact Name</p>
+                      <p className="text-[10px] text-emerald-600 uppercase tracking-wide font-semibold">{t.contacts.name}</p>
                       <p className="text-sm text-slate-900 mt-0.5">{analysis.contactName}</p>
                     </div>
                   )}
                   {analysis.verifiedEmail && (
                     <div>
-                      <p className="text-[10px] text-emerald-600 uppercase tracking-wide font-semibold">Email</p>
+                      <p className="text-[10px] text-emerald-600 uppercase tracking-wide font-semibold">{t.contacts.email}</p>
                       <p className="text-sm text-slate-900 mt-0.5">{analysis.verifiedEmail}</p>
                     </div>
                   )}
@@ -440,7 +442,7 @@ export default function ContactDetailDrawer({
               {/* Custom Fields — Collapsable Categories */}
               {customFieldCategories.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Custom Fields</h3>
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.contacts.tags}</h3>
                   {customFieldCategories.map(([catKey, cat]) => {
                     const isExpanded = expandedCategories[catKey] ?? (cat.fields.length <= 4);
                     const colorMap: Record<string, string> = {
@@ -515,7 +517,7 @@ export default function ContactDetailDrawer({
 
           {activeTab === 'activity' && (
             <div className="space-y-4">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Activity Timeline</h3>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.contacts.lastCall}</h3>
               {/* Call history timeline */}
               {contact.last_call_date ? (
                 <div className="space-y-3">
@@ -526,7 +528,7 @@ export default function ContactDetailDrawer({
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900">Last Call</p>
+                      <p className="text-sm font-medium text-slate-900">{t.contacts.lastCall}</p>
                       <p className="text-xs text-slate-500">{new Date(contact.last_call_date).toLocaleString()}</p>
                       {contact.call_outcome && (
                         <p className="text-xs text-slate-600 mt-1">Outcome: {contact.call_outcome}</p>
@@ -557,8 +559,8 @@ export default function ContactDetailDrawer({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <p className="text-sm text-slate-500">No activity yet</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Activity will appear here after calls</p>
+                  <p className="text-sm text-slate-500">{t.contacts.noContacts}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{t.contacts.noContactsDesc}</p>
                 </div>
               )}
 
@@ -589,7 +591,7 @@ export default function ContactDetailDrawer({
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 animate-slideUp">
             <div className="p-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Sync Changes</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">{t.contacts.saveSuccess}</h3>
               <p className="text-sm text-slate-600 mb-4">
                 Where would you like to save these changes?
               </p>
@@ -654,14 +656,14 @@ export default function ContactDetailDrawer({
                 onClick={() => { setShowSyncDialog(false); setSyncSelections([]); }}
                 className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-white transition-all font-medium text-sm"
               >
-                Cancel
+                {t.common.cancel}
               </button>
               <button
                 onClick={handleSyncDialogConfirm}
                 disabled={saving}
                 className="flex-1 px-4 py-2.5 gradient-bg text-white rounded-xl transition-all font-medium text-sm disabled:opacity-50"
               >
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? t.common.loading : t.common.save}
               </button>
             </div>
           </div>

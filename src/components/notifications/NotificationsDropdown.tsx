@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
+import { useTranslation } from '@/i18n';
 import { Notification } from '@/types/supabase';
 
 interface NotificationsDropdownProps {
@@ -19,6 +20,7 @@ function BellIcon({ className = "w-5 h-5" }: { className?: string }) {
 }
 
 export default function NotificationsDropdown({ companyId, userId }: NotificationsDropdownProps) {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -154,10 +156,10 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t.notifications.justNow;
+    if (diffMins < 60) return `${diffMins} ${t.notifications.minutesAgo}`;
+    if (diffHours < 24) return `${diffHours} ${t.notifications.hoursAgo}`;
+    if (diffDays < 7) return `${diffDays} ${t.notifications.daysAgo}`;
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
@@ -227,13 +229,13 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
         <div className="absolute right-0 mt-2 w-96 max-h-[600px] bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-slideDown overflow-hidden flex flex-col">
           {/* Header */}
           <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-            <h3 className="font-bold text-slate-900">Notifications</h3>
+            <h3 className="font-bold text-slate-900">{t.notifications.title}</h3>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
                 className="text-xs font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors"
               >
-                Mark all as read
+                {t.notifications.markAllRead}
               </button>
             )}
           </div>
@@ -249,8 +251,8 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
                 <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
                   <BellIcon className="w-8 h-8 text-slate-400" />
                 </div>
-                <p className="text-sm font-medium text-slate-600">No notifications</p>
-                <p className="text-xs text-slate-400 mt-1">You're all caught up!</p>
+                <p className="text-sm font-medium text-slate-600">{t.notifications.noNotifications}</p>
+                <p className="text-xs text-slate-400 mt-1"></p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
@@ -285,7 +287,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
                                 onClick={() => markAsRead(notification.id)}
                                 className="text-xs font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors"
                               >
-                                Mark as read
+                                {t.notifications.markAllRead}
                               </button>
                             )}
                           </div>

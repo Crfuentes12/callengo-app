@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from '@/i18n';
 import { createClient } from '@/lib/supabase/client';
 import { Contact as ContactType } from '@/types/call-agent';
 import { ContactList } from '@/types/supabase';
@@ -70,6 +71,7 @@ interface ConfirmDialog {
 
 // Confirmation Dialog Component
 function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose: () => void }) {
+  const { t } = useTranslation();
   if (!dialog.show) return null;
 
   const typeColors = {
@@ -117,7 +119,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
             onClick={onClose}
             className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-white hover:border-slate-300 transition-all font-medium"
           >
-            {dialog.cancelText || 'Cancel'}
+            {dialog.cancelText || t.common.cancel}
           </button>
           <button
             onClick={() => {
@@ -126,7 +128,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
             }}
             className={`flex-1 px-4 py-2.5 text-white rounded-xl transition-all font-medium ${typeColors[type]}`}
           >
-            {dialog.confirmText || 'Confirm'}
+            {dialog.confirmText || t.common.confirm}
           </button>
         </div>
       </div>
@@ -135,6 +137,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
 }
 
 export default function ContactsManager({ initialContacts, initialTotalCount, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false, hasPipedriveAccess = false, pdConnected = false, gsConnected = false, hasClioAccess = false, clioConnected = false, hasZohoAccess = false, zohoConnected = false, hasDynamicsAccess = false, dynamicsConnected = false, hasSimplyBookAccess = false, sbConnected = false }: ContactsManagerProps) {
+  const { t } = useTranslation();
   const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
   const [total, setTotal] = useState(initialTotalCount);
   const [page, setPage] = useState(1);
@@ -464,10 +467,10 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
 
     setConfirmDialog({
       show: true,
-      title: 'Delete Contacts',
-      message: `Are you sure you want to permanently delete ${selectedContactIds.length} contact${selectedContactIds.length > 1 ? 's' : ''}? This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: t.contacts.delete,
+      message: t.contacts.deleteConfirm,
+      confirmText: t.common.delete,
+      cancelText: t.common.cancel,
       type: 'danger',
       onConfirm: async () => {
         try {
@@ -523,7 +526,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase">Total</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase">{t.common.total}</p>
               {statsLoading ? (
                 <div className="h-7 w-16 bg-slate-200 rounded animate-pulse mt-0.5" />
               ) : (
@@ -538,7 +541,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase">Called</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase">{t.contacts.called}</p>
               {statsLoading ? (
                 <div className="h-7 w-12 bg-slate-200 rounded animate-pulse mt-0.5" />
               ) : (
@@ -553,7 +556,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase">With Email</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase">{t.contacts.email}</p>
               {statsLoading ? (
                 <div className="h-7 w-12 bg-slate-200 rounded animate-pulse mt-0.5" />
               ) : (
@@ -568,7 +571,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase">Last 7 Days</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase">{t.contacts.lastCall}</p>
               {statsLoading ? (
                 <div className="h-7 w-12 bg-slate-200 rounded animate-pulse mt-0.5" />
               ) : (
@@ -583,7 +586,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       {contactLists.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-sm">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-semibold text-slate-600">Quick Filters:</span>
+            <span className="text-sm font-semibold text-slate-600">{t.contacts.filters}:</span>
             <button
               onClick={() => setSelectedListFilter('all')}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
@@ -592,7 +595,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
               }`}
             >
-              All Contacts ({(stats?.total || total).toLocaleString()})
+              {t.contacts.allLists} ({(stats?.total || total).toLocaleString()})
             </button>
             <button
               onClick={() => setSelectedListFilter('none')}
@@ -602,7 +605,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
               }`}
             >
-              No List ({(stats?.noList || 0).toLocaleString()})
+              {t.contacts.noContacts} ({(stats?.noList || 0).toLocaleString()})
             </button>
             {contactLists.map((list) => {
               const listColor = list.color || '#3b82f6';
@@ -650,13 +653,13 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
         <div className="bg-[var(--color-primary-50)] border border-[var(--color-primary-200)] rounded-xl p-4 flex items-center justify-between animate-slideDown relative z-50">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-slate-900">
-              {selectedContactIds.length} contact{selectedContactIds.length > 1 ? 's' : ''} selected
+              {selectedContactIds.length} {t.contacts.selected}
             </span>
             <button
               onClick={() => setSelectedContactIds([])}
               className="text-xs text-[var(--color-primary)] hover:opacity-80 font-medium"
             >
-              Clear selection
+              {t.common.deselectAll}
             </button>
           </div>
           <div className="flex gap-2">
@@ -668,11 +671,11 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                Actions
+                {t.contacts.actions}
               </button>
               {showBatchActions && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-[9999]">
-                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">Add to List</div>
+                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">{t.contacts.list}</div>
                   <button
                     onClick={() => setShowListManager(true)}
                     className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
@@ -680,7 +683,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Create new list
+                    {t.common.create} {t.contacts.list}
                   </button>
                   {contactLists.map((list) => (
                     <button
@@ -695,12 +698,12 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                     </button>
                   ))}
                   <div className="border-t border-slate-200 my-2"></div>
-                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">Other Actions</div>
+                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">{t.contacts.bulkActions}</div>
                   <button
                     onClick={() => handleBatchMoveToList(null)}
                     className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                   >
-                    Remove from current list
+                    {t.common.delete} {t.contacts.list}
                   </button>
                   <div className="border-t border-slate-200 my-2"></div>
                   <button
@@ -710,7 +713,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    Delete permanently
+                    {t.contacts.delete}
                   </button>
                 </div>
               )}
@@ -730,7 +733,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
             </svg>
             <input
               type="text"
-              placeholder="Search by name, company, phone, email..."
+              placeholder={t.contacts.searchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm text-slate-900 placeholder-slate-400"
@@ -744,8 +747,8 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               onChange={(e) => handleListFilterChange(e.target.value)}
               className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-slate-700 cursor-pointer"
             >
-              <option value="all">All Lists</option>
-              <option value="none">No List</option>
+              <option value="all">{t.contacts.allLists}</option>
+              <option value="none">{t.contacts.noContacts}</option>
               {contactLists.map((list) => (
                 <option key={list.id} value={list.id}>{list.name}</option>
               ))}
@@ -755,12 +758,12 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               onChange={(e) => handleStatusFilterChange(e.target.value)}
               className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-slate-700 cursor-pointer"
             >
-              <option value="all">All Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Calling">Calling</option>
-              <option value="Fully Verified">Verified</option>
-              <option value="For Callback">For Callback</option>
-              <option value="No Answer">No Answer</option>
+              <option value="all">{t.contacts.allStatuses}</option>
+              <option value="Pending">{t.contacts.pending}</option>
+              <option value="Calling">{t.contacts.called}</option>
+              <option value="Fully Verified">{t.contacts.status}</option>
+              <option value="For Callback">{t.contacts.callBack}</option>
+              <option value="No Answer">{t.contacts.noAnswer}</option>
               <option value="Voicemail Left">Voicemail</option>
               <option value="Wrong Number">Wrong Number</option>
             </select>
@@ -823,7 +826,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
               </svg>
-              <span className="hidden xl:inline">Lists</span>
+              <span className="hidden xl:inline">{t.contacts.list}</span>
             </button>
 
             <div className="relative" ref={exportMenuRef}>
@@ -836,7 +839,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                <span className="hidden xl:inline">Export</span>
+                <span className="hidden xl:inline">{t.common.export}</span>
                 <svg className="w-3 h-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
               </button>
               {showExportMenu && (
@@ -885,8 +888,8 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 <div className="absolute right-0 mt-2 w-[380px] bg-white rounded-2xl shadow-2xl border border-slate-200/80 z-50 animate-fadeIn overflow-hidden backdrop-blur-sm">
                   {/* Header */}
                   <div className="px-5 py-3.5 bg-gradient-to-r from-[var(--color-primary-50)] to-white border-b border-slate-100">
-                    <p className="text-sm font-bold text-slate-900">Add Contacts</p>
-                    <p className="text-[11px] text-slate-500">Choose a source to import contacts</p>
+                    <p className="text-sm font-bold text-slate-900">{t.contacts.addContact}</p>
+                    <p className="text-[11px] text-slate-500">{t.contacts.importContacts}</p>
                   </div>
 
                   {/* Quick actions row */}
@@ -1209,7 +1212,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 onClick={() => { setAIResult(null); setCreatingSegments(new Set()); setCreatedSegments(new Set()); }}
                 className="w-full px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
               >
-                Close
+                {t.common.close}
               </button>
             </div>
           </div>
@@ -1270,6 +1273,7 @@ interface ListManagerModalProps {
 }
 
 function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: ListManagerModalProps) {
+  const { t } = useTranslation();
   const supabase = createClient();
   const [editingList, setEditingList] = useState<ContactList | null>(null);
   const [newListName, setNewListName] = useState('');
@@ -1345,10 +1349,10 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
   const handleDeleteList = async (listId: string) => {
     setConfirmDialog({
       show: true,
-      title: 'Delete List',
-      message: 'Are you sure you want to delete this list? Contacts in this list will not be deleted, but will be removed from the list.',
-      confirmText: 'Delete List',
-      cancelText: 'Cancel',
+      title: t.contacts.delete,
+      message: t.contacts.deleteConfirm,
+      confirmText: t.common.delete,
+      cancelText: t.common.cancel,
       type: 'danger',
       onConfirm: async () => {
         setLoading(true);
@@ -1387,7 +1391,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
       <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-md border border-slate-200/50 flex flex-col">
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-slate-900">Manage Contact Lists</h2>
+            <h2 className="text-xl font-semibold text-slate-900">{t.contacts.title}</h2>
             <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1406,14 +1410,14 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Create New List
+              {t.common.create} {t.contacts.list}
             </button>
           ) : (
             <div className="border border-[var(--color-primary-200)] rounded-xl p-5 gradient-bg-subtle mb-6">
-              <h3 className="text-sm font-semibold text-slate-900 mb-4">Create New List</h3>
+              <h3 className="text-sm font-semibold text-slate-900 mb-4">{t.common.create} {t.contacts.list}</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">List Name</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t.contacts.name}</label>
                   <input
                     type="text"
                     value={newListName}
@@ -1423,7 +1427,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Description (Optional)</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t.common.description}</label>
                   <input
                     type="text"
                     value={newListDescription}
@@ -1455,14 +1459,14 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                     }}
                     className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
                   >
-                    Cancel
+                    {t.common.cancel}
                   </button>
                   <button
                     onClick={handleCreateList}
                     disabled={!newListName.trim() || loading}
                     className="flex-1 px-4 py-2 gradient-bg text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
                   >
-                    {loading ? 'Creating...' : 'Create List'}
+                    {loading ? t.common.loading : t.common.create}
                   </button>
                 </div>
               </div>
@@ -1471,10 +1475,10 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
 
           {/* Existing Lists */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-slate-900 mb-3">Existing Lists ({lists.length})</h3>
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">{t.contacts.list} ({lists.length})</h3>
             {lists.length === 0 ? (
               <div className="text-center py-12 text-slate-500">
-                <p className="text-sm">No lists created yet</p>
+                <p className="text-sm">{t.contacts.noContacts}</p>
               </div>
             ) : (
               lists.map((list) => (
@@ -1509,14 +1513,14 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                           onClick={() => setEditingList(null)}
                           className="flex-1 px-3 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
                         >
-                          Cancel
+                          {t.common.cancel}
                         </button>
                         <button
                           onClick={() => handleUpdateList(editingList)}
                           disabled={loading}
                           className="flex-1 px-3 py-2 gradient-bg text-white rounded-lg disabled:opacity-50 transition-all text-sm font-medium"
                         >
-                          {loading ? 'Saving...' : 'Save'}
+                          {loading ? t.common.loading : t.common.save}
                         </button>
                       </div>
                     </div>
@@ -1536,13 +1540,13 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                           onClick={() => setEditingList(list)}
                           className="px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary-50)] rounded-lg hover:opacity-80 transition-all"
                         >
-                          Edit
+                          {t.contacts.edit}
                         </button>
                         <button
                           onClick={() => handleDeleteList(list.id)}
                           className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-all"
                         >
-                          Delete
+                          {t.contacts.delete}
                         </button>
                       </div>
                     </div>
@@ -1558,7 +1562,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
             onClick={onClose}
             className="w-full px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
           >
-            Close
+            {t.common.close}
           </button>
         </div>
       </div>
@@ -1590,6 +1594,7 @@ interface ContactRow {
 }
 
 function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualAddModalProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [fields, setFields] = useState<CustomField[]>([
     { id: '1', name: 'First Name', type: 'text' },
@@ -1732,8 +1737,8 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                 </svg>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">Add Contacts Manually</h2>
-                <p className="text-sm text-slate-600 mt-0.5">Create custom fields and add multiple contacts</p>
+                <h2 className="text-2xl font-bold text-slate-900">{t.contacts.addContact}</h2>
+                <p className="text-sm text-slate-600 mt-0.5">{t.contacts.noContactsDesc}</p>
               </div>
             </div>
             <button
@@ -1847,7 +1852,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                       </th>
                     ))}
                     <th className="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase tracking-wider w-24">
-                      Actions
+                      {t.contacts.actions}
                     </th>
                   </tr>
                 </thead>
@@ -1895,7 +1900,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Add Another Contact
+            {t.contacts.addContact}
           </button>
         </div>
 
@@ -1906,7 +1911,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
             disabled={loading}
             className="btn-secondary px-6 py-2.5 rounded-xl font-semibold disabled:opacity-50"
           >
-            Cancel
+            {t.common.cancel}
           </button>
           <button
             onClick={handleSave}
@@ -1919,14 +1924,14 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Saving...
+                {t.common.loading}
               </>
             ) : (
               <>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                Save {rows.filter(r => Object.values(r.data).some(v => v.trim())).length} Contact{rows.filter(r => Object.values(r.data).some(v => v.trim())).length !== 1 ? 's' : ''}
+                {t.common.save} {rows.filter(r => Object.values(r.data).some(v => v.trim())).length} {t.contacts.title}
               </>
             )}
           </button>

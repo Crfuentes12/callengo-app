@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from '@/i18n';
 
 interface Pain {
   id: string;
@@ -19,42 +20,54 @@ interface PainSelectionProps {
   onSkip: () => void;
 }
 
-const PAINS: Pain[] = [
+const PAINS_BASE = [
   {
     id: 'data-validation',
-    title: 'Clean my database',
-    description: 'Stop wasting money on bad data. Emails that bounce, wrong phone numbers, duplicated leads.',
     emoji: '🧹',
     color: 'from-emerald-500 to-teal-600',
     gradient: 'from-emerald-500/20 to-teal-600/20',
-    value: 'Emails that bounce • Phone numbers that are wrong • Leads duplicated • CRM inflated with basura',
-    agentSlug: 'data-validation'
+    agentSlug: 'data-validation',
+    titleKey: 'cleanDatabase' as const,
+    descriptionKey: 'cleanDatabaseDesc' as const,
+    valueKey: 'cleanDatabaseValue' as const,
   },
   {
     id: 'appointment-confirmation',
-    title: 'Stop losing money from no-shows',
-    description: 'Every missed appointment is money lost. Confirm automatically and reduce no-shows immediately.',
     emoji: '💰',
     color: 'from-blue-500 to-blue-700',
     gradient: 'from-blue-500/20 to-blue-700/20',
-    value: 'Empty agendas • Wasted time • Teams waiting for people who never arrive',
-    agentSlug: 'appointment-confirmation'
+    agentSlug: 'appointment-confirmation',
+    titleKey: 'stopNoShows' as const,
+    descriptionKey: 'stopNoShowsDesc' as const,
+    valueKey: 'stopNoShowsValue' as const,
   },
   {
     id: 'lead-qualification',
-    title: 'Qualify leads before sales touches them',
-    description: 'Your sales team wastes time on junk leads. Filter automatically and save their energy.',
     emoji: '🎯',
     color: 'from-[var(--color-primary)] to-[var(--color-accent)]',
     gradient: 'from-[var(--color-primary)]/20 to-[var(--color-accent)]/20',
-    value: 'Junk leads • Burned out SDRs • Useless conversations',
-    agentSlug: 'lead-qualification'
+    agentSlug: 'lead-qualification',
+    titleKey: 'qualifyLeads' as const,
+    descriptionKey: 'qualifyLeadsDesc' as const,
+    valueKey: 'qualifyLeadsValue' as const,
   },
 ];
 
 export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) {
+  const { t } = useTranslation();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const PAINS: Pain[] = PAINS_BASE.map((p) => ({
+    id: p.id,
+    emoji: p.emoji,
+    color: p.color,
+    gradient: p.gradient,
+    agentSlug: p.agentSlug,
+    title: t.onboarding.painSelection[p.titleKey],
+    description: t.onboarding.painSelection[p.descriptionKey],
+    value: t.onboarding.painSelection[p.valueKey],
+  }));
 
   const handleSelect = (pain: Pain) => {
     setSelectedId(pain.id);
@@ -75,10 +88,10 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
             <span className="text-4xl">⚡</span>
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
-            What do you want to fix first?
+            {t.onboarding.painSelection.title}
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-            Choose the problem that's costing you the most time or money right now
+            {t.onboarding.painSelection.subtitle}
           </p>
         </div>
 
@@ -130,7 +143,7 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
                 {/* Pain Points */}
                 <div className="pt-4 border-t border-slate-700/50">
                   <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-wide">
-                    What you're dealing with:
+                    {t.onboarding.painSelection.dealingWith}
                   </p>
                   <p className="text-sm text-slate-400 leading-relaxed">
                     {pain.value}
@@ -159,14 +172,14 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
             onClick={onSkip}
             className="text-slate-500 hover:text-slate-400 text-sm font-medium transition-colors underline"
           >
-            Skip this step for now
+            {t.onboarding.painSelection.skipStep}
           </button>
         </div>
 
         {/* Bottom note */}
         <div className="mt-12 text-center">
           <p className="text-slate-500 text-sm">
-            💡 Don't worry, you can activate all solutions later from your dashboard
+            💡 {t.onboarding.painSelection.activateLater}
           </p>
         </div>
       </div>

@@ -4,6 +4,7 @@
 import { useState, useMemo } from 'react';
 import CallDetailModal from '@/components/calls/CallDetailModal';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import { useTranslation } from '@/i18n';
 
 interface VoicemailLog {
   id: string;
@@ -36,6 +37,7 @@ interface VoicemailsPageProps {
 }
 
 export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'left' | 'detected'>('all');
   const [search, setSearch] = useState('');
   const [selectedVoicemail, setSelectedVoicemail] = useState<VoicemailLog | null>(null);
@@ -67,19 +69,19 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Voicemails' }]} />
+      <Breadcrumbs items={[{ label: t.voicemails.title }]} />
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Voicemails</h1>
-        <p className="text-slate-600 mt-1">Track voicemail detections and messages left by your AI agents</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t.voicemails.title}</h1>
+        <p className="text-slate-600 mt-1">{t.voicemails.noVoicemailsDesc}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Total Voicemails</span>
+            <span className="text-sm font-medium text-slate-500">{t.common.total} {t.voicemails.title}</span>
             <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-50)] flex items-center justify-center">
               <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -91,7 +93,7 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Messages Left</span>
+            <span className="text-sm font-medium text-slate-500">{t.voicemails.left}</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -103,7 +105,7 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Follow-ups Scheduled</span>
+            <span className="text-sm font-medium text-slate-500">{t.voicemails.followUpScheduled}</span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -115,7 +117,7 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Avg Detection</span>
+            <span className="text-sm font-medium text-slate-500">{t.voicemails.detected}</span>
             <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -134,7 +136,7 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
           </svg>
           <input
             type="text"
-            placeholder="Search by contact, company, or message..."
+            placeholder={t.common.search}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
@@ -151,7 +153,7 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              {f === 'all' ? 'All' : f === 'left' ? 'Message Left' : 'Detected Only'}
+              {f === 'all' ? t.common.filter : f === 'left' ? t.voicemails.left : t.voicemails.detected}
             </button>
           ))}
         </div>
@@ -163,12 +165,12 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Contact</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Campaign</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Status</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Duration</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Follow-up</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Detected</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.voicemails.contact}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.followUps.campaign}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.voicemails.status}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.voicemails.duration}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.voicemails.followUpScheduled}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.voicemails.detected}</th>
               </tr>
             </thead>
             <tbody>
@@ -194,7 +196,7 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
                           ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                           : 'bg-amber-50 border-amber-200 text-amber-700'
                       }`}>
-                        {vm.message_left ? 'Message Left' : 'Detected'}
+                        {vm.message_left ? t.voicemails.left : t.voicemails.detected}
                       </span>
                     </td>
                     <td className="py-3 px-6">
@@ -205,10 +207,10 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
                     <td className="py-3 px-6">
                       {vm.follow_up_scheduled ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 border border-blue-200 text-blue-700">
-                          Scheduled
+                          {t.calendar.scheduled}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400">None</span>
+                        <span className="text-xs text-slate-400">{t.voicemails.noFollowUp}</span>
                       )}
                     </td>
                     <td className="py-3 px-6">
@@ -227,8 +229,8 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                       </div>
-                      <p className="text-sm font-medium text-slate-900">No voicemails found</p>
-                      <p className="text-xs text-slate-500 mt-1">Voicemails will appear here when detected during calls</p>
+                      <p className="text-sm font-medium text-slate-900">{t.voicemails.noVoicemails}</p>
+                      <p className="text-xs text-slate-500 mt-1">{t.voicemails.noVoicemailsDesc}</p>
                     </div>
                   </td>
                 </tr>

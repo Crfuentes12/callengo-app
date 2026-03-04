@@ -1,6 +1,7 @@
 // components/contacts/ContactDetailModal.tsx
 'use client';
 
+import { useTranslation } from '@/i18n';
 import { Contact, CallAnalysis, CallMetadata } from '@/types/call-agent';
 import {
   formatPhoneForDisplay,
@@ -16,6 +17,7 @@ interface ContactDetailModalProps {
 }
 
 export default function ContactDetailModal({ contact, onClose }: ContactDetailModalProps) {
+  const { t } = useTranslation();
   const analysis = contact.analysis as CallAnalysis | null;
   const metadata = contact.call_metadata as CallMetadata | null;
 
@@ -45,25 +47,25 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
           <div className="space-y-6">
             {/* Contact Info */}
             <div>
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Contact Information</h3>
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t.contacts.viewDetails}</h3>
               <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-slate-400 uppercase tracking-wide">Address</p>
+                    <p className="text-xs text-slate-400 uppercase tracking-wide">{t.contacts.address}</p>
                     <p className="text-sm font-medium text-slate-900 mt-1">
                       {contact.address ? `${contact.address}, ${contact.city}, ${contact.state} ${contact.zip_code}` : <span className="text-slate-300">—</span>}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 uppercase tracking-wide">Contact Name</p>
+                    <p className="text-xs text-slate-400 uppercase tracking-wide">{t.contacts.name}</p>
                     <p className="text-sm font-medium text-slate-900 mt-1">{contact.contact_name || <span className="text-slate-300">—</span>}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 uppercase tracking-wide">Email</p>
+                    <p className="text-xs text-slate-400 uppercase tracking-wide">{t.contacts.email}</p>
                     <p className="text-sm font-medium text-slate-900 mt-1">{contact.email || <span className="text-slate-300">—</span>}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 uppercase tracking-wide">Status</p>
+                    <p className="text-xs text-slate-400 uppercase tracking-wide">{t.contacts.status}</p>
                     <p className="text-sm font-medium text-slate-900 mt-1">{contact.status}</p>
                   </div>
                 </div>
@@ -72,7 +74,7 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
 
             {/* Call Stats */}
             <div>
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Call Statistics</h3>
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t.contacts.call}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-50/80 rounded-xl p-4 text-center border border-slate-100">
                   <p className="text-2xl font-bold text-slate-900">{contact.call_attempts}</p>
@@ -90,23 +92,23 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
             {/* Analysis */}
             {analysis && (
               <div>
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Call Analysis</h3>
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t.contacts.call}</h3>
                 <div className="bg-emerald-50/80 rounded-xl p-4 border border-emerald-100 space-y-4">
                   {analysis.verifiedAddress && (
                     <div>
-                      <p className="text-xs text-emerald-600 uppercase tracking-wide font-medium">Verified Address</p>
+                      <p className="text-xs text-emerald-600 uppercase tracking-wide font-medium">{t.contacts.address}</p>
                       <p className="text-sm text-slate-900 mt-1">{analysis.verifiedAddress}</p>
                     </div>
                   )}
                   {analysis.contactName && (
                     <div>
-                      <p className="text-xs text-emerald-600 uppercase tracking-wide font-medium">Contact Name</p>
+                      <p className="text-xs text-emerald-600 uppercase tracking-wide font-medium">{t.contacts.name}</p>
                       <p className="text-sm text-slate-900 mt-1">{analysis.contactName}</p>
                     </div>
                   )}
                   {analysis.verifiedEmail && (
                     <div>
-                      <p className="text-xs text-emerald-600 uppercase tracking-wide font-medium">Email</p>
+                      <p className="text-xs text-emerald-600 uppercase tracking-wide font-medium">{t.contacts.email}</p>
                       <p className="text-sm text-slate-900 mt-1">{analysis.verifiedEmail}</p>
                     </div>
                   )}
@@ -174,7 +176,7 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
             onClick={onClose}
             className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all"
           >
-            Close
+            {t.common.close}
           </button>
         </div>
       </div>

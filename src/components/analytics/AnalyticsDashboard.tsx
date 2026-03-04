@@ -4,6 +4,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import { Database } from '@/types/supabase';
 import { formatDuration } from '@/lib/call-agent-utils';
+import { useTranslation } from '@/i18n';
 
 type CallLog = Database['public']['Tables']['call_logs']['Row'];
 type Contact = Database['public']['Tables']['contacts']['Row'];
@@ -54,6 +55,7 @@ export default function AnalyticsDashboard({
   agentRuns,
   campaigns = [],
 }: AnalyticsDashboardProps) {
+  const { t } = useTranslation();
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
   // Calculate comprehensive KPIs
   const kpis = useMemo(() => {
@@ -324,10 +326,10 @@ export default function AnalyticsDashboard({
             </div>
             <div>
               <h2 className="text-2xl font-bold text-slate-900">
-                Analytics Dashboard
+                {t.analytics.title}
               </h2>
               <p className="text-lg text-slate-500 font-medium">
-                Deep insights, performance metrics, and exportable reports
+                {t.analytics.overview}
               </p>
             </div>
           </div>
@@ -345,7 +347,7 @@ export default function AnalyticsDashboard({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  {period === 'all' ? 'All Time' : period === '7d' ? '7 Days' : period === '30d' ? '30 Days' : '90 Days'}
+                  {period === 'all' ? t.analytics.timeRange : period === '7d' ? t.analytics.last7Days : period === '30d' ? t.analytics.last30Days : t.analytics.last90Days}
                 </button>
               ))}
             </div>
@@ -363,7 +365,7 @@ export default function AnalyticsDashboard({
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Export Report
+                  {t.analytics.export}
                 </button>
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50 hidden group-hover:block">
                   <button onClick={handleExportCalls} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
@@ -384,7 +386,7 @@ export default function AnalyticsDashboard({
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
-                <span className="text-xs text-slate-500 font-semibold">Total Calls</span>
+                <span className="text-xs text-slate-500 font-semibold">{t.analytics.callVolume}</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{kpis.totalCalls.toLocaleString()}</span>
               <p className="text-xs text-slate-500 mt-1">{kpis.successfulCalls} successful</p>
@@ -392,7 +394,7 @@ export default function AnalyticsDashboard({
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                <span className="text-xs text-slate-500 font-semibold">Success Rate</span>
+                <span className="text-xs text-slate-500 font-semibold">{t.analytics.successRate}</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{kpis.successRate.toFixed(0)}%</span>
               <p className="text-xs text-slate-500 mt-1">{kpis.failedCalls} failed</p>
@@ -408,7 +410,7 @@ export default function AnalyticsDashboard({
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                <span className="text-xs text-slate-500 font-semibold">Avg Duration</span>
+                <span className="text-xs text-slate-500 font-semibold">{t.analytics.avgDuration}</span>
               </div>
               <span className="text-3xl text-slate-900 font-bold">{formatDuration(kpis.avgDuration)}</span>
               <p className="text-xs text-slate-500 mt-1">{formatDuration(kpis.totalDuration)} total</p>
@@ -425,7 +427,7 @@ export default function AnalyticsDashboard({
               <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
               </svg>
-              Call Volume Trends
+              {t.analytics.callsOverTime}
             </h3>
             <p className="text-sm text-slate-500 mt-1">Last 30 days performance</p>
           </div>
@@ -554,8 +556,8 @@ export default function AnalyticsDashboard({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Agent Performance</h3>
-                <p className="text-sm text-slate-500">Top performing AI agents</p>
+                <h3 className="text-lg font-bold text-slate-900">{t.analytics.topAgents}</h3>
+                <p className="text-sm text-slate-500">{t.analytics.byAgent}</p>
               </div>
             </div>
           </div>
@@ -567,8 +569,8 @@ export default function AnalyticsDashboard({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
-                <p className="text-slate-900 font-semibold">No agent data yet</p>
-                <p className="text-sm text-slate-500 mt-1">Start a campaign to see performance</p>
+                <p className="text-slate-900 font-semibold">{t.analytics.noData}</p>
+                <p className="text-sm text-slate-500 mt-1">{t.analytics.noData}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -614,8 +616,8 @@ export default function AnalyticsDashboard({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Contact Status</h3>
-                <p className="text-sm text-slate-500">Distribution by outcome</p>
+                <h3 className="text-lg font-bold text-slate-900">{t.analytics.outcomeDistribution}</h3>
+                <p className="text-sm text-slate-500">{t.analytics.byOutcome}</p>
               </div>
             </div>
           </div>
@@ -627,8 +629,8 @@ export default function AnalyticsDashboard({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                   </svg>
                 </div>
-                <p className="text-slate-900 font-semibold">No contact data yet</p>
-                <p className="text-sm text-slate-500 mt-1">Import contacts to begin</p>
+                <p className="text-slate-900 font-semibold">{t.analytics.noData}</p>
+                <p className="text-sm text-slate-500 mt-1">{t.analytics.noData}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -764,15 +766,15 @@ export default function AnalyticsDashboard({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Campaign Reports</h3>
-                <p className="text-sm text-slate-500">Detailed breakdown of all campaigns</p>
+                <h3 className="text-lg font-bold text-slate-900">{t.analytics.campaignPerformance}</h3>
+                <p className="text-sm text-slate-500">{t.analytics.byCampaign}</p>
               </div>
             </div>
             <button onClick={handleExportCampaigns} className="btn-secondary text-sm flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Export
+              {t.analytics.export}
             </button>
           </div>
           <div className="overflow-x-auto">
@@ -855,7 +857,7 @@ export default function AnalyticsDashboard({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Campaign Performance</h3>
+                <h3 className="text-lg font-bold text-slate-900">{t.analytics.campaignPerformance}</h3>
                 <p className="text-sm text-slate-500">{kpis.activeCampaigns} active, {kpis.completedCampaigns} completed</p>
               </div>
             </div>

@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from '@/i18n';
 import { GoogleSheetsIcon } from '@/components/icons/BrandIcons';
 
 export interface SyncJobInfo {
@@ -31,6 +32,7 @@ export default function GoogleSheetsSyncProgress({
   onComplete,
   onDismiss,
 }: GoogleSheetsSyncProgressProps) {
+  const { t } = useTranslation();
   const [isMinimized, setIsMinimized] = useState(false);
   const [progress, setProgress] = useState<SyncProgressState>({
     phase: 'connecting',
@@ -189,14 +191,14 @@ export default function GoogleSheetsSyncProgress({
 
         <div className="text-left">
           <p className="text-xs font-semibold text-slate-700 group-hover:text-green-700 transition-colors">
-            {isComplete ? 'Import Complete' : isError ? 'Import Failed' : 'Importing...'}
+            {isComplete ? t.contacts.importModal.success : isError ? t.contacts.importModal.error : t.contacts.importModal.importing}
           </p>
           <p className="text-[10px] text-slate-500">
             {isComplete
-              ? `${progress.created + progress.updated} contacts`
+              ? `${progress.created + progress.updated} ${t.contacts.title}`
               : isError
-              ? 'Click to view details'
-              : `${percent}% — ${progress.processed} of ${progress.total}`}
+              ? t.contacts.importModal.error
+              : `${percent}% — ${progress.processed} ${t.common.of} ${progress.total}`}
           </p>
         </div>
 
@@ -233,7 +235,7 @@ export default function GoogleSheetsSyncProgress({
           </div>
           <div>
             <p className="text-sm font-bold text-slate-900">
-              {isComplete ? 'Import Complete' : isError ? 'Import Failed' : 'Importing Contacts'}
+              {isComplete ? t.contacts.importModal.success : isError ? t.contacts.importModal.error : t.contacts.importModal.importing}
             </p>
             <p className="text-[10px] text-slate-500 truncate max-w-[180px]">
               {syncJob.spreadsheetName}
@@ -297,7 +299,7 @@ export default function GoogleSheetsSyncProgress({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <p className="text-sm font-bold text-slate-900 mb-1">Import Finished!</p>
+            <p className="text-sm font-bold text-slate-900 mb-1">{t.contacts.importModal.success}</p>
             <p className="text-xs text-slate-500">
               A notification has been sent to your inbox
             </p>
@@ -312,7 +314,7 @@ export default function GoogleSheetsSyncProgress({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
               </svg>
             </div>
-            <p className="text-sm font-bold text-red-900 mb-1">Import Failed</p>
+            <p className="text-sm font-bold text-red-900 mb-1">{t.contacts.importModal.error}</p>
             <p className="text-xs text-red-600">{progress.message}</p>
           </div>
         )}

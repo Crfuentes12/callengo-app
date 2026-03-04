@@ -2,6 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useTranslation } from '@/i18n';
 
 interface UsageRecord {
   id: string;
@@ -54,6 +55,7 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function BillingPage({ usage, billingHistory, subscription }: BillingPageProps) {
+  const { t } = useTranslation();
   const currentUsage = usage[0];
 
   const usagePercent = currentUsage
@@ -78,8 +80,8 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Billing & Usage</h1>
-        <p className="text-slate-600 mt-1">Monitor your plan usage and billing history</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t.billing.title}</h1>
+        <p className="text-slate-600 mt-1">{t.billing.usage}</p>
       </div>
 
       {/* Current Plan Card */}
@@ -93,7 +95,7 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
                 </svg>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-900">{subscription.subscription_plans?.name || 'Current Plan'}</h3>
+                <h3 className="text-sm font-semibold text-slate-900">{subscription.subscription_plans?.name || t.billing.currentPlan}</h3>
                 <p className="text-xs text-slate-500">{subscription.billing_cycle} billing</p>
               </div>
             </div>
@@ -110,7 +112,7 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
           {/* Usage Bar */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600">Minutes used this period</span>
+              <span className="text-slate-600">{t.billing.minutesUsed}</span>
               <span className="font-medium text-slate-900">
                 {stats.currentMinutes.toLocaleString()} / {stats.includedMinutes.toLocaleString()} min
               </span>
@@ -126,7 +128,7 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>{usagePercent}% used</span>
               {stats.overageMinutes > 0 && (
-                <span className="text-amber-600 font-medium">{stats.overageMinutes} overage minutes</span>
+                <span className="text-amber-600 font-medium">{stats.overageMinutes} {t.billing.overageMinutes}</span>
               )}
               <span>
                 Period: {new Date(subscription.current_period_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(subscription.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -140,7 +142,7 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Total Spent</span>
+            <span className="text-sm font-medium text-slate-500">{t.common.total}</span>
             <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-50)] flex items-center justify-center">
               <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -153,7 +155,7 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Minutes Used</span>
+            <span className="text-sm font-medium text-slate-500">{t.billing.minutesUsed}</span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -166,7 +168,7 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">Invoices</span>
+            <span className="text-sm font-medium text-slate-500">{t.billing.invoice}</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -181,18 +183,18 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
       {/* Billing History */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="p-6 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-900">Billing History</h3>
-          <p className="text-xs text-slate-500 mt-1">Your recent invoices and payments</p>
+          <h3 className="text-sm font-semibold text-slate-900">{t.billing.billingHistory}</h3>
+          <p className="text-xs text-slate-500 mt-1">{t.billing.invoice}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Date</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Description</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Amount</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Status</th>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Invoice</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.billing.date}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.common.description}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.billing.amount}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.billing.status}</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.billing.invoice}</th>
               </tr>
             </thead>
             <tbody>
@@ -225,7 +227,7 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
                           rel="noopener noreferrer"
                           className="text-sm text-[var(--color-primary)] hover:underline"
                         >
-                          View
+                          {t.common.viewAll}
                         </a>
                       ) : (
                         <span className="text-xs text-slate-400">—</span>
@@ -242,8 +244,8 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       </div>
-                      <p className="text-sm font-medium text-slate-900">No billing history yet</p>
-                      <p className="text-xs text-slate-500 mt-1">Your invoices will appear here</p>
+                      <p className="text-sm font-medium text-slate-900">{t.common.noData}</p>
+                      <p className="text-xs text-slate-500 mt-1">{t.billing.billingHistory}</p>
                     </div>
                   </td>
                 </tr>
@@ -257,18 +259,18 @@ export default function BillingPage({ usage, billingHistory, subscription }: Bil
       {usage.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="p-6 border-b border-slate-100">
-            <h3 className="text-sm font-semibold text-slate-900">Usage History</h3>
-            <p className="text-xs text-slate-500 mt-1">Minutes consumed per billing period</p>
+            <h3 className="text-sm font-semibold text-slate-900">{t.billing.usage}</h3>
+            <p className="text-xs text-slate-500 mt-1">{t.billing.minutesUsed}</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Period</th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Minutes Used</th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Included</th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Overage</th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Usage</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.billing.date}</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.billing.minutesUsed}</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.billing.minutesIncluded}</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.billing.overageMinutes}</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.billing.usage}</th>
                 </tr>
               </thead>
               <tbody>
