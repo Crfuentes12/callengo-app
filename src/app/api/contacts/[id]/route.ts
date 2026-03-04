@@ -38,8 +38,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       supabaseAdmin.from('pipedrive_contact_mappings').select('pd_person_id, pd_object_type').eq('callengo_contact_id', id).maybeSingle(),
     ]);
 
+    // Check lock status
+    const cf = (contact.custom_fields as Record<string, unknown>) || {};
+    const isLocked = cf._locked === true;
+    const lockAge = cf._locked_at ? (Date.now() - new Date(cf._locked_at as string).getTime()) / 1000 : 0;
+    // Auto-expire locks after 10 minutes
+    const effectivelyLocked = isLocked && lockAge < 600;
+
     return NextResponse.json({
       contact,
+      locked: effectivelyLocked,
+      lockedBy: effectivelyLocked ? cf._locked_by : null,
+      lockedAt: effectivelyLocked ? cf._locked_at : null,
       crmMappings: {
         salesforce: sfMapping.data || null,
         hubspot: hsMapping.data || null,
@@ -60,13 +70,39 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!companyId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { updates, syncTo } = body as {
+    const { updates, syncTo, force } = body as {
       updates: Record<string, unknown>;
       syncTo?: string[]; // ['salesforce', 'hubspot', 'pipedrive']
+      force?: boolean; // Override lock (admin only)
     };
 
     if (!updates || Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No updates provided' }, { status: 400 });
+    }
+
+    // Check if contact is locked (being processed by an active call)
+    if (!force) {
+      const { data: contact } = await supabase
+        .from('contacts')
+        .select('custom_fields')
+        .eq('id', id)
+        .eq('company_id', companyId)
+        .single();
+
+      const cf = (contact?.custom_fields as Record<string, unknown>) || {};
+      if (cf._locked) {
+        const lockTime = cf._locked_at ? new Date(cf._locked_at as string) : null;
+        const lockAge = lockTime ? (Date.now() - lockTime.getTime()) / 1000 : Infinity;
+        // Auto-expire locks after 10 minutes (safety valve)
+        if (lockAge < 600) {
+          return NextResponse.json({
+            error: 'Contact is currently being processed by an active call. Please wait until the call completes.',
+            locked: true,
+            locked_by: cf._locked_by || 'ai_agent',
+            locked_at: cf._locked_at,
+          }, { status: 423 }); // 423 Locked
+        }
+      }
     }
 
     // Only allow safe fields to be updated

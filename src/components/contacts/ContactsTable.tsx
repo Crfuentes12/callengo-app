@@ -206,12 +206,18 @@ export default function ContactsTable({
                 </tr>
               ))
             ) : (
-              contacts.map((contact) => (
+              contacts.map((contact) => {
+                // Check if contact is locked (being processed by an active call)
+                const cf = (contact.custom_fields as Record<string, unknown>) || {};
+                const isLocked = cf._locked === true;
+                const lockAge = cf._locked_at ? (Date.now() - new Date(cf._locked_at as string).getTime()) / 1000 : Infinity;
+                const effectivelyLocked = isLocked && lockAge < 600;
+
+                return (
                 <tr
                   key={contact.id}
-                  className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${selectedContactIds.includes(contact.id) ? 'bg-[var(--color-primary-50)]/40' : ''}`}
+                  className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${selectedContactIds.includes(contact.id) ? 'bg-[var(--color-primary-50)]/40' : ''} ${effectivelyLocked ? 'bg-amber-50/40 border-l-2 border-l-amber-400' : ''}`}
                   onClick={(e) => {
-                    // Don't trigger on checkbox click
                     if ((e.target as HTMLElement).closest('input[type="checkbox"]') || (e.target as HTMLElement).closest('button')) return;
                     onContactClick(contact);
                   }}
@@ -222,18 +228,28 @@ export default function ContactsTable({
                       checked={selectedContactIds.includes(contact.id)}
                       onChange={(e) => handleSelectOne(contact.id, e.target.checked)}
                       className="w-4 h-4 text-[var(--color-primary)] bg-white border-slate-300 rounded focus:ring-[var(--color-primary)] focus:ring-2 cursor-pointer"
+                      disabled={effectivelyLocked}
                     />
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 flex-shrink-0">
-                        {(contact.company_name || '?')[0].toUpperCase()}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${effectivelyLocked ? 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-600' : 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500'}`}>
+                        {effectivelyLocked ? (
+                          <svg className="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        ) : (contact.company_name || '?')[0].toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <span className="text-sm font-medium text-slate-900 truncate block max-w-[180px]">{contact.company_name}</span>
-                        {contact.is_test_call && (
-                          <span className="px-1.5 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-medium rounded border border-amber-200">Test</span>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {effectivelyLocked && (
+                            <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-medium rounded border border-amber-200 animate-pulse">Processing</span>
+                          )}
+                          {contact.is_test_call && (
+                            <span className="px-1.5 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-medium rounded border border-amber-200">Test</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -306,7 +322,8 @@ export default function ContactsTable({
                   )}
                   <td className="px-4 py-3 whitespace-nowrap" />
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

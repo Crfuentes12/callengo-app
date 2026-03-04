@@ -75,33 +75,112 @@ export function detectColumnMapping(headers: string[]): ColumnMapping {
     zipCode: null,
     phoneNumber: null,
     email: null,
+    extraFields: {},
   };
 
-  const patterns: Record<keyof ColumnMapping, RegExp[]> = {
-    companyName: [/^company.*name/i, /^business.*name/i, /^company$/i, /^business$/i, /dba/i, /store.*name/i, /merchant/i],
-    firstName: [/^first.*name/i, /^fname/i, /^given.*name/i, /^first$/i],
-    lastName: [/^last.*name/i, /^lname/i, /^surname/i, /^family.*name/i, /^last$/i],
-    contactName: [/^contact.*name/i, /^full.*name/i, /^name$/i, /^contact$/i, /owner/i, /manager/i, /person/i, /rep/i],
-    address: [/^address$/i, /street/i, /address.*1/i, /location/i, /addr/i],
-    city: [/city/i, /town/i, /municipality/i],
-    state: [/^state$/i, /province/i, /^st$/i, /region/i],
-    zipCode: [/zip/i, /postal/i, /postcode/i, /^code$/i],
-    phoneNumber: [/phone/i, /tel/i, /mobile/i, /cell/i, /number/i],
-    email: [/email/i, /e-mail/i, /mail/i],
+  // Core field patterns - map to dedicated contact columns
+  const corePatterns: Record<string, RegExp[]> = {
+    companyName: [/^company[\s_-]*name/i, /^business[\s_-]*name/i, /^company$/i, /^business$/i, /^dba$/i, /store[\s_-]*name/i, /^merchant/i, /^org(anization)?[\s_-]*name/i, /^practice[\s_-]*name/i, /^clinic[\s_-]*name/i, /^firm[\s_-]*name/i],
+    firstName: [/^first[\s_-]*name/i, /^fname/i, /^given[\s_-]*name/i, /^first$/i, /^primer[\s_-]*nombre/i, /^nombre$/i],
+    lastName: [/^last[\s_-]*name/i, /^lname/i, /^surname/i, /^family[\s_-]*name/i, /^last$/i, /^apellido/i],
+    contactName: [/^contact[\s_-]*name/i, /^full[\s_-]*name/i, /^name$/i, /^contact$/i, /^nombre[\s_-]*completo/i],
+    address: [/^address$/i, /^street/i, /^address[\s_-]*1/i, /^addr$/i, /^mailing[\s_-]*address/i, /^direccion/i],
+    city: [/^city$/i, /^town$/i, /^municipality/i, /^ciudad/i, /^locality/i],
+    state: [/^state$/i, /^province$/i, /^st$/i, /^region$/i, /^estado$/i, /^county$/i],
+    zipCode: [/^zip/i, /^postal/i, /^postcode/i, /^zip[\s_-]*code/i],
+    phoneNumber: [/^phone$/i, /^phone[\s_-]*number/i, /^tel$/i, /^telephone/i, /^mobile$/i, /^cell$/i, /^cell[\s_-]*phone/i, /^telefono/i, /^main[\s_-]*phone/i, /^primary[\s_-]*phone/i],
+    email: [/^email$/i, /^e-?mail[\s_-]*address/i, /^mail$/i, /^correo/i, /^primary[\s_-]*email/i, /^main[\s_-]*email/i],
   };
 
+  // Known extra field patterns - auto-recognized and stored in custom_fields
+  const knownExtraPatterns: Record<string, RegExp[]> = {
+    corporate_email: [/^corporate[\s_-]*email/i, /^business[\s_-]*email/i, /^work[\s_-]*email/i, /^company[\s_-]*email/i, /^office[\s_-]*email/i],
+    personal_email: [/^personal[\s_-]*email/i, /^private[\s_-]*email/i, /^home[\s_-]*email/i, /^alt(ernate)?[\s_-]*email/i],
+    business_phone: [/^business[\s_-]*phone/i, /^work[\s_-]*phone/i, /^office[\s_-]*phone/i, /^company[\s_-]*phone/i, /^direct[\s_-]*line/i],
+    personal_phone: [/^personal[\s_-]*phone/i, /^home[\s_-]*phone/i, /^private[\s_-]*phone/i, /^alt(ernate)?[\s_-]*phone/i],
+    fax: [/^fax/i],
+    website: [/^website/i, /^url$/i, /^web$/i, /^site$/i, /^homepage/i, /^domain/i],
+    decision_maker_name: [/^decision[\s_-]*maker/i, /^dm[\s_-]*name/i, /^key[\s_-]*contact/i],
+    decision_maker_first_name: [/^decision[\s_-]*maker[\s_-]*first/i, /^dm[\s_-]*first/i],
+    decision_maker_last_name: [/^decision[\s_-]*maker[\s_-]*last/i, /^dm[\s_-]*last/i],
+    decision_maker_email: [/^decision[\s_-]*maker[\s_-]*email/i, /^dm[\s_-]*email/i],
+    decision_maker_phone: [/^decision[\s_-]*maker[\s_-]*phone/i, /^dm[\s_-]*phone/i],
+    owner_name: [/^owner[\s_-]*name/i, /^owner$/i, /^propietario/i],
+    manager_name: [/^manager[\s_-]*name/i, /^manager$/i, /^gerente/i],
+    job_title: [/^(job[\s_-]*)?title$/i, /^position$/i, /^role$/i, /^designation/i, /^cargo/i, /^puesto/i],
+    department: [/^department/i, /^dept/i, /^division/i, /^departamento/i],
+    industry: [/^industry/i, /^sector$/i, /^vertical/i, /^industria/i],
+    company_size: [/^company[\s_-]*size/i, /^employees/i, /^num[\s_-]*employees/i, /^headcount/i, /^size$/i],
+    revenue: [/^revenue/i, /^annual[\s_-]*revenue/i, /^income/i, /^sales[\s_-]*volume/i, /^ingreso/i],
+    address_2: [/^address[\s_-]*2/i, /^suite/i, /^apt/i, /^unit$/i, /^floor/i],
+    country: [/^country/i, /^pais/i, /^nation/i],
+    neighborhood: [/^neighborhood/i, /^barrio/i, /^district/i, /^zone$/i, /^colonia/i],
+    doctor_assigned: [/^doctor/i, /^dr[\s_-]*(assigned)?/i, /^physician/i, /^provider[\s_-]*name/i, /^medico/i, /^attending/i],
+    patient_sex: [/^(patient[\s_-]*)?sex$/i, /^gender$/i, /^sexo$/i, /^genero/i],
+    patient_dob: [/^(date[\s_-]*of[\s_-]*)?birth/i, /^dob$/i, /^birthday/i, /^fecha[\s_-]*nacimiento/i],
+    patient_id: [/^patient[\s_-]*id/i, /^mrn$/i, /^medical[\s_-]*record/i, /^chart[\s_-]*number/i],
+    insurance: [/^insurance/i, /^seguro/i, /^payer/i, /^health[\s_-]*plan/i],
+    insurance_id: [/^insurance[\s_-]*id/i, /^policy[\s_-]*number/i, /^member[\s_-]*id/i],
+    appointment_date: [/^appointment[\s_-]*date/i, /^appt[\s_-]*date/i, /^scheduled[\s_-]*date/i, /^cita/i, /^visit[\s_-]*date/i],
+    appointment_time: [/^appointment[\s_-]*time/i, /^appt[\s_-]*time/i, /^scheduled[\s_-]*time/i, /^visit[\s_-]*time/i],
+    appointment_type: [/^appointment[\s_-]*type/i, /^appt[\s_-]*type/i, /^visit[\s_-]*type/i, /^service[\s_-]*type/i, /^tipo[\s_-]*cita/i],
+    lead_source: [/^lead[\s_-]*source/i, /^source$/i, /^how[\s_-]*did/i, /^referral[\s_-]*source/i, /^origen/i, /^fuente/i],
+    lead_status: [/^lead[\s_-]*status/i, /^lead[\s_-]*stage/i, /^pipeline[\s_-]*stage/i, /^etapa/i],
+    deal_value: [/^deal[\s_-]*value/i, /^deal[\s_-]*amount/i, /^opportunity[\s_-]*value/i, /^potential[\s_-]*value/i],
+    product_interest: [/^product[\s_-]*interest/i, /^interested[\s_-]*in/i, /^producto/i],
+    notes: [/^notes?$/i, /^comments?$/i, /^description$/i, /^notas/i, /^observaciones/i, /^remarks/i],
+    tags: [/^tags?$/i, /^labels?$/i, /^categories?$/i, /^etiquetas/i],
+    priority: [/^priority$/i, /^urgency$/i, /^prioridad$/i],
+    language: [/^language$/i, /^idioma$/i, /^preferred[\s_-]*language/i],
+    timezone: [/^timezone$/i, /^time[\s_-]*zone/i, /^zona[\s_-]*horaria/i],
+    external_id: [/^external[\s_-]*id/i, /^ext[\s_-]*id/i, /^crm[\s_-]*id/i, /^ref[\s_-]*(id|number)/i],
+  };
+
+  const mappedHeaders = new Set<string>();
+
+  // First pass: map core fields
   headers.forEach((header) => {
     const normalizedHeader = header.toLowerCase().trim();
-
-    for (const [field, fieldPatterns] of Object.entries(patterns)) {
-      if (mapping[field as keyof ColumnMapping] === null) {
+    for (const [field, fieldPatterns] of Object.entries(corePatterns)) {
+      if ((mapping as unknown as Record<string, unknown>)[field] === null) {
         for (const pattern of fieldPatterns) {
           if (pattern.test(normalizedHeader)) {
-            mapping[field as keyof ColumnMapping] = header;
+            (mapping as unknown as Record<string, unknown>)[field] = header;
+            mappedHeaders.add(header);
             break;
           }
         }
       }
+    }
+  });
+
+  // Second pass: map known extra fields
+  headers.forEach((header) => {
+    if (mappedHeaders.has(header)) return;
+    const normalizedHeader = header.toLowerCase().trim();
+    for (const [fieldName, fieldPatterns] of Object.entries(knownExtraPatterns)) {
+      for (const pattern of fieldPatterns) {
+        if (pattern.test(normalizedHeader)) {
+          mapping.extraFields![fieldName] = header;
+          mappedHeaders.add(header);
+          return;
+        }
+      }
+    }
+  });
+
+  // Third pass: auto-capture ALL remaining unmapped columns as custom fields
+  // Ensures no data is lost from any CSV/JSON with extra columns
+  headers.forEach((header) => {
+    if (mappedHeaders.has(header)) return;
+    const trimmed = header.trim();
+    if (!trimmed) return;
+    const fieldName = trimmed
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    if (fieldName) {
+      mapping.extraFields![fieldName] = header;
     }
   });
 
@@ -161,6 +240,31 @@ export function mapRowToContact(
     contactName = fullContactName;
   }
 
+  // Build custom_fields from extraFields mapping
+  const customFields: Record<string, unknown> = {};
+  if (mapping.extraFields) {
+    for (const [fieldName, headerName] of Object.entries(mapping.extraFields)) {
+      const value = getValue(headerName);
+      if (value) {
+        customFields[fieldName] = value;
+      }
+    }
+  }
+
+  // If notes field was captured in extraFields, move it to the notes column
+  const notesValue = customFields.notes as string | undefined;
+  if (notesValue) {
+    delete customFields.notes;
+  }
+
+  // If tags field was captured, try to parse as array
+  const tagsValue = customFields.tags as string | undefined;
+  let parsedTags: string[] | null = null;
+  if (tagsValue) {
+    parsedTags = tagsValue.split(/[,;|]/).map(t => t.trim()).filter(Boolean);
+    delete customFields.tags;
+  }
+
   return {
     company_id: '', // Will be set by caller
     company_name: getValue(mapping.companyName) || 'Unknown Company',
@@ -184,11 +288,11 @@ export function mapRowToContact(
     transcripts: null,
     analysis: null,
     call_metadata: null,
-    notes: null,
+    notes: notesValue || null,
     is_test_call: false,
-    tags: null,
+    tags: parsedTags,
     list_id: null,
-    custom_fields: null,
+    custom_fields: Object.keys(customFields).length > 0 ? customFields : null,
     source: 'csv',
   };
 }
