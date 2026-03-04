@@ -36,13 +36,13 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   const searchParams = useSearchParams();
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing' | 'notifications' | 'language'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'calling' | 'billing' | 'general'>('company');
   const [savingLanguage, setSavingLanguage] = useState(false);
 
   // Handle URL query params for deep linking (e.g., from Integrations → Twilio)
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'calling' || tab === 'billing' || tab === 'notifications' || tab === 'company' || tab === 'language') {
+    if (tab === 'calling' || tab === 'billing' || tab === 'general' || tab === 'company') {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -282,8 +282,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
               { id: 'company', label: t.settings.tabs.company, icon: '🏢' },
               { id: 'calling', label: t.settings.tabs.calling, icon: '📞' },
               { id: 'billing', label: t.settings.tabs.billing, icon: '💳' },
-              { id: 'notifications', label: t.settings.tabs.notifications, icon: '🔔' },
-              { id: 'language', label: t.settings.language.title, icon: '🌐' },
+              { id: 'general', label: t.settings.tabs.general, icon: '⚙️' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -505,63 +504,77 @@ export default function SettingsManager({ company: initialCompany, settings: ini
             </Suspense>
           )}
 
-          {/* Notifications Tab */}
-          {activeTab === 'notifications' && (
-            <NotificationSettings
-              userId={user.id}
-              initialEnabled={user.notifications_enabled ?? true}
-            />
-          )}
+          {/* General Settings Tab (Language + Notifications) */}
+          {activeTab === 'general' && (
+            <div className="space-y-8">
+              {/* Language Section */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-sm">🌐</span>
+                    {t.settings.language.title}
+                  </h3>
+                  <p className="text-sm text-slate-500">{t.settings.language.subtitle}</p>
+                </div>
 
-          {/* Language Tab */}
-          {activeTab === 'language' && (
-            <div className="space-y-6">
+                <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    {t.settings.language.selectLanguage}
+                  </label>
+                  <LanguageSelector value={language} onChange={(lang) => setLanguage(lang)} />
+                  <p className="text-xs text-slate-500 mt-3">{t.settings.language.description}</p>
+                </div>
+
+                <button
+                  onClick={async () => {
+                    setSavingLanguage(true);
+                    try {
+                      const existingJsonSettings = (initialSettings.settings as Record<string, unknown>) || {};
+                      const { error } = await supabase
+                        .from('company_settings')
+                        .update({
+                          settings: { ...existingJsonSettings, language }
+                        })
+                        .eq('company_id', initialCompany.id);
+                      if (error) throw error;
+
+                      setSuccess(t.settings.language.success);
+                    } catch {
+                      alert(t.settings.language.error);
+                    } finally {
+                      setSavingLanguage(false);
+                    }
+                  }}
+                  disabled={savingLanguage}
+                  className="btn-primary w-full py-4 font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg"
+                >
+                  {savingLanguage ? (
+                    <span className="flex items-center justify-center gap-3">
+                      <div className="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                      {t.settings.language.saving}
+                    </span>
+                  ) : (
+                    t.settings.language.saveButton
+                  )}
+                </button>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-slate-200" />
+
+              {/* Notifications Section */}
               <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">{t.settings.language.title}</h3>
-                <p className="text-sm text-slate-500">{t.settings.language.subtitle}</p>
+                <div className="mb-4">
+                  <h3 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-sm">🔔</span>
+                    {t.settings.notifications.title}
+                  </h3>
+                </div>
+                <NotificationSettings
+                  userId={user.id}
+                  initialEnabled={user.notifications_enabled ?? true}
+                />
               </div>
-
-              <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                <label className="block text-sm font-semibold text-slate-700 mb-3">
-                  {t.settings.language.selectLanguage}
-                </label>
-                <LanguageSelector value={language} onChange={(lang) => setLanguage(lang)} />
-                <p className="text-xs text-slate-500 mt-3">{t.settings.language.description}</p>
-              </div>
-
-              <button
-                onClick={async () => {
-                  setSavingLanguage(true);
-                  try {
-                    // Save language preference to company settings JSON
-                    const existingJsonSettings = (initialSettings.settings as Record<string, unknown>) || {};
-                    const { error } = await supabase
-                      .from('company_settings')
-                      .update({
-                        settings: { ...existingJsonSettings, language }
-                      })
-                      .eq('company_id', initialCompany.id);
-                    if (error) throw error;
-
-                    setSuccess(t.settings.language.success);
-                  } catch {
-                    alert(t.settings.language.error);
-                  } finally {
-                    setSavingLanguage(false);
-                  }
-                }}
-                disabled={savingLanguage}
-                className="btn-primary w-full py-4 font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg"
-              >
-                {savingLanguage ? (
-                  <span className="flex items-center justify-center gap-3">
-                    <div className="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
-                    {t.settings.language.saving}
-                  </span>
-                ) : (
-                  t.settings.language.saveButton
-                )}
-              </button>
             </div>
           )}
         </div>
