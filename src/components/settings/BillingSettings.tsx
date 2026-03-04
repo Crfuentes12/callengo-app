@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useStripe } from '@/hooks/useStripe';
+import { getCampaignFeatureAccess, getPhoneNumberFeatures } from '@/config/plan-features';
 import { useUserCurrency } from '@/hooks/useAutoGeolocation';
 import { useTranslation } from '@/i18n';
 
@@ -89,6 +90,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
   // Billing details expandable section
   const [showBillingDetails, setShowBillingDetails] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Cancellation flow state
   const [cancelStep, setCancelStep] = useState<CancelStep>('hidden');
@@ -483,33 +485,39 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     </div>
                   )}
                   <div className={`rounded-xl p-5 transition-all flex flex-col h-full w-full ${isCurrent ? 'border-2 border-slate-800 bg-white shadow-lg' : isRecommended ? 'border-2 border-[var(--color-primary)] bg-white shadow-xl shadow-[var(--color-primary)]/10' : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'}`}>
+                    {/* Plan name + description */}
                     <div className="mb-3">
                       <h4 className="text-lg font-bold text-slate-900 mb-1">{plan.name}</h4>
-                      <p className="text-xs text-slate-600">{plan.description}</p>
+                      <p className="text-xs text-slate-600 min-h-[2rem]">{plan.description}</p>
                     </div>
-                    <div className="mb-4 pb-4 border-b border-slate-100">
+                    {/* Price — same height for all */}
+                    <div className="mb-4 pb-4 border-b border-slate-100 min-h-[4.5rem]">
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-bold text-slate-900">{formatPrice(monthlyPrice)}</span>
-                        {!isEnterprise && <span className="text-sm text-slate-500">{t.billing.mo}</span>}
-                        {isEnterprise && <span className="text-sm text-slate-500">{t.billing.mo}</span>}
+                        <span className="text-sm text-slate-500">{t.billing.mo}</span>
                       </div>
                       {!isEnterprise && billingCycle === 'annual' && <div className="text-xs text-slate-500 mt-1">{formatPrice(yearlyTotal)}{t.billing.yr}</div>}
                       {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
                         <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">{t.billing.save} {discountPercent}%</div>
                       )}
                     </div>
-                    <div className="flex-grow mb-4">
-                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{t.billing.features}</p>
-                      <div className="space-y-2 text-xs">
-                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.minutes_included.toLocaleString()}</strong> {t.billing.minPerMonth}</span></div>
-                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_call_duration} min</strong> {t.billing.maxCall}</span></div>
-                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_concurrent_calls}</strong> {t.billing.concurrentCalls}</span></div>
-                        <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}</strong> {t.billing.users}</span></div>
-                        {getTranslatedFeatures(plan.slug).slice(0, 5).map((feature, idx) => (
+                    {/* Metrics — same 4 rows for all plans */}
+                    <div className="mb-4 space-y-2.5 text-xs">
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.minutesIncludedLabel}</span><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.usersLabel}</span><span className="font-semibold text-slate-900">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.overageRateLabel}</span><span className="font-semibold text-slate-900">{plan.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(plan.price_per_extra_minute)}${t.billing.min}` : '—'}</span></div>
+                    </div>
+                    {/* Key features — 3 highlights */}
+                    <div className="flex-grow mb-4 pt-3 border-t border-slate-100">
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{t.billing.keyFeatures}</p>
+                      <div className="space-y-1.5 text-xs">
+                        {getTranslatedFeatures(plan.slug).slice(0, 3).map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700">{feature}</span></div>
                         ))}
                       </div>
                     </div>
+                    {/* CTA */}
                     {isCurrent ? (
                       <div className="w-full py-2.5 rounded-lg text-sm font-semibold text-center text-slate-500 bg-slate-100 mt-auto">
                         {t.billing.currentPlan}
@@ -529,6 +537,169 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             })}
           </div>
         </div>
+
+        {/* ── Detailed Comparison (expandable) ── */}
+        {comparisonPlans.length > 1 && (
+          <div className="border-t border-slate-100 pt-6">
+            <button
+              onClick={() => setShowComparison(!showComparison)}
+              className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+            >
+              <svg className={`w-4 h-4 transition-transform ${showComparison ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+              <span>{t.billing.seeDetailedComparison}</span>
+            </button>
+
+            {showComparison && (
+              <div className="mt-4 animate-in slide-in-from-top-2 overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-slate-200">
+                      <th className="text-left py-3 pr-4 text-slate-500 font-semibold min-w-[160px]">{t.billing.compareFeature}</th>
+                      {comparisonPlans.map(plan => (
+                        <th key={plan.id} className={`text-center py-3 px-3 font-bold text-slate-900 ${plan.slug === currentPlan.slug ? 'bg-slate-50 rounded-t-lg' : ''}`}>
+                          {plan.name}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* ── Pricing & Limits ── */}
+                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-4 pb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pricing & Limits</span></td></tr>
+                    {[
+                      { label: t.billing.plan, render: (p: Plan) => { const mp = p.slug === 'enterprise' ? p.price_monthly : (billingCycle === 'monthly' ? p.price_monthly : p.price_annual); return <span className="font-semibold">{formatPrice(mp)}{t.billing.mo}</span>; }},
+                      { label: t.billing.minutesIncludedLabel, render: (p: Plan) => <span className="font-semibold">{p.minutes_included.toLocaleString()}</span> },
+                      { label: t.billing.maxCallDuration, render: (p: Plan) => <>{p.max_call_duration} {t.billing.min}</> },
+                      { label: t.billing.usersLabel, render: (p: Plan) => <>{p.max_users === -1 ? t.billing.unlimited : p.max_users}</> },
+                      { label: t.billing.concurrentCallsLabel, render: (p: Plan) => <>{p.max_concurrent_calls}</> },
+                      { label: t.billing.overageRateLabel, render: (p: Plan) => <>{p.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(p.price_per_extra_minute)}/${t.billing.min}` : '—'}</> },
+                      { label: t.billing.callsPerHourLabel, render: (p: Plan) => <>{p.max_calls_per_hour ?? t.billing.unlimited}</> },
+                      { label: t.billing.callsPerDayLabel, render: (p: Plan) => <>{p.max_calls_per_day ?? t.billing.unlimited}</> },
+                    ].map((row, i) => (
+                      <tr key={`limit-${i}`} className={i % 2 === 0 ? 'bg-slate-50/50' : ''}>
+                        <td className="py-2.5 pr-4 text-slate-600 font-medium">{row.label}</td>
+                        {comparisonPlans.map(plan => (
+                          <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>{row.render(plan)}</td>
+                        ))}
+                      </tr>
+                    ))}
+
+                    {/* ── Calling Features ── */}
+                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-5 pb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.billing.features}</span></td></tr>
+                    {[
+                      { label: t.billing.voicemailDetection, key: 'voicemailDetection' as const },
+                      { label: t.billing.followUps, key: 'maxFollowUpAttempts' as const },
+                      { label: t.billing.smartFollowUps, key: 'smartFollowUp' as const },
+                      { label: 'Slack', key: 'slackNotifications' as const },
+                      { label: 'Zoom', key: 'zoomMeetings' as const },
+                      { label: 'Microsoft Outlook', key: 'microsoftOutlook' as const },
+                      { label: 'Microsoft Teams', key: 'microsoftTeams' as const },
+                      { label: t.billing.userPermissions, key: 'dataExport' as const },
+                    ].map((row, i) => (
+                      <tr key={`feat-${i}`} className={i % 2 === 0 ? 'bg-slate-50/50' : ''}>
+                        <td className="py-2.5 pr-4 text-slate-600 font-medium">{row.label}</td>
+                        {comparisonPlans.map(plan => {
+                          const access = getCampaignFeatureAccess(plan.slug);
+                          const val = access[row.key];
+                          return (
+                            <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
+                              {typeof val === 'boolean' ? (
+                                val ? <svg className="w-4 h-4 text-green-600 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                                    : <span className="text-slate-300">—</span>
+                              ) : typeof val === 'number' ? (
+                                val === -1 ? <span className="font-semibold">{t.billing.unlimited}</span>
+                                : val === 0 ? <span className="text-slate-300">—</span>
+                                : <span className="font-semibold">{val} {t.billing.attempts}</span>
+                              ) : <span className="text-slate-300">—</span>}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+
+                    {/* ── Phone & Integrations ── */}
+                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-5 pb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.billing.integrationsLabel}</span></td></tr>
+                    {/* Phone numbers */}
+                    <tr className="bg-slate-50/50">
+                      <td className="py-2.5 pr-4 text-slate-600 font-medium">{t.billing.phoneNumbers}</td>
+                      {comparisonPlans.map(plan => {
+                        const phone = getPhoneNumberFeatures(plan.slug);
+                        return (
+                          <td key={plan.id} className={`text-center py-2.5 px-3 text-slate-700 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
+                            {phone.twilioByop ? t.billing.autoRotatedByop : t.billing.autoRotated}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    {/* CRM integrations per plan */}
+                    {['Google Calendar & Meet', 'SimplyBook.me', 'HubSpot CRM', 'Pipedrive CRM', 'Zoho CRM', 'Salesforce CRM', 'Microsoft Dynamics 365', 'Clio'].map((integration, i) => {
+                      const integrationsByPlan: Record<string, string[]> = {
+                        free: [],
+                        starter: ['Google Calendar & Meet', 'SimplyBook.me'],
+                        business: ['Google Calendar & Meet', 'SimplyBook.me', 'HubSpot CRM', 'Pipedrive CRM', 'Zoho CRM', 'Clio'],
+                        teams: ['Google Calendar & Meet', 'SimplyBook.me', 'HubSpot CRM', 'Pipedrive CRM', 'Zoho CRM', 'Clio', 'Salesforce CRM', 'Microsoft Dynamics 365'],
+                        enterprise: ['Google Calendar & Meet', 'SimplyBook.me', 'HubSpot CRM', 'Pipedrive CRM', 'Zoho CRM', 'Clio', 'Salesforce CRM', 'Microsoft Dynamics 365'],
+                      };
+                      return (
+                        <tr key={`int-${i}`} className={i % 2 !== 0 ? 'bg-slate-50/50' : ''}>
+                          <td className="py-2 pr-4 text-slate-600">{integration}</td>
+                          {comparisonPlans.map(plan => (
+                            <td key={plan.id} className={`text-center py-2 px-3 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
+                              {(integrationsByPlan[plan.slug] || []).includes(integration) ? (
+                                <svg className="w-4 h-4 text-green-600 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                              ) : (
+                                <span className="text-slate-300">—</span>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                    {/* Webhooks */}
+                    <tr className="bg-slate-50/50">
+                      <td className="py-2 pr-4 text-slate-600">Webhooks (Zapier, Make, n8n)</td>
+                      {comparisonPlans.map(plan => (
+                        <td key={plan.id} className={`text-center py-2 px-3 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
+                          {plan.slug !== 'free' ? (
+                            <svg className="w-4 h-4 text-green-600 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+
+                    {/* ── Support ── */}
+                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-5 pb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.billing.supportLabel}</span></td></tr>
+                    {[
+                      { label: t.billing.supportLabel, render: (slug: string) => {
+                        const supportByPlan: Record<string, string> = { free: '—', starter: 'Email', business: 'Priority email', teams: 'Priority', enterprise: 'Dedicated manager' };
+                        return supportByPlan[slug] || '—';
+                      }},
+                      { label: t.billing.slaGuarantee, render: (slug: string) => slug === 'enterprise' },
+                      { label: t.billing.dedicatedManager, render: (slug: string) => slug === 'enterprise' },
+                    ].map((row, i) => (
+                      <tr key={`support-${i}`} className={i % 2 === 0 ? 'bg-slate-50/50' : ''}>
+                        <td className="py-2.5 pr-4 text-slate-600 font-medium">{row.label}</td>
+                        {comparisonPlans.map(plan => (
+                          <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
+                            {typeof row.render(plan.slug) === 'boolean' ? (
+                              row.render(plan.slug) ? <svg className="w-4 h-4 text-green-600 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                                : <span className="text-slate-300">—</span>
+                            ) : (
+                              <span className="text-slate-700">{row.render(plan.slug)}</span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Billing & Account Details (expandable, deeply buried) ── */}
         <div className="border-t border-slate-100 pt-6">
@@ -1074,7 +1245,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             <p className="text-xs text-slate-500">{t.common.noData}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className={`grid gap-4 ${higherPlans.length === 1 ? 'grid-cols-1 max-w-md' : higherPlans.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : higherPlans.length === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
             {higherPlans.map((plan) => {
               const isEnterprise = plan.slug === 'enterprise';
               const isPopular = plan.slug === 'business';
@@ -1092,29 +1263,28 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   <div className={`rounded-xl p-4 transition-all flex flex-col h-full w-full ${isPopular ? 'border-2 border-[var(--color-primary)] bg-white shadow-xl shadow-[var(--color-primary)]/10 scale-105' : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'}`}>
                     <div className="mb-3">
                       <h4 className="text-base font-bold text-slate-900 mb-2">{plan.name}</h4>
-                      <p className="text-[11px] text-slate-600 leading-tight">{plan.description}</p>
+                      <p className="text-[11px] text-slate-600 leading-tight min-h-[2rem]">{plan.description}</p>
                     </div>
-                    <div className="mb-3 pb-3 border-b border-slate-100">
+                    <div className="mb-3 pb-3 border-b border-slate-100 min-h-[4rem]">
                       <div className="flex items-baseline gap-1">
-                        {isEnterprise && <span className="text-xs text-slate-500 font-medium">{t.billing.from}</span>}
                         <span className="text-2xl font-bold text-slate-900">{formatPrice(monthlyPrice)}</span>
-                        {!isEnterprise && <span className="text-xs text-slate-500">/{t.billing.mo}</span>}
+                        <span className="text-xs text-slate-500">{t.billing.mo}</span>
                       </div>
                       {!isEnterprise && billingCycle === 'annual' && <div className="text-[10px] text-slate-500 mt-1">{formatPrice(yearlyTotal)}/{t.billing.yr}</div>}
                       {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
                         <div className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">{t.billing.save} {discountPercent}%</div>
                       )}
                     </div>
-                    <div className="flex-grow mb-3">
+                    <div className="mb-3 space-y-2 text-[11px]">
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.minutesIncludedLabel}</span><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.usersLabel}</span><span className="font-semibold text-slate-900">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.overageRateLabel}</span><span className="font-semibold text-slate-900">{plan.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(plan.price_per_extra_minute)}${t.billing.min}` : '—'}</span></div>
+                    </div>
+                    <div className="flex-grow mb-3 pt-3 border-t border-slate-100">
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{t.billing.keyFeatures}</p>
                       <div className="space-y-1.5 text-[11px]">
-                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span> {t.billing.minMo}</span></div>
-                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.max_call_duration} {t.billing.min}</span> {t.billing.maxCall}</span></div>
-                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{formatPriceWithDecimals(plan.price_per_extra_minute)}</span> {t.billing.overage}</span></div>
-                        <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span> {t.billing.concurrent}</span></div>
-                        {(plan.max_calls_per_hour || plan.max_calls_per_day) && (
-                          <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700">{plan.max_calls_per_hour && <><span className="font-semibold text-slate-900">{plan.max_calls_per_hour}</span>{t.billing.perHr}</>}{plan.max_calls_per_hour && plan.max_calls_per_day && ', '}{plan.max_calls_per_day && <><span className="font-semibold text-slate-900">{plan.max_calls_per_day}</span>{t.billing.perDay}</>}</span></div>
-                        )}
-                        {getTranslatedFeatures(plan.slug).map((feature, idx) => (
+                        {getTranslatedFeatures(plan.slug).slice(0, 3).map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700 leading-tight">{feature}</span></div>
                         ))}
                       </div>
