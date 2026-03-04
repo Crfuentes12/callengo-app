@@ -621,6 +621,7 @@ const nl: TranslationKeys = {
     tabs: {
       company: 'Bedrijfsgegevens',
       calling: 'Belinstellingen',
+      billing: 'Facturatie & plannen',
       general: 'Algemeen',
     },
     company: {
