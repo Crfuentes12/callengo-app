@@ -12,6 +12,7 @@ import {
   rescheduleAppointment,
   getCalendarEvents,
 } from '@/lib/calendar/sync';
+import { autoAssignEvent } from '@/lib/calendar/resource-routing';
 
 // GET: Fetch calendar events
 export async function GET(request: NextRequest) {
@@ -136,6 +137,12 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create event' },
         { status: 500 }
       );
+    }
+
+    // Auto-assign to team member based on contact's doctor_assigned field
+    if (event.id && contact_id) {
+      autoAssignEvent(userData.company_id, event.id, contact_id)
+        .catch(err => console.warn('[events] Auto-assign failed (non-fatal):', err?.message));
     }
 
     return NextResponse.json({ event }, { status: 201 });

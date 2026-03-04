@@ -279,6 +279,8 @@ export default function CalendarPage({
   const [integrations, setIntegrations] = useState(initialIntegrations);
   const [zoomConnected, setZoomConnected] = useState(initialZoomConnected);
   const [showSimplyBookSetup, setShowSimplyBookSetup] = useState(false);
+  const [calendarScope, setCalendarScope] = useState<'company' | 'personal'>('company');
+  const [loadingPersonal, setLoadingPersonal] = useState(false);
   const [syncing, setSyncing] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -408,6 +410,34 @@ export default function CalendarPage({
   useEffect(() => {
     openScheduleRef.current = openScheduleFromSlot;
   });
+
+  // Handle personal/company calendar toggle
+  const handleCalendarScopeChange = useCallback(async (scope: 'company' | 'personal') => {
+    setCalendarScope(scope);
+    if (scope === 'personal') {
+      setLoadingPersonal(true);
+      try {
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const threeMonthsAhead = new Date();
+        threeMonthsAhead.setMonth(threeMonthsAhead.getMonth() + 3);
+        const res = await fetch(
+          `/api/calendar/events/personal?start_date=${threeMonthsAgo.toISOString()}&end_date=${threeMonthsAhead.toISOString()}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setEvents(data.events || []);
+        }
+      } catch (err) {
+        console.warn('Failed to load personal events:', err);
+      } finally {
+        setLoadingPersonal(false);
+      }
+    } else {
+      // Restore full company events
+      setEvents(initialEvents);
+    }
+  }, [initialEvents]);
 
   // Global mouseup handler for drag-to-select and resize
   useEffect(() => {
@@ -1275,6 +1305,27 @@ export default function CalendarPage({
                   {f.label}
                 </button>
               ))}
+            </div>
+            {/* Calendar Scope Toggle — Personal vs Company */}
+            <div className="flex bg-slate-100 rounded-lg p-0.5 flex-nowrap shrink-0">
+              <button
+                onClick={() => handleCalendarScopeChange('personal')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap flex items-center gap-1 ${
+                  calendarScope === 'personal' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                {loadingPersonal ? 'Loading...' : 'My Calendar'}
+              </button>
+              <button
+                onClick={() => handleCalendarScopeChange('company')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap flex items-center gap-1 ${
+                  calendarScope === 'company' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                Company
+              </button>
             </div>
             {/* View Mode */}
             <div className="flex bg-slate-100 rounded-lg p-0.5 flex-nowrap shrink-0">

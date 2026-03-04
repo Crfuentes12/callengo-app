@@ -27,6 +27,8 @@ import {
   type LeadQualificationResult,
   type DataValidationResult,
 } from '@/lib/ai/intent-analyzer';
+import { enqueueAnalysis } from '@/lib/queue/analysis-queue';
+import { autoAssignEvent } from '@/lib/calendar/resource-routing';
 
 function verifyBlandSignature(rawBody: string, signature: string | null, secret: string): boolean {
   if (!signature) return false;
@@ -208,7 +210,7 @@ export async function POST(request: NextRequest) {
         const callEnd = new Date(callStart);
         callEnd.setSeconds(callEnd.getSeconds() + (call_length || 0));
 
-        await supabaseAdmin.from('calendar_events').insert({
+        const { data: completedEvent } = await supabaseAdmin.from('calendar_events').insert({
           company_id: companyId,
           title: `Call Completed: ${contactName}`,
           description: summary || `Outbound call to ${contactName}`,
@@ -229,7 +231,13 @@ export async function POST(request: NextRequest) {
             answered_by,
             recording_url,
           },
-        });
+        }).select('id').single();
+
+        // Auto-assign to team member based on contact's doctor_assigned
+        if (completedEvent?.id && contactId) {
+          autoAssignEvent(companyId, completedEvent.id, contactId)
+            .catch(err => console.warn('[webhook] Auto-assign failed (non-fatal):', err?.message));
+        }
       }
     } catch (calendarError) {
       // Don't fail the webhook if calendar event creation fails
@@ -271,38 +279,86 @@ export async function POST(request: NextRequest) {
           : to || 'Unknown';
 
         // ---- AI-POWERED INTENT ANALYSIS ----
-        // Replaces keyword-based detection with semantic GPT-4o-mini analysis
+        // Dual-mode: async queue for high volume, sync for real-time needs
         const transcript = concatenated_transcript || '';
         let intentResult;
+        const useAsyncQueue = process.env.AI_ANALYSIS_MODE === 'async';
 
         if (templateSlug && transcript.length > 10) {
-          try {
-            intentResult = await analyzeCallIntent(templateSlug, transcript, {
-              ...((metadata || {}) as Record<string, unknown>),
-              contact_name: contactName,
-            });
-
-            // Store AI analysis in call_log metadata
-            if (callLogId) {
-              const { data: callLog } = await supabaseAdmin
-                .from('call_logs')
-                .select('metadata')
-                .eq('id', callLogId)
-                .single();
-              const existingMeta = (callLog?.metadata as Record<string, unknown>) || {};
-              await supabaseAdmin
-                .from('call_logs')
-                .update({
-                  metadata: {
-                    ...existingMeta,
-                    ai_intent_analysis: JSON.parse(JSON.stringify(intentResult)),
-                    analysis_timestamp: new Date().toISOString(),
-                  },
-                })
-                .eq('id', callLogId);
+          if (useAsyncQueue && callLogId) {
+            // ASYNC MODE: Enqueue for background processing (< 50ms)
+            // The queue worker will process this and apply results later
+            try {
+              const jobId = await enqueueAnalysis({
+                companyId,
+                callLogId,
+                contactId: contactId || null,
+                agentRunId: agentRunId as string || null,
+                templateSlug,
+                transcript,
+                callMetadata: {
+                  ...((metadata || {}) as Record<string, unknown>),
+                  contact_name: contactName,
+                  calendar_event_id: metadata?.calendar_event_id,
+                },
+              });
+              if (jobId) {
+                // Tag the call log so we know analysis is pending
+                const { data: callLog } = await supabaseAdmin
+                  .from('call_logs')
+                  .select('metadata')
+                  .eq('id', callLogId)
+                  .single();
+                const existingMeta = (callLog?.metadata as Record<string, unknown>) || {};
+                await supabaseAdmin
+                  .from('call_logs')
+                  .update({
+                    metadata: {
+                      ...existingMeta,
+                      analysis_mode: 'async_queue',
+                      analysis_job_id: jobId,
+                      analysis_status: 'pending',
+                    },
+                  })
+                  .eq('id', callLogId);
+              }
+            } catch (queueError) {
+              console.warn('[webhook] Async queue enqueue failed, falling back to sync:', queueError);
+              // Fall through to sync mode below
             }
-          } catch (aiError) {
-            console.error('[webhook] AI intent analysis failed (non-fatal):', aiError);
+          }
+
+          // SYNC MODE: Analyze inline (default, or fallback if queue fails)
+          if (!useAsyncQueue || !callLogId) {
+            try {
+              intentResult = await analyzeCallIntent(templateSlug, transcript, {
+                ...((metadata || {}) as Record<string, unknown>),
+                contact_name: contactName,
+              });
+
+              // Store AI analysis in call_log metadata
+              if (callLogId) {
+                const { data: callLog } = await supabaseAdmin
+                  .from('call_logs')
+                  .select('metadata')
+                  .eq('id', callLogId)
+                  .single();
+                const existingMeta = (callLog?.metadata as Record<string, unknown>) || {};
+                await supabaseAdmin
+                  .from('call_logs')
+                  .update({
+                    metadata: {
+                      ...existingMeta,
+                      ai_intent_analysis: JSON.parse(JSON.stringify(intentResult)),
+                      analysis_timestamp: new Date().toISOString(),
+                      analysis_mode: 'sync',
+                    },
+                  })
+                  .eq('id', callLogId);
+              }
+            } catch (aiError) {
+              console.error('[webhook] AI intent analysis failed (non-fatal):', aiError);
+            }
           }
         }
 
