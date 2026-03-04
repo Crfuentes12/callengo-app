@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useStripe } from '@/hooks/useStripe';
-import { getPlanFeatures } from '@/config/plan-features';
 import { useUserCurrency } from '@/hooks/useAutoGeolocation';
 import { useTranslation } from '@/i18n';
 
@@ -67,6 +66,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     { id: 'temporary_pause', label: t.billing.cancelReasons.temporaryPause },
     { id: 'other', label: t.billing.cancelReasons.other },
   ];
+
+  // Get translated plan features (non-duplicate: excludes minutes, overage, concurrent, users shown from DB)
+  const getTranslatedFeatures = (slug: string): string[] => {
+    const featureMap = (t.billing.planFeatures as Record<string, Record<string, string>>)[slug];
+    if (!featureMap) return [];
+    return Object.values(featureMap);
+  };
+
   const { createCheckoutSession, openBillingPortal, loading: stripeLoading } = useStripe();
   const { currency } = useUserCurrency();
   const searchParams = useSearchParams();
@@ -342,7 +349,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   //  PAID PLAN VIEW — Management + upgrade options
   // ══════════════════════════════════════════════════
   if (isPaidPlan && subscription) {
-    const planFeatures = getPlanFeatures(currentPlan.slug);
+    const planFeatures = getTranslatedFeatures(currentPlan.slug);
 
     return (
       <div className="space-y-6">
@@ -498,7 +505,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_call_duration} min</strong> {t.billing.maxCall}</span></div>
                         <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_concurrent_calls}</strong> {t.billing.concurrentCalls}</span></div>
                         <div className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700"><strong>{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}</strong> {t.billing.users}</span></div>
-                        {getPlanFeatures(plan.slug).slice(0, 5).map((feature, idx) => (
+                        {getTranslatedFeatures(plan.slug).slice(0, 5).map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700">{feature}</span></div>
                         ))}
                       </div>
@@ -1107,7 +1114,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         {(plan.max_calls_per_hour || plan.max_calls_per_day) && (
                           <div className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700">{plan.max_calls_per_hour && <><span className="font-semibold text-slate-900">{plan.max_calls_per_hour}</span>{t.billing.perHr}</>}{plan.max_calls_per_hour && plan.max_calls_per_day && ', '}{plan.max_calls_per_day && <><span className="font-semibold text-slate-900">{plan.max_calls_per_day}</span>{t.billing.perDay}</>}</span></div>
                         )}
-                        {getPlanFeatures(plan.slug).map((feature, idx) => (
+                        {getTranslatedFeatures(plan.slug).map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700 leading-tight">{feature}</span></div>
                         ))}
                       </div>
