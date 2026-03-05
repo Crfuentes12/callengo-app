@@ -536,11 +536,23 @@ Script de sincronización universal (`stripe-sync.ts` v3.0):
 - **Recomendación:** Implementar validación con Zod en todos los endpoints
 - **Esfuerzo:** 12 horas
 
-#### MEDIO: Bland Webhook sin Verificación de Firma
-- **Descripción:** El webhook de Bland AI no siempre verifica la firma HMAC
-- **Impacto:** Un atacante podría enviar webhooks falsos
-- **Recomendación:** Siempre verificar `x-bland-signature` header
+#### MEDIO: Bland Webhook - Verificación de Firma OPCIONAL
+- **Descripción:** La verificación de firma HMAC-SHA256 del webhook de Bland AI es **opcional**. Si la variable de entorno `BLAND_WEBHOOK_SECRET` no está configurada, el webhook se procesa sin ninguna verificación de firma. Cualquier atacante que conozca el endpoint podría enviar webhooks falsos que se procesarían como legítimos.
+- **Impacto:** Un atacante podría fabricar resultados de llamadas, modificar contactos, crear eventos de calendario falsos, y manipular datos de CRM
+- **Recomendación:** Hacer `BLAND_WEBHOOK_SECRET` **obligatorio** - rechazar webhooks si no hay secret configurado
 - **Esfuerzo:** 2 horas
+
+#### MEDIO: Open Redirect en OAuth Callbacks
+- **Descripción:** El parámetro `return_to` en el state de OAuth se usa para redirigir al usuario después del callback, pero no se valida que sea del mismo origen
+- **Impacto:** Posible phishing vía redirección a sitio malicioso
+- **Recomendación:** Whitelist de URLs permitidas para `return_to`
+- **Esfuerzo:** 2 horas
+
+#### BAJO: Contact Lock no Atómico
+- **Descripción:** El mecanismo de bloqueo de contactos durante el procesamiento de webhooks usa flags en `custom_fields` (JSONB), no locks de base de datos atómicos. Si el webhook falla a mitad de procesamiento, el contacto podría quedar bloqueado permanentemente.
+- **Impacto:** Contactos inaccesibles hasta intervención manual
+- **Recomendación:** Implementar timeout de lock (auto-desbloquear después de 5 minutos) o usar database-level advisory locks
+- **Esfuerzo:** 4 horas
 
 ### 9.3 RLS - Problemas Detectados
 
@@ -596,6 +608,9 @@ LANGUAGE plpgsql SECURITY DEFINER
 | 6 | **RLS abierto en company_settings** | ALTA | USING (true) permite ver todos los settings |
 | 7 | **Stripe metered API deprecada** | MEDIA | reportUsage() usa endpoint legacy |
 | 8 | **claim_analysis_job sin filtro company** | MEDIA | Puede reclamar jobs de otra empresa |
+| 9 | **Bland webhook secret opcional** | MEDIA | Webhook se procesa sin firma si env var no existe |
+| 10 | **Open redirect en OAuth callbacks** | MEDIA | `return_to` no validado como mismo origen |
+| 11 | **Contact lock no atómico** | BAJA | Puede quedar bloqueado permanentemente si webhook falla |
 
 ### 10.2 Valores Demo/Placeholder
 
