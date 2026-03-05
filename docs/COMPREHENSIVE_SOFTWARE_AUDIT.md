@@ -505,10 +505,10 @@ Script de sincronización universal (`stripe-sync.ts` v3.0):
 | Categoría | Hallazgos |
 |-----------|-----------|
 | **Críticos** | 0 |
-| **Altos** | 1 (rate limiting) |
-| **Medios** | 4 (encriptación, OAuth, validación, webhooks) |
-| **Bajos** | 3 (password length, CSP, dependencias) |
-| **Excelentes** | RLS, Stripe Webhooks, gestión de sesiones |
+| **Altos** | 1 (rate limiting definido pero NO aplicado) |
+| **Medios** | 5 (tokens sin encriptar, OAuth state sin firma, validación inconsistente, Bland webhook opcional, open redirect) |
+| **Bajos** | 3 (contact lock no atómico, CSP unsafe-eval/unsafe-inline, falta .env.example) |
+| **Excelentes** | SQL injection (riesgo nulo), Stripe Webhooks, HMAC timing-safe, RLS 40+ políticas, HTTP-only cookies |
 
 ### 9.2 Vulnerabilidades Identificadas
 
@@ -581,16 +581,94 @@ LANGUAGE plpgsql SECURITY DEFINER
 **Impacto:** Un usuario autenticado podría reclamar jobs de análisis de otra empresa.
 **Recomendación:** Agregar check de company_id dentro de la función.
 
-### 9.4 Puntos Positivos de Seguridad
+### 9.4 Análisis Detallado por Categoría de Seguridad
 
-- ✅ **Stripe Webhook verification** - Firma verificada correctamente
+#### 9.4.1 Autenticación y Sesiones
+- **Estado: BUENO**
+- Supabase Auth con OAuth (Google, Azure, Slack) + email/password
+- Cookies HTTP-only via `@supabase/ssr` para gestión de sesiones
+- Verificación de email requerida antes de acceder a rutas protegidas
+- Middleware protege todas las API routes excepto webhooks/OAuth callbacks
+- Estado de onboarding verificado para prevenir bypass de setup
+
+#### 9.4.2 Gestión de API Keys
+- **Estado: EXCELENTE - No se detectaron keys hardcodeadas**
+- Todas las secrets en `process.env` solo en server-side
+- Prefijo `NEXT_PUBLIC_*` usado correctamente solo para valores públicos (Supabase ANON_KEY, App URL)
+- No se encontraron secrets en código client-side
+- **Falta:** No existe archivo `.env.example` para documentar variables requeridas
+
+#### 9.4.3 SQL Injection
+- **Estado: EXCELENTE - Riesgo nulo**
+- No se encontraron queries SQL directas en la app
+- Todas las consultas usan Supabase SDK con queries parametrizadas
+- No hay concatenación de strings en queries
+
+#### 9.4.4 XSS (Cross-Site Scripting)
+- **Estado: BUENO con advertencia**
+- No se encontró `dangerouslySetInnerHTML` ni `innerHTML` en código cliente
+- CSP headers restringen fuentes de scripts
+- **Advertencia:** `react-markdown` importado pero sin plugins de sanitización (`remark-html-sanitize`). Si se renderiza markdown de fuentes externas, podría ser un vector XSS
+- **Recomendación:** Agregar `DOMPurify` o plugins de sanitización de remark
+
+#### 9.4.5 CSRF Protection
+- **Estado: BUENO**
+- Cookies HTTP-only con SameSite
+- OAuth flows usan parámetro state con userId/companyId
+- **Nota:** State no está firmado criptográficamente (ver vulnerabilidad 9.2)
+
+#### 9.4.6 Rate Limiting
+- **Estado: DEFINIDO PERO NO IMPLEMENTADO**
+- `lib/rate-limit.ts` define rate limiters:
+  ```typescript
+  apiLimiter: { interval: 60_000, uniqueTokenPerInterval: 500 }
+  authLimiter: { interval: 60_000, uniqueTokenPerInterval: 300 }
+  ```
+- **PROBLEMA CRÍTICO:** Los limiters están definidos pero **nunca se aplican** en ningún route handler
+- Son in-memory (se resetean al reiniciar, no persisten entre réplicas)
+- **Impacto:** Login, signup, endpoints de OpenAI y webhooks están completamente sin protección contra abuso
+- **Recomendación:** Aplicar rate limiting inmediatamente a: auth endpoints (5/min), OpenAI endpoints (10/min/user), webhook endpoints
+
+#### 9.4.7 CORS
+- **Estado: BUENO (same-origin por defecto)**
+- Next.js headers configurados correctamente:
+  - `X-Frame-Options: DENY` (previene clickjacking)
+  - `X-Content-Type-Options: nosniff`
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+- CSP incluye `unsafe-eval` y `unsafe-inline` en script-src (necesario para frameworks pero reduce efectividad)
+- No hay CORS explícito configurado - usa same-origin default
+
+#### 9.4.8 Token Storage (OAuth CRM)
+- Tokens almacenados en DB Supabase en texto plano:
+  - HubSpot: `hubspot_integrations` → `access_token`, `refresh_token`, `expires_at`
+  - Pipedrive: `pipedrive_integrations` → tokens similares
+  - Slack: `company_settings` JSON → `slack_access_token`
+  - Clio: tabla dedicada con tokens
+- **Refresh logic correcto:** HubSpot refresca 5 min antes de expiración
+- **Problemas:** No hay limpieza de tokens viejos, no hay rotación de tokens, no hay encriptación at-rest
+
+#### 9.4.9 Admin Finances - Control de Acceso
+- **Estado: BUENO - Doble capa de protección**
+- RLS: `EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin') OR auth.role() = 'service_role'`
+- API: Verificación de `role = 'admin' OR role = 'owner'`
+- Period validation con enum (`current`, `last_30`, `last_90`)
+- **Falta:** Audit logging de quién accedió a admin_finances
+
+### 9.5 Puntos Positivos de Seguridad
+
+- ✅ **Stripe Webhook verification** - Firma verificada correctamente con `constructEvent()`
+- ✅ **Bland Webhook timing-safe** - Usa `crypto.timingSafeEqual()` para prevenir timing attacks
 - ✅ **RLS en todas las tablas sensibles** - 40+ políticas
 - ✅ **Service role separation** - Operaciones del sistema usan service_role
 - ✅ **Search path security** - Todas las funciones tienen `SET search_path = ''`
 - ✅ **Contact locking** - Previene ediciones concurrentes durante webhook processing
-- ✅ **Team invitations** - Solo admin/owner pueden crear invitaciones
+- ✅ **Team invitations** - Solo admin/owner pueden crear invitaciones con roles validados
 - ✅ **HMAC-SHA256** - Para webhooks de Bland AI (cuando se usa)
 - ✅ **Variables de entorno** - Keys en .env, no hardcodeadas en código
+- ✅ **Idempotencia en Stripe** - INSERT con unique constraint previene procesamiento duplicado
+- ✅ **No SQL injection posible** - 100% queries parametrizadas via Supabase SDK
+- ✅ **HTTP-only cookies** - Tokens de sesión no accesibles a JavaScript
+- ✅ **Email verification** - Requerida antes de activación de cuenta
 
 ---
 
