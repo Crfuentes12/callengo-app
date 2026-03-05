@@ -419,21 +419,103 @@ Implementación de multiplicadores en el frontend:
 
 #### Data Validation Agent (slug: `data-validation`)
 - **Propósito:** Verificar y actualizar información de contactos
-- **Template:** Llama al contacto, confirma email/teléfono/dirección
 - **Análisis IA:** Clasifica en `data_confirmed`, `data_updated`, `callback_requested`, `refused`, `partial`
-- **Campos extraídos:** nombre, email, teléfono, dirección, ciudad, estado, código postal, empresa, cargo
+- **Campos extraídos:** nombre, email, teléfono, dirección, ciudad, estado, código postal, empresa, cargo, decision_maker, doctor_assigned
+
+**Task Template completo:**
+```
+Call {{contact_name}} to verify and update their contact information for {{company_name}}.
+
+VERIFICATION PROCESS:
+- Confirm their email address, phone number, mailing address, and any other relevant details on file.
+- If anything has changed, politely ask for the updated information.
+- Be friendly, professional, and efficient.
+
+CALLBACK CAPABILITIES:
+- If the contact is busy or requests a callback, note their preferred callback time.
+- The system will automatically schedule the callback on the business calendar.
+
+IMPORTANT BEHAVIORS:
+- Keep the call brief and focused on verification.
+- Thank the contact for their time after confirming or updating their information.
+- Record all verified and updated fields clearly.
+```
+
+**First Sentence:** `"Hi {{contact_name}}, this is {{agent_name}} calling from {{company_name}}. I'm calling to quickly verify your contact information to make sure we have your correct details on file. Do you have a minute?"`
 
 #### Appointment Confirmation Agent (slug: `appointment-confirmation`)
 - **Propósito:** Confirmar citas y reducir no-shows
-- **Template:** Llama para confirmar cita, ofrece reagendar si no puede asistir
 - **Análisis IA:** Clasifica en `confirmed`, `reschedule`, `cancel`, `no_show`, `unclear`, `callback_requested`
-- **Campos extraídos:** nueva hora de cita, razón de cambio, sentimiento del paciente
+- **Campos extraídos:** nueva hora de cita, razón de cambio, sentimiento del paciente (positive/neutral/negative/frustrated)
+
+**Task Template completo:**
+```
+Call {{contact_name}} to confirm their appointment with {{company_name}} scheduled for {{appointment_date}}.
+
+CAPABILITIES:
+- Confirm the appointment if the contact can attend.
+- If they cannot make it, offer to reschedule. Check available times based on the business calendar and suggest alternatives.
+- If the contact prefers a video call instead of in-person, inform them that you will send a calendar invitation with a video meeting link.
+- If the contact is a no-show (does not answer), flag this for automatic retry based on the configured schedule.
+- Ask if they need any reminders about location, preparation, or what to bring.
+
+IMPORTANT BEHAVIORS:
+- Always be friendly, professional, and accommodating.
+- When rescheduling, confirm the new date and time clearly before ending the call.
+- Record whether the appointment was confirmed, rescheduled, or cancelled.
+- If rescheduled, record the new appointment time and the reason for the change.
+```
+
+**First Sentence:** `"Hi {{contact_name}}, this is {{agent_name}} calling from {{company_name}}. I'm calling to confirm your appointment scheduled for {{appointment_date}}. Are you still able to make it?"`
 
 #### Lead Qualification Agent (slug: `lead-qualification`)
 - **Propósito:** Cualificar prospectos usando BANT (Budget, Authority, Need, Timeline)
-- **Template:** Evalúa presupuesto, autoridad, necesidad y timeline
 - **Análisis IA:** Clasifica en `qualified`, `not_qualified`, `needs_nurturing`, `meeting_requested`, `callback_requested`
 - **Score:** 1-10 (1-4 cold, 5-7 warm, 8-10 hot)
+
+**Task Template completo:**
+```
+Call {{contact_name}} to qualify their interest in {{company_name}}'s products/services.
+
+QUALIFICATION PROCESS:
+- Ask about their budget, timeline, decision-making authority, and specific needs (BANT framework).
+- Be consultative and helpful, not pushy.
+- Determine if they are a good fit for the product/service.
+
+SCHEDULING CAPABILITIES:
+- If the lead is qualified and interested, offer to schedule a meeting with the sales team.
+- Check available times from the business calendar and propose convenient slots.
+- When scheduling, confirm: the date/time, whether it will be a video call or phone call, and the contact's email for the calendar invite.
+- The meeting invitation will be sent automatically with the configured video platform (Zoom, Google Meet, or Microsoft Teams).
+
+IMPORTANT BEHAVIORS:
+- Always be professional and respectful of the contact's time.
+- If the contact is not ready to schedule but is interested, offer a callback at a more convenient time.
+- Score the lead based on their responses (hot, warm, cold) and record key qualification data.
+```
+
+**First Sentence:** `"Hi {{contact_name}}, this is {{agent_name}} calling from {{company_name}}. I understand you expressed interest in our {{product_service}}. I'd love to ask you a few quick questions to see how we might be able to help. Do you have a few minutes?"`
+
+### 5.1.1 Sistema de Placeholders
+
+| Placeholder | Fuente | Usado por |
+|-------------|--------|-----------|
+| `{{contact_name}}` | contacts.contact_name | Todos |
+| `{{company_name}}` | companies.name | Todos |
+| `{{agent_name}}` | company_agents.name | Todos |
+| `{{appointment_date}}` | contacts.appointment_date | Appointment Confirmation |
+| `{{product_service}}` | Campaign settings.customContext | Lead Qualification |
+| `{{contact_email}}` | contacts.email | Lead Qualification |
+
+### 5.1.2 Jerarquía de Configuración
+
+```
+agent_templates (defaults del sistema)
+     ↓ puede ser sobreescrito por
+company_agents (personalización por empresa)
+     ↓ puede ser sobreescrito por
+agent_runs (settings específicos de la campaña)
+```
 
 ### 5.2 Configuración de Campañas (agent_runs)
 
@@ -452,17 +534,80 @@ Cada campaña permite configurar:
 
 ### 5.3 Pipeline de Procesamiento (Webhook - 889 líneas)
 
-El webhook de Bland AI procesa en 9 fases:
+El webhook de Bland AI (`/api/bland/webhook/route.ts`) procesa en 9 fases:
 
-1. **Persistencia** - Guardar call_log con transcripción, grabación, precio
-2. **Lock contacto** - Prevenir ediciones concurrentes
-3. **Análisis IA** - GPT-4o-mini analiza transcripción semánticamente
-4. **Acciones del agente** - Confirmar cita, actualizar datos, cualificar lead
-5. **Calendario** - Crear/actualizar eventos, programar callbacks
-6. **Sync CRM** - Push resultados a Pipedrive, Clio, etc.
-7. **Follow-up queue** - Programar reintentos automáticos
-8. **Voicemail logging** - Registrar buzones de voz detectados
-9. **Webhooks outbound + Unlock** - Notificar endpoints externos
+```
+FASE 1: PERSISTENCIA
+├─ Verificar firma HMAC-SHA256 (si BLAND_WEBHOOK_SECRET existe)
+├─ INSERT call_log: transcript, recording_url, summary, price, call_length
+└─ UPDATE agent_run: completed_calls++, successful_calls++ o failed_calls++
+
+FASE 2: LOCK CONTACTO
+├─ SET custom_fields._locked = true
+├─ SET custom_fields._locked_at = now()
+└─ SET custom_fields._lock_call_id = call_id
+    (⚠️ Bug #11: No atómico, puede quedar bloqueado permanentemente)
+
+FASE 3: ANÁLISIS IA (si transcript.length > 10)
+├─ Detectar agent_template.slug del agent_run
+├─ Routing:
+│   ├─ 'data-validation' → analyzeDataValidationIntent()
+│   ├─ 'appointment-confirmation' → analyzeAppointmentIntent()
+│   └─ 'lead-qualification' → analyzeLeadQualificationIntent()
+├─ OpenAI GPT-4o-mini (temperature 0.1, JSON mode)
+└─ Almacenar resultado en call_logs.metadata.ai_intent_analysis
+
+FASE 4: ACCIONES DEL AGENTE (según template y intent)
+├─ Data Validation:
+│   ├─ Si data_confirmed/data_updated → actualizar contacto con datos extraídos
+│   ├─ Campos: email, phone, address, company_name, job_title...
+│   └─ Set status = 'Fully Verified'
+│
+├─ Appointment Confirmation:
+│   ├─ Si confirmed (confidence ≥ 0.6) → syncConfirmAppointment()
+│   ├─ Si reschedule (confidence ≥ 0.6) → syncRescheduleAppointment()
+│   │   └─ Enviar invitación de calendario con link de video
+│   ├─ Si no_show + noShowAutoRetry → syncHandleNoShow()
+│   │   └─ Programar retry en 24h (configurable)
+│   └─ Si callback_requested → syncScheduleCallback()
+│
+└─ Lead Qualification:
+    ├─ Extraer BANT: budget, authority, need, timeline
+    ├─ Guardar qualification_score en custom_fields
+    ├─ Si meeting_requested + meetingTime → syncScheduleMeeting()
+    │   └─ Crear evento calendario + link video (Zoom/Meet/Teams)
+    └─ Si callback_requested → syncScheduleCallback()
+
+FASE 5: CALENDARIO
+├─ Si voicemail/no_answer → createAgentCallback() (next business day 10am)
+├─ Si completed + follow_up_needed → createAgentFollowUp() (default 3 días)
+├─ Si completed → INSERT calendar_events (tipo 'call', status 'completed')
+└─ Auto-assign evento a team member (si doctor_assigned configurado)
+
+FASE 6: SYNC CRM (non-fatal)
+├─ Pipedrive: pushCallResultToPipedrive() → crear deals/activities
+├─ Clio: pushCallResultToClio() → crear matters/tasks
+└─ Google Sheets: solo importación (no push outbound)
+
+FASE 7: FOLLOW-UP QUEUE
+├─ Si status ∈ [no_answer, busy, failed, callback_requested, voicemail]
+├─ INSERT follow_up_queue: attempt=1, max_attempts=3, next_attempt_at=+24h
+└─ Worker periódico procesa la cola y re-llama via Bland API
+
+FASE 8: VOICEMAIL LOGGING
+├─ Si answered_by='voicemail' OR voicemail_detected=true
+├─ INSERT voicemail_logs: confidence_score, detection_method, message_left
+└─ UPDATE agent_run: voicemails_detected++, voicemails_left++
+
+FASE 9: WEBHOOKS OUTBOUND + UNLOCK
+├─ dispatchWebhookEvent() a endpoints configurados por el usuario
+│   Eventos: call.completed, call.no_answer, call.voicemail, call.failed,
+│            contact.updated, appointment.confirmed/rescheduled/no_show/scheduled
+├─ Slack notification (si configurado)
+└─ UNLOCK contacto: eliminar _locked, _locked_at, _lock_call_id de custom_fields
+```
+
+**Manejo de errores:** Las fases 5-9 son **non-fatal** - fallos se loguean pero no fallan el webhook. Solo fases 1-4 son críticas.
 
 ### 5.4 Análisis IA con GPT-4o-mini
 
