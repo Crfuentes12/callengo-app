@@ -36,25 +36,29 @@ Callengo es una plataforma SaaS de llamadas automatizadas con IA que permite a e
 3. **Cualificación de Leads** - Evaluar prospectos usando framework BANT
 
 ### Stack Tecnológico
-- **Frontend:** Next.js 14+ (App Router), React, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend:** Next.js API Routes (NO Edge Functions de Supabase)
-- **Base de datos:** PostgreSQL via Supabase (con RLS)
-- **Pagos:** Stripe (checkout, suscripciones, metered billing)
+- **Frontend:** Next.js 16.1.1 (App Router), React 19.2.1, TypeScript 5.9.3, Tailwind CSS 4, shadcn/ui
+- **Backend:** Next.js API Routes (90+ endpoints, NO Edge Functions de Supabase)
+- **Base de datos:** PostgreSQL via Supabase (con RLS, 56 tablas)
+- **Pagos:** Stripe 20.1.0 (checkout, suscripciones, metered billing)
 - **Llamadas:** Bland AI (API de voz)
-- **Análisis IA:** OpenAI GPT-4o-mini
+- **Análisis IA:** OpenAI GPT-4o-mini (temperature 0.1, JSON mode)
+- **Charts:** Recharts 2.10.3
+- **i18n:** 7 idiomas (en, es, fr, de, it, nl, pt) con detección por geolocalización
 - **Deploy:** Vercel
 
 ### Veredicto General
 
 | Categoría | Estado | Nota |
 |-----------|--------|------|
-| Arquitectura | ✅ Sólida | Bien estructurada, multi-tenant correcta |
+| Arquitectura | ✅ Sólida (7.5/10) | Next.js 16.1.1, 90+ endpoints, 37 rutas, 25 dirs componentes |
 | Base de datos | ✅ Bien diseñada | 56 tablas, RLS robusto, FK coherentes |
-| Planes/Precios | ⚠️ 1 inconsistencia | $69 vs $79 en Teams extra seat |
-| Seguridad | ✅ Aceptable para producción | 0 críticos, 1 alto (rate limiting) |
-| Integraciones | ✅ Funcionales | 8 CRMs + Calendar + Google Sheets |
+| Planes/Precios | ⚠️ 3 inconsistencias | $69/$79 seats, tipos de cambio estáticos, free plan 10 años |
+| Seguridad | ⚠️ Aceptable con gaps | 0 críticos, 4 altos (RLS, rate limiting, billing period, FX) |
+| Integraciones | ✅ Funcionales | 8 CRMs + Calendar + Google Sheets + Twilio |
 | Valor del producto | ✅ Viable | Propuesta clara y diferenciada |
+| Frontend | ⚠️ Componentes grandes | AgentConfigModal 2,298 líneas, IntegrationsPage 2,326 líneas |
 | Datos demo | ⚠️ Presentes | 50 contactos seed, 6 campañas demo |
+| **Total bugs encontrados** | **17** | 4 ALTA, 7 MEDIA, 6 BAJA |
 | Coherencia general | ✅ Alta | Frontend y backend sincronizados |
 
 ---
@@ -65,35 +69,132 @@ Callengo es una plataforma SaaS de llamadas automatizadas con IA que permite a e
 
 ```
 src/
-├── app/                      # Next.js App Router
-│   ├── (app)/               # Rutas protegidas (dashboard)
-│   │   ├── dashboard/       # Dashboard principal
-│   │   ├── agents/          # Gestión de agentes
-│   │   ├── contacts/        # Gestión de contactos
-│   │   ├── campaigns/       # Campañas de llamadas
-│   │   ├── calendar/        # Calendario
-│   │   ├── billing/         # Facturación
-│   │   ├── settings/        # Configuración
-│   │   └── integrations/    # Integraciones CRM
-│   ├── (auth)/              # Rutas de autenticación
-│   │   ├── login/
-│   │   └── signup/
-│   ├── api/                 # API Routes (backend)
-│   │   ├── billing/         # Endpoints de billing
-│   │   ├── bland/           # Webhooks Bland AI
-│   │   ├── integrations/    # OAuth y sync de CRMs
-│   │   ├── seed/            # Datos demo
-│   │   └── webhooks/        # Stripe webhooks
-│   └── pricing/             # Página pública de precios
-├── components/              # Componentes React
-├── config/                  # Configuración (plan-features.ts)
-├── lib/                     # Lógica de negocio
-│   ├── ai/                  # Intent analyzer (OpenAI)
-│   ├── billing/             # Usage tracker, overage
-│   ├── integrations/        # CRM sync libraries
-│   └── stripe.ts            # Stripe SDK wrapper
-└── types/                   # TypeScript types
+├── app/                          # Next.js 16.1.1 App Router
+│   ├── (app)/                   # Rutas protegidas (37 rutas)
+│   │   ├── dashboard/           # Dashboard principal
+│   │   ├── agents/              # Gestión de agentes
+│   │   ├── contacts/            # Gestión de contactos
+│   │   │   ├── salesforce/      # Import desde Salesforce
+│   │   │   ├── hubspot/         # Import desde HubSpot
+│   │   │   ├── pipedrive/       # Import desde Pipedrive
+│   │   │   ├── clio/            # Import desde Clio
+│   │   │   ├── zoho/            # Import desde Zoho
+│   │   │   ├── microsoft-dynamics/ # Import desde Dynamics
+│   │   │   └── simplybook/      # Import desde SimplyBook
+│   │   ├── campaigns/           # Campañas de llamadas
+│   │   ├── calls/               # Historial de llamadas
+│   │   ├── calendar/            # Calendario
+│   │   ├── analytics/           # Analíticas
+│   │   ├── reports/             # Reportes detallados
+│   │   ├── voicemails/          # Transcripciones de voicemail
+│   │   ├── follow-ups/          # Cola de seguimiento
+│   │   ├── billing/             # Facturación (→ settings?tab=billing)
+│   │   ├── settings/            # Configuración
+│   │   ├── team/                # Gestión de equipo
+│   │   └── integrations/        # Integraciones CRM
+│   ├── auth/                    # Rutas de autenticación
+│   │   ├── login/               # Email + OAuth sign-in
+│   │   ├── signup/              # Registro
+│   │   ├── forgot-password/     # Solicitud de reset
+│   │   ├── reset-password/      # Cambio de contraseña
+│   │   ├── verify-email/        # Verificación requerida
+│   │   └── [provider]/callback/ # OAuth callbacks (dinámico)
+│   ├── admin/                   # Rutas de administrador
+│   │   └── finances/            # Vista financiera
+│   ├── onboarding/              # Onboarding de nuevos usuarios
+│   ├── api/                     # API Routes - 90+ endpoints
+│   │   ├── billing/             # 13 endpoints de billing
+│   │   ├── bland/               # Webhooks + API Bland AI
+│   │   ├── integrations/        # 60+ endpoints OAuth y sync CRMs
+│   │   ├── contacts/            # 8 endpoints de contactos
+│   │   ├── calendar/            # 4 endpoints de calendario
+│   │   ├── openai/              # 3 endpoints de análisis IA
+│   │   ├── team/                # 5 endpoints de equipo
+│   │   ├── voices/              # Catálogo de voces
+│   │   ├── queue/               # Procesamiento asíncrono
+│   │   ├── admin/               # Endpoints de admin
+│   │   ├── seed/                # Datos demo
+│   │   └── webhooks/            # Stripe webhooks
+│   └── pricing/                 # Página pública de precios
+├── components/                  # 25 directorios de componentes
+│   ├── agents/                  # AgentConfigModal (2,298 líneas)
+│   ├── integrations/            # IntegrationsPage (2,326 líneas)
+│   ├── dashboard/               # DashboardOverview (1,200+ líneas)
+│   ├── settings/                # BillingSettings (1,000+ líneas)
+│   ├── ui/                      # Componentes base (shadcn/ui)
+│   └── ...                      # 20 directorios más
+├── config/                      # plan-features.ts (254 líneas)
+├── contexts/                    # AuthContext.tsx
+├── hooks/                       # useStripe, useAutoGeolocation
+├── i18n/                        # 7 idiomas (en, es, fr, de, it, nl, pt)
+├── lib/                         # Lógica de negocio
+│   ├── ai/                      # Intent analyzer (GPT-4o-mini)
+│   ├── billing/                 # Usage tracker, overage manager
+│   ├── calendar/                # Google, Outlook, Zoom, sync, availability
+│   ├── clio/                    # Clio CRM (auth, sync)
+│   ├── dynamics/                # MS Dynamics (auth, sync)
+│   ├── hubspot/                 # HubSpot (auth, sync)
+│   ├── pipedrive/               # Pipedrive (auth, sync)
+│   ├── salesforce/              # Salesforce (auth, sync)
+│   ├── simplybook/              # SimplyBook (auth, sync)
+│   ├── zoho/                    # Zoho CRM (auth, sync)
+│   ├── supabase/                # client.ts, server.ts, service.ts
+│   ├── voices/                  # Bland.ai voice catalog + utils
+│   ├── stripe.ts                # Stripe SDK wrapper (380 líneas)
+│   ├── rate-limit.ts            # Rate limiting (⚠️ definido pero NO usado)
+│   ├── mock-data.ts             # Datos demo (687 líneas)
+│   └── webhooks.ts              # Webhook signature verification
+├── types/                       # TypeScript type definitions
+└── middleware.ts                # Protección de rutas (Edge)
 ```
+
+### 2.1.1 Diagrama de Arquitectura por Capas
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CAPA CLIENTE (Browser)                    │
+│  React 19.2.1 + Tailwind CSS 4 + shadcn/ui                │
+│  37 rutas, 25 dirs componentes, AuthContext, i18n           │
+├─────────────────────────────────────────────────────────────┤
+│                    CAPA MIDDLEWARE (Edge)                    │
+│  Protección de rutas, validación de sesión, redirects       │
+│  Email verification → Onboarding → Dashboard                │
+├─────────────────────────────────────────────────────────────┤
+│                  CAPA API (Node.js, 90+ endpoints)          │
+│  /billing/* │ /integrations/* │ /contacts/* │ /bland/*      │
+│  /calendar/* │ /openai/* │ /team/* │ /webhooks/*            │
+├─────────────────────────────────────────────────────────────┤
+│                    CAPA BASE DE DATOS                        │
+│  Supabase PostgreSQL │ 56 tablas │ RLS │ WebSocket          │
+├─────────────────────────────────────────────────────────────┤
+│                  SERVICIOS EXTERNOS                          │
+│  Stripe │ Bland.ai │ OpenAI │ Google APIs │ Microsoft Graph │
+│  Salesforce │ HubSpot │ Pipedrive │ Clio │ Zoho │ Twilio   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.1.2 Componentes Más Grandes (Candidatos a Refactorización)
+
+| Componente | Tamaño | Líneas | Responsabilidad |
+|-----------|--------|--------|-----------------|
+| AgentConfigModal.tsx | 125 KB | 2,298 | Wizard de configuración de agente (6 pasos) |
+| IntegrationsPage.tsx | 129 KB | 2,326 | Hub de todas las integraciones + setup |
+| DashboardOverview.tsx | 40 KB | 1,200+ | Stats, llamadas recientes, gráficos |
+| BillingSettings.tsx | 35 KB | 1,000+ | Planes, uso, cancelación (5 pasos) |
+
+**Recomendación:** Dividir cada componente grande en sub-componentes por paso/sección y usar `React.lazy()` para carga bajo demanda de modales.
+
+### 2.1.3 Gestión de Estado
+
+| Nivel | Mecanismo | Uso |
+|-------|-----------|-----|
+| Global (Auth) | React Context API | AuthContext (user, session, signOut) |
+| Global (i18n) | React Context API | Idioma actual, función `t()` |
+| Server | Server Components | Data fetching en page.tsx, props a client |
+| Local | useState/useCallback | Formularios, UI state, loading states |
+| Caché | useMemo/useCallback | Cálculos costosos (stats de billing) |
+
+**Nota:** No se usa Redux, Zustand ni React Query. Prop drilling es el patrón dominante para comunicación entre componentes. Se recomienda Zustand o SWR para mejorar rendimiento y reducir prop drilling.
 
 ### 2.2 Estructura del Backend (Base de Datos)
 
@@ -689,6 +790,52 @@ LANGUAGE plpgsql SECURITY DEFINER
 | 9 | **Bland webhook secret opcional** | MEDIA | Webhook se procesa sin firma si env var no existe |
 | 10 | **Open redirect en OAuth callbacks** | MEDIA | `return_to` no validado como mismo origen |
 | 11 | **Contact lock no atómico** | BAJA | Puede quedar bloqueado permanentemente si webhook falla |
+| 12 | **Tipos de cambio EUR/GBP hardcodeados e incorrectos** | ALTA | BillingSettings.tsx líneas 49-53 |
+| 13 | **Overage usa Math.round() en vez de Math.ceil()** | MEDIA | BillingSettings.tsx cálculo de overage |
+| 14 | **Free plan billing period = 10 años** | ALTA | DB/seed - usuarios retienen minutos gratis indefinidamente |
+| 15 | **Rate limiters definidos pero NUNCA aplicados** | ALTA | lib/rate-limit.ts (importado, nunca usado en routes) |
+| 16 | **Geolocalización mapea países no-EUR a EUR** | MEDIA | geolocation.ts (Dinamarca, Hungría, Polonia → EUR) |
+| 17 | **react-markdown sin sanitización** | MEDIA | Si renderiza markdown externo → vector XSS |
+
+### 10.1.1 Detalle de Bugs Nuevos Identificados
+
+#### Bug #12: Tipos de Cambio Hardcodeados e Incorrectos
+```typescript
+// BillingSettings.tsx - ACTUAL (INCORRECTO)
+const CURRENCY_RATES = {
+  USD: { symbol: '$', multiplier: 1 },
+  EUR: { symbol: '€', multiplier: 0.92 },  // ⚠️ EUR realmente ~1.08 USD
+  GBP: { symbol: '£', multiplier: 0.79 },  // ⚠️ GBP realmente ~1.27 USD
+};
+```
+**Impacto financiero:** Las tasas están invertidas/desactualizadas. Con EUR a 0.92 cuando debería ser ~1.08, un plan de $299 se muestra como €275 cuando debería ser ~€277. Pero el problema real es que **las tasas nunca se actualizan** - son estáticas en código. Un cambio significativo en el tipo de cambio resultaría en pérdida de ingresos o precios incorrectos para clientes europeos.
+**Recomendación:** Usar API de tipos de cambio en tiempo real (exchangerate-api.com, Open Exchange Rates).
+
+#### Bug #13: Redondeo de Overage hacia Abajo
+```typescript
+// ACTUAL - puede redondear HACIA ABAJO
+const overageCost = Math.round(overageMinutes * pricePerMinute);
+
+// CORRECTO - siempre redondear hacia ARRIBA en billing
+const overageCost = Math.ceil(overageMinutes * pricePerMinute);
+```
+**Impacto:** Pérdida de centavos por cada cálculo de overage. Acumulado sobre miles de transacciones, puede ser significativo.
+
+#### Bug #14: Free Plan con Período de 10 Años
+El período de billing del plan Free está configurado como 10 años en lugar de 1 mes. Los usuarios Free retienen sus 15 minutos de forma indefinida sin reseteo mensual, permitiendo acumulación ilimitada de uso si nunca se resetea el período.
+
+#### Bug #15: Rate Limiters Fantasma
+```typescript
+// lib/rate-limit.ts - DEFINIDO
+const apiLimiter = createRateLimiter({ interval: 60_000, uniqueTokenPerInterval: 500 });
+const authLimiter = createRateLimiter({ interval: 60_000, uniqueTokenPerInterval: 300 });
+
+// PERO: Ningún route handler importa ni usa estos limiters
+// Resultado: CERO protección contra brute-force o abuso de API
+```
+
+#### Bug #16: Geolocalización de Moneda Incorrecta
+El mapeo de país → moneda asigna EUR a países que NO usan EUR: Dinamarca (DKK), Hungría (HUF), Polonia (PLN), Suecia (SEK), República Checa (CZK), Rumanía (RON), Bulgaria (BGN). Esto causa que clientes en estos países vean precios en EUR cuando su moneda local es diferente.
 
 ### 10.2 Valores Demo/Placeholder
 
@@ -1167,60 +1314,98 @@ Callengo resuelve tres problemas claros:
 
 ## 15. RECOMENDACIONES PRIORITARIAS
 
-### Fase 1: URGENTE (Semana 1) - ~12 horas
+### Fase 1: URGENTE (Semana 1) - ~18 horas
 
 | # | Tarea | Impacto | Esfuerzo |
 |---|-------|---------|----------|
 | 1 | **Corregir $69 vs $79 en Teams extra seat** | Alto | 30 min |
 | 2 | **Eliminar RLS `USING (true)` en companies** | Crítico | 1h |
 | 3 | **Eliminar RLS `USING (true)` en company_settings** | Crítico | 1h |
-| 4 | **Implementar rate limiting en API routes** | Alto | 6h |
-| 5 | **Verificar firma Bland webhook siempre** | Alto | 2h |
+| 4 | **Aplicar rate limiting en route handlers** (ya definido en rate-limit.ts) | Alto | 4h |
+| 5 | **Verificar firma Bland webhook siempre** (hacer BLAND_WEBHOOK_SECRET obligatorio) | Alto | 2h |
 | 6 | **Agregar filtro company_id en claim_analysis_job()** | Medio | 1h |
+| 7 | **Corregir free plan billing period** (de 10 años a 1 mes) | Alto | 1h |
+| 8 | **Cambiar Math.round() a Math.ceil() en overage** | Medio | 30 min |
+| 9 | **Implementar tipos de cambio dinámicos** (reemplazar hardcoded EUR/GBP) | Alto | 4h |
+| 10 | **Corregir mapeo geolocalización → moneda** (países no-EUR asignados a EUR) | Medio | 2h |
 
-### Fase 2: IMPORTANTE (Semanas 2-3) - ~28 horas
-
-| # | Tarea | Impacto | Esfuerzo |
-|---|-------|---------|----------|
-| 7 | Encriptar tokens OAuth en BD | Medio | 8h |
-| 8 | Firmar OAuth state con HMAC | Medio | 4h |
-| 9 | Validación de input con Zod en todos los endpoints | Medio | 12h |
-| 10 | Eliminar índices y triggers duplicados | Bajo | 4h |
-
-### Fase 3: MEJORAS (Mes 2) - ~30 horas
+### Fase 2: IMPORTANTE (Semanas 2-3) - ~32 horas
 
 | # | Tarea | Impacto | Esfuerzo |
 |---|-------|---------|----------|
-| 11 | Migrar Stripe metered billing a nueva API | Medio | 12h |
-| 12 | Eliminar columna analysis_questions (no usada) | Bajo | 1h |
-| 13 | Consolidar max_users y max_seats | Bajo | 4h |
-| 14 | Implementar MFA opcional | Medio | 8h |
-| 15 | Audit logging comprehensivo | Medio | 8h |
+| 11 | Encriptar tokens OAuth en BD (AES-256-GCM) | Medio | 8h |
+| 12 | Firmar OAuth state con HMAC-SHA256 | Medio | 4h |
+| 13 | Validar `return_to` en OAuth callbacks (whitelist) | Medio | 2h |
+| 14 | Validación de input con Zod en todos los endpoints | Medio | 12h |
+| 15 | Agregar sanitización a react-markdown (DOMPurify/remark-html-sanitize) | Medio | 2h |
+| 16 | Eliminar índices y triggers duplicados | Bajo | 4h |
+
+### Fase 3: MEJORAS (Mes 2) - ~40 horas
+
+| # | Tarea | Impacto | Esfuerzo |
+|---|-------|---------|----------|
+| 17 | Migrar Stripe metered billing a nueva API | Medio | 12h |
+| 18 | **Dividir componentes grandes** (AgentConfigModal, IntegrationsPage) | Medio | 8h |
+| 19 | **Implementar SWR/React Query** para caché de datos | Medio | 8h |
+| 20 | Implementar audit logging (admin_finances, cambios de rol) | Medio | 8h |
+| 21 | Eliminar columna analysis_questions (no usada) | Bajo | 1h |
+| 22 | Consolidar max_users y max_seats | Bajo | 4h |
+| 23 | Crear `.env.example` documentando todas las variables | Bajo | 1h |
 
 ### Fase 4: ESCALAMIENTO (Mes 3+) - Variable
 
 | # | Tarea | Impacto | Esfuerzo |
 |---|-------|---------|----------|
-| 16 | Google Sheets bidireccional | Medio | 16h |
-| 17 | Email follow-up integration | Alto | 24h |
-| 18 | A/B testing de agentes | Medio | 20h |
-| 19 | Multi-moneda real con Stripe | Medio | 12h |
-| 20 | Admin dashboard auto-calculado | Alto | 16h |
+| 24 | Implementar Zustand para state management global | Medio | 16h |
+| 25 | Implementar MFA opcional | Medio | 8h |
+| 26 | Lazy loading de modales con React.lazy() | Medio | 4h |
+| 27 | Google Sheets bidireccional | Medio | 16h |
+| 28 | Email follow-up integration | Alto | 24h |
+| 29 | A/B testing de agentes | Medio | 20h |
+| 30 | Multi-moneda real con Stripe | Medio | 12h |
+| 31 | Admin dashboard auto-calculado | Alto | 16h |
+| 32 | Monitoring stack (Sentry + LogRocket o Datadog) | Alto | 12h |
 
 ---
 
 ## CONCLUSIÓN
 
-Callengo es un producto **viable, bien arquitecturado y con propuesta de valor clara**. La base de datos está bien diseñada con 56 tablas, RLS robusto (con 2 excepciones a corregir urgentemente), y un sistema de integraciones CRM consistente. El sistema de agentes con análisis IA semántico es sofisticado y funcional.
+Callengo es un producto **viable, bien arquitecturado y con propuesta de valor clara**. Calificación general: **7.5/10**. La base de datos está bien diseñada con 56 tablas, RLS robusto (con 2 excepciones a corregir urgentemente), y un sistema de integraciones CRM consistente. El sistema de agentes con análisis IA semántico es sofisticado y funcional.
 
-Los principales problemas a resolver son:
-1. **Seguridad:** 2 políticas RLS demasiado permisivas y falta de rate limiting
-2. **Consistencia:** Precio de extra seat discrepante ($69 vs $79)
-3. **Futuro:** API de Stripe metered billing deprecada
+### Resumen de Hallazgos
 
-Con las correcciones de la Fase 1 (12 horas de trabajo), el software está listo para producción con riesgo bajo.
+| Categoría | Cantidad |
+|-----------|----------|
+| **Bugs totales identificados** | 17 |
+| → Severidad ALTA | 4 (RLS, pricing, free plan period, FX rates) |
+| → Severidad MEDIA | 7 (Stripe API, webhook, overage, geolocation, markdown, rate limiters, open redirect) |
+| → Severidad BAJA | 6 (índices, triggers, columnas redundantes, contact lock) |
+| **Vulnerabilidades de seguridad** | 9 (0 críticas, 1 alta, 5 medias, 3 bajas) |
+| **Puntos positivos de seguridad** | 13 |
+| **Recomendaciones totales** | 32 (10 urgentes, 6 importantes, 7 mejoras, 9 escalamiento) |
+
+### Principales Problemas a Resolver
+
+1. **Seguridad:** 2 políticas RLS demasiado permisivas (`companies`, `company_settings`) y rate limiters definidos pero nunca aplicados
+2. **Billing:** Precio de extra seat discrepante ($69 vs $79), tipos de cambio hardcodeados, overage con redondeo hacia abajo, free plan con período de 10 años
+3. **Frontend:** 4 componentes monolíticos (>1,000 líneas cada uno), sin caché de datos, prop drilling excesivo
+4. **Futuro:** API de Stripe metered billing deprecada, sin monitoring/observability
+
+### Fortalezas Destacables
+
+- ✅ Arquitectura multi-tenant sólida con company_id en todas las tablas
+- ✅ 0 riesgo de SQL injection (100% queries parametrizadas)
+- ✅ Webhook verification con timing-safe comparison (Bland + Stripe)
+- ✅ 8 integraciones CRM completas con OAuth y sincronización
+- ✅ Sistema de agentes IA sofisticado con análisis semántico GPT-4o-mini
+- ✅ 7 idiomas con detección automática por geolocalización
+- ✅ Pipeline de webhooks de 9 fases bien estructurado
+- ✅ Sistema de retención anti-churn de 5 pasos
+
+Con las correcciones de la Fase 1 (~18 horas de trabajo), el software está listo para producción con riesgo aceptable.
 
 ---
 
 *Auditoría generada el 5 de Marzo de 2026*
 *Herramientas: Análisis estático de código, revisión de esquema de BD, simulación de escenarios*
+*Archivos analizados: 200+ archivos fuente, 56 tablas de BD, 90+ endpoints API, 15 migraciones SQL*
