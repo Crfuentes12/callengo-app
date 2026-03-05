@@ -1549,8 +1549,51 @@ Callengo es un producto **viable, bien arquitecturado y con propuesta de valor c
 
 Con las correcciones de la Fase 1 (~18 horas de trabajo), el software está listo para producción con riesgo aceptable.
 
+### Checklist de Despliegue a Producción
+
+**Pre-Producción:**
+- [ ] Todas las variables de entorno configuradas (crear `.env.example` como referencia)
+- [ ] `BLAND_WEBHOOK_SECRET` configurado y obligatorio
+- [ ] Rate limiting aplicado en auth endpoints y OpenAI endpoints
+- [ ] RLS policies `USING(true)` eliminadas de `companies` y `company_settings`
+- [ ] Tipos de cambio EUR/GBP actualizados o API dinámica implementada
+- [ ] Free plan billing period corregido a 1 mes
+- [ ] `Math.ceil()` en overage billing
+- [ ] Extra seat price unificado ($69 o $79)
+- [ ] SSL/TLS verificado, headers de seguridad probados (securityheaders.com)
+- [ ] OAuth flows probados con credenciales de producción
+
+**Post-Producción:**
+- [ ] Monitoring de errores configurado (Sentry o equivalente)
+- [ ] Alertas de webhooks fallidos activas
+- [ ] Logs de rate limiting monitoreados
+- [ ] Backups de BD verificados
+- [ ] Revisión de seguridad trimestral programada
+
+### Evaluación de Riesgo por Nivel
+
+| Nivel | Estado | Después de Fase 1 |
+|-------|--------|-------------------|
+| **Riesgo actual** | BAJO | - |
+| **Después de Fase 1** | - | MUY BAJO |
+| **Después de Fase 2** | - | MÍNIMO |
+
+### CVSS Scores de Vulnerabilidades Principales
+
+| Vulnerabilidad | CVSS | Prioridad |
+|---------------|------|-----------|
+| Rate limiting no aplicado | 7.5 (HIGH) | Fase 1 |
+| Tokens OAuth sin encriptar | 6.5 (MEDIUM) | Fase 2 |
+| Bland webhook secret opcional | 5.8 (MEDIUM) | Fase 1 |
+| Markdown sin sanitización | 5.4 (MEDIUM) | Fase 1 |
+| OAuth state sin firma | 5.3 (MEDIUM) | Fase 2 |
+| Audit logging ausente | 4.3 (LOW) | Fase 3 |
+| CSP unsafe-eval/unsafe-inline | 3.7 (LOW) | Fase 3 |
+| Password mínimo 6 chars | 3.7 (LOW) | Fase 2 |
+
 ---
 
 *Auditoría generada el 5 de Marzo de 2026*
 *Herramientas: Análisis estático de código, revisión de esquema de BD, simulación de escenarios*
 *Archivos analizados: 200+ archivos fuente, 56 tablas de BD, 90+ endpoints API, 15 migraciones SQL*
+*Agentes de exploración: 5 (frontend, backend, seguridad, agentes, integraciones)*
