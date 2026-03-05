@@ -1860,7 +1860,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             </span>
           )}
 
-          {!item.alwaysActive && isConnected && !isAutoEnabled && (
+          {!item.alwaysActive && isConnected && !isAutoEnabled && !isLocked && (
             <button
               onClick={() => item.provider === 'slack' ? setShowSlackConfig(true) : item.provider === 'webhooks' ? setShowWebhooksSetup(true) : setConfigItem(item)}
               className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-[var(--color-primary)] bg-[var(--color-primary-50)] hover:bg-[var(--color-primary-100)] border border-[var(--color-primary-100)] transition-all"
