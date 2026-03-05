@@ -48,7 +48,7 @@ export async function enableOverage(params: {
 
       const meteredPrice = await createMeteredPrice({
         productId: subscription.subscription_plans.stripe_product_id,
-        unitAmount: Math.round(pricePerMinute * 100), // Convert to cents
+        unitAmount: Math.ceil(pricePerMinute * 100), // Convert to cents (ceil to avoid underbilling)
         nickname: `${subscription.subscription_plans.name} - Overage`,
       });
 

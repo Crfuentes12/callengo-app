@@ -46,10 +46,10 @@ interface BillingSettingsProps {
   companyId: string;
 }
 
-const CURRENCY_RATES: Record<string, { symbol: string; multiplier: number }> = {
-  USD: { symbol: '$', multiplier: 1 },
-  EUR: { symbol: '\u20AC', multiplier: 0.92 },
-  GBP: { symbol: '\u00A3', multiplier: 0.79 },
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$',
+  EUR: '\u20AC',
+  GBP: '\u00A3',
 };
 
 type CancelStep = 'hidden' | 'confirm' | 'feedback' | 'retention' | 'final';
@@ -105,24 +105,22 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const [retentionApplied, setRetentionApplied] = useState(false);
   const [retentionLoading, setRetentionLoading] = useState(false);
 
-  const formatPrice = (usdPrice: number) => {
-    const rate = CURRENCY_RATES[currency] || CURRENCY_RATES.USD;
-    const converted = Math.round(usdPrice * rate.multiplier);
-    return `${rate.symbol}${converted}`;
+  const formatPrice = (price: number) => {
+    const symbol = CURRENCY_SYMBOLS[currency] || CURRENCY_SYMBOLS.USD;
+    return `${symbol}${Math.round(price)}`;
   };
 
-  const formatPriceWithDecimals = (usdPrice: number) => {
-    const rate = CURRENCY_RATES[currency] || CURRENCY_RATES.USD;
-    const converted = usdPrice * rate.multiplier;
-    const formatted = converted.toFixed(2).replace(/\.?0+$/, '');
-    return `${rate.symbol}${formatted}`;
+  const formatPriceWithDecimals = (price: number) => {
+    const symbol = CURRENCY_SYMBOLS[currency] || CURRENCY_SYMBOLS.USD;
+    const formatted = price.toFixed(2).replace(/\.?0+$/, '');
+    return `${symbol}${formatted}`;
   };
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [plansRes, subRes] = await Promise.all([
-        fetch('/api/billing/plans'),
+        fetch(`/api/billing/plans?currency=${currency}`),
         fetch(`/api/billing/subscription?companyId=${companyId}`)
       ]);
       if (plansRes.ok) setPlans(await plansRes.json());
@@ -136,7 +134,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, [companyId, currency]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

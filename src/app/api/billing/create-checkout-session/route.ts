@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getOrCreateStripeCustomer, createCheckoutSession } from '@/lib/stripe';
 import { getAppUrl } from '@/lib/config';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +18,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Rate limit: 5 checkout attempts per minute per user
+    const rateLimit = expensiveLimiter.check(5, `checkout_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': '60' } }
       );
     }
 

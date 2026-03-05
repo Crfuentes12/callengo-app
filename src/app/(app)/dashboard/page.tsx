@@ -125,7 +125,7 @@ export default async function DashboardPage() {
     if (freePlan) {
       const now = new Date();
       const periodEnd = new Date();
-      periodEnd.setFullYear(periodEnd.getFullYear() + 10);
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
 
       const { data: newSub } = await supabaseAdmin
         .from('company_subscriptions')
@@ -160,8 +160,9 @@ export default async function DashboardPage() {
   }
 
   // Ensure usage minutes_included matches the current plan (may be stale after plan upgrade)
-  const correctedUsage = usageTracking && subscription?.subscription_plans
-    ? { ...usageTracking, minutes_included: (subscription.subscription_plans as any).minutes_included ?? usageTracking.minutes_included }
+  const planData = subscription?.subscription_plans as { minutes_included?: number } | null;
+  const correctedUsage = usageTracking && planData
+    ? { ...usageTracking, minutes_included: planData.minutes_included ?? usageTracking.minutes_included }
     : usageTracking;
 
   return (

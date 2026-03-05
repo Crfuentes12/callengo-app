@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseCSV, detectColumnMapping } from '@/lib/call-agent-utils';
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -9,6 +11,17 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: 'File exceeds maximum size of 10MB' }, { status: 400 });
+    }
+
+    // Validate file type
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.csv') && !fileName.endsWith('.txt')) {
+      return NextResponse.json({ error: 'Only CSV files are accepted' }, { status: 400 });
     }
 
     const text = await file.text();
