@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { getActiveIntegrations, runSync } from '@/lib/calendar/sync';
 
 export async function POST() {
@@ -55,9 +56,42 @@ export async function POST() {
       message: `Synced ${result.created + result.updated} events`,
     });
   } catch (error) {
-    console.error('Error syncing Google Calendar:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error syncing Google Calendar:', errorMessage, error);
+
+    try {
+      const supabase = await createServerClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userData } = await supabase.from('users').select('company_id').eq('id', user.id).single();
+        if (userData?.company_id) {
+          const { data: runningSyncLog } = await supabaseAdmin
+            .from('google_calendar_sync_logs')
+            .select('id')
+            .eq('company_id', userData.company_id)
+            .eq('status', 'running')
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (runningSyncLog) {
+            await supabaseAdmin
+              .from('google_calendar_sync_logs')
+              .update({
+                status: 'failed',
+                error_message: errorMessage,
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', runningSyncLog.id);
+          }
+        }
+      }
+    } catch (logError) {
+      console.error('Failed to update sync log on error:', logError);
+    }
+
     return NextResponse.json(
-      { error: 'Failed to sync' },
+      { error: 'Failed to sync Google Calendar data', details: errorMessage },
       { status: 500 }
     );
   }

@@ -1,12 +1,12 @@
 // lib/mock-data.ts
 // Comprehensive mock data for demo/testing purposes
-// Only used for seeding data for crfuentes12@gmail.com
+// Only used for seeding data for the configured demo user
 
 function uuidv4(): string {
   return crypto.randomUUID();
 }
 
-const DEMO_EMAIL = 'crfuentes12@gmail.com';
+const DEMO_EMAIL = process.env.DEMO_USER_EMAIL || 'demo@callengo.ai';
 
 // Helper to generate dates relative to now
 function daysAgo(days: number): string {

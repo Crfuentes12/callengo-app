@@ -142,9 +142,42 @@ export async function POST(request: NextRequest) {
       errors: allErrors,
     });
   } catch (error) {
-    console.error('Error syncing Salesforce:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error syncing Salesforce:', errorMessage, error);
+
+    try {
+      const supabase = await createServerClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userData } = await supabase.from('users').select('company_id').eq('id', user.id).single();
+        if (userData?.company_id) {
+          const { data: runningSyncLog } = await supabaseAdmin
+            .from('salesforce_sync_logs')
+            .select('id')
+            .eq('company_id', userData.company_id)
+            .eq('status', 'running')
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (runningSyncLog) {
+            await supabaseAdmin
+              .from('salesforce_sync_logs')
+              .update({
+                status: 'failed',
+                error_message: errorMessage,
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', runningSyncLog.id);
+          }
+        }
+      }
+    } catch (logError) {
+      console.error('Failed to update sync log on error:', logError);
+    }
+
     return NextResponse.json(
-      { error: 'Failed to sync Salesforce data' },
+      { error: 'Failed to sync Salesforce data', details: errorMessage },
       { status: 500 }
     );
   }

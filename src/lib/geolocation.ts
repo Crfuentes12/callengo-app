@@ -31,7 +31,7 @@ export function getCurrencyFromCountry(countryCode: string): 'USD' | 'EUR' | 'GB
     return 'GBP';
   }
 
-  // European Union countries + some associated territories
+  // Eurozone countries (countries that actually use EUR as official currency)
   const euroCountries = [
     'AT', // Austria
     'BE', // Belgium
@@ -53,21 +53,12 @@ export function getCurrencyFromCountry(countryCode: string): 'USD' | 'EUR' | 'GB
     'SI', // Slovenia
     'ES', // Spain
     'HR', // Croatia
-    'BG', // Bulgaria
-    'RO', // Romania
-    'CZ', // Czech Republic
-    'DK', // Denmark (uses DKK but we map to EUR for simplicity)
-    'HU', // Hungary (uses HUF but we map to EUR for simplicity)
-    'PL', // Poland (uses PLN but we map to EUR for simplicity)
-    'SE', // Sweden (uses SEK but we map to EUR for simplicity)
-    'NO', // Norway (uses NOK but we map to EUR for simplicity)
-    'CH', // Switzerland (uses CHF but we map to EUR for simplicity)
-    'IS', // Iceland
-    'LI', // Liechtenstein
-    'MC', // Monaco
-    'SM', // San Marino
-    'VA', // Vatican City
-    'AD', // Andorra
+    'MC', // Monaco (uses EUR)
+    'SM', // San Marino (uses EUR)
+    'VA', // Vatican City (uses EUR)
+    'AD', // Andorra (uses EUR)
+    'ME', // Montenegro (uses EUR)
+    'XK', // Kosovo (uses EUR)
   ];
 
   if (euroCountries.includes(code)) {
