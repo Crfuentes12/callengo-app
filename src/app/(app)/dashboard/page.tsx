@@ -101,7 +101,7 @@ export default async function DashboardPage() {
     .lte('period_start', now)
     .gte('period_end', now)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   // Fetch company subscription
   let { data: subscription } = await supabase
