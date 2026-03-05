@@ -1,6 +1,7 @@
 // app/api/company/update/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -43,6 +44,16 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    await logAuditEvent({
+      company_id: userData.company_id,
+      user_id: user.id,
+      action: 'settings.update',
+      entity_type: 'company',
+      entity_id: userData.company_id,
+      changes: { name, website, description, industry, favicon_url },
+      request,
+    });
 
     return NextResponse.json({ status: 'success', company: data });
 

@@ -1,11 +1,15 @@
 // app/api/integrations/zoom/connect/route.ts
 // Server-to-Server OAuth — no redirect, just verify credentials and mark as connected
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { verifyZoomCredentials } from '@/lib/calendar/zoom';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();

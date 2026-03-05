@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+import { validateBody } from '@/lib/validation';
+
+const acceptInviteSchema = z.object({
+  token: z.string().min(1, 'Invitation token is required'),
+});
 
 /**
  * POST /api/team/accept-invite
@@ -8,6 +15,9 @@ import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
  * This endpoint is called during onboarding or when a user clicks the invite link.
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResult = applyRateLimit(req, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -16,11 +26,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { token } = await req.json();
-
-    if (!token) {
-      return NextResponse.json({ error: 'Invitation token is required' }, { status: 400 });
-    }
+    const rawBody = await req.json();
+    const validation = validateBody(acceptInviteSchema, rawBody);
+    if (!validation.success) return validation.response;
+    const { token } = validation.data;
 
     // Find the invitation by token
     const { data: invitation } = await supabaseAdminRaw

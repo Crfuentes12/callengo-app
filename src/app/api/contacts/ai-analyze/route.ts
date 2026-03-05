@@ -1,14 +1,25 @@
 // app/api/contacts/ai-analyze/route.ts
 // AI-powered contact analysis and list suggestions
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import OpenAI from 'openai';
+import { validateBody } from '@/lib/validation';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+
+const aiAnalyzeSchema = z.object({
+  action: z.enum(['suggest-lists', 'analyze-quality']),
+  contactIds: z.array(z.string().uuid()).optional(),
+});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 60);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -22,10 +33,9 @@ export async function POST(request: NextRequest) {
     if (!userData?.company_id) return NextResponse.json({ error: 'No company found' }, { status: 404 });
 
     const body = await request.json();
-    const { action, contactIds } = body as {
-      action: 'suggest-lists' | 'analyze-quality';
-      contactIds?: string[];
-    };
+    const validation = validateBody(aiAnalyzeSchema, body);
+    if (!validation.success) return validation.response;
+    const { action, contactIds } = validation.data;
 
     // Fetch contacts for analysis (limit to 500 for token efficiency)
     let query = supabase

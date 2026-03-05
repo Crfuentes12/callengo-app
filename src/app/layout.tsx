@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LanguageProvider } from "@/i18n";
+import { StoreSync } from "@/components/StoreSync";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,6 +25,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <LanguageProvider>
             <AuthProvider>
+              <StoreSync />
               {children}
             </AuthProvider>
           </LanguageProvider>

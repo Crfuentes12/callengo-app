@@ -4,8 +4,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getGoogleSheetsAuthUrl } from '@/lib/google-sheets';
+import { createSignedState, validateReturnTo } from '@/lib/oauth-state';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -24,16 +29,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
-    const returnTo = request.nextUrl.searchParams.get('return_to') || '/contacts';
-    const state = Buffer.from(
-      JSON.stringify({
-        user_id: user.id,
-        company_id: userData.company_id,
-        provider: 'google_sheets',
-        timestamp: Date.now(),
-        return_to: returnTo,
-      })
-    ).toString('base64url');
+    const returnTo = validateReturnTo(request.nextUrl.searchParams.get('return_to'));
+    const state = createSignedState({
+      user_id: user.id,
+      company_id: userData.company_id,
+      provider: 'google_sheets',
+      timestamp: Date.now(),
+      return_to: returnTo,
+    });
 
     const authUrl = getGoogleSheetsAuthUrl(state);
 

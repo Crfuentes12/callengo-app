@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase/service';
 import { verifyWebhookSignature } from '@/lib/stripe';
 import Stripe from 'stripe';
+import { webhookLimiter, applyRateLimit } from '@/lib/rate-limit';
 
 // Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,9 @@ export const dynamic = 'force-dynamic';
  * Handles all Stripe webhook events
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResult = applyRateLimit(req, webhookLimiter, 100);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const body = await req.text();
     const signature = req.headers.get('stripe-signature');

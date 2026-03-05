@@ -8,6 +8,7 @@ import type {
   HubSpotUserInfo,
 } from '@/types/hubspot';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/oauth-tokens';
 
 // ============================================================================
 // CONFIGURATION
@@ -119,7 +120,7 @@ export async function refreshHubSpotToken(
     grant_type: 'refresh_token',
     client_id: clientId,
     client_secret: clientSecret,
-    refresh_token: integration.refresh_token,
+    refresh_token: decryptToken(integration.refresh_token)!,
   });
 
   const res = await fetch(HUBSPOT_TOKEN_URL, {
@@ -143,12 +144,12 @@ export async function refreshHubSpotToken(
   const expiresIn = data.expires_in as number; // seconds
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-  // Update tokens in DB
+  // Update tokens in DB (encrypted)
   await supabaseAdmin
     .from('hubspot_integrations')
     .update({
-      access_token: newAccessToken,
-      refresh_token: newRefreshToken,
+      access_token: encryptToken(newAccessToken)!,
+      refresh_token: encryptToken(newRefreshToken)!,
       expires_at: expiresAt,
       token_issued_at: new Date().toISOString(),
     })
@@ -168,7 +169,7 @@ export async function refreshHubSpotToken(
 export async function getHubSpotClient(integration: HubSpotIntegration): Promise<{
   fetch: (path: string, init?: RequestInit) => Promise<Response>;
 }> {
-  let accessToken = integration.access_token;
+  let accessToken = decryptToken(integration.access_token)!;
 
   // Check if token is about to expire (within 5 minutes)
   if (integration.expires_at) {

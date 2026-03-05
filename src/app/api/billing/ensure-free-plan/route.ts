@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
 
 /**
  * Ensures a company has a Free trial plan subscription.
@@ -11,6 +12,9 @@ import { supabaseAdmin } from '@/lib/supabase/service';
  * Users must upgrade to a paid plan after trial minutes are exhausted.
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResult = applyRateLimit(req, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
 

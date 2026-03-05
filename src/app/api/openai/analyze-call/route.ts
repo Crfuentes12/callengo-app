@@ -1,21 +1,32 @@
 // app/api/openai/analyze-call/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import OpenAI from 'openai';
+import { expensiveLimiter, applyRateLimit } from '@/lib/rate-limit';
+import { validateBody } from '@/lib/validation';
+
+const analyzeCallSchema = z.object({
+  transcripts: z.array(z.object({
+    user: z.string(),
+    text: z.string(),
+  })).min(1, 'At least one transcript entry is required'),
+  agentType: z.string().optional(),
+  demoData: z.record(z.unknown()).optional(),
+});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(request: NextRequest) {
-  try {
-    const { transcripts, agentType, demoData } = await request.json();
+  const rateLimitResult = applyRateLimit(request, expensiveLimiter, 10);
+  if (rateLimitResult) return rateLimitResult;
 
-    if (!transcripts || !Array.isArray(transcripts)) {
-      return NextResponse.json(
-        { error: 'Transcripts array is required' },
-        { status: 400 }
-      );
-    }
+  try {
+    const body = await request.json();
+    const validation = validateBody(analyzeCallSchema, body);
+    if (!validation.success) return validation.response;
+    const { transcripts, agentType, demoData } = validation.data;
 
     // Build conversation text from transcripts
     const conversationText = transcripts

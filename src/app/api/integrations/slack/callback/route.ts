@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAppUrl } from '@/lib/config';
+import { verifyAndDecodeState, validateReturnTo } from '@/lib/oauth-state';
+import { encryptToken } from '@/lib/oauth-tokens';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,15 +20,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/integrations?error=missing_params', request.url));
     }
 
-    const state = JSON.parse(Buffer.from(stateB64, 'base64url').toString());
-    const { userId, companyId, returnTo } = state;
+    const stateData = verifyAndDecodeState(stateB64);
+    if (!stateData) {
+      return NextResponse.redirect(new URL('/integrations?error=invalid_state', request.url));
+    }
+
+    const userId = stateData.user_id;
+    const companyId = stateData.company_id;
+    const returnTo = validateReturnTo(stateData.return_to);
 
     // ALTA-005: Verify authenticated user matches the OAuth state
     const supabaseAuth = await createServerClient();
     const { data: { user: currentUser } } = await supabaseAuth.auth.getUser();
     if (!currentUser || currentUser.id !== userId) {
-      const errorRedirect = returnTo || '/integrations';
-      return NextResponse.redirect(new URL(`${errorRedirect}?error=user_mismatch`, request.url));
+      return NextResponse.redirect(new URL(`${returnTo}?error=user_mismatch`, request.url));
     }
 
     const clientId = process.env.SLACK_CLIENT_ID!;
@@ -68,7 +75,7 @@ export async function GET(request: NextRequest) {
       .update({
         settings: {
           ...existingSettings,
-          slack_access_token: tokenData.access_token,
+          slack_access_token: encryptToken(tokenData.access_token),
           slack_bot_user_id: tokenData.bot_user_id,
           slack_team_id: tokenData.team?.id,
           slack_team_name: tokenData.team?.name,

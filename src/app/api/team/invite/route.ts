@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import { getAppUrl } from '@/lib/config';
+import { logAuditEvent } from '@/lib/audit';
+import { validateBody } from '@/lib/validation';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+
+const inviteSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  role: z.enum(['member', 'admin']).default('member'),
+});
 
 /**
  * POST /api/team/invite
@@ -10,6 +19,9 @@ import { getAppUrl } from '@/lib/config';
  * Sends an actual invitation email via Supabase Auth.
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResult = applyRateLimit(req, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -18,15 +30,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { email, role = 'member' } = await req.json();
-
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-    }
-
-    if (!['member', 'admin'].includes(role)) {
-      return NextResponse.json({ error: 'Invalid role. Must be member or admin.' }, { status: 400 });
-    }
+    const rawBody = await req.json();
+    const validation = validateBody(inviteSchema, rawBody);
+    if (!validation.success) return validation.response;
+    const { email, role } = validation.data;
 
     // Get user data with company info
     const { data: userData } = await supabase
@@ -195,6 +202,16 @@ export async function POST(req: NextRequest) {
       // For other errors, log but don't fail - the DB record exists
       console.error('Error sending invitation email:', emailError);
     }
+
+    await logAuditEvent({
+      company_id: userData.company_id,
+      user_id: user.id,
+      action: 'user.invite',
+      entity_type: 'team_invitation',
+      entity_id: invitation.id,
+      changes: { email: email.toLowerCase(), role },
+      request: req,
+    });
 
     return NextResponse.json({
       success: true,

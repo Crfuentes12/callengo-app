@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { getOrCreateStripeCustomer, createCheckoutSession } from '@/lib/stripe';
 import { getAppUrl } from '@/lib/config';
 import { expensiveLimiter } from '@/lib/rate-limit';
+import { validateBody } from '@/lib/validation';
+
+const checkoutBodySchema = z.object({
+  planId: z.string().uuid('Invalid plan ID'),
+  billingCycle: z.enum(['monthly', 'annual']).default('monthly'),
+  currency: z.enum(['USD', 'EUR', 'GBP']).default('USD'),
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,30 +60,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse request body
+    // Parse and validate request body
     const body = await req.json();
-    const { planId, billingCycle = 'monthly', currency = 'USD' } = body;
-
-    if (!planId) {
-      return NextResponse.json(
-        { error: 'Plan ID is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!['monthly', 'annual'].includes(billingCycle)) {
-      return NextResponse.json(
-        { error: 'Invalid billing cycle' },
-        { status: 400 }
-      );
-    }
-
-    if (!['USD', 'EUR', 'GBP'].includes(currency)) {
-      return NextResponse.json(
-        { error: 'Invalid currency' },
-        { status: 400 }
-      );
-    }
+    const validation = validateBody(checkoutBodySchema, body);
+    if (!validation.success) return validation.response;
+    const { planId, billingCycle, currency } = validation.data;
 
     // Get plan details
     const { data: plan, error: planError } = await supabase

@@ -4,8 +4,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getDynamicsAuthUrl } from '@/lib/dynamics';
+import { createSignedState, validateReturnTo } from '@/lib/oauth-state';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -40,18 +45,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const returnTo = request.nextUrl.searchParams.get('return_to') || '/integrations';
+    const returnTo = validateReturnTo(request.nextUrl.searchParams.get('return_to'));
     const instanceUrl = request.nextUrl.searchParams.get('instance_url') || '';
-    const state = Buffer.from(
-      JSON.stringify({
-        user_id: user.id,
-        company_id: userData.company_id,
-        provider: 'dynamics',
-        instance_url: instanceUrl,
-        timestamp: Date.now(),
-        return_to: returnTo,
-      })
-    ).toString('base64url');
+    const state = createSignedState({
+      user_id: user.id,
+      company_id: userData.company_id,
+      provider: 'dynamics',
+      instance_url: instanceUrl,
+      timestamp: Date.now(),
+      return_to: returnTo,
+    });
 
     const authUrl = getDynamicsAuthUrl(state, instanceUrl || undefined);
 

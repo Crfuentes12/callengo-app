@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useStripe } from '@/hooks/useStripe';
 import { getCampaignFeatureAccess, getPhoneNumberFeatures } from '@/config/plan-features';
 import { useUserCurrency } from '@/hooks/useAutoGeolocation';
 import { useTranslation } from '@/i18n';
+import { useBillingSubscription, useBillingPlans } from '@/hooks/useCompanyData';
 
 interface Plan {
   id: string;
@@ -82,10 +83,22 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const { currency } = useUserCurrency();
   const searchParams = useSearchParams();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
-  const [plans, setPlans] = useState<Plan[]>([]);
+  // SWR-managed data fetching for plans and subscription
+  const { data: plansData, isLoading: plansLoading } = useBillingPlans(currency);
+  const { data: subData, isLoading: subLoading, mutate: mutateSubscription } = useBillingSubscription(companyId);
+
+  const plans: Plan[] = (plansData as Plan[]) || [];
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
-  const [loading, setLoading] = useState(true);
+  const loading = plansLoading || subLoading;
+
+  // Sync SWR data into local state (needed for polling updates and local mutations)
+  useEffect(() => {
+    if (subData) {
+      setSubscription(subData.subscription as Subscription | null);
+      setUsage(subData.usage);
+    }
+  }, [subData]);
   const [changing, setChanging] = useState(false);
   const [success, setSuccess] = useState('');
   const [showOverageModal, setShowOverageModal] = useState(false);
@@ -116,27 +129,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     return `${symbol}${formatted}`;
   };
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [plansRes, subRes] = await Promise.all([
-        fetch(`/api/billing/plans?currency=${currency}`),
-        fetch(`/api/billing/subscription?companyId=${companyId}`)
-      ]);
-      if (plansRes.ok) setPlans(await plansRes.json());
-      if (subRes.ok) {
-        const subData = await subRes.json();
-        setSubscription(subData.subscription);
-        setUsage(subData.usage);
-      }
-    } catch (error) {
-      console.error('Error fetching billing data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [companyId, currency]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  // fetchData is no longer needed — SWR handles initial loading and caching.
+  // mutateSubscription() can be called to revalidate subscription data on demand.
 
   useEffect(() => {
     const isSuccess = searchParams.get('success') === 'true';

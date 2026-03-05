@@ -5,8 +5,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import { authenticateSimplyBook, getSimplyBookUserInfo } from '@/lib/simplybook';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+import { encryptToken } from '@/lib/oauth-tokens';
 
 export async function POST(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -76,8 +81,8 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         sb_company_login: company_login,
         sb_user_login: user_login,
-        sb_token: tokenData.token,
-        sb_refresh_token: tokenData.refresh_token,
+        sb_token: encryptToken(tokenData.token),
+        sb_refresh_token: encryptToken(tokenData.refresh_token),
         token_expires_at: expiresAt,
         sb_user_id: userInfo.id ? String(userInfo.id) : null,
         sb_user_name: [userInfo.firstname, userInfo.lastname].filter(Boolean).join(' ') || tokenData.login || null,

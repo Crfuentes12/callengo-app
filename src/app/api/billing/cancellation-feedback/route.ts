@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+import { validateBody } from '@/lib/validation';
+
+const cancellationFeedbackSchema = z.object({
+  reason: z.string().min(1, 'Reason is required'),
+  reason_details: z.string().optional(),
+  outcome: z.enum(['pending', 'cancelled', 'retained']).default('pending'),
+});
 
 /**
  * POST /api/billing/cancellation-feedback
  * Records cancellation feedback from users going through the cancellation flow.
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResult = applyRateLimit(req, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -16,11 +28,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { reason, reason_details, outcome } = body;
-
-    if (!reason) {
-      return NextResponse.json({ error: 'reason is required' }, { status: 400 });
-    }
+    const validation = validateBody(cancellationFeedbackSchema, body);
+    if (!validation.success) return validation.response;
+    const { reason, reason_details, outcome } = validation.data;
 
     // Get user's company and subscription info
     const { data: userData } = await supabase

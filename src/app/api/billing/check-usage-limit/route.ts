@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { checkUsageLimit } from '@/lib/billing/usage-tracker';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
 
 /**
  * API endpoint to check if a company can make a call based on usage limits
  * This should be called before initiating any call
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResult = applyRateLimit(req, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
 

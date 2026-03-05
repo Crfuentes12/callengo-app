@@ -1,12 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
 
 /**
  * GET /api/team/members
  * Returns team members and pending invitations for the current user's company
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams } from 'next/navigation';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
+import MFAChallenge from '@/components/auth/MFAChallenge';
+import { createClient } from '@/lib/supabase/client';
 import { useTranslation } from '@/i18n';
 
 function LoginForm() {
@@ -16,6 +18,7 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showMFAChallenge, setShowMFAChallenge] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +30,36 @@ function LoginForm() {
       setLoading(false);
       return;
     }
+
+    // Check if MFA is required
+    const supabase = createClient();
+    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalData && aalData.currentLevel === 'aal1' && aalData.nextLevel === 'aal2') {
+      setShowMFAChallenge(true);
+      setLoading(false);
+      return;
+    }
+
     window.location.href = '/dashboard';
   };
+
+  if (showMFAChallenge) {
+    return (
+      <div className="animate-fade-in">
+        <MFAChallenge
+          onSuccess={() => {
+            window.location.href = '/dashboard';
+          }}
+          onCancel={() => {
+            setShowMFAChallenge(false);
+            // Sign out since we can't proceed without MFA
+            const supabase = createClient();
+            supabase.auth.signOut();
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">

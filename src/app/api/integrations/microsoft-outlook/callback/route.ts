@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAppUrl } from '@/lib/config';
+import { verifyAndDecodeState, validateReturnTo } from '@/lib/oauth-state';
+import { encryptToken } from '@/lib/oauth-tokens';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,15 +20,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/calendar?error=missing_params', request.url));
     }
 
-    const state = JSON.parse(Buffer.from(stateB64, 'base64url').toString());
-    const { userId, companyId, returnTo } = state;
+    const stateData = verifyAndDecodeState(stateB64);
+    if (!stateData) {
+      return NextResponse.redirect(new URL('/calendar?error=invalid_state', request.url));
+    }
+
+    const userId = stateData.user_id;
+    const companyId = stateData.company_id;
+    const returnTo = validateReturnTo(stateData.return_to);
 
     // ALTA-005: Verify authenticated user matches the OAuth state
     const supabaseAuth = await createServerClient();
     const { data: { user: currentUser } } = await supabaseAuth.auth.getUser();
     if (!currentUser || currentUser.id !== userId) {
-      const errorRedirect = returnTo || '/integrations';
-      return NextResponse.redirect(new URL(`${errorRedirect}?error=user_mismatch`, request.url));
+      return NextResponse.redirect(new URL(`${returnTo}?error=user_mismatch`, request.url));
     }
 
     const clientId = process.env.MICROSOFT_CLIENT_ID!;
@@ -74,8 +81,8 @@ export async function GET(request: NextRequest) {
           company_id: companyId,
           user_id: userId,
           provider: 'microsoft_outlook',
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token || null,
+          access_token: encryptToken(tokens.access_token)!,
+          refresh_token: encryptToken(tokens.refresh_token || null),
           token_expires_at: expiresAt,
           provider_email: profile.mail || profile.userPrincipalName || null,
           provider_user_id: profile.id || null,

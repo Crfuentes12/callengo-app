@@ -8,6 +8,7 @@ import { Database } from '@/types/supabase';
 import BillingSettings from './BillingSettings';
 import CallSettings from './CallSettings';
 import NotificationSettings from './NotificationSettings';
+import MFASetup from './MFASetup';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 import { useTranslation, useLanguage } from '@/i18n';
 import LanguageSelector from '@/components/LanguageSelector';
@@ -574,6 +575,23 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                   userId={user.id}
                   initialEnabled={user.notifications_enabled ?? true}
                 />
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-slate-200" />
+
+              {/* Security / MFA Section */}
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-sm">🔒</span>
+                    Security
+                  </h3>
+                  <p className="text-sm text-slate-500">Manage your account security settings.</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                  <MFASetup />
+                </div>
               </div>
             </div>
           )}

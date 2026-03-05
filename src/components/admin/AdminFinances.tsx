@@ -1,35 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@/i18n';
 import { AdminFinance } from '@/types/supabase';
+import { useAdminFinances } from '@/hooks/useCompanyData';
 
 export default function AdminFinances() {
   const { t } = useTranslation();
-  const [finances, setFinances] = useState<AdminFinance[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('current');
 
-  useEffect(() => {
-    fetchFinances();
-  }, [selectedPeriod]);
+  const { data, isLoading } = useAdminFinances(selectedPeriod);
+  const finances: AdminFinance[] = (data?.finances as AdminFinance[]) || [];
 
-  const fetchFinances = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/admin/finances?period=${selectedPeriod}`);
-      if (response.ok) {
-        const data = await response.json();
-        setFinances(data.finances || []);
-      }
-    } catch (error) {
-      console.error('Error fetching finances:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">

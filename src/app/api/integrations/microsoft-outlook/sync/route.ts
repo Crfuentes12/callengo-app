@@ -1,9 +1,13 @@
 // app/api/integrations/microsoft-outlook/sync/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getActiveIntegrations, runSync } from '@/lib/calendar/sync';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();

@@ -1,11 +1,12 @@
 // app/api/integrations/salesforce/disconnect/route.ts
 // Disconnects the Salesforce integration
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
+import { logAuditEvent } from '@/lib/audit';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -34,6 +35,16 @@ export async function POST() {
     if (updateError) {
       throw new Error(`Failed to disconnect: ${updateError.message}`);
     }
+
+    await logAuditEvent({
+      company_id: userData.company_id,
+      user_id: user.id,
+      action: 'integration.disconnect',
+      entity_type: 'integration',
+      entity_id: 'salesforce',
+      changes: { provider: 'salesforce' },
+      request: req,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

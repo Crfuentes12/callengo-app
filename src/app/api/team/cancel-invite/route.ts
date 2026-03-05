@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
+import { validateBody } from '@/lib/validation';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+
+const cancelInviteSchema = z.object({
+  inviteId: z.string().uuid('Invalid invite ID'),
+});
 
 /**
  * POST /api/team/cancel-invite
  * Cancel a pending team invitation. Requires owner or admin role.
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResult = applyRateLimit(req, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -15,11 +25,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { inviteId } = await req.json();
-
-    if (!inviteId) {
-      return NextResponse.json({ error: 'inviteId is required' }, { status: 400 });
-    }
+    const rawBody = await req.json();
+    const validation = validateBody(cancelInviteSchema, rawBody);
+    if (!validation.success) return validation.response;
+    const { inviteId } = validation.data;
 
     // Get current user data
     const { data: userData } = await supabase

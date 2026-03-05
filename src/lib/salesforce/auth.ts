@@ -8,6 +8,7 @@ import type {
   SalesforceUserInfo,
 } from '@/types/salesforce';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/oauth-tokens';
 
 // ============================================================================
 // CONFIGURATION
@@ -118,7 +119,7 @@ export async function refreshSalesforceToken(
     grant_type: 'refresh_token',
     client_id: clientId,
     client_secret: clientSecret,
-    refresh_token: integration.refresh_token,
+    refresh_token: decryptToken(integration.refresh_token)!,
   });
 
   const res = await fetch(`${SF_LOGIN_URL}/services/oauth2/token`, {
@@ -140,11 +141,11 @@ export async function refreshSalesforceToken(
   const newAccessToken = data.access_token as string;
   const newInstanceUrl = (data.instance_url as string) || integration.instance_url;
 
-  // Update token in DB
+  // Update token in DB (encrypted)
   await supabaseAdmin
     .from('salesforce_integrations')
     .update({
-      access_token: newAccessToken,
+      access_token: encryptToken(newAccessToken)!,
       instance_url: newInstanceUrl,
       token_issued_at: new Date().toISOString(),
     })
@@ -165,7 +166,7 @@ export async function getSalesforceClient(integration: SalesforceIntegration): P
   fetch: (path: string, init?: RequestInit) => Promise<Response>;
   instanceUrl: string;
 }> {
-  let accessToken = integration.access_token;
+  let accessToken = decryptToken(integration.access_token)!;
   let instanceUrl = integration.instance_url;
 
   const sfFetch = async (path: string, init?: RequestInit): Promise<Response> => {

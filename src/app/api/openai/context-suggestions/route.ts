@@ -1,12 +1,16 @@
 // app/api/openai/context-suggestions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { expensiveLimiter, applyRateLimit } from '@/lib/rate-limit';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, expensiveLimiter, 10);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const { agentType, companyName, companyDescription, companyWebsite } = await request.json();
 

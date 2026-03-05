@@ -1,5 +1,6 @@
 // lib/rate-limit.ts — In-memory rate limiter using LRU cache
 import { LRUCache } from 'lru-cache';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface RateLimitResult {
   success: boolean;
@@ -52,3 +53,41 @@ export const authLimiter = createRateLimiter({
   interval: 60_000, // 1 minute
   uniqueTokenPerInterval: 300,
 });
+
+export const webhookLimiter = createRateLimiter({
+  interval: 60_000, // 1 minute
+  uniqueTokenPerInterval: 1000,
+});
+
+/**
+ * Apply rate limiting to an API route handler.
+ * Returns a 429 NextResponse if the rate limit is exceeded, or null if the request is allowed.
+ */
+export function applyRateLimit(
+  request: NextRequest,
+  limiter: ReturnType<typeof createRateLimiter>,
+  limit: number,
+  identifier?: string
+): NextResponse | null {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const ip = forwarded?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip') ?? '127.0.0.1';
+  const key = identifier || ip;
+
+  const result = limiter.check(limit, key);
+
+  if (!result.success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': '60',
+          'X-RateLimit-Limit': String(result.limit),
+          'X-RateLimit-Remaining': '0',
+        },
+      }
+    );
+  }
+
+  return null;
+}

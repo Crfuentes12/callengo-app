@@ -2,10 +2,20 @@
 // Fallback endpoint to verify a Stripe checkout session and update the subscription
 // directly in the database. This bypasses the webhook in case it fails.
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+import { validateBody } from '@/lib/validation';
+
+const verifySessionSchema = z.object({
+  session_id: z.string().min(1, 'session_id is required'),
+});
 
 export async function POST(req: NextRequest) {
+  const rateLimitResult = applyRateLimit(req, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
 
@@ -30,14 +40,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No company found' }, { status: 404 });
     }
 
-    const { session_id } = await req.json();
-
-    if (!session_id) {
-      return NextResponse.json(
-        { error: 'session_id is required' },
-        { status: 400 }
-      );
-    }
+    const rawBody = await req.json();
+    const validation = validateBody(verifySessionSchema, rawBody);
+    if (!validation.success) return validation.response;
+    const { session_id } = validation.data;
 
     // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(session_id, {

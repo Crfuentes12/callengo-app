@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
-import { reportUsage } from '@/lib/stripe';
+import { reportUsage, reportMeterEvent } from '@/lib/stripe';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+import { validateBody } from '@/lib/validation';
+
+const reportUsageBodySchema = z.object({
+  companyId: z.string().uuid('Invalid company ID'),
+  minutes: z.number().positive('Minutes must be a positive number'),
+  callId: z.string().optional(),
+});
 
 /**
  * API endpoint to report usage to Stripe for metered billing
@@ -24,6 +33,9 @@ function verifyInternalToken(provided: string | null): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResult = applyRateLimit(req, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
 
@@ -44,14 +56,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { companyId, minutes, callId } = body;
-
-    if (!companyId || !minutes || typeof minutes !== 'number' || minutes <= 0) {
-      return NextResponse.json(
-        { error: 'Company ID and a positive minutes value are required' },
-        { status: 400 }
-      );
-    }
+    const validation = validateBody(reportUsageBodySchema, body);
+    if (!validation.success) return validation.response;
+    const { companyId, minutes, callId } = validation.data;
 
     // Verify user has access to this company (if user-authenticated, not service call)
     if (user && !isServiceCall) {
@@ -229,13 +236,25 @@ async function processUsagePostUpdate(
   });
 
   // Report to Stripe if needed
-  if (subscription.overage_enabled && overageMinutes > 0 && subscription.stripe_subscription_item_id) {
+  if (subscription.overage_enabled && overageMinutes > 0) {
     try {
-      await reportUsage({
-        subscriptionItemId: subscription.stripe_subscription_item_id!,
-        quantity: Math.ceil(overageMinutes),
-        action: 'set',
-      });
+      const stripeCustomerId = subscription.stripe_customer_id;
+
+      if (stripeCustomerId) {
+        // Use new Billing Meter Events API
+        await reportMeterEvent({
+          eventName: 'callengo_overage_minutes',
+          stripeCustomerId,
+          value: Math.ceil(overageMinutes),
+        });
+      } else if (subscription.stripe_subscription_item_id) {
+        // Fallback to deprecated usage_records for subscriptions not yet migrated
+        await reportUsage({
+          subscriptionItemId: subscription.stripe_subscription_item_id!,
+          quantity: Math.ceil(overageMinutes),
+          action: 'set',
+        });
+      }
     } catch (stripeError) {
       console.error('Error reporting to Stripe:', stripeError);
     }
@@ -298,6 +317,9 @@ async function processUsagePostUpdate(
  * GET endpoint to retrieve current usage
  */
 export async function GET(req: NextRequest) {
+  const rateLimitResultGet = applyRateLimit(req, apiLimiter, 30);
+  if (rateLimitResultGet) return rateLimitResultGet;
+
   try {
     const supabase = await createServerClient();
 

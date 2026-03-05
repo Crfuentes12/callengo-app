@@ -2,8 +2,12 @@
 // Paginated contacts API with sorting, filtering, search, and stats
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 60);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();

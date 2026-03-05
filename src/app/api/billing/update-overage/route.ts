@@ -1,13 +1,27 @@
 // app/api/billing/update-overage/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import {
   enableOverage,
   disableOverage,
   updateOverageBudget,
 } from '@/lib/billing/overage-manager';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+import { validateBody } from '@/lib/validation';
+import { logAuditEvent } from '@/lib/audit';
+
+const updateOverageSchema = z.object({
+  companyId: z.string().uuid('Invalid company ID'),
+  subscriptionId: z.string().uuid('Invalid subscription ID'),
+  enabled: z.boolean(),
+  budget: z.number().min(0).optional(),
+});
 
 export async function POST(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const {
@@ -19,14 +33,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { companyId, subscriptionId, enabled, budget } = body;
-
-    if (!companyId || !subscriptionId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
+    const validation = validateBody(updateOverageSchema, body);
+    if (!validation.success) return validation.response;
+    const { companyId, subscriptionId, enabled, budget } = validation.data;
 
     // Verify user owns this company
     const { data: userData } = await supabase
@@ -98,6 +107,16 @@ export async function POST(request: NextRequest) {
       .eq('id', subscriptionId)
       .eq('company_id', companyId)
       .single();
+
+    await logAuditEvent({
+      company_id: companyId,
+      user_id: user.id,
+      action: enabled ? 'billing.overage_enable' : 'billing.overage_disable',
+      entity_type: 'subscription',
+      entity_id: subscriptionId,
+      changes: { enabled, budget: finalBudget, previous_enabled: subscription.overage_enabled, previous_budget: subscription.overage_budget },
+      request,
+    });
 
     return NextResponse.json({
       status: 'success',

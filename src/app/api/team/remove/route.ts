@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
+import { logAuditEvent } from '@/lib/audit';
+import { validateBody } from '@/lib/validation';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+
+const removeSchema = z.object({
+  userId: z.string().uuid('Invalid user ID'),
+});
 
 /**
  * POST /api/team/remove
@@ -8,6 +16,9 @@ import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
  * Owners cannot be removed. Admins cannot remove other admins.
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResult = applyRateLimit(req, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -16,11 +27,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { userId } = await req.json();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
-    }
+    const rawBody = await req.json();
+    const validation = validateBody(removeSchema, rawBody);
+    if (!validation.success) return validation.response;
+    const { userId } = validation.data;
 
     // Cannot remove yourself
     if (userId === user.id) {
@@ -83,6 +93,16 @@ export async function POST(req: NextRequest) {
       console.error('Error removing member:', updateError);
       return NextResponse.json({ error: 'Failed to remove team member' }, { status: 500 });
     }
+
+    await logAuditEvent({
+      company_id: currentUserData.company_id,
+      user_id: user.id,
+      action: 'user.remove',
+      entity_type: 'user',
+      entity_id: userId,
+      changes: { removed_role: targetUser.role },
+      request: req,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

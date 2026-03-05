@@ -2,8 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAppUrl } from '@/lib/config';
+import { createSignedState, validateReturnTo } from '@/lib/oauth-state';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -12,7 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    const returnTo = request.nextUrl.searchParams.get('return_to') || '/integrations';
+    const returnTo = validateReturnTo(request.nextUrl.searchParams.get('return_to'));
 
     const { data: userData } = await supabase
       .from('users')
@@ -45,10 +50,12 @@ export async function GET(request: NextRequest) {
     const appUrl = getAppUrl();
     const redirectUri = `${appUrl}/api/integrations/slack/callback`;
 
-    const state = JSON.stringify({
-      userId: user.id,
-      companyId: userData.company_id,
-      returnTo,
+    const state = createSignedState({
+      user_id: user.id,
+      company_id: userData.company_id,
+      provider: 'slack',
+      timestamp: Date.now(),
+      return_to: returnTo,
     });
 
     const scopes = [
@@ -64,7 +71,7 @@ export async function GET(request: NextRequest) {
     authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('scope', scopes.join(','));
     authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('state', Buffer.from(state).toString('base64url'));
+    authUrl.searchParams.set('state', state);
 
     return NextResponse.redirect(authUrl.toString());
   } catch (error) {

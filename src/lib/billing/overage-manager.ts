@@ -3,9 +3,12 @@
  * Manages metered billing and overage functionality with Stripe
  */
 
-import { stripe, createMeteredPrice, reportUsage } from '../stripe';
+import { stripe, createMeteredPrice, reportUsage, reportMeterEvent } from '../stripe';
 import { supabaseAdmin as supabase } from '@/lib/supabase/service';
 import Stripe from 'stripe';
+
+/** Meter event name used for overage billing */
+const OVERAGE_METER_EVENT_NAME = 'callengo_overage_minutes';
 
 /**
  * Enable overage for a subscription
@@ -283,12 +286,24 @@ export async function syncAllMeteredUsage(): Promise<void> {
         const minutesIncluded = subscription.subscription_plans?.minutes_included || 0;
         const overageMinutes = Math.max(0, usage.minutes_used - minutesIncluded);
 
-        if (overageMinutes > 0 && subscription.stripe_subscription_item_id) {
-          await reportUsage({
-            subscriptionItemId: subscription.stripe_subscription_item_id,
-            quantity: overageMinutes,
-            action: 'set',
-          });
+        if (overageMinutes > 0) {
+          // Use the new Billing Meter Events API if we have a Stripe customer ID
+          const stripeCustomerId = subscription.stripe_customer_id;
+
+          if (stripeCustomerId) {
+            await reportMeterEvent({
+              eventName: OVERAGE_METER_EVENT_NAME,
+              stripeCustomerId,
+              value: overageMinutes,
+            });
+          } else if (subscription.stripe_subscription_item_id) {
+            // Fallback to deprecated usage_records for subscriptions not yet migrated
+            await reportUsage({
+              subscriptionItemId: subscription.stripe_subscription_item_id,
+              quantity: overageMinutes,
+              action: 'set',
+            });
+          }
 
           // Update overage_spent in the subscription record
           const pricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;

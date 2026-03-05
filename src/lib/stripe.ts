@@ -196,8 +196,9 @@ export async function cancelSubscription(params: {
 }
 
 /**
- * Reports usage for metered billing (overage)
- * Uses Stripe's meter events API for v2025-12-15+
+ * @deprecated Use `reportMeterEvent()` instead. This function uses the legacy
+ * `subscription_items/{id}/usage_records` endpoint which is deprecated by Stripe.
+ * Kept for backward compatibility during migration.
  */
 export async function reportUsage(params: {
   subscriptionItemId: string;
@@ -220,7 +221,7 @@ export async function reportUsage(params: {
       { quantity, timestamp, action }
     );
 
-    console.log('Usage reported to Stripe:', {
+    console.log('[DEPRECATED] Usage reported to Stripe via usage_records:', {
       subscriptionItemId,
       quantity,
     });
@@ -228,6 +229,78 @@ export async function reportUsage(params: {
     return usageRecord;
   } catch (error) {
     console.error('Failed to report usage to Stripe:', error);
+    throw error;
+  }
+}
+
+/**
+ * Creates a Stripe Billing Meter for tracking usage events.
+ * Meters should be created once (e.g., during setup) and reused.
+ */
+export async function createBillingMeter(params: {
+  displayName: string;
+  eventName: string;
+  valueSettings?: {
+    eventPayloadKey: string;
+  };
+}): Promise<Stripe.Billing.Meter> {
+  const { displayName, eventName, valueSettings } = params;
+
+  const meter = await stripe.billing.meters.create({
+    display_name: displayName,
+    event_name: eventName,
+    default_aggregation: {
+      formula: 'sum',
+    },
+    ...(valueSettings && {
+      value_settings: {
+        event_payload_key: valueSettings.eventPayloadKey,
+      },
+    }),
+  });
+
+  console.log('Billing meter created:', {
+    id: meter.id,
+    eventName: meter.event_name,
+  });
+
+  return meter;
+}
+
+/**
+ * Reports a meter event to the Stripe Billing Meter Events API.
+ * This is the replacement for the deprecated `reportUsage()` function.
+ *
+ * Usage events are associated with a customer (not a subscription item),
+ * and Stripe automatically aggregates them for billing.
+ */
+export async function reportMeterEvent(params: {
+  eventName: string;
+  stripeCustomerId: string;
+  value: number;
+  timestamp?: number;
+}) {
+  const { eventName, stripeCustomerId, value, timestamp } = params;
+
+  try {
+    const meterEvent = await stripe.billing.meterEvents.create({
+      event_name: eventName,
+      payload: {
+        stripe_customer_id: stripeCustomerId,
+        value: String(value),
+      },
+      timestamp: timestamp || Math.floor(Date.now() / 1000),
+    });
+
+    console.log('Meter event reported to Stripe:', {
+      eventName,
+      stripeCustomerId,
+      value,
+    });
+
+    return meterEvent;
+  } catch (error) {
+    console.error('Failed to report meter event to Stripe:', error);
     throw error;
   }
 }

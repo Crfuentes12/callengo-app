@@ -29,6 +29,7 @@ import {
 } from '@/lib/ai/intent-analyzer';
 import { enqueueAnalysis } from '@/lib/queue/analysis-queue';
 import { autoAssignEvent } from '@/lib/calendar/resource-routing';
+import { webhookLimiter, applyRateLimit } from '@/lib/rate-limit';
 
 function verifyBlandSignature(rawBody: string, signature: string | null, secret: string): boolean {
   if (!signature) return false;
@@ -47,23 +48,29 @@ function verifyBlandSignature(rawBody: string, signature: string | null, secret:
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, webhookLimiter, 100);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
-    // Verify webhook signature if BLAND_WEBHOOK_SECRET is configured
+    // Verify webhook signature — BLAND_WEBHOOK_SECRET is mandatory
     const webhookSecret = process.env.BLAND_WEBHOOK_SECRET;
     let body: Record<string, unknown>;
 
-    if (webhookSecret) {
-      const rawBody = await request.text();
-      const signature = request.headers.get('x-bland-signature') || request.headers.get('x-webhook-signature');
-      if (!verifyBlandSignature(rawBody, signature, webhookSecret)) {
-        console.error('Invalid Bland webhook signature');
-        return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
-      }
-      body = JSON.parse(rawBody);
-    } else {
-      body = await request.json();
-      console.warn('BLAND_WEBHOOK_SECRET not configured — webhook signature verification skipped');
+    if (!webhookSecret) {
+      console.error('BLAND_WEBHOOK_SECRET is not configured - rejecting webhook');
+      return NextResponse.json(
+        { error: 'Webhook verification not configured' },
+        { status: 500 }
+      );
     }
+
+    const rawBody = await request.text();
+    const signature = request.headers.get('x-bland-signature') || request.headers.get('x-webhook-signature');
+    if (!verifyBlandSignature(rawBody, signature, webhookSecret)) {
+      console.error('Invalid Bland webhook signature');
+      return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
+    }
+    body = JSON.parse(rawBody);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const typedBody = body as any;

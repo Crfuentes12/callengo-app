@@ -4,8 +4,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getHubSpotAuthUrl } from '@/lib/hubspot';
+import { createSignedState, validateReturnTo } from '@/lib/oauth-state';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -40,18 +46,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const returnTo = request.nextUrl.searchParams.get('return_to') || '/integrations';
-    const state = Buffer.from(
-      JSON.stringify({
-        user_id: user.id,
-        company_id: userData.company_id,
-        provider: 'hubspot',
-        timestamp: Date.now(),
-        return_to: returnTo,
-      })
-    ).toString('base64url');
+    const returnTo = validateReturnTo(request.nextUrl.searchParams.get('return_to'));
+    const state = createSignedState({
+      user_id: user.id,
+      company_id: userData.company_id,
+      provider: 'hubspot',
+      timestamp: Date.now(),
+      return_to: returnTo,
+    });
 
     const authUrl = getHubSpotAuthUrl(state);
+
+    await logAuditEvent({
+      company_id: userData.company_id,
+      user_id: user.id,
+      action: 'integration.connect',
+      entity_type: 'integration',
+      entity_id: 'hubspot',
+      changes: { provider: 'hubspot' },
+      request,
+    });
 
     const returnUrl = request.nextUrl.searchParams.get('return_url');
     if (returnUrl === 'json') {

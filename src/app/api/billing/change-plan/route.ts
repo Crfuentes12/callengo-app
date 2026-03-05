@@ -1,8 +1,19 @@
 // app/api/billing/change-plan/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+import { validateBody } from '@/lib/validation';
+
+const changePlanSchema = z.object({
+  planId: z.string().uuid('Invalid plan ID'),
+  billingCycle: z.enum(['monthly', 'annual']),
+});
 
 export async function POST(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 30);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -27,15 +38,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { planId, billingCycle } = body;
-
-    if (!planId || !billingCycle) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    if (billingCycle !== 'monthly' && billingCycle !== 'annual') {
-      return NextResponse.json({ error: 'Invalid billing cycle' }, { status: 400 });
-    }
+    const validation = validateBody(changePlanSchema, body);
+    if (!validation.success) return validation.response;
+    const { planId, billingCycle } = validation.data;
 
     const companyId = userData.company_id;
 

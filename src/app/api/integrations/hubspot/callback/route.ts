@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { exchangeHubSpotCode, getHubSpotTokenInfo } from '@/lib/hubspot';
+import { verifyAndDecodeState, validateReturnTo } from '@/lib/oauth-state';
+import { encryptToken } from '@/lib/oauth-tokens';
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,27 +27,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Decode state parameter
-    let stateData: { user_id: string; company_id: string; return_to?: string };
-    try {
-      stateData = JSON.parse(
-        Buffer.from(state, 'base64url').toString('utf-8')
-      );
-    } catch {
+    // Decode and verify state parameter
+    const stateData = verifyAndDecodeState(state);
+    if (!stateData) {
       return NextResponse.redirect(
         new URL('/integrations?error=hubspot_auth_invalid_state', request.url)
       );
     }
 
-    const { user_id, company_id, return_to } = stateData;
-    const redirectBase = return_to || '/integrations';
+    const { user_id, company_id } = stateData;
+    const return_to = validateReturnTo(stateData.return_to);
+    const redirectBase = return_to;
 
     // ALTA-005: Verify authenticated user matches the OAuth state
     const supabaseAuth = await createServerClient();
     const { data: { user: currentUser } } = await supabaseAuth.auth.getUser();
     if (!currentUser || currentUser.id !== user_id) {
-      const errorRedirect = return_to || '/integrations';
-      return NextResponse.redirect(new URL(`${errorRedirect}?error=user_mismatch`, request.url));
+      return NextResponse.redirect(new URL(`${return_to}?error=user_mismatch`, request.url));
     }
 
     // Exchange code for tokens
@@ -67,8 +65,8 @@ export async function GET(request: NextRequest) {
     const integrationData = {
       company_id,
       user_id,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      access_token: encryptToken(tokens.access_token)!,
+      refresh_token: encryptToken(tokens.refresh_token)!,
       expires_at: expiresAt,
       hub_id: String(tokenInfo.hub_id),
       hub_domain: tokenInfo.hub_domain || null,

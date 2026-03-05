@@ -1,21 +1,32 @@
 // app/api/openai/recommend-agent/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import OpenAI from 'openai';
+import { expensiveLimiter, applyRateLimit } from '@/lib/rate-limit';
+import { validateBody } from '@/lib/validation';
+
+const recommendAgentSchema = z.object({
+  userInput: z.string().min(1, 'User input is required'),
+  availableAgents: z.array(z.object({
+    name: z.string(),
+    slug: z.string(),
+    description: z.string(),
+  })).min(1, 'At least one agent is required'),
+});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(request: NextRequest) {
-  try {
-    const { userInput, availableAgents } = await request.json();
+  const rateLimitResult = applyRateLimit(request, expensiveLimiter, 10);
+  if (rateLimitResult) return rateLimitResult;
 
-    if (!userInput || !availableAgents || !Array.isArray(availableAgents)) {
-      return NextResponse.json(
-        { error: 'User input and available agents are required' },
-        { status: 400 }
-      );
-    }
+  try {
+    const body = await request.json();
+    const validation = validateBody(recommendAgentSchema, body);
+    if (!validation.success) return validation.response;
+    const { userInput, availableAgents } = validation.data;
 
     // Build agents list for the prompt
     const agentsText = availableAgents

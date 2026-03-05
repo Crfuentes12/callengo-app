@@ -89,15 +89,30 @@ export async function enqueueAnalysis(params: {
 /**
  * Claim and process the next pending analysis job.
  * Uses SELECT ... FOR UPDATE SKIP LOCKED pattern for concurrency safety.
+ * Peeks at the next pending job to obtain its company_id, then calls the
+ * RPC with that company_id to enforce tenant isolation.
  */
 export async function processNextJob(): Promise<{
   processed: boolean;
   jobId?: string;
   error?: string;
 }> {
-  // Claim next pending job atomically
+  // Peek at the next pending job to get its company_id
+  const { data: nextPending } = await supabaseAdmin
+    .from('analysis_queue')
+    .select('company_id')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .single();
+
+  if (!nextPending?.company_id) {
+    return { processed: false }; // No pending jobs
+  }
+
+  // Claim next pending job atomically, scoped to this company
   const { data: job, error: claimError } = await supabaseAdmin
-    .rpc('claim_analysis_job')
+    .rpc('claim_analysis_job', { p_company_id: nextPending.company_id })
     .single();
 
   if (claimError || !job) {

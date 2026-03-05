@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { contactsToCSV } from '@/lib/call-agent-utils';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
 import type { Contact } from '@/types/call-agent';
 
 const EXPORT_FIELDS = [
@@ -30,6 +31,9 @@ const HEADER_LABELS: Record<string, string> = {
 };
 
 export async function GET(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 60);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();

@@ -8,6 +8,7 @@ import type {
   PipedriveUserInfo,
 } from '@/types/pipedrive';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/oauth-tokens';
 
 // ============================================================================
 // CONFIGURATION

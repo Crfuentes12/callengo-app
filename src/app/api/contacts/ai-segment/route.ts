@@ -1,7 +1,29 @@
 // app/api/contacts/ai-segment/route.ts
 // Creates a contact list from AI suggestion and assigns matching contacts
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
+import { validateBody } from '@/lib/validation';
+import { apiLimiter, applyRateLimit } from '@/lib/rate-limit';
+
+const listFiltersSchema = z.object({
+  status: z.array(z.string()).optional(),
+  city: z.array(z.string()).optional(),
+  state: z.array(z.string()).optional(),
+  source: z.array(z.string()).optional(),
+  has_email: z.boolean().optional(),
+  has_phone: z.boolean().optional(),
+  call_attempts_gte: z.number().int().min(0).optional(),
+  call_attempts_eq: z.number().int().min(0).optional(),
+});
+
+const aiSegmentSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional().default(''),
+  color: z.string().optional().default('#3b82f6'),
+  filters: listFiltersSchema.optional().default({}),
+  criteria: z.string().optional().default(''),
+});
 
 interface ListFilters {
   status?: string[];
@@ -15,6 +37,9 @@ interface ListFilters {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResult = applyRateLimit(request, apiLimiter, 60);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -28,15 +53,9 @@ export async function POST(request: NextRequest) {
     if (!userData?.company_id) return NextResponse.json({ error: 'No company found' }, { status: 404 });
 
     const body = await request.json();
-    const { name, description, color, filters, criteria } = body as {
-      name: string;
-      description: string;
-      color: string;
-      filters: ListFilters;
-      criteria: string;
-    };
-
-    if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    const validation = validateBody(aiSegmentSchema, body);
+    if (!validation.success) return validation.response;
+    const { name, description, color, filters, criteria } = validation.data;
 
     // Step 1: Create the contact list
     const { data: newList, error: listError } = await supabase
