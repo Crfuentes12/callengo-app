@@ -1,6 +1,6 @@
 # CALLENGO — Complete Platform Master Document
 
-> **Version:** 1.1.0
+> **Version:** 1.2.0
 > **Last Updated:** March 2026
 > **Purpose:** Comprehensive reference for the entire Callengo platform — business strategy, target market, architecture, features, pricing, database schema, API endpoints, integrations, and business logic.
 
@@ -39,6 +39,9 @@
 24. [Notification System](#24-notification-system)
 25. [Utility Libraries](#25-utility-libraries)
 26. [Environment & Deployment](#26-environment--deployment)
+
+### Integrations Deep Dive
+27. [Integrations Guide](#27-integrations-guide)
 
 ---
 
@@ -399,7 +402,7 @@ Free Trial (15 min) → Starter ($99/mo) → Business ($299/mo) → Teams ($649/
 |---|---|---|
 | USD | 1.00x | $99/mo |
 | EUR | 0.92x | ~€91/mo |
-| GBP | 0.79x | ~€78/mo |
+| GBP | 0.79x | ~£78/mo |
 
 ### Annual vs. Monthly Comparison
 
@@ -428,7 +431,7 @@ Free Trial (15 min) → Starter ($99/mo) → Business ($299/mo) → Teams ($649/
 | Google Calendar | Yes | Yes | Yes | Yes | Yes |
 | Microsoft Outlook | No | No | Yes | Yes | Yes |
 | Google Meet | Yes | Yes | Yes | Yes | Yes |
-| Zoom | No | Yes | Yes | Yes | Yes |
+| Zoom | Yes (auto) | Yes | Yes | Yes | Yes |
 | Microsoft Teams | No | No | Yes | Yes | Yes |
 | Slack | No | Yes | Yes | Yes | Yes |
 | SimplyBook.me | No | Yes | Yes | Yes | Yes |
@@ -862,7 +865,7 @@ Each completed call captures:
 | Provider | Plan Required | Setup |
 |---|---|---|
 | Google Meet | Free+ | Auto-generated via Google Calendar |
-| Zoom | Starter+ | Server-to-Server OAuth (env-based) |
+| Zoom | Free+ (always active) | Server-to-Server OAuth (env-based) |
 | Microsoft Teams | Business+ | OAuth 2.0 (Microsoft Graph) |
 
 ### Working Hours Configuration
@@ -923,7 +926,7 @@ Each completed call captures:
 | Google Calendar | Calendar | OAuth 2.0 | Free+ |
 | Microsoft Outlook | Calendar | OAuth 2.0 (Graph) | Business+ |
 | Google Meet | Video | Via Google Calendar | Free+ |
-| Zoom | Video | Server-to-Server OAuth | Starter+ |
+| Zoom | Video | Server-to-Server OAuth | Free+ (always active) |
 | Microsoft Teams | Video | OAuth 2.0 (Graph) | Business+ |
 | Slack | Communication | OAuth 2.0 | Starter+ |
 | Google Sheets | Data Import | OAuth 2.0 | Free+ |
@@ -1463,6 +1466,8 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 | max_concurrent_calls | number | |
 | max_calls_per_hour | number? | |
 | max_calls_per_day | number? | |
+| extra_seat_price | number? | Per-seat overage (Teams: $69) |
+| max_follow_up_attempts | number | -1 = unlimited |
 | auto_overage_default | boolean | |
 | features | json | Feature flags and limits |
 | is_active | boolean | |
@@ -1977,4 +1982,811 @@ Each follows the same pattern:
 
 ---
 
-*End of Callengo Master Document v1.1.0*
+## 27. Integrations Guide
+
+> This section provides detailed documentation for every Callengo integration — what it does, how to set it up, what data flows between systems, and which plan is required. Designed to serve as the basis for a public documentation site.
+
+---
+
+### 27.1 Integration Overview
+
+Callengo connects with 17 external services across 5 categories. Each integration is plan-gated: users on lower plans see the integration locked with an upgrade prompt.
+
+| Category | Integrations | Purpose |
+|---|---|---|
+| **Calendar** | Google Calendar, Microsoft Outlook, SimplyBook.me | Schedule events, sync appointments, manage availability |
+| **Video Conferencing** | Google Meet, Zoom, Microsoft Teams | Auto-generate meeting links for scheduled calls |
+| **CRM** | Salesforce, HubSpot, Pipedrive, Zoho, Clio, Dynamics 365, Google Sheets | Import contacts, sync call results, map fields |
+| **Communication** | Slack, Webhooks, Twilio BYOP | Notifications, automation triggers, custom phone numbers |
+| **Payment** | Stripe | Billing, subscriptions, overage tracking (built-in) |
+
+**Coming Soon:** GoHighLevel (Business+, CRM), Acuity Scheduling (Starter+, Calendar)
+
+---
+
+### 27.2 Google Calendar
+
+**What it does:**
+Bidirectional sync between Callengo and Google Calendar. When the AI agent schedules a meeting or confirms an appointment, it appears in your Google Calendar. Events created in Google Calendar also sync back to Callengo.
+
+**Plan Required:** Free+
+
+**Authentication:** OAuth 2.0 via Google APIs
+
+**Setup Steps:**
+1. Navigate to Integrations page
+2. Click "Connect" on Google Calendar
+3. Google OAuth consent screen appears
+4. Grant calendar read/write permissions
+5. Select which calendar to sync (default: primary)
+6. Connection confirmed with email display
+
+**What Syncs:**
+| Direction | Data |
+|---|---|
+| Callengo → Google | AI-scheduled meetings, confirmed appointments, rescheduled events, callback slots |
+| Google → Callengo | External calendar events (for availability checking), event updates, cancellations |
+
+**Capabilities:**
+- Create events with title, description, location, and attendees
+- Check calendar availability before scheduling
+- Incremental sync using Google sync tokens (efficient — only fetches changes)
+- Timezone-aware scheduling
+- Working hours enforcement (respects your configured business hours)
+- US holiday exclusion
+- Auto-generated Google Meet links when video provider is set to "Meet"
+
+**Sync Behavior:**
+- Initial sync: pulls events from 3 months back to 3 months forward
+- Ongoing: incremental sync via sync tokens
+- Sync log tracks: events created, updated, deleted, and any errors
+- Last synced timestamp visible in UI
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/google-calendar/connect` | Initiate OAuth flow |
+| GET | `/api/integrations/google-calendar/callback` | Handle OAuth callback |
+| POST | `/api/integrations/google-calendar/sync` | Trigger manual sync |
+| POST | `/api/integrations/google-calendar/disconnect` | Revoke connection |
+
+---
+
+### 27.3 Microsoft Outlook (Microsoft 365)
+
+**What it does:**
+Same as Google Calendar but for Microsoft 365/Outlook users. Bidirectional sync with Outlook calendar via Microsoft Graph API.
+
+**Plan Required:** Business+ ($299/mo)
+
+**Authentication:** OAuth 2.0 via Microsoft Identity Platform (Entra ID)
+
+**Setup Steps:**
+1. Navigate to Integrations page
+2. Click "Connect" on Microsoft 365
+3. Microsoft login/consent screen appears
+4. Grant calendar read/write permissions
+5. Connection confirmed with Microsoft account email
+
+**What Syncs:**
+| Direction | Data |
+|---|---|
+| Callengo → Outlook | AI-scheduled meetings, appointments, rescheduled events |
+| Outlook → Callengo | Calendar events for availability, updates, cancellations |
+
+**Capabilities:**
+- Full calendar CRUD operations via Microsoft Graph API
+- Microsoft Teams meeting link auto-generation
+- Tenant-aware (stores `microsoft_tenant_id`)
+- Specific calendar selection (`microsoft_calendar_id`)
+- Incremental sync with delta tokens
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/microsoft-outlook/connect` | Initiate OAuth flow |
+| GET | `/api/integrations/microsoft-outlook/callback` | Handle OAuth callback |
+| POST | `/api/integrations/microsoft-outlook/sync` | Trigger manual sync |
+| POST | `/api/integrations/microsoft-outlook/disconnect` | Revoke connection |
+
+---
+
+### 27.4 Google Meet
+
+**What it does:**
+Automatically generates Google Meet video conference links when scheduling meetings via the AI agent. Requires Google Calendar to be connected.
+
+**Plan Required:** Free+
+
+**Authentication:** Uses Google Calendar OAuth (no separate connection needed)
+
+**How it Works:**
+1. Connect Google Calendar (prerequisite)
+2. Set video provider to "Google Meet" in campaign/agent settings
+3. When AI agent schedules a meeting, a Meet link is auto-generated
+4. Meet link included in the calendar event and shared with the contact
+5. No separate Zoom/Teams needed
+
+**Important:** Google Meet is a "child" integration — it activates automatically when Google Calendar is connected and the video provider is set to Meet. No separate OAuth flow.
+
+---
+
+### 27.5 Zoom
+
+**What it does:**
+Server-to-server integration for generating Zoom meeting links. Unlike Google Meet, Zoom uses a server-to-server OAuth app (no per-user consent needed).
+
+**Plan Required:** Free+ (integration always active). Note: Zoom meeting links in campaigns require Starter+ plan (`zoomMeetings` feature flag).
+
+**Authentication:** Server-to-Server OAuth (configured via environment variables, not per-user)
+
+**Setup:**
+Zoom is automatically available — no user setup required. The integration is configured at the platform level via environment variables:
+- `ZOOM_ACCOUNT_ID`
+- `ZOOM_CLIENT_ID`
+- `ZOOM_CLIENT_SECRET`
+
+**How it Works:**
+1. Integration shows as "Always available" in the Integrations page
+2. Set video provider to "Zoom" in campaign/agent settings
+3. When AI agent schedules a meeting, a Zoom meeting is auto-created
+4. Zoom link included in the calendar event
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/zoom/connect` | Status check (server-to-server) |
+| GET | `/api/integrations/zoom/callback` | OAuth callback (if applicable) |
+| POST | `/api/integrations/zoom/disconnect` | Disable Zoom (rarely used) |
+
+---
+
+### 27.6 Microsoft Teams
+
+**What it does:**
+Auto-generates Microsoft Teams meeting links for scheduled events. Requires Microsoft Outlook to be connected.
+
+**Plan Required:** Business+ ($299/mo)
+
+**Authentication:** Uses Microsoft Outlook OAuth (no separate connection needed)
+
+**How it Works:**
+1. Connect Microsoft Outlook (prerequisite)
+2. Set video provider to "Microsoft Teams" in campaign/agent settings
+3. When AI agent schedules a meeting, a Teams link is auto-generated
+4. Teams link included in the calendar event
+
+**Important:** Like Google Meet, Teams is a "child" integration that activates through the Microsoft Outlook connection.
+
+---
+
+### 27.7 Salesforce CRM
+
+**What it does:**
+Full CRM integration with Salesforce. Import contacts and leads from Salesforce into Callengo, push call results back as activities, and sync team members.
+
+**Plan Required:** Teams+ ($649/mo)
+
+**Authentication:** OAuth 2.0 (Salesforce Web Server Flow)
+
+**Setup Steps:**
+1. Navigate to Integrations page
+2. Click "Connect" on Salesforce
+3. Salesforce login/consent screen appears
+4. Grant API access permissions
+5. Connection confirmed with Salesforce username
+
+**What Syncs:**
+| Direction | Data | Details |
+|---|---|---|
+| Salesforce → Callengo | Contacts | Name, email, phone, company, title, address, custom fields |
+| Salesforce → Callengo | Leads | Lead source, status, company, phone, email |
+| Callengo → Salesforce | Activities/Tasks | Call results, transcripts, outcomes, follow-up notes |
+| Callengo → Salesforce | Events | Scheduled meetings from AI agent |
+| Salesforce → Callengo | Users/Owners | Team member import for Callengo team setup |
+
+**Dedicated Contact Page:**
+Users can browse and import Salesforce contacts from `/contacts/salesforce` with:
+- Search and filter Salesforce contacts
+- Select contacts for import into Callengo lists
+- View existing Salesforce data before import
+- Bulk import with automatic field mapping
+
+**Organization Member Import:**
+Import Salesforce users as Callengo team members via Settings → Team → CRM Import.
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/salesforce/connect` | Initiate OAuth flow |
+| GET | `/api/integrations/salesforce/callback` | Handle OAuth callback |
+| POST | `/api/integrations/salesforce/sync` | Trigger contact sync |
+| GET | `/api/integrations/salesforce/contacts` | Fetch Salesforce contacts |
+| GET | `/api/integrations/salesforce/users` | Fetch Salesforce users |
+| POST | `/api/integrations/salesforce/disconnect` | Revoke connection |
+
+---
+
+### 27.8 HubSpot CRM
+
+**What it does:**
+Connect your HubSpot CRM to import contacts, sync call outcomes, and create activities. Supports contact lists and custom property mapping.
+
+**Plan Required:** Business+ ($299/mo)
+
+**Authentication:** OAuth 2.0 (HubSpot OAuth)
+
+**Setup Steps:**
+1. Navigate to Integrations page
+2. Click "Connect" on HubSpot
+3. HubSpot OAuth consent screen appears
+4. Select your HubSpot portal and grant permissions
+5. Connection confirmed with HubSpot email and domain
+
+**What Syncs:**
+| Direction | Data | Details |
+|---|---|---|
+| HubSpot → Callengo | Contacts | Name, email, phone, company, lifecycle stage, owner |
+| HubSpot → Callengo | Companies | Company name, domain, industry |
+| HubSpot → Callengo | Deals | Deal name, stage, amount (for context) |
+| Callengo → HubSpot | Notes/Activities | Call results, transcripts, outcomes |
+| HubSpot → Callengo | Contact Lists | Import from existing HubSpot lists |
+| HubSpot → Callengo | Users | Team member import |
+
+**Dedicated Contact Page:** `/contacts/hubspot`
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/hubspot/connect` | Initiate OAuth flow |
+| GET | `/api/integrations/hubspot/callback` | Handle OAuth callback |
+| POST | `/api/integrations/hubspot/sync` | Trigger contact sync |
+| GET | `/api/integrations/hubspot/contacts` | Fetch HubSpot contacts |
+| GET | `/api/integrations/hubspot/users` | Fetch HubSpot users |
+| POST | `/api/integrations/hubspot/disconnect` | Revoke connection |
+
+---
+
+### 27.9 Pipedrive CRM
+
+**What it does:**
+Bidirectional sync with Pipedrive. Import persons/contacts and organizations, push call results back as activities and notes.
+
+**Plan Required:** Business+ ($299/mo)
+
+**Authentication:** OAuth 2.0 (Pipedrive Marketplace)
+
+**What Syncs:**
+| Direction | Data | Details |
+|---|---|---|
+| Pipedrive → Callengo | Persons/Contacts | Name, email, phone, organization, custom fields |
+| Pipedrive → Callengo | Organizations | Company name, address, industry |
+| Pipedrive → Callengo | Deals | Deal value, stage (for lead qualification context) |
+| Callengo → Pipedrive | Activities | Call results, outcomes with activity types |
+| Callengo → Pipedrive | Notes | Call transcripts, analysis summaries |
+| Pipedrive → Callengo | Users | Team member import |
+
+**Dedicated Contact Page:** `/contacts/pipedrive`
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/pipedrive/connect` | Initiate OAuth flow |
+| GET | `/api/integrations/pipedrive/callback` | Handle OAuth callback |
+| POST | `/api/integrations/pipedrive/sync` | Trigger contact sync |
+| GET | `/api/integrations/pipedrive/contacts` | Fetch Pipedrive persons |
+| GET | `/api/integrations/pipedrive/users` | Fetch Pipedrive users |
+| POST | `/api/integrations/pipedrive/disconnect` | Revoke connection |
+
+---
+
+### 27.10 Zoho CRM
+
+**What it does:**
+Sync contacts, leads, and accounts with Zoho CRM. Push call results and notes back to Zoho.
+
+**Plan Required:** Business+ ($299/mo)
+
+**Authentication:** OAuth 2.0 (Zoho OAuth)
+
+**What Syncs:**
+| Direction | Data | Details |
+|---|---|---|
+| Zoho → Callengo | Contacts | Name, email, phone, account, title |
+| Zoho → Callengo | Leads | Lead source, status, company info |
+| Zoho → Callengo | Accounts | Company/organization data |
+| Callengo → Zoho | Notes/Activities | Call outcomes, transcripts |
+| Zoho → Callengo | Users | Team member import |
+
+**Dedicated Contact Page:** `/contacts/zoho`
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/zoho/connect` | Initiate OAuth flow |
+| GET | `/api/integrations/zoho/callback` | Handle OAuth callback |
+| POST | `/api/integrations/zoho/sync` | Trigger contact sync |
+| GET | `/api/integrations/zoho/contacts` | Fetch Zoho contacts |
+| GET | `/api/integrations/zoho/users` | Fetch Zoho users |
+| POST | `/api/integrations/zoho/disconnect` | Revoke connection |
+
+---
+
+### 27.11 Clio — Legal Practice Management
+
+**What it does:**
+Purpose-built integration for law firms using Clio. Sync clients/contacts, matters/cases, and calendar entries. Map attorneys to contacts and link events to specific legal matters.
+
+**Plan Required:** Business+ ($299/mo)
+
+**Authentication:** OAuth 2.0 (Clio Developer Platform)
+
+**Why Clio is Special:**
+Clio is the only vertical-specific CRM integration. It was specifically added for the legal industry because:
+- Law firms have unique data structures (matters, cases, billing)
+- Appointment confirmation is critical for consultations
+- Client data verification is compliance-relevant
+- Dedicated coupon: LEGAL20 (20% off for 12 months)
+
+**What Syncs:**
+| Direction | Data | Details |
+|---|---|---|
+| Clio → Callengo | Contacts/Clients | Name, email, phone, address, client type |
+| Clio → Callengo | Matters/Cases | Matter name, case type, status, responsible attorney |
+| Clio → Callengo | Calendar Entries | Court dates, consultations, deadlines |
+| Callengo → Clio | Activities | Call results linked to matters |
+| Callengo → Clio | Calendar Events | Confirmed/rescheduled appointments |
+| Clio → Callengo | Users/Attorneys | Team member import with role mapping |
+
+**Dedicated Contact Page:** `/contacts/clio`
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/clio/connect` | Initiate OAuth flow |
+| GET | `/api/integrations/clio/callback` | Handle OAuth callback |
+| POST | `/api/integrations/clio/sync` | Trigger contact sync |
+| GET | `/api/integrations/clio/contacts` | Fetch Clio contacts |
+| GET | `/api/integrations/clio/users` | Fetch Clio users/attorneys |
+| POST | `/api/integrations/clio/disconnect` | Revoke connection |
+
+---
+
+### 27.12 Microsoft Dynamics 365
+
+**What it does:**
+Enterprise CRM integration with Microsoft Dynamics 365. Sync contacts, accounts, leads, and push call activities back.
+
+**Plan Required:** Teams+ ($649/mo)
+
+**Authentication:** OAuth 2.0 via Microsoft Entra ID (formerly Azure AD)
+
+**What Syncs:**
+| Direction | Data | Details |
+|---|---|---|
+| Dynamics → Callengo | Contacts | Name, email, phone, account, job title |
+| Dynamics → Callengo | Accounts | Company name, industry, address |
+| Dynamics → Callengo | Leads | Lead data, source, status |
+| Callengo → Dynamics | Notes/Activities | Call results, outcomes |
+| Dynamics → Callengo | Users | Team member import |
+
+**Dedicated Contact Page:** `/contacts/microsoft-dynamics`
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/dynamics/connect` | Initiate OAuth flow |
+| GET | `/api/integrations/dynamics/callback` | Handle OAuth callback |
+| POST | `/api/integrations/dynamics/sync` | Trigger contact sync |
+| GET | `/api/integrations/dynamics/contacts` | Fetch Dynamics contacts |
+| GET | `/api/integrations/dynamics/users` | Fetch Dynamics users |
+| POST | `/api/integrations/dynamics/disconnect` | Revoke connection |
+
+---
+
+### 27.13 Google Sheets
+
+**What it does:**
+Import contacts directly from Google Sheets spreadsheets. Connect your Google account, browse your spreadsheets, select columns, and bulk-import contacts with automatic field mapping.
+
+**Plan Required:** Free+
+
+**Authentication:** OAuth 2.0 via Google APIs (separate from Google Calendar OAuth)
+
+**Setup Steps:**
+1. Navigate to Contacts page or Integrations page
+2. Click "Import from Google Sheets"
+3. Google OAuth consent screen (if not already connected)
+4. Browse your Google Drive spreadsheets
+5. Select a spreadsheet and sheet tab
+6. Preview data with auto-detected column mapping
+7. Confirm mapping and import
+
+**Capabilities:**
+- Browse all spreadsheets in user's Google Drive
+- Select specific sheet tabs within a spreadsheet
+- Auto-column mapping using 88+ field name patterns
+- Preview data before import
+- Batch import with progress tracking
+- Link a spreadsheet for repeated imports
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/google-sheets/connect` | Initiate OAuth flow |
+| GET | `/api/integrations/google-sheets/callback` | Handle OAuth callback |
+| GET | `/api/integrations/google-sheets/spreadsheets` | List user's spreadsheets |
+| GET | `/api/integrations/google-sheets/sheet-data` | Read sheet data |
+| POST | `/api/integrations/google-sheets/link` | Link a spreadsheet |
+| POST | `/api/integrations/google-sheets/sync` | Import contacts |
+| POST | `/api/integrations/google-sheets/disconnect` | Revoke connection |
+
+---
+
+### 27.14 SimplyBook.me
+
+**What it does:**
+Connect with SimplyBook.me to sync clients, bookings, and service providers. Designed for appointment-based businesses (salons, clinics, consultants) that use SimplyBook.me for scheduling.
+
+**Plan Required:** Starter+ ($99/mo)
+
+**Authentication:** REST API v2 with token-based authentication (NOT OAuth). Users provide their SimplyBook.me company login, user email, and password.
+
+**Important:** SimplyBook.me is the only integration that uses credential-based auth instead of OAuth. Credentials are encrypted before storage.
+
+**Setup Steps:**
+1. Navigate to Integrations page
+2. Click "Connect" on SimplyBook.me
+3. Inline setup modal appears (not a redirect)
+4. Enter your company login (subdomain), email, and password
+5. Credentials verified against SimplyBook.me API
+6. Connection confirmed
+
+**What Syncs:**
+| Direction | Data | Details |
+|---|---|---|
+| SimplyBook → Callengo | Clients | Name, email, phone, booking history |
+| SimplyBook → Callengo | Bookings | Upcoming appointments with service details |
+| SimplyBook → Callengo | Providers/Staff | Service providers with availability |
+| Callengo → SimplyBook | Calendar Notes/Blocks | Confirmed/cancelled status updates |
+| Bidirectional | Booking Status | Confirmation and rescheduling sync |
+
+**Dedicated Contact Page:** `/contacts/simplybook`
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/integrations/simplybook/connect` | Authenticate with credentials |
+| POST | `/api/integrations/simplybook/sync` | Trigger client/booking sync |
+| GET | `/api/integrations/simplybook/clients` | Fetch SimplyBook clients |
+| GET | `/api/integrations/simplybook/bookings` | Fetch bookings |
+| GET | `/api/integrations/simplybook/providers` | Fetch service providers |
+| POST | `/api/integrations/simplybook/webhook` | Receive booking events |
+| POST | `/api/integrations/simplybook/disconnect` | Revoke connection |
+
+---
+
+### 27.15 Slack
+
+**What it does:**
+Send real-time notifications to Slack channels when key events happen: calls completed, appointments scheduled, follow-ups due, no-shows detected. Configurable per-channel and per-event-type.
+
+**Plan Required:** Starter+ ($99/mo)
+
+**Authentication:** OAuth 2.0 (Slack Workspace install)
+
+**Setup Steps:**
+1. Navigate to Integrations page
+2. Click "Connect" on Slack
+3. Slack OAuth consent screen — select workspace
+4. Grant bot permissions
+5. Connection confirmed with workspace name
+6. Click "Configure" to set up notification preferences
+
+**Configuration Options:**
+| Setting | Description |
+|---|---|
+| **Notification Channels** | Select one or more Slack channels to receive notifications |
+| **Call Completed** | Notify when an AI call finishes |
+| **Appointments** | Notify on new, confirmed, or rescheduled appointments |
+| **Follow-ups** | Notify when follow-up calls are scheduled |
+| **No-shows** | Notify when a contact is marked as no-show |
+| **Set as Default** | Apply this config to all new campaigns automatically |
+
+**Notification Format:**
+Slack messages include rich formatting with:
+- Contact name and phone number
+- Call outcome/status
+- Agent name and campaign
+- Direct links to Callengo for details
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/integrations/slack/connect` | Initiate OAuth flow |
+| GET | `/api/integrations/slack/callback` | Handle OAuth callback |
+| GET | `/api/integrations/slack/channels` | List workspace channels |
+| POST | `/api/integrations/slack/disconnect` | Revoke connection |
+| POST | `/api/integrations/slack/webhook` | Receive Slack interactive actions |
+
+**Slack Webhook Features:**
+- Signature verification (`x-slack-request-timestamp`, `x-slack-signature`)
+- Interactive actions: confirm appointment, cancel appointment, mark no-show
+- Slash command support (future)
+
+---
+
+### 27.16 Twilio BYOP (Bring Your Own Phone)
+
+**What it does:**
+Use your own Twilio phone numbers for outbound AI calls instead of Callengo's auto-rotated number pool. Gives you full control over your caller ID and phone number reputation.
+
+**Plan Required:** Business+ ($299/mo)
+
+**Authentication:** Twilio Account SID + Auth Token
+
+**Setup Steps:**
+1. Navigate to Integrations page
+2. Click "Connect" on Twilio
+3. Inline 3-step setup modal appears:
+   - **Step 1:** Enter Account SID and Auth Token
+   - **Step 2:** Test credentials (validates against Twilio API)
+   - **Step 3:** Import phone numbers (comma or newline separated)
+4. Credentials encrypted and stored in `company_settings`
+5. Phone numbers registered with Bland AI for outbound calls
+
+**How it Works:**
+- Twilio credentials are sent to Bland AI via their API
+- Bland AI uses your Twilio numbers for outbound calls
+- Encrypted key stored in `company_settings.settings.twilio_encrypted_key`
+- Phone numbers imported via separate API call
+
+**vs. Auto-Rotated Numbers:**
+| Feature | Auto-Rotated (default) | Twilio BYOP |
+|---|---|---|
+| Setup | None required | Account + number import |
+| Cost | Included in plan | Your Twilio costs + plan |
+| Caller ID | Random Callengo pool | Your branded numbers |
+| Number reputation | Shared | Your own |
+| Availability | All plans | Business+ only |
+
+**API Endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/bland/twilio/connect` | Register Twilio credentials with Bland AI |
+| POST | `/api/bland/twilio/disconnect` | Remove Twilio connection |
+| POST | `/api/bland/twilio/import-numbers` | Import phone numbers |
+
+---
+
+### 27.17 Webhooks
+
+**What it does:**
+Send real-time HTTP POST notifications to your own servers or automation platforms (Zapier, Make, n8n) when events occur in Callengo. Each webhook endpoint has a signing secret for verification.
+
+**Plan Required:** Starter+ ($99/mo)
+
+**Authentication:** HMAC-SHA256 signing (each endpoint gets a unique secret)
+
+**Setup Steps:**
+1. Navigate to Integrations page
+2. Click "Set Up" on Webhooks
+3. Inline setup modal with endpoint management
+4. Add endpoint URL, select event types, optional description
+5. Each endpoint receives a unique signing secret
+6. Test endpoint with a sample payload
+
+**Available Event Types (12 total):**
+
+| Event | Description |
+|---|---|
+| `call.completed` | Fired when an AI call finishes successfully |
+| `call.failed` | Fired when a call fails or errors out |
+| `call.no_answer` | Fired when a contact does not answer |
+| `call.voicemail` | Fired when voicemail is detected |
+| `appointment.scheduled` | Fired when a new appointment is created |
+| `appointment.confirmed` | Fired when an appointment is confirmed |
+| `appointment.rescheduled` | Fired when an appointment is rescheduled |
+| `appointment.cancelled` | Fired when an appointment is cancelled |
+| `appointment.no_show` | Fired when a contact is marked as no-show |
+| `contact.updated` | Fired when contact data is modified after a call |
+| `campaign.completed` | Fired when all contacts in a campaign have been called |
+| `campaign.started` | Fired when a campaign begins making calls |
+
+**Webhook Payload Format:**
+```json
+{
+  "event": "call.completed",
+  "event_id": "unique-event-id",
+  "timestamp": "2026-03-06T10:30:00Z",
+  "data": {
+    "call_id": "...",
+    "contact_id": "...",
+    "contact_name": "John Doe",
+    "contact_phone": "+1234567890",
+    "duration": 120,
+    "outcome": "verified",
+    "analysis": { ... }
+  }
+}
+```
+
+**Security:**
+- Each delivery signed with `X-Webhook-Signature` header
+- HMAC-SHA256 using endpoint's unique secret
+- Verify by computing `HMAC-SHA256(secret, request_body)` and comparing
+
+**Reliability:**
+- Delivery tracking per endpoint: `last_triggered_at`, `last_success_at`, `last_failure_at`
+- `consecutive_failures` counter
+- Auto-disable after repeated failures (`auto_disabled_at`)
+- Delivery log with HTTP status, response body, duration
+
+**Endpoint Management:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/webhooks/endpoints` | List all webhook endpoints |
+| POST | `/api/webhooks/endpoints` | Create new endpoint |
+| PATCH | `/api/webhooks/endpoints/[id]` | Update endpoint (URL, events, status) |
+| DELETE | `/api/webhooks/endpoints/[id]` | Delete endpoint |
+
+**Automation Platform Compatibility:**
+- **Zapier:** Use "Webhooks by Zapier" trigger → paste Callengo webhook URL
+- **Make (Integromat):** Use "Custom Webhook" module → paste URL
+- **n8n:** Use "Webhook" node → paste URL
+- Any HTTP-capable system can receive Callengo webhooks
+
+---
+
+### 27.18 Stripe (Built-in)
+
+**What it does:**
+Handles all payment processing, subscription management, and overage billing. Stripe is always active and requires no user setup — it's configured at the platform level.
+
+**Plan Required:** Free+ (always active, always connected)
+
+**User-Facing Features:**
+- Subscription checkout (plan selection → Stripe Checkout)
+- Billing portal (update payment method, view invoices)
+- Usage-based overage billing (metered billing)
+- Multi-currency support (USD, EUR, GBP)
+- Invoice generation and history
+- Cancellation with prorated refunds
+
+**Not User-Configurable:** Stripe is a platform integration, not a user-connected integration. Users interact with Stripe through Callengo's billing UI, not directly.
+
+---
+
+### 27.19 Common Integration Patterns
+
+#### OAuth Flow (Most Integrations)
+```
+1. User clicks "Connect" → GET /api/integrations/[provider]/connect
+2. Redirect to provider's OAuth consent screen
+3. User grants permissions
+4. Provider redirects to /api/integrations/[provider]/callback
+5. Callback exchanges code for access_token + refresh_token
+6. Tokens stored in [provider]_integrations table (encrypted)
+7. User redirected back to /integrations with success
+```
+
+#### Token Refresh
+- Access tokens have limited lifetimes (1 hour typical)
+- Refresh tokens used to obtain new access tokens automatically
+- `token_expires_at` tracked per integration
+- Refresh happens transparently before API calls
+
+#### Sync Pattern (CRM Integrations)
+```
+1. User clicks "Sync" or sync triggered automatically
+2. POST /api/integrations/[provider]/sync
+3. Fetch contacts from provider API (paginated)
+4. Map provider fields to Callengo contact fields
+5. Create/update contacts in Callengo database
+6. Push call results back to provider (if bidirectional)
+7. Update last_synced_at timestamp
+8. Log sync results (created/updated/deleted/errors)
+```
+
+#### Contact Import Flow (CRM → Callengo)
+```
+1. User navigates to /contacts/[provider]
+2. GET /api/integrations/[provider]/contacts → list provider contacts
+3. User selects contacts to import
+4. Selected contacts mapped to Callengo fields
+5. Phone numbers normalized to E.164
+6. Contacts deduplicated (phone + email)
+7. Custom fields preserved in JSON
+8. Contacts added to selected contact list
+```
+
+#### Organization Member Import
+```
+1. User navigates to Settings → Team → CRM Import
+2. GET /api/integrations/[provider]/users → list provider users
+3. User selects team members to invite
+4. POST /api/team/invite for each selected member
+5. Team invitations sent via email
+```
+
+---
+
+### 27.20 Integration Database Tables
+
+Each CRM integration stores its connection data in a dedicated table:
+
+| Table | Provider | Key Extra Columns |
+|---|---|---|
+| `calendar_integrations` | Google Calendar, Outlook | `google_calendar_id`, `microsoft_tenant_id`, `microsoft_calendar_id`, `sync_token`, `scopes` |
+| `salesforce_integrations` | Salesforce | `instance_url`, `sf_user_id`, `sf_username` |
+| `hubspot_integrations` | HubSpot | `hub_id`, `hub_domain`, `portal_id` |
+| `pipedrive_integrations` | Pipedrive | `pipedrive_user_id`, `company_name`, `company_domain` |
+| `clio_integrations` | Clio | `clio_user_id`, `firm_name`, `firm_id` |
+| `zoho_integrations` | Zoho | `zoho_user_id`, `org_name`, `org_id` |
+| `dynamics_integrations` | Dynamics 365 | `dynamics_user_id`, `instance_url`, `tenant_id` |
+| `simplybook_integrations` | SimplyBook.me | `company_login`, `user_login`, `api_token`, `token_expires_at` |
+| `google_sheets_integrations` | Google Sheets | `google_user_id`, `spreadsheet_id`, `sheet_name` |
+
+**Common Columns (all tables):**
+- `id` (uuid, PK)
+- `company_id` (uuid, FK)
+- `access_token` (text, encrypted)
+- `refresh_token` (text, encrypted, nullable)
+- `is_active` (boolean)
+- `last_synced_at` (timestamp, nullable)
+- `created_at` (timestamp)
+- `updated_at` (timestamp)
+
+**Slack Integration:**
+Slack config is stored in `company_settings.settings.slack_default_config` (JSON) rather than a dedicated table. The config includes:
+- `enabled` (boolean)
+- `channelIds` / `channelNames` (arrays)
+- `notifyOnCallCompleted`, `notifyOnAppointment`, `notifyOnFollowUp`, `notifyOnNoShow` (booleans)
+- `setAsDefault` (boolean)
+
+**Twilio Integration:**
+Twilio credentials stored in `company_settings.settings.twilio_encrypted_key` (encrypted). No dedicated integration table.
+
+**Webhook Endpoints:**
+Stored in `webhook_endpoints` table with columns:
+- `id`, `company_id`, `url`, `description`, `secret`
+- `events` (text array), `is_active`
+- `last_triggered_at`, `last_success_at`, `last_failure_at`, `last_failure_reason`
+- `consecutive_failures`, `auto_disabled_at`
+- `created_at`, `updated_at`
+
+Delivery log in `webhook_deliveries` table:
+- `id`, `endpoint_id`, `company_id`, `event_type`, `event_id`
+- `payload` (JSON), `status` (pending/success/failed)
+- `http_status`, `response_body`, `error_message`
+- `attempt_number`, `delivered_at`, `duration_ms`
+
+---
+
+### 27.21 Plan-Gated Access Reference
+
+| Integration | Free | Starter | Business | Teams | Enterprise |
+|---|---|---|---|---|---|
+| Google Calendar | Yes | Yes | Yes | Yes | Yes |
+| Google Meet | Yes | Yes | Yes | Yes | Yes |
+| Google Sheets | Yes | Yes | Yes | Yes | Yes |
+| Zoom | Yes (auto) | Yes | Yes | Yes | Yes |
+| Stripe | Yes (auto) | Yes | Yes | Yes | Yes |
+| Slack | - | Yes | Yes | Yes | Yes |
+| SimplyBook.me | - | Yes | Yes | Yes | Yes |
+| Webhooks | - | Yes | Yes | Yes | Yes |
+| Microsoft Outlook | - | - | Yes | Yes | Yes |
+| Microsoft Teams | - | - | Yes | Yes | Yes |
+| HubSpot | - | - | Yes | Yes | Yes |
+| Pipedrive | - | - | Yes | Yes | Yes |
+| Zoho CRM | - | - | Yes | Yes | Yes |
+| Clio | - | - | Yes | Yes | Yes |
+| Twilio BYOP | - | - | Yes | Yes | Yes |
+| Salesforce | - | - | - | Yes | Yes |
+| Dynamics 365 | - | - | - | Yes | Yes |
+| GoHighLevel | - | - | Coming Soon | | |
+| Acuity Scheduling | - | Coming Soon | | | |
+
+---
+
+*End of Callengo Master Document v1.2.0*
