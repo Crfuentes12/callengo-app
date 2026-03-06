@@ -103,7 +103,6 @@ IMPORTANT: Extract ACTUAL data from the conversation. If the customer mentioned 
     return NextResponse.json(
       {
         error: 'Failed to analyze call',
-        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

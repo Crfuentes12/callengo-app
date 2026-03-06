@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
     if (subError) {
       console.error('[ensure-free-plan] Error creating subscription:', subError);
-      return NextResponse.json({ error: 'Failed to create subscription', details: subError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
     }
 
     // Create usage tracking record using admin client
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('[ensure-free-plan] Error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

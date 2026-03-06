@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error scraping website:', error);
     return NextResponse.json(
-      { error: 'Failed to scrape website', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to scrape website' },
       { status: 500 }
     );
   }

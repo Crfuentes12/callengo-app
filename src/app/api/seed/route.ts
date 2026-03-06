@@ -3,7 +3,7 @@
 // POST /api/seed - Seeds all mock data
 // DELETE /api/seed - Removes all seeded mock data
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import {
   DEMO_USER_EMAIL,
@@ -58,11 +58,20 @@ async function getAgentTemplateIds() {
   };
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     // Block in production — seed endpoint is only for development/staging
     if (process.env.NODE_ENV === 'production') {
       return NextResponse.json({ error: 'Seed endpoint is disabled in production' }, { status: 403 });
+    }
+
+    // In staging with SEED_ENDPOINT_SECRET set, require the secret via header
+    const seedSecret = process.env.SEED_ENDPOINT_SECRET;
+    if (seedSecret) {
+      const providedSecret = request.headers.get('x-seed-secret');
+      if (providedSecret !== seedSecret) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     const result = await getDemoUserCompany();
@@ -224,11 +233,20 @@ export async function POST() {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
     // Block in production — seed endpoint is only for development/staging
     if (process.env.NODE_ENV === 'production') {
       return NextResponse.json({ error: 'Seed endpoint is disabled in production' }, { status: 403 });
+    }
+
+    // In staging with SEED_ENDPOINT_SECRET set, require the secret via header
+    const seedSecret = process.env.SEED_ENDPOINT_SECRET;
+    if (seedSecret) {
+      const providedSecret = request.headers.get('x-seed-secret');
+      if (providedSecret !== seedSecret) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     const result = await getDemoUserCompany();

@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error importing contacts:', error);
     return NextResponse.json(
-      { error: 'Failed to import contacts', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to import contacts' },
       { status: 500 }
     );
   }

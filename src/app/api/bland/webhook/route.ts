@@ -18,6 +18,14 @@ import {
   getActiveClioIntegration,
   pushCallResultToClio,
 } from '@/lib/clio';
+import {
+  getActiveHubSpotIntegration,
+  pushCallResultToHubSpot,
+} from '@/lib/hubspot';
+import {
+  getActiveSalesforceIntegration,
+  pushCallResultToSalesforce,
+} from '@/lib/salesforce';
 // Google Sheets is import-only — no outbound push from webhooks
 import type { CalendarStepConfig } from '@/types/calendar';
 import { dispatchWebhookEvent } from '@/lib/webhooks';
@@ -29,6 +37,7 @@ import {
 } from '@/lib/ai/intent-analyzer';
 import { enqueueAnalysis } from '@/lib/queue/analysis-queue';
 import { autoAssignEvent } from '@/lib/calendar/resource-routing';
+import { trackCallUsage } from '@/lib/billing/usage-tracker';
 
 function verifyBlandSignature(rawBody: string, signature: string | null, secret: string): boolean {
   if (!signature) return false;
@@ -48,9 +57,14 @@ function verifyBlandSignature(rawBody: string, signature: string | null, secret:
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify webhook signature if BLAND_WEBHOOK_SECRET is configured
+    // Verify webhook signature — REQUIRED in production
     const webhookSecret = process.env.BLAND_WEBHOOK_SECRET;
     let body: Record<string, unknown>;
+
+    if (!webhookSecret && process.env.NODE_ENV === 'production') {
+      console.error('BLAND_WEBHOOK_SECRET is required in production');
+      return NextResponse.json({ error: 'Webhook configuration error' }, { status: 500 });
+    }
 
     if (webhookSecret) {
       const rawBody = await request.text();
@@ -61,8 +75,9 @@ export async function POST(request: NextRequest) {
       }
       body = JSON.parse(rawBody);
     } else {
+      // Only allowed in development/staging
       body = await request.json();
-      console.warn('BLAND_WEBHOOK_SECRET not configured — webhook signature verification skipped');
+      console.warn('BLAND_WEBHOOK_SECRET not configured — webhook signature verification skipped (dev only)');
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -703,6 +718,42 @@ export async function POST(request: NextRequest) {
     // Google Sheets: import-only — no outbound push to sheets from webhooks
 
     // ================================================================
+    // HUBSPOT CRM SYNC: Push call results to HubSpot
+    // ================================================================
+    if (contactId && completed && companyId) {
+      try {
+        const hsIntegration = await getActiveHubSpotIntegration(companyId);
+        if (hsIntegration) {
+          const hsResult = await pushCallResultToHubSpot(hsIntegration, contactId);
+          if (!hsResult.success) {
+            console.warn('HubSpot sync skipped:', hsResult.error);
+          }
+        }
+      } catch (hubspotError) {
+        // Don't fail the webhook if HubSpot sync fails
+        console.error('HubSpot outbound sync failed (non-fatal):', hubspotError);
+      }
+    }
+
+    // ================================================================
+    // SALESFORCE CRM SYNC: Push call results to Salesforce
+    // ================================================================
+    if (contactId && completed && companyId) {
+      try {
+        const sfIntegration = await getActiveSalesforceIntegration(companyId);
+        if (sfIntegration) {
+          const sfResult = await pushCallResultToSalesforce(sfIntegration, contactId);
+          if (!sfResult.success) {
+            console.warn('Salesforce sync skipped:', sfResult.error);
+          }
+        }
+      } catch (salesforceError) {
+        // Don't fail the webhook if Salesforce sync fails
+        console.error('Salesforce outbound sync failed (non-fatal):', salesforceError);
+      }
+    }
+
+    // ================================================================
     // OUTBOUND WEBHOOKS: Dispatch events to user-configured endpoints
     // ================================================================
     try {
@@ -753,6 +804,30 @@ export async function POST(request: NextRequest) {
       console.error('Outbound webhook dispatch failed (non-fatal):', webhookError);
     }
 
+    // ================================================================
+    // USAGE TRACKING: Report call minutes to billing system
+    // ================================================================
+    if (completed && call_length && companyId) {
+      try {
+        const callMinutes = Math.ceil((call_length as number) / 60); // Convert seconds to minutes (round up)
+        if (callMinutes > 0) {
+          await trackCallUsage({
+            companyId,
+            minutes: callMinutes,
+            callId: call_id as string,
+            metadata: {
+              contact_id: contactId,
+              agent_name: metadata?.agent_name,
+              agent_run_id: metadata?.agent_run_id,
+            },
+          });
+        }
+      } catch (usageError) {
+        // Don't fail the webhook if usage tracking fails
+        console.error('Usage tracking failed (non-fatal):', usageError);
+      }
+    }
+
     // Unlock the contact after all processing is complete
     if (contactId) {
       try {
@@ -782,7 +857,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error processing webhook:', error);
     return NextResponse.json(
-      { error: 'Failed to process webhook', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to process webhook' },
       { status: 500 }
     );
   }

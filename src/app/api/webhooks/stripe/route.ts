@@ -104,10 +104,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('❌ Webhook error:', error);
     return NextResponse.json(
-      {
-        error: 'Webhook handler failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Webhook handler failed' },
       { status: 500 }
     );
   }
@@ -193,7 +190,23 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   }
 
   // Update or create usage tracking (omit computed columns: overage_minutes, total_cost)
-  const subId = updatedSub?.id || subscriptionId;
+  // FIX: If updatedSub is null (update failed), re-fetch the subscription to get the correct UUID.
+  // Using the Stripe subscription ID (string like "sub_xxx") would fail as it's not a valid UUID FK.
+  let subId = updatedSub?.id;
+  if (!subId) {
+    const { data: fetchedSub } = await supabase
+      .from('company_subscriptions')
+      .select('id')
+      .eq('company_id', companyId)
+      .single();
+    subId = fetchedSub?.id;
+  }
+
+  if (!subId) {
+    console.error('Could not determine subscription ID for usage tracking');
+    return;
+  }
+
   const { error: usageUpdateError } = await supabase
     .from('usage_tracking')
     .update({

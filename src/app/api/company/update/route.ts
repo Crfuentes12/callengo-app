@@ -49,7 +49,7 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error('Error updating company:', error);
     return NextResponse.json(
-      { error: 'Failed to update company', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to update company' },
       { status: 500 }
     );
   }

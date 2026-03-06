@@ -58,11 +58,24 @@ export async function middleware(request: NextRequest) {
   }
 
   // MEDIA-006: API routes that handle their own auth (webhooks, OAuth callbacks, public endpoints)
+  // SECURITY FIX: Only whitelist specific integration routes (OAuth callbacks and webhooks),
+  // NOT all /api/integrations/ routes. Non-callback integration routes verify auth internally
+  // but relying on that is fragile — new routes would be unprotected by default.
   const publicApiRoutes = [
     '/api/webhooks/',          // Stripe webhook — has its own signature verification
     '/api/bland/webhook',      // Bland webhook — has its own signature verification
     '/api/auth/',              // Auth endpoints
-    '/api/integrations/',      // OAuth callbacks — handle their own auth flows
+    '/api/integrations/salesforce/callback',
+    '/api/integrations/hubspot/callback',
+    '/api/integrations/pipedrive/callback',
+    '/api/integrations/clio/callback',
+    '/api/integrations/zoho/callback',
+    '/api/integrations/microsoft-dynamics/callback',
+    '/api/integrations/google-calendar/callback',
+    '/api/integrations/google-sheets/callback',
+    '/api/integrations/outlook/callback',
+    '/api/integrations/slack/callback',
+    '/api/integrations/simplybook/webhook', // SimplyBook webhook
   ];
 
   if (pathname.startsWith('/api/')) {

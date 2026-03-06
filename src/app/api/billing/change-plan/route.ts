@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error changing plan:', error);
     return NextResponse.json(
-      { error: 'Failed to change plan', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to change plan' },
       { status: 500 }
     );
   }

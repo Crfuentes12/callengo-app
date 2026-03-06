@@ -132,7 +132,7 @@ Extract all relevant information accurately.`;
   } catch (error) {
     console.error('Error in analyze-call route:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
