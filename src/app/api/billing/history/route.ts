@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching billing history:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch billing history', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to fetch billing history' },
       { status: 500 }
     );
   }

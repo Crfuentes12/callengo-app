@@ -13,17 +13,22 @@ const QUEUE_SECRET = process.env.QUEUE_PROCESSING_SECRET || process.env.CRON_SEC
  * Protected by a shared secret (QUEUE_PROCESSING_SECRET or CRON_SECRET).
  */
 export async function POST(request: NextRequest) {
-  // Verify authorization
+  // Verify authorization — QUEUE_PROCESSING_SECRET or CRON_SECRET is required
+  if (!QUEUE_SECRET) {
+    console.error('QUEUE_PROCESSING_SECRET or CRON_SECRET is not configured');
+    return NextResponse.json({ error: 'Queue processing not configured' }, { status: 500 });
+  }
+
   const authHeader = request.headers.get('authorization');
   const cronHeader = request.headers.get('x-cron-secret');
-  const vercelCron = request.headers.get('x-vercel-cron');
 
+  // Removed x-vercel-cron header check — anyone can send that header.
+  // Use only secret-based authorization.
   const authorized =
-    vercelCron === '1' || // Vercel Cron
-    (QUEUE_SECRET && authHeader === `Bearer ${QUEUE_SECRET}`) ||
-    (QUEUE_SECRET && cronHeader === QUEUE_SECRET);
+    (authHeader === `Bearer ${QUEUE_SECRET}`) ||
+    (cronHeader === QUEUE_SECRET);
 
-  if (!authorized && QUEUE_SECRET) {
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -41,7 +46,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[queue/process] Error:', error);
     return NextResponse.json(
-      { error: 'Processing failed', details: error instanceof Error ? error.message : 'Unknown' },
+      { error: 'Processing failed' },
       { status: 500 }
     );
   }
@@ -52,8 +57,11 @@ export async function POST(request: NextRequest) {
  * Returns queue stats (for monitoring dashboards).
  */
 export async function GET(request: NextRequest) {
+  if (!QUEUE_SECRET) {
+    return NextResponse.json({ error: 'Queue processing not configured' }, { status: 500 });
+  }
   const authHeader = request.headers.get('authorization');
-  if (QUEUE_SECRET && authHeader !== `Bearer ${QUEUE_SECRET}`) {
+  if (authHeader !== `Bearer ${QUEUE_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
     if (updateError) {
       console.error('[verify-session] Error updating subscription:', updateError);
       return NextResponse.json(
-        { error: 'Failed to update subscription', details: updateError.message },
+        { error: 'Failed to update subscription' },
         { status: 500 }
       );
     }
@@ -182,7 +182,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to verify session',
-        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

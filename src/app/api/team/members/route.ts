@@ -69,7 +69,7 @@ export async function GET() {
   } catch (error) {
     console.error('Error in team members:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

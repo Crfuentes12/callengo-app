@@ -3,7 +3,7 @@
  * Automatically tracks and reports usage to Stripe
  */
 
-import { supabaseAdmin as supabase } from '@/lib/supabase/service';
+import { supabaseAdmin as supabase, supabaseAdminRaw } from '@/lib/supabase/service';
 import { getAppUrl } from '@/lib/config';
 
 export interface UsageReport {
@@ -129,8 +129,24 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
       .limit(1)
       .single();
 
+    // Check for active Calls Booster add-on to include extra minutes
+    // Uses untyped client since company_addons is not yet in the Database type
+    let boosterMinutes = 0;
+    const { data: activeAddons } = await supabaseAdminRaw
+      .from('company_addons')
+      .select('addon_type, quantity')
+      .eq('company_id', companyId)
+      .eq('status', 'active')
+      .eq('addon_type', 'calls_booster');
+
+    if (activeAddons && activeAddons.length > 0) {
+      // Each Calls Booster adds 225 minutes (150 calls * ~1.5 min avg)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      boosterMinutes = (activeAddons as any[]).reduce((sum: number, addon: any) => sum + ((addon.quantity || 1) * 225), 0);
+    }
+
     const minutesUsed = usage?.minutes_used || 0;
-    const minutesIncluded = subscription.subscription_plans?.minutes_included || 0;
+    const minutesIncluded = (subscription.subscription_plans?.minutes_included || 0) + boosterMinutes;
     const overageMinutes = Math.max(0, minutesUsed - minutesIncluded);
     const pricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;
     const overageCost = overageMinutes * pricePerMinute;

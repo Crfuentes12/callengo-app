@@ -516,10 +516,12 @@ async function syncSinglePlan(plan: any) {
   // =============================================================================
 
   // Check if existing annual price has incorrect amount
+  // FIX: price_annual in the DB stores the TOTAL annual charge (e.g., 3228 = $3,228/yr),
+  // NOT a monthly equivalent. Do NOT multiply by 12.
   if (priceIdAnnual && plan.price_annual > 0 && !CONFIG.DRY_RUN) {
     try {
       const existingPrice = await stripe.prices.retrieve(priceIdAnnual);
-      const expectedAmount = Math.round(plan.price_annual * 12 * 100);
+      const expectedAmount = Math.round(plan.price_annual * 100);
 
       if (existingPrice.unit_amount !== expectedAmount) {
         log(`  ⚠️  Annual price has incorrect amount: $${(existingPrice.unit_amount || 0) / 100} (expected $${expectedAmount / 100})`, 'warning');
@@ -537,11 +539,12 @@ async function syncSinglePlan(plan: any) {
   }
 
   if (!priceIdAnnual && plan.price_annual > 0) {
-    if (await confirmAction(`Create annual price for ${plan.name} ($${plan.price_annual}/mo, $${plan.price_annual * 12}/yr)`)) {
+    const monthlyEquivalent = Math.round(plan.price_annual / 12);
+    if (await confirmAction(`Create annual price for ${plan.name} ($${monthlyEquivalent}/mo, $${plan.price_annual}/yr)`)) {
       logVerbose('Creating annual price...');
 
-      // Annual price in Stripe = monthly price × 12 months
-      const annualTotal = Math.round(plan.price_annual * 12 * 100);
+      // price_annual is already the total annual charge — do NOT multiply by 12
+      const annualTotal = Math.round(plan.price_annual * 100);
       const price = await stripe.prices.create({
         product: productId!,
         currency: 'usd',
@@ -555,14 +558,14 @@ async function syncSinglePlan(plan: any) {
           plan_id: plan.id,
           billing_cycle: 'annual',
           plan_slug: plan.slug,
-          monthly_equivalent: plan.price_annual.toString(),
-          savings: Math.round(((plan.price_monthly * 12 - plan.price_annual * 12) / (plan.price_monthly * 12)) * 100) + '%',
+          monthly_equivalent: monthlyEquivalent.toString(),
+          savings: Math.round(((plan.price_monthly * 12 - plan.price_annual) / (plan.price_monthly * 12)) * 100) + '%',
         },
       });
 
       priceIdAnnual = price.id;
-      const savings = Math.round(((plan.price_monthly * 12 - plan.price_annual * 12) / (plan.price_monthly * 12)) * 100);
-      log(`  ✅ Annual price: ${priceIdAnnual} ($${plan.price_annual * 12}/yr = $${plan.price_annual}/mo, save ${savings}%)`, 'success');
+      const savings = Math.round(((plan.price_monthly * 12 - plan.price_annual) / (plan.price_monthly * 12)) * 100);
+      log(`  ✅ Annual price: ${priceIdAnnual} ($${plan.price_annual}/yr = $${monthlyEquivalent}/mo, save ${savings}%)`, 'success');
     }
   } else if (priceIdAnnual) {
     logVerbose(`Annual price exists: ${priceIdAnnual}`);

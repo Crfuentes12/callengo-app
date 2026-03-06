@@ -79,7 +79,6 @@ Choose the single best match.`;
     return NextResponse.json(
       {
         error: 'Failed to recommend agent',
-        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
