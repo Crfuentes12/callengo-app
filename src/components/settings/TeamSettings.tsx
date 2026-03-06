@@ -58,11 +58,12 @@ interface TeamSettingsProps {
   };
 }
 
-const PLAN_SEAT_LIMITS: Record<string, { seats: number; extraCost: number | null; label: string }> = {
-  free: { seats: 1, extraCost: null, label: 'Free' },
-  starter: { seats: 1, extraCost: null, label: 'Starter' },
-  business: { seats: 3, extraCost: null, label: 'Business' },
-  teams: { seats: 5, extraCost: 79, label: 'Teams' },
+const PLAN_SEAT_LIMITS: Record<string, { seats: number; extraCost: number | null; label: string; nextPlan?: string }> = {
+  free: { seats: 1, extraCost: null, label: 'Free', nextPlan: 'Starter' },
+  starter: { seats: 1, extraCost: null, label: 'Starter', nextPlan: 'Business' },
+  growth: { seats: 1, extraCost: null, label: 'Growth', nextPlan: 'Business' },
+  business: { seats: 3, extraCost: 49, label: 'Business' },
+  teams: { seats: 5, extraCost: 49, label: 'Teams' },
   enterprise: { seats: -1, extraCost: null, label: 'Enterprise' }, // -1 = unlimited
 };
 
@@ -401,12 +402,57 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
     );
   }
 
+  // Seat upgrade plans per slug
+  const UPGRADE_PLANS: Record<string, { name: string; seats: number; extraCost: number | null }> = {
+    business: { name: 'Business', seats: 3, extraCost: 49 },
+    teams: { name: 'Teams', seats: 5, extraCost: 49 },
+    enterprise: { name: 'Enterprise', seats: -1, extraCost: null },
+  };
+
+  const nextUpgrade = Object.entries(UPGRADE_PLANS).find(([slug]) => {
+    const tierOrder: Record<string, number> = { free: 0, starter: 1, growth: 2, business: 3, teams: 4, enterprise: 5 };
+    return (tierOrder[slug] ?? 0) > (tierOrder[planSlug] ?? 0);
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-xl font-bold text-slate-900">Team Management</h2>
         <p className="text-sm text-slate-500 mt-1">Manage your team members, roles, and invitations</p>
+      </div>
+
+      {/* Seat capacity banner */}
+      <div className={`rounded-xl p-4 border flex items-center justify-between gap-4 ${!canInvite ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${!canInvite ? 'bg-amber-100' : 'bg-slate-200'}`}>
+            <svg className={`w-4 h-4 ${!canInvite ? 'text-amber-700' : 'text-slate-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">
+              {maxSeats === -1 ? 'Unlimited seats' : `${currentSeats} / ${maxSeats} seats used`}
+              {planConfig.extraCost && maxSeats !== -1 && <span className="text-slate-500 font-normal ml-1">· ${planConfig.extraCost}/mo per extra seat</span>}
+            </p>
+            <p className="text-xs text-slate-500">{planConfig.label} plan</p>
+          </div>
+        </div>
+        {!canInvite && nextUpgrade && (
+          <a
+            href="/settings?tab=billing"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg gradient-bg text-white text-xs font-semibold hover:opacity-90 transition-all whitespace-nowrap shadow-sm"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+            Upgrade to {nextUpgrade[1].name}
+          </a>
+        )}
+        {canInvite && maxSeats !== -1 && maxSeats - currentSeats <= 1 && (
+          <a
+            href="/settings?tab=billing"
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-900 transition-colors whitespace-nowrap"
+          >
+            Add more seats
+          </a>
+        )}
       </div>
 
       {/* Messages */}

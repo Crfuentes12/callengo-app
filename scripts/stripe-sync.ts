@@ -825,7 +825,8 @@ async function syncPricesForCurrency(
   const priceAnnual = parseFloat(plan.price_annual);
 
   const monthlyAmount = Math.round(priceMonthly * currency.multiplier * 100);
-  const annualAmount = Math.round(priceAnnual * currency.multiplier * 12 * 100);
+  // price_annual stores the total annual charge (not a monthly rate), so no * 12 here
+  const annualAmount = Math.round(priceAnnual * currency.multiplier * 100);
 
   logVerbose(`  ${currency.code.toUpperCase()} Prices:`);
 
@@ -878,7 +879,7 @@ async function syncPricesForCurrency(
     }
 
     if (await confirmAction(`Create annual price ${currency.symbol}${annualAmount / 100}/${currency.code}`)) {
-      const savings = Math.round(((priceMonthly * 12 - priceAnnual * 12) / (priceMonthly * 12)) * 100);
+      const savings = Math.round(((priceMonthly * 12 - priceAnnual) / (priceMonthly * 12)) * 100);
 
       const price = await stripe.prices.create({
         product: productId,

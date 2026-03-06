@@ -778,9 +778,16 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </div>
                   </div>
                   {planLimits && (
-                    <p className="text-[10px] text-slate-400">
-                      ~{Math.floor(planLimits.minutesIncluded / (settings.maxDuration || 5))} calls/month at {settings.maxDuration}min each ({planLimits.minutesIncluded} min included)
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-slate-400">
+                        ~{Math.floor(planLimits.minutesIncluded / (settings.maxDuration || 5))} calls/month at {settings.maxDuration}min each ({planLimits.minutesIncluded} min included)
+                      </p>
+                      {['free', 'starter'].includes(planLimits.slug) && (
+                        <a href="/settings?tab=billing" className="text-[10px] font-bold text-[var(--color-primary)] hover:underline whitespace-nowrap flex-shrink-0">
+                          Need more? ↗
+                        </a>
+                      )}
+                    </div>
                   )}
 
                   {/* Test Agent CTA */}
@@ -1784,6 +1791,42 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </div>
                 )}
 
+                {/* Plan Capacity Scarcity Banner */}
+                {planLimits && contactCount > 0 && (() => {
+                  const coveredCalls = Math.floor(planLimits.minutesIncluded / (settings.maxDuration || 5));
+                  const isFreePlan = planLimits.slug === 'free';
+                  const isCritical = contactCount > coveredCalls && !overageData?.enabled;
+                  if (!isCritical) return null;
+                  return (
+                    <div className="rounded-xl border overflow-hidden" style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%)', borderColor: '#f59e0b' }}>
+                      <div className="px-4 py-3 flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-amber-900">
+                            {contactCount} contacts — only ~{coveredCalls} calls covered on your {planLimits.slug.charAt(0).toUpperCase() + planLimits.slug.slice(1)} plan
+                          </p>
+                          <p className="text-[11px] text-amber-700 mt-0.5">
+                            {isFreePlan
+                              ? 'Upgrade to Starter for 500 min/mo and reach your entire list.'
+                              : `${contactCount - coveredCalls} contacts won't be reached. Enable overage above or upgrade for more minutes.`}
+                          </p>
+                        </div>
+                        <a
+                          href="/settings?tab=billing"
+                          className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white transition-all hover:opacity-90"
+                          style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+                        >
+                          Upgrade
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Campaign Context with AI suggestions */}
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
                   <div className="flex items-center gap-2">
@@ -2110,6 +2153,38 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 </div>
               </div>
             </div>
+
+            {/* Upgrade CTA — shown when premium features are off and not on high tier */}
+            {planLimits && ['free', 'starter', 'growth'].includes(planLimits.slug) && (
+              !calendarConfig.followUpEnabled || !calendarConfig.voicemailEnabled || !calendarConfig.smartFollowUp
+            ) && (
+              <div className="mb-4 rounded-xl border border-purple-200 overflow-hidden" style={{ background: 'linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%)' }}>
+                <div className="px-4 py-3 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-purple-900">Unlock more conversions</p>
+                    <p className="text-[11px] text-purple-700 mt-0.5">
+                      {[
+                        !calendarConfig.followUpEnabled && 'Follow-ups',
+                        !calendarConfig.voicemailEnabled && 'Voicemail',
+                        !calendarConfig.smartFollowUp && 'Smart Scheduling',
+                      ].filter(Boolean).join(', ')} {!calendarConfig.followUpEnabled || !calendarConfig.voicemailEnabled || !calendarConfig.smartFollowUp ? 'are' : 'is'} off — upgrade to Business to enable them.
+                    </p>
+                  </div>
+                  <a
+                    href="/settings?tab=billing"
+                    className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white transition-all hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #9333ea, #7c3aed)' }}
+                  >
+                    Upgrade
+                  </a>
+                </div>
+              </div>
+            )}
 
             {/* Action buttons */}
             <div className="flex gap-3">
