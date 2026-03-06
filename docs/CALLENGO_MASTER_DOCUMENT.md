@@ -1,7 +1,7 @@
 # CALLENGO — Complete Platform Master Document
 
-> **Version:** 1.2.0
-> **Last Updated:** March 2026
+> **Version:** 1.3.0
+> **Last Updated:** March 2026 (V4 Pricing — Bland AI sub-accounts, Growth plan, add-ons)
 > **Purpose:** Comprehensive reference for the entire Callengo platform — business strategy, target market, architecture, features, pricing, database schema, API endpoints, integrations, and business logic.
 
 ---
@@ -250,36 +250,40 @@ Businesses waste enormous amounts of time and money on repetitive, low-skill out
 
 | Stream | Description | % of Revenue (Target) |
 |---|---|---|
-| **Subscription Revenue** | Monthly/annual plan fees | 70-75% |
+| **Subscription Revenue** | Monthly/annual plan fees | 65-70% |
 | **Overage Revenue** | Per-minute charges above included minutes | 20-25% |
-| **Extra Seat Revenue** | $69/seat on Teams plan | 3-5% |
+| **Add-on Revenue** | Dedicated Number ($15), Recording Vault ($12), Calls Booster ($35) | 5-8% |
+| **Extra Seat Revenue** | $49/seat on Business and Teams plans | 3-5% |
 | **Enterprise Custom** | Custom contracts above standard tiers | 2-5% |
 
-### Unit Economics Model
+### Unit Economics Model (Bland AI Scale Plan: $0.11/min)
 
-| Metric | Value |
-|---|---|
-| **Cost per AI minute** | Bland AI rate (variable) |
-| **Revenue per minute (Starter)** | $0.33/min ($99 ÷ 300 min) |
-| **Revenue per minute (Business)** | $0.25/min ($299 ÷ 1,200 min) |
-| **Revenue per minute (Teams)** | $0.26/min ($649 ÷ 2,500 min) |
-| **Revenue per minute (Enterprise)** | $0.25/min ($1,499 ÷ 6,000 min) |
-| **Overage margin** | Higher than base (overage rates: $0.25-0.55/min) |
+| Plan | Revenue | Bland Cost | Gross Profit | Margin |
+|---|---|---|---|---|
+| **Starter** | $99 | $33 (300 min × $0.11) | $66 | 66.7% |
+| **Growth** | $179 | $66 (600 min × $0.11) | $113 | 63.1% |
+| **Business** | $299 | $132 (1,200 min × $0.11) | $167 | 55.9% |
+| **Teams** | $649 | $247.50 (2,250 min × $0.11) | $401.50 | 61.9% |
+| **Enterprise** | $1,499 | $660 (6,000 min × $0.11) | $839 | 56.0% |
+
+Overage rates ($0.29 → $0.17/min ladder) all remain above the $0.11/min Bland cost floor.
 
 ### Expansion Revenue Strategy
 1. **Vertical expansion:** User starts with one agent, discovers value, activates other agents
 2. **Volume expansion:** Growing contact lists push users into overage → upgrade to next tier
-3. **Seat expansion:** Teams plan users add team members at $69/seat
-4. **Integration expansion:** Users connect CRMs → become stickier → lower churn
-5. **Annual lock-in:** 10-12% discount for annual billing → improved cash flow + retention
+3. **Add-on expansion:** Users add Dedicated Number, Recording Vault, or Calls Booster as needed
+4. **Seat expansion:** Business and Teams plan users add team members at $49/seat
+5. **Integration expansion:** Users connect CRMs → become stickier → lower churn
+6. **Annual lock-in:** 12% discount for annual billing (2 months free) → improved cash flow + retention
 
 ### Customer Journey
 ```
-Free Trial (15 min) → Starter ($99/mo) → Business ($299/mo) → Teams ($649/mo) → Enterprise ($1,499/mo)
-     │                      │                    │                    │
-     │                      │                    │                    └─ Multi-team, Salesforce/Dynamics
-     │                      │                    └─ CRM integrations, unlimited agents, 3 users
-     │                      └─ Voicemail, follow-ups, Slack/Zoom
+Free Trial (15 min) → Starter ($99/mo) → Growth ($179/mo) → Business ($299/mo) → Teams ($649/mo) → Enterprise ($1,499/mo)
+     │                      │                   │                   │                    │
+     │                      │                   │                   │                    └─ Multi-team, Salesforce/Dynamics, unlimited
+     │                      │                   │                   └─ CRM integrations, 5 concurrent, 3 users
+     │                      │                   └─ 3 concurrent, smart follow-ups, no-show retry
+     │                      └─ Voicemail, follow-ups, Slack/Zoom, 2 concurrent
      └─ Test with 15 minutes, 1 agent
 ```
 
@@ -295,8 +299,8 @@ Free Trial (15 min) → Starter ($99/mo) → Business ($299/mo) → Teams ($649/
 |---|---|---|---|
 | Intelligence | AI conversation + analysis | Recorded messages | Human agents |
 | Setup time | Minutes (template agents) | Hours/days | Weeks |
-| Cost per call | $0.25-0.55/min | $0.05-0.15/min (no intelligence) | $2-5/min |
-| Scalability | 50 concurrent calls | Depends on lines | Depends on headcount |
+| Cost per call | $0.17-0.29/min overage | $0.05-0.15/min (no intelligence) | $2-5/min |
+| Scalability | Unlimited concurrent (Enterprise) | Depends on lines | Depends on headcount |
 | Data capture | Auto-structured + CRM sync | None | Manual entry |
 | Follow-up | Automated scheduling | None | Manual |
 | Availability | 24/7 | 24/7 | Business hours only |
@@ -335,64 +339,81 @@ Free Trial (15 min) → Starter ($99/mo) → Business ($299/mo) → Teams ($649/
 
 ## 7. Subscription Plans & Pricing
 
-### Plan Tiers (V3 — March 2026)
+### Plan Tiers (V4 — March 2026)
 
 #### FREE (Trial)
 - **Price:** $0
-- **Minutes:** 15 one-time (not monthly, no renewal)
+- **Calls:** ~10 calls (15 minutes one-time, not monthly, no renewal)
 - **Max Call Duration:** 3 min per call
 - **Concurrent Calls:** 1
 - **Active Agents:** 1 (locked after selection — cannot switch)
 - **Users:** 1
-- **Overage:** Blocked — must upgrade after minutes used
-- **Integrations:** Google Calendar, Google Meet, Google Sheets
-- **Features:** Full campaign wizard, CSV/Excel/JSON import, phone normalization, contact deduplication, custom fields, tags, AI agent creation, call analytics, transcription downloads, usage dashboard, billing alerts, auto-rotated phone numbers
+- **Overage:** Blocked — must upgrade after trial exhausted
+- **Integrations:** Google Calendar, Google Meet, Google Sheets, Zoom
+- **Features:** Full campaign wizard, CSV/Excel/JSON import, phone normalization, contact deduplication, custom fields, tags, AI agent creation, call analytics, transcription downloads, usage dashboard, billing alerts, auto-rotated phone numbers from Callengo pool
 - **Target:** Anyone testing the platform before committing
 
 #### STARTER — $99/month ($87/mo annual)
-- **Minutes:** 300/month
+- **Calls:** ~200 calls/month (300 minutes)
 - **Max Call Duration:** 3 min per call
-- **Concurrent Calls:** 1
+- **Concurrent Calls:** 2
 - **Active Agents:** 1 (switchable between campaigns)
 - **Users:** 1
-- **Overage:** $0.55/min
+- **Overage:** $0.29/min
 - **Annual Price:** $87/mo ($1,044/year — 12% savings)
-- **Integrations:** Everything in Free + Zoom, Slack notifications, SimplyBook.me, Webhooks (Zapier/Make/n8n)
+- **Add-ons Available:** Dedicated Number ($15), Recording Vault ($12), Calls Booster ($35)
+- **Integrations:** Everything in Free + Slack notifications, SimplyBook.me, Webhooks (Zapier/Make/n8n)
 - **Features:** Voicemail detection, follow-ups (max 2 attempts), rescheduling, data export, async email support, auto-rotated phone numbers
 - **Target:** Solo founders, freelancers, small clinics, individual agents
 
-#### BUSINESS — $299/month ($269/mo annual)
-- **Minutes:** 1,200/month
-- **Max Call Duration:** 5 min per call
+#### GROWTH — $179/month ($159/mo annual)
+- **Calls:** ~400 calls/month (600 minutes)
+- **Max Call Duration:** 4 min per call
 - **Concurrent Calls:** 3
-- **Active Agents:** Unlimited (simultaneous)
-- **Users:** 3
-- **Overage:** $0.39/min
-- **Annual Price:** $269/mo ($3,228/year — 10% savings)
-- **Integrations:** Everything in Starter + Microsoft Outlook, Microsoft Teams, HubSpot, Pipedrive, Zoho, Clio (legal), Twilio BYOP
+- **Active Agents:** All (simultaneous)
+- **Users:** 1
+- **Overage:** $0.26/min
+- **Annual Price:** $159/mo ($1,908/year — 12% savings)
+- **Add-ons Available:** Dedicated Number ($15), Recording Vault ($12), Calls Booster ($35)
+- **Integrations:** Everything in Starter
+- **Features:** Voicemail smart handling, smart follow-ups (max 5 attempts), no-show auto-retry, priority email support
+- **Target:** Growing solo operators and small teams needing more volume and smart automation
+
+#### BUSINESS — $299/month ($269/mo annual)
+- **Calls:** ~800 calls/month (1,200 minutes)
+- **Max Call Duration:** 5 min per call
+- **Concurrent Calls:** 5
+- **Active Agents:** All (simultaneous)
+- **Users:** 3 (+$49/extra seat)
+- **Overage:** $0.23/min
+- **Annual Price:** $269/mo ($3,228/year — 12% savings)
+- **Add-ons Available:** Dedicated Number ($15), Recording Vault ($12), Calls Booster ($35)
+- **Integrations:** Everything in Growth + Microsoft Outlook, Microsoft Teams, HubSpot, Pipedrive, Zoho, Clio (legal)
 - **Features:** Smart follow-ups (max 5 attempts), voicemail smart handling, no-show auto-retry, priority email support
 - **Target:** Growing businesses, multi-agent operations, CRM-integrated teams
 
 #### TEAMS — $649/month ($579/mo annual)
-- **Minutes:** 2,500/month
-- **Max Call Duration:** 8 min per call
+- **Calls:** ~1,500 calls/month (2,250 minutes)
+- **Max Call Duration:** 6 min per call
 - **Concurrent Calls:** 10
-- **Active Agents:** Unlimited
-- **Users:** 5 (+$69/extra seat)
-- **Overage:** $0.29/min
-- **Annual Price:** $579/mo ($6,948/year — 11% savings)
+- **Active Agents:** All (simultaneous)
+- **Users:** 5 (+$49/extra seat)
+- **Overage:** $0.20/min
+- **Annual Price:** $579/mo ($6,948/year — 12% savings)
+- **Add-ons Available:** Dedicated Number ($15), Recording Vault ($12), Calls Booster ($35)
 - **Integrations:** Everything in Business + Salesforce, Microsoft Dynamics 365
 - **Features:** User permissions (admin/member roles), advanced follow-ups (max 10 attempts), priority support
 - **Target:** Sales teams, multi-department operations, enterprise CRM users
 
 #### ENTERPRISE — $1,499/month ($1,349/mo annual)
-- **Minutes:** 6,000+/month
-- **Max Call Duration:** 15 min per call
-- **Concurrent Calls:** 50
-- **Active Agents:** Unlimited
+- **Calls:** ~4,000+ calls/month (6,000 minutes)
+- **Max Call Duration:** Unlimited
+- **Concurrent Calls:** Unlimited
+- **Active Agents:** All (simultaneous)
 - **Users:** Unlimited
-- **Overage:** $0.25/min
-- **Annual Price:** $1,349/mo ($16,188/year — 10% savings)
+- **Overage:** $0.17/min
+- **Annual Price:** $1,349/mo ($16,188/year — 12% savings)
+- **Add-ons Available:** All included
 - **Integrations:** All current + future integrations
 - **Features:** Unlimited follow-up attempts, SLA guarantee, dedicated account manager, annual contract required
 - **Target:** Large organizations with high-volume calling needs
@@ -408,46 +429,58 @@ Free Trial (15 min) → Starter ($99/mo) → Business ($299/mo) → Teams ($649/
 
 | Plan | Monthly | Annual (per mo) | Annual Total | Savings |
 |---|---|---|---|---|
-| Free | $0 | $0 | $0 | — |
-| Starter | $99 | $87 | $1,044 | 12% |
-| Business | $299 | $269 | $3,228 | 10% |
-| Teams | $649 | $579 | $6,948 | 11% |
-| Enterprise | $1,499 | $1,349 | $16,188 | 10% |
+| Free | $0 | — | — | — |
+| Starter | $99 | $87 | $1,044 | $144 (12%) |
+| Growth | $179 | $159 | $1,908 | $240 (12%) |
+| Business | $299 | $269 | $3,228 | $360 (12%) |
+| Teams | $649 | $579 | $6,948 | $840 (12%) |
+| Enterprise | $1,499 | $1,349 | $16,188 | $1,800 (12%) |
+
+### Add-ons (Starter and above)
+
+| Add-on | Price/mo | Description |
+|---|---|---|
+| **Dedicated Number** | $15 | Own dedicated outbound phone number via Bland sub-account |
+| **Recording Vault** | $12 | Extends call recording retention from 30 days → 12 months |
+| **Calls Booster** | $35 | +150 calls (~+225 min) per month. Stackable. |
 
 ### Feature Access Matrix
 
-| Feature | Free | Starter | Business | Teams | Enterprise |
-|---|---|---|---|---|---|
-| Price (monthly) | $0 | $99 | $299 | $649 | $1,499 |
-| Minutes Included | 15 (one-time) | 300/mo | 1,200/mo | 2,500/mo | 6,000+/mo |
-| Max Call Duration | 3 min | 3 min | 5 min | 8 min | 15 min |
-| Concurrent Calls | 1 | 1 | 3 | 10 | 50 |
-| Max Active Agents | 1 (locked) | 1 (switchable) | Unlimited | Unlimited | Unlimited |
-| Max Users | 1 | 1 | 3 | 5 (+$69/ea) | Unlimited |
-| Overage Rate | Blocked | $0.55/min | $0.39/min | $0.29/min | $0.25/min |
-| Voicemail Detection | No | Yes | Yes | Yes | Yes |
-| Follow-ups | No | 2 attempts | 5 attempts | 10 attempts | Unlimited |
-| Smart Follow-up | No | No | Yes | Yes | Yes |
-| Google Calendar | Yes | Yes | Yes | Yes | Yes |
-| Microsoft Outlook | No | No | Yes | Yes | Yes |
-| Google Meet | Yes | Yes | Yes | Yes | Yes |
-| Zoom | Yes (auto) | Yes | Yes | Yes | Yes |
-| Microsoft Teams | No | No | Yes | Yes | Yes |
-| Slack | No | Yes | Yes | Yes | Yes |
-| SimplyBook.me | No | Yes | Yes | Yes | Yes |
-| Webhooks | No | Yes | Yes | Yes | Yes |
-| HubSpot | No | No | Yes | Yes | Yes |
-| Pipedrive | No | No | Yes | Yes | Yes |
-| Zoho | No | No | Yes | Yes | Yes |
-| Clio | No | No | Yes | Yes | Yes |
-| Salesforce | No | No | No | Yes | Yes |
-| Dynamics 365 | No | No | No | Yes | Yes |
-| Twilio BYOP | No | No | Yes | Yes | Yes |
-| Rescheduling | No | Yes | Yes | Yes | Yes |
-| Data Export | No | Yes | Yes | Yes | Yes |
-| No-Show Auto Retry | No | No | Yes | Yes | Yes |
-| User Permissions | No | No | No | Yes | Yes |
-| Extra Seats | No | No | No | $69/seat | Included |
+| Feature | Free | Starter | Growth | Business | Teams | Enterprise |
+|---|---|---|---|---|---|---|
+| Price (monthly) | $0 | $99 | $179 | $299 | $649 | $1,499 |
+| Calls/month (approx) | ~10 (trial) | ~200 | ~400 | ~800 | ~1,500 | ~4,000+ |
+| Minutes Included | 15 (one-time) | 300/mo | 600/mo | 1,200/mo | 2,250/mo | 6,000+/mo |
+| Max Call Duration | 3 min | 3 min | 4 min | 5 min | 6 min | Unlimited |
+| Concurrent Calls | 1 | 2 | 3 | 5 | 10 | Unlimited |
+| Max Active Agents | 1 (locked) | 1 (switchable) | All | All | All | All |
+| Max Users | 1 | 1 | 1 | 3 (+$49/ea) | 5 (+$49/ea) | Unlimited |
+| Overage Rate | Blocked | $0.29/min | $0.26/min | $0.23/min | $0.20/min | $0.17/min |
+| Voicemail Detection | No | Yes | Yes (smart) | Yes (smart) | Yes (smart) | Yes (smart) |
+| Follow-ups | No | 2 attempts | 5 attempts | 5 attempts | 10 attempts | Unlimited |
+| Smart Follow-up | No | No | Yes | Yes | Yes | Yes |
+| No-Show Auto Retry | No | No | Yes | Yes | Yes | Yes |
+| Google Calendar | Yes | Yes | Yes | Yes | Yes | Yes |
+| Microsoft Outlook | No | No | No | Yes | Yes | Yes |
+| Google Meet | Yes | Yes | Yes | Yes | Yes | Yes |
+| Zoom | Yes | Yes | Yes | Yes | Yes | Yes |
+| Microsoft Teams | No | No | No | Yes | Yes | Yes |
+| Slack | No | Yes | Yes | Yes | Yes | Yes |
+| SimplyBook.me | No | Yes | Yes | Yes | Yes | Yes |
+| Webhooks | No | Yes | Yes | Yes | Yes | Yes |
+| HubSpot | No | No | No | Yes | Yes | Yes |
+| Pipedrive | No | No | No | Yes | Yes | Yes |
+| Zoho | No | No | No | Yes | Yes | Yes |
+| Clio | No | No | No | Yes | Yes | Yes |
+| Salesforce | No | No | No | No | Yes | Yes |
+| Dynamics 365 | No | No | No | No | Yes | Yes |
+| Rescheduling | No | Yes | Yes | Yes | Yes | Yes |
+| Data Export | No | Yes | Yes | Yes | Yes | Yes |
+| User Permissions | No | No | No | No | Yes | Yes |
+| Extra Seats | No | No | No | $49/seat | $49/seat | Included |
+| Dedicated Number add-on | No | Yes | Yes | Yes | Yes | Yes |
+| Recording Vault add-on | No | Yes | Yes | Yes | Yes | Yes |
+| Calls Booster add-on | No | Yes | Yes | Yes | Yes | Yes |
 
 ---
 
@@ -941,7 +974,6 @@ Each completed call captures:
 | Salesforce | CRM | OAuth 2.0 (Web Flow) | Teams+ |
 | Microsoft Dynamics 365 | CRM | OAuth 2.0 (Entra/Azure AD) | Teams+ |
 | SimplyBook.me | Booking | REST API v2 (Token) | Starter+ |
-| Twilio BYOP | Phone | Account SID + Auth Token | Business+ |
 | Webhooks | Automation | API Key / URL | Starter+ |
 | Stripe | Billing | API Key (built-in) | All |
 
@@ -1010,11 +1042,6 @@ All CRM integrations support:
 - Sheet reading with column detection
 - Auto-column mapping interface
 - Batch import with progress tracking
-
-### Twilio BYOP (Business+)
-- Account SID & Auth Token setup
-- Phone number provisioning and import
-- Incoming call routing
 
 ### Webhooks (Starter+)
 - Incoming webhooks for external system triggers
@@ -1113,7 +1140,6 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 | Stripe | Payment processing, subscriptions, invoicing |
 | Bland AI | AI voice call engine (send calls, transcription, analysis) |
 | OpenAI | AI chat assistant, call analysis, context suggestions |
-| Twilio | BYOP (Bring Your Own Phone) for Business+ plans |
 | Vercel | Hosting & deployment |
 
 ---
@@ -1470,7 +1496,7 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 | max_concurrent_calls | number | |
 | max_calls_per_hour | number? | |
 | max_calls_per_day | number? | |
-| extra_seat_price | number? | Per-seat overage (Teams: $69) |
+| extra_seat_price | number? | Per-seat overage ($49 for Business and Teams) |
 | max_follow_up_attempts | number | -1 = unlimited |
 | auto_overage_default | boolean | |
 | features | json | Feature flags and limits |
@@ -1663,16 +1689,13 @@ Each CRM has an integration table + sync log table + contact mapping table:
 | POST | `/api/billing/update-overage` | Update overage settings |
 | POST | `/api/billing/verify-session` | Verify Stripe session |
 
-### Bland AI / Calls (7 endpoints)
+### Bland AI / Calls (4 endpoints)
 | Method | Endpoint | Purpose |
 |---|---|---|
 | POST | `/api/bland/send-call` | Initiate AI call |
 | GET | `/api/bland/get-call/[callId]` | Get call details |
 | POST | `/api/bland/analyze-call` | Analyze call results |
 | POST | `/api/bland/webhook` | Call completion webhook |
-| POST | `/api/bland/twilio/connect` | Connect Twilio BYOP |
-| POST | `/api/bland/twilio/disconnect` | Disconnect Twilio |
-| POST | `/api/bland/twilio/import-numbers` | Import Twilio numbers |
 
 ### Calendar (4 endpoints)
 | Method | Endpoint | Purpose |
@@ -2019,14 +2042,14 @@ Each CRM has an integration table + sync log table + contact mapping table:
 
 ### 27.1 Integration Overview
 
-Callengo connects with 17 external services across 5 categories. Each integration is plan-gated: users on lower plans see the integration locked with an upgrade prompt.
+Callengo connects with 16 external services across 4 categories. Each integration is plan-gated: users on lower plans see the integration locked with an upgrade prompt.
 
 | Category | Integrations | Purpose |
 |---|---|---|
 | **Calendar** | Google Calendar, Microsoft Outlook, SimplyBook.me | Schedule events, sync appointments, manage availability |
 | **Video Conferencing** | Google Meet, Zoom, Microsoft Teams | Auto-generate meeting links for scheduled calls |
 | **CRM** | Salesforce, HubSpot, Pipedrive, Zoho, Clio, Dynamics 365, Google Sheets | Import contacts, sync call results, map fields |
-| **Communication** | Slack, Webhooks, Twilio BYOP | Notifications, automation triggers, custom phone numbers |
+| **Communication** | Slack, Webhooks | Notifications and automation triggers |
 | **Payment** | Stripe | Billing, subscriptions, overage tracking (built-in) |
 
 **Coming Soon:** GoHighLevel (Business+, CRM), Acuity Scheduling (Starter+, Calendar)
@@ -2545,46 +2568,22 @@ Slack messages include rich formatting with:
 
 ---
 
-### 27.16 Twilio BYOP (Bring Your Own Phone)
+### 27.16 Phone Numbers (Auto-Rotation + Dedicated Add-on)
 
 **What it does:**
-Use your own Twilio phone numbers for outbound AI calls instead of Callengo's auto-rotated number pool. Gives you full control over your caller ID and phone number reputation.
+All plans use auto-rotated phone numbers from Callengo's pool to minimize spam flags and ensure number freshness. A Dedicated Number add-on ($15/mo) is available on Starter+ for companies needing a branded caller ID.
 
-**Plan Required:** Business+ ($299/mo)
+> **Note:** Twilio BYOP is NOT supported. Bland AI's BYOP feature requires Enterprise-level parent account access and cannot be isolated per sub-account, which would break Callengo's multi-tenancy architecture.
 
-**Authentication:** Twilio Account SID + Auth Token
+**Auto-Rotated Numbers (all plans):**
+- Numbers sourced from Callengo's Bland AI sub-account pool
+- Automatically rotated to prevent spam flagging
+- No setup required — available immediately
 
-**Setup Steps:**
-1. Navigate to Integrations page
-2. Click "Connect" on Twilio
-3. Inline 3-step setup modal appears:
-   - **Step 1:** Enter Account SID and Auth Token
-   - **Step 2:** Test credentials (validates against Twilio API)
-   - **Step 3:** Import phone numbers (comma or newline separated)
-4. Credentials encrypted and stored in `company_settings`
-5. Phone numbers registered with Bland AI for outbound calls
-
-**How it Works:**
-- Twilio credentials are sent to Bland AI via their API
-- Bland AI uses your Twilio numbers for outbound calls
-- Encrypted key stored in `company_settings.settings.twilio_encrypted_key`
-- Phone numbers imported via separate API call
-
-**vs. Auto-Rotated Numbers:**
-| Feature | Auto-Rotated (default) | Twilio BYOP |
-|---|---|---|
-| Setup | None required | Account + number import |
-| Cost | Included in plan | Your Twilio costs + plan |
-| Caller ID | Random Callengo pool | Your branded numbers |
-| Number reputation | Shared | Your own |
-| Availability | All plans | Business+ only |
-
-**API Endpoints:**
-| Method | Endpoint | Purpose |
-|---|---|---|
-| POST | `/api/bland/twilio/connect` | Register Twilio credentials with Bland AI |
-| POST | `/api/bland/twilio/disconnect` | Remove Twilio connection |
-| POST | `/api/bland/twilio/import-numbers` | Import phone numbers |
+**Dedicated Number Add-on ($15/mo, Starter+):**
+- Own dedicated outbound phone number via Bland sub-account number transfer
+- Consistent caller ID for brand recognition
+- Available on Starter, Growth, Business, Teams, and Enterprise plans
 
 ---
 
@@ -2773,9 +2772,6 @@ Slack config is stored in `company_settings.settings.slack_default_config` (JSON
 - `notifyOnCallCompleted`, `notifyOnAppointment`, `notifyOnFollowUp`, `notifyOnNoShow` (booleans)
 - `setAsDefault` (boolean)
 
-**Twilio Integration:**
-Twilio credentials stored in `company_settings.settings.twilio_encrypted_key` (encrypted). No dedicated integration table.
-
 **Webhook Endpoints:**
 Stored in `webhook_endpoints` table with columns:
 - `id`, `company_id`, `url`, `description`, `secret`
@@ -2794,28 +2790,27 @@ Delivery log in `webhook_deliveries` table:
 
 ### 27.21 Plan-Gated Access Reference
 
-| Integration | Free | Starter | Business | Teams | Enterprise |
-|---|---|---|---|---|---|
-| Google Calendar | Yes | Yes | Yes | Yes | Yes |
-| Google Meet | Yes | Yes | Yes | Yes | Yes |
-| Google Sheets | Yes | Yes | Yes | Yes | Yes |
-| Zoom | Yes (auto) | Yes | Yes | Yes | Yes |
-| Stripe | Yes (auto) | Yes | Yes | Yes | Yes |
-| Slack | - | Yes | Yes | Yes | Yes |
-| SimplyBook.me | - | Yes | Yes | Yes | Yes |
-| Webhooks | - | Yes | Yes | Yes | Yes |
-| Microsoft Outlook | - | - | Yes | Yes | Yes |
-| Microsoft Teams | - | - | Yes | Yes | Yes |
-| HubSpot | - | - | Yes | Yes | Yes |
-| Pipedrive | - | - | Yes | Yes | Yes |
-| Zoho CRM | - | - | Yes | Yes | Yes |
-| Clio | - | - | Yes | Yes | Yes |
-| Twilio BYOP | - | - | Yes | Yes | Yes |
-| Salesforce | - | - | - | Yes | Yes |
-| Dynamics 365 | - | - | - | Yes | Yes |
-| GoHighLevel | - | - | Coming Soon | | |
-| Acuity Scheduling | - | Coming Soon | | | |
+| Integration | Free | Starter | Growth | Business | Teams | Enterprise |
+|---|---|---|---|---|---|---|
+| Google Calendar | Yes | Yes | Yes | Yes | Yes | Yes |
+| Google Meet | Yes | Yes | Yes | Yes | Yes | Yes |
+| Google Sheets | Yes | Yes | Yes | Yes | Yes | Yes |
+| Zoom | Yes | Yes | Yes | Yes | Yes | Yes |
+| Stripe | Yes (auto) | Yes | Yes | Yes | Yes | Yes |
+| Slack | - | Yes | Yes | Yes | Yes | Yes |
+| SimplyBook.me | - | Yes | Yes | Yes | Yes | Yes |
+| Webhooks | - | Yes | Yes | Yes | Yes | Yes |
+| Microsoft Outlook | - | - | - | Yes | Yes | Yes |
+| Microsoft Teams | - | - | - | Yes | Yes | Yes |
+| HubSpot | - | - | - | Yes | Yes | Yes |
+| Pipedrive | - | - | - | Yes | Yes | Yes |
+| Zoho CRM | - | - | - | Yes | Yes | Yes |
+| Clio | - | - | - | Yes | Yes | Yes |
+| Salesforce | - | - | - | - | Yes | Yes |
+| Dynamics 365 | - | - | - | - | Yes | Yes |
+| GoHighLevel | - | - | - | Coming Soon | | |
+| Acuity Scheduling | - | Coming Soon | | | | |
 
 ---
 
-*End of Callengo Master Document v1.2.0*
+*End of Callengo Master Document v1.3.0*

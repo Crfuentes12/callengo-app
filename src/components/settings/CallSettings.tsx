@@ -4,7 +4,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import VoiceSelector from '@/components/voice/VoiceSelector';
-import { SiTwilio } from 'react-icons/si';
 import { useTranslation } from '@/i18n';
 
 interface CallSettingsProps {
@@ -55,7 +54,7 @@ interface UsageStats {
 
 interface PhoneNumber {
   phone_number: string;
-  type: 'twilio' | 'rotated';
+  type: 'rotated';
   created_at?: string;
   last_used?: string;
   status: 'active' | 'inactive';
@@ -72,15 +71,6 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
   // Phone Number Management State
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [loadingPhones, setLoadingPhones] = useState(false);
-  const [showTwilioSetup, setShowTwilioSetup] = useState(false);
-  const [twilioAccountSid, setTwilioAccountSid] = useState('');
-  const [twilioAuthToken, setTwilioAuthToken] = useState('');
-  const [twilioEncryptedKey, setTwilioEncryptedKey] = useState('');
-  const [twilioNumbers, setTwilioNumbers] = useState('');
-  const [twilioConnecting, setTwilioConnecting] = useState(false);
-  const [twilioConnected, setTwilioConnected] = useState(false);
-  const [twilioError, setTwilioError] = useState('');
-  const [twilioStep, setTwilioStep] = useState(1);
 
   useEffect(() => {
     loadPlanAndUsage();
@@ -103,7 +93,6 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
   useEffect(() => {
     if (companyId) {
       loadPhoneNumbers();
-      loadTwilioConnection();
     }
   }, [companyId]);
 
@@ -217,140 +206,6 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
     }
   };
 
-  const loadTwilioConnection = async () => {
-    try {
-      const { data: companySettings } = await supabase
-        .from('company_settings')
-        .select('settings')
-        .eq('company_id', companyId)
-        .single();
-
-      const settingsData = companySettings?.settings as any;
-      if (settingsData?.twilio_encrypted_key) {
-        setTwilioConnected(true);
-        setTwilioEncryptedKey(settingsData.twilio_encrypted_key);
-      }
-    } catch (error) {
-      console.error('Error loading Twilio connection:', error);
-    }
-  };
-
-  const handleConnectTwilio = async () => {
-    if (!twilioAccountSid || !twilioAuthToken) {
-      setTwilioError('Please enter both Account SID and Auth Token');
-      return;
-    }
-
-    setTwilioConnecting(true);
-    setTwilioError('');
-
-    try {
-      const response = await fetch('/api/bland/twilio/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account_sid: twilioAccountSid, auth_token: twilioAuthToken }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to connect Twilio account');
-
-      const { data: currentSettings } = await supabase
-        .from('company_settings')
-        .select('settings')
-        .eq('company_id', companyId)
-        .single();
-
-      const existingSettings = (currentSettings?.settings as any) || {};
-
-      await supabase
-        .from('company_settings')
-        .update({
-          settings: {
-            ...existingSettings,
-            twilio_encrypted_key: data.encrypted_key,
-            twilio_connected_at: new Date().toISOString(),
-          }
-        })
-        .eq('company_id', companyId);
-
-      setTwilioConnected(true);
-      setTwilioEncryptedKey(data.encrypted_key);
-
-      if (twilioNumbers.trim()) {
-        const numbers = twilioNumbers.split(/[,\n]/).map(n => n.trim()).filter(Boolean);
-        if (numbers.length > 0) await handleImportTwilioNumbers(numbers, data.encrypted_key);
-      }
-
-      setShowTwilioSetup(false);
-      setTwilioAccountSid('');
-      setTwilioAuthToken('');
-      setTwilioNumbers('');
-      setTwilioStep(1);
-    } catch (error: any) {
-      setTwilioError(error.message || 'Failed to connect Twilio account');
-    } finally {
-      setTwilioConnecting(false);
-    }
-  };
-
-  const handleImportTwilioNumbers = async (numbers: string[], encryptedKey: string) => {
-    try {
-      const response = await fetch('/api/bland/twilio/import-numbers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ numbers, encrypted_key: encryptedKey }),
-      });
-
-      const data = await response.json();
-      if (response.ok && data.inserted) {
-        const newNumbers: PhoneNumber[] = data.inserted.map((num: string) => ({
-          phone_number: num, type: 'twilio' as const,
-          created_at: new Date().toISOString(), status: 'active' as const,
-        }));
-        setPhoneNumbers(prev => [...newNumbers, ...prev]);
-        await savePhoneNumbers([...newNumbers, ...phoneNumbers]);
-      }
-    } catch (error) {
-      console.error('Error importing Twilio numbers:', error);
-    }
-  };
-
-  const handleDisconnectTwilio = async () => {
-    try {
-      if (twilioEncryptedKey) {
-        await fetch('/api/bland/twilio/disconnect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ encrypted_key: twilioEncryptedKey }),
-        });
-      }
-
-      const { data: currentSettings } = await supabase
-        .from('company_settings')
-        .select('settings')
-        .eq('company_id', companyId)
-        .single();
-
-      const existingSettings = (currentSettings?.settings as any) || {};
-      delete existingSettings.twilio_encrypted_key;
-      delete existingSettings.twilio_connected_at;
-
-      await supabase
-        .from('company_settings')
-        .update({ settings: existingSettings })
-        .eq('company_id', companyId);
-
-      setTwilioConnected(false);
-      setTwilioEncryptedKey('');
-
-      const filtered = phoneNumbers.filter(p => p.type !== 'twilio');
-      setPhoneNumbers(filtered);
-      await savePhoneNumbers(filtered);
-    } catch (error) {
-      console.error('Error disconnecting Twilio:', error);
-    }
-  };
-
   const savePhoneNumbers = async (numbers: PhoneNumber[]) => {
     try {
       const { data: currentSettings } = await supabase
@@ -399,13 +254,9 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
   };
 
   const isFreePlan = plan?.slug === 'free';
-  const isBusinessOrAbove = plan?.slug === 'business' || plan?.slug === 'teams' || plan?.slug === 'enterprise';
-  const canConnectTwilio = isBusinessOrAbove;
   const suggestion = getOptimizationSuggestion();
   const limitIndicator = getPlanLimitIndicator();
   const approximateCalls = calculateApproximateCalls(settings.default_max_duration);
-  const twilioImportedNumbers = phoneNumbers.filter(p => p.type === 'twilio');
-  const rotatedNumbers = phoneNumbers.filter(p => p.type === 'rotated');
 
   if (loadingData) {
     return (
@@ -487,218 +338,56 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
                 </div>
                 <div>
                   <h4 className="text-base font-bold text-slate-900">Phone Numbers</h4>
-                  <p className="text-xs text-slate-500">Auto-rotated by default or connect your own via Twilio</p>
+                  <p className="text-xs text-slate-500">Auto-rotated by Callengo&apos;s number pool</p>
                 </div>
               </div>
-              {canConnectTwilio && (
-                <button type="button" onClick={() => { setShowTwilioSetup(true); setTwilioStep(1); }} disabled={!canConnectTwilio || twilioConnected} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-50 flex items-center gap-1.5">
-                  <SiTwilio className="w-3.5 h-3.5 text-[#F22F46]" />
-                  {twilioConnected ? 'Twilio Connected' : 'Connect Twilio'}
-                </button>
-              )}
             </div>
           </div>
 
-          {!canConnectTwilio ? (
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-              </div>
-              <h4 className="text-lg font-bold text-slate-900 mb-2">Twilio Integration Available on Business+</h4>
-              <p className="text-sm text-slate-600 mb-1">Upgrade to Business or above to connect your Twilio account.</p>
-              <p className="text-xs text-slate-500 mb-4">On your current plan, Callengo automatically rotates numbers from our pool to protect against spam flags.</p>
-            </div>
-          ) : (
-            <div className="p-6 space-y-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex gap-3">
-                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                  <div>
-                    <p className="text-sm font-semibold text-blue-900">Auto-Rotating Numbers (Active)</p>
-                    <p className="text-xs text-blue-700 mt-0.5">Callengo automatically rotates outbound numbers from our pool to protect against spam flags and maximize pickup rates. This is enabled by default on all plans.</p>
-                  </div>
+          <div className="p-6 space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex gap-3">
+                <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                <div>
+                  <p className="text-sm font-semibold text-blue-900">Auto-Rotating Numbers (Active)</p>
+                  <p className="text-xs text-blue-700 mt-0.5">Callengo automatically rotates outbound numbers from our pool to protect against spam flags and maximize pickup rates. This is enabled by default on all plans.</p>
                 </div>
               </div>
+            </div>
 
-              {rotatedNumbers.length > 0 && (
-                <div>
-                  <h5 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    Recently Used Numbers
-                  </h5>
-                  <div className="space-y-2">
-                    {rotatedNumbers.map((num) => (
-                      <div key={num.phone_number} className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-2.5 border border-slate-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-slate-200/50 flex items-center justify-center">
-                            <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                          </div>
-                          <div>
-                            <span className="text-sm font-mono font-medium text-slate-900">{num.phone_number}</span>
-                            <span className="text-xs text-slate-400 ml-2">Rotated</span>
-                          </div>
+            {phoneNumbers.length > 0 && (
+              <div>
+                <h5 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Recently Used Numbers
+                </h5>
+                <div className="space-y-2">
+                  {phoneNumbers.map((num) => (
+                    <div key={num.phone_number} className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-2.5 border border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-slate-200/50 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                         </div>
-                        {num.last_used && <span className="text-xs text-slate-500">Last used {new Date(num.last_used).toLocaleDateString()}</span>}
+                        <div>
+                          <span className="text-sm font-mono font-medium text-slate-900">{num.phone_number}</span>
+                          <span className="text-xs text-slate-400 ml-2">Rotated</span>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {twilioConnected && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h5 className="text-sm font-semibold text-slate-700 flex items-center gap-2"><SiTwilio className="w-4 h-4 text-[#F22F46]" />Twilio Numbers (BYOP)</h5>
-                    <button type="button" onClick={handleDisconnectTwilio} className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors">Disconnect Twilio</button>
-                  </div>
-                  {twilioImportedNumbers.length > 0 ? (
-                    <div className="space-y-2">
-                      {twilioImportedNumbers.map((num) => (
-                        <div key={num.phone_number} className="flex items-center justify-between bg-red-50/30 rounded-lg px-4 py-2.5 border border-red-100">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center"><SiTwilio className="w-4 h-4 text-[#F22F46]" /></div>
-                            <div><span className="text-sm font-mono font-medium text-slate-900">{num.phone_number}</span><span className="text-xs text-[#F22F46] ml-2 font-medium">Twilio BYOP</span></div>
-                          </div>
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Active</span>
-                        </div>
-                      ))}
+                      {num.last_used && <span className="text-xs text-slate-500">Last used {new Date(num.last_used).toLocaleDateString()}</span>}
                     </div>
-                  ) : (
-                    <div className="bg-slate-50 rounded-lg p-4 text-center">
-                      <p className="text-sm text-slate-600">Twilio connected but no numbers imported yet. Click &quot;Connect Twilio&quot; again to import your numbers.</p>
-                    </div>
-                  )}
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {twilioImportedNumbers.length === 0 && rotatedNumbers.length === 0 && !twilioConnected && !loadingPhones && (
-                <div className="text-center py-4">
-                  <p className="text-sm text-slate-500">No phone numbers configured yet. Your calls use auto-rotated numbers by default.</p>
-                  <p className="text-xs text-slate-400 mt-1">Want to use your own number? Connect your Twilio account above.</p>
-                </div>
-              )}
-            </div>
-          )}
+            {phoneNumbers.length === 0 && !loadingPhones && (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-500">No phone numbers configured yet. Your calls use auto-rotated numbers by default.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* TWILIO SETUP MODAL (step-by-step guide) */}
-      {showTwilioSetup && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center"><SiTwilio className="w-6 h-6 text-[#F22F46]" /></div>
-                  <div><h3 className="text-xl font-bold text-slate-900">Connect Twilio</h3><p className="text-sm text-slate-500">Use your own phone numbers in Callengo</p></div>
-                </div>
-                <button type="button" onClick={() => { setShowTwilioSetup(false); setTwilioError(''); setTwilioStep(1); }} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="flex items-center gap-2 mt-5">
-                {[1, 2, 3].map((step) => (
-                  <div key={step} className="flex items-center gap-2 flex-1">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${twilioStep >= step ? 'gradient-bg text-white' : 'bg-slate-100 text-slate-400'}`}>
-                      {twilioStep > step ? <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg> : step}
-                    </div>
-                    <span className={`text-xs font-medium hidden sm:block ${twilioStep >= step ? 'text-slate-900' : 'text-slate-400'}`}>{step === 1 ? 'Get credentials' : step === 2 ? 'Connect' : 'Import numbers'}</span>
-                    {step < 3 && <div className={`flex-1 h-0.5 rounded ${twilioStep > step ? 'gradient-bg' : 'bg-slate-200'}`} />}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-6">
-              {twilioStep === 1 && (
-                <div className="space-y-4">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
-                    <h4 className="text-sm font-bold text-slate-900 mb-3">How to get your Twilio credentials</h4>
-                    <ol className="space-y-3 text-sm text-slate-700">
-                      <li className="flex gap-3">
-                        <span className="w-6 h-6 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
-                        <div><p className="font-semibold text-slate-900">Create or log into Twilio</p><p className="text-xs text-slate-500 mt-0.5">Go to <a href="https://www.twilio.com/try-twilio" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] underline font-medium">twilio.com/try-twilio</a> and sign up for free, or log in if you already have an account.</p></div>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="w-6 h-6 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
-                        <div><p className="font-semibold text-slate-900">Open your Twilio Console</p><p className="text-xs text-slate-500 mt-0.5">Go to <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] underline font-medium">console.twilio.com</a>. Right on the main dashboard you'll see your <strong>Account SID</strong> and <strong>Auth Token</strong>.</p></div>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="w-6 h-6 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
-                        <div><p className="font-semibold text-slate-900">Copy your Account SID</p><p className="text-xs text-slate-500 mt-0.5">Starts with <code className="px-1.5 py-0.5 bg-slate-200 rounded text-[11px] font-mono">AC</code> followed by 32 characters. Example: <code className="px-1.5 py-0.5 bg-slate-200 rounded text-[11px] font-mono">AC1a2b3c4d...</code></p></div>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="w-6 h-6 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span>
-                        <div><p className="font-semibold text-slate-900">Reveal and copy your Auth Token</p><p className="text-xs text-slate-500 mt-0.5">Click the eye icon next to &quot;Auth Token&quot; to reveal it, then copy. <strong>Keep this secret</strong> — we encrypt it immediately and never store it in plain text.</p></div>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="w-6 h-6 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">5</span>
-                        <div><p className="font-semibold text-slate-900">Buy a phone number in Twilio</p><p className="text-xs text-slate-500 mt-0.5">In Twilio Console go to <strong>Phone Numbers → Manage → Buy a Number</strong>. Pick an area code and country. Numbers cost ~$1.15/mo directly on Twilio.</p></div>
-                      </li>
-                    </ol>
-                  </div>
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                    <div className="flex gap-2">
-                      <svg className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                      <p className="text-xs text-emerald-800"><strong>Your credentials are safe.</strong> We encrypt your Twilio credentials with industry-standard encryption. Your Auth Token is never stored in plain text and you can disconnect at any time.</p>
-                    </div>
-                  </div>
-                  <button type="button" onClick={() => setTwilioStep(2)} className="w-full py-3 rounded-xl text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all">I have my credentials, let&apos;s connect</button>
-                </div>
-              )}
-
-              {twilioStep === 2 && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Account SID</label>
-                    <input type="text" value={twilioAccountSid} onChange={(e) => setTwilioAccountSid(e.target.value)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all font-mono text-sm" />
-                    <p className="text-xs text-slate-400 mt-1">Starts with AC, 34 characters total</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Auth Token</label>
-                    <input type="password" value={twilioAuthToken} onChange={(e) => setTwilioAuthToken(e.target.value)} placeholder="Your Twilio Auth Token" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all text-sm" />
-                    <p className="text-xs text-slate-400 mt-1">32-character alphanumeric string</p>
-                  </div>
-                  {twilioError && <div className="bg-red-50 border border-red-200 rounded-lg p-3"><p className="text-xs text-red-800 font-medium">{twilioError}</p></div>}
-                  <div className="flex gap-3 pt-2">
-                    <button type="button" onClick={() => { setTwilioStep(1); setTwilioError(''); }} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">{t.common.back}</button>
-                    <button type="button" onClick={() => { if (twilioAccountSid && twilioAuthToken) setTwilioStep(3); else setTwilioError('Fill in both fields to continue'); }} disabled={!twilioAccountSid || !twilioAuthToken} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all disabled:opacity-50">{t.common.next}: Import Numbers</button>
-                  </div>
-                </div>
-              )}
-
-              {twilioStep === 3 && (
-                <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
-                    <div className="flex gap-2">
-                      <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      <div className="text-xs text-blue-900"><p className="font-semibold mb-0.5">Where to find your Twilio numbers</p><p className="text-blue-700">In Twilio Console, go to <strong>Phone Numbers → Manage → Active Numbers</strong>. Copy them in E.164 format (e.g. +12223334444).</p></div>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Phone Numbers to Import <span className="text-slate-400 font-normal">(optional — you can add later)</span></label>
-                    <textarea value={twilioNumbers} onChange={(e) => setTwilioNumbers(e.target.value)} placeholder={"+12223334444\n+13334445555"} rows={3} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all font-mono text-sm resize-none" />
-                    <p className="text-xs text-slate-400 mt-1">One per line or comma-separated. E.164 format (+country code + number).</p>
-                  </div>
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <div className="flex gap-2">
-                      <svg className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      <p className="text-xs text-amber-800"><strong>What happens next:</strong> Your numbers will be used for outbound calls from Callengo. Transfer time on your own Twilio numbers is free. You keep paying Twilio directly for the numbers (~$1.15/mo each).</p>
-                    </div>
-                  </div>
-                  {twilioError && <div className="bg-red-50 border border-red-200 rounded-lg p-3"><p className="text-xs text-red-800 font-medium">{twilioError}</p></div>}
-                  <div className="flex gap-3 pt-2">
-                    <button type="button" onClick={() => { setTwilioStep(2); setTwilioError(''); }} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">{t.common.back}</button>
-                    <button type="button" onClick={handleConnectTwilio} disabled={twilioConnecting} className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                      {twilioConnecting ? (<><div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin"></div>Connecting...</>) : (<><SiTwilio className="w-4 h-4" />Connect Twilio</>)}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       <form onSubmit={onSubmit} className="space-y-6">
         {/* Call Duration Optimizer */}
