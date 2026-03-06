@@ -737,31 +737,35 @@ interface AgentRunSettings {
 - Custom Fields (JSON — any columns from import)
 
 ### Contact Statuses
+> Note: Stored as Title Case strings in the database and TypeScript types.
+
 | Status | Description |
 |---|---|
-| `pending` | Not yet called |
-| `calling` | Call in progress |
-| `fully_verified` | Successfully verified |
-| `research_needed` | Requires follow-up investigation |
-| `no_answer` | No one answered |
-| `for_callback` | Scheduled for callback |
-| `wrong_number` | Wrong phone number |
-| `number_disconnected` | Number is disconnected |
-| `withheld_hung_up` | Contact withheld info or hung up |
-| `voicemail_left` | Voicemail was left |
+| `Pending` | Not yet called |
+| `Calling` | Call in progress |
+| `Fully Verified` | Successfully verified |
+| `Research Needed` | Requires follow-up investigation |
+| `No Answer` | No one answered |
+| `For Callback` | Scheduled for callback |
+| `Wrong Number` | Wrong phone number |
+| `Number Disconnected` | Number is disconnected |
+| `Withheld & Hung Up` | Contact withheld info or hung up |
+| `Voicemail Left` | Voicemail was left |
 
 ### Call Outcomes
+> Note: Stored as Title Case strings in the database and TypeScript types.
+
 | Outcome | Description |
 |---|---|
-| `not_called` | Default — never called |
-| `owner_gave_email` | Contact provided email |
-| `staff_gave_email` | Staff member provided email |
-| `incomplete_data` | Partial information obtained |
-| `refused` | Contact refused |
-| `left_voicemail` | Voicemail message left |
-| `follow_up_scheduled` | Follow-up has been scheduled |
-| `wrong_number` | Wrong number confirmed |
-| `disconnected` | Number disconnected |
+| `Not Called` | Default — never called |
+| `Owner Gave Email` | Contact provided email |
+| `Staff Gave Email` | Staff member provided email |
+| `Incomplete Data Shared` | Partial information obtained |
+| `Refused` | Contact refused |
+| `Left Voicemail` | Voicemail message left |
+| `Follow-up Scheduled` | Follow-up has been scheduled |
+| `Wrong Number` | Wrong number confirmed |
+| `Disconnected` | Number disconnected |
 
 ### Import Auto-Column Mapping
 The system recognizes 88+ field name patterns for automatic column mapping from CSV/Excel imports, including variations like:
@@ -1116,7 +1120,7 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 
 ## 17. Database Schema
 
-### Tables (23 total)
+### Tables (~45 total, including integration-specific tables)
 
 #### `companies`
 | Column | Type | Notes |
@@ -1596,9 +1600,33 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 - `ai_conversation_messages`: id, conversation_id, role, content, created_at
 
 #### CRM Integration Tables
-Each follows the same pattern:
-- `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integrations`, `clio_integrations`, `zoho_integrations`, `dynamics_integrations`, `simplybook_integrations`, `google_sheets_integrations`
+Each CRM has an integration table + sync log table + contact mapping table:
+
+**Integration tables** (8 total):
+`salesforce_integrations`, `hubspot_integrations`, `pipedrive_integrations`, `clio_integrations`, `zoho_integrations`, `dynamics_integrations`, `simplybook_integrations`, `google_sheets_integrations`
 - Common columns: id, company_id, access_token, refresh_token, provider-specific user ID/email, is_active, last_synced_at, created_at, updated_at
+
+**Sync log tables** (6 total):
+`clio_sync_logs`, `hubspot_sync_logs`, `pipedrive_sync_logs`, `simplybook_sync_logs`, `zoho_sync_logs`, `dynamics_sync_logs`
+- Tracks sync operations: direction, records created/updated/deleted, errors, duration
+
+**Contact mapping tables** (6 total):
+`clio_contact_mappings`, `hubspot_contact_mappings`, `pipedrive_contact_mappings`, `simplybook_contact_mappings`, `zoho_contact_mappings`, `dynamics_contact_mappings`
+- Maps provider contact IDs to Callengo contact IDs for bidirectional sync
+
+#### Google Sheets Tables
+- `google_sheets_integrations`: OAuth connection data
+- `google_sheets_linked_sheets`: Linked spreadsheet references (spreadsheet_id, sheet_name)
+
+#### Webhook Tables
+- `webhook_endpoints`: Endpoint URLs, secrets, event subscriptions, failure tracking
+- `webhook_deliveries`: Delivery log with payload, HTTP status, response, duration
+
+#### Team Tables
+- `team_invitations`: Pending team member invitations (email, role, invited_by, status, token)
+
+#### SimplyBook Webhook Logs
+- `simplybook_webhook_logs`: Incoming webhook event history from SimplyBook.me
 
 ---
 
@@ -1974,6 +2002,7 @@ Each follows the same pattern:
 | `ZOHO_CLIENT_ID` / `ZOHO_CLIENT_SECRET` | Zoho OAuth |
 | `ZOOM_ACCOUNT_ID` / `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` | Zoom S2S OAuth |
 | `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` | Slack OAuth |
+| `SLACK_SIGNING_SECRET` | Slack webhook signature verification |
 
 ### Build & Deploy
 - **Build:** `next build` (TypeScript compilation, Tailwind, ESLint)
