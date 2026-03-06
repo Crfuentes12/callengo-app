@@ -631,7 +631,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         const phone = getPhoneNumberFeatures(plan.slug);
                         return (
                           <td key={plan.id} className={`text-center py-2.5 px-3 text-slate-700 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
-                            {phone.dedicatedNumberAddon ? t.billing.autoRotatedDedicated : t.billing.autoRotated}
+                            {phone.dedicatedNumberAddon ? t.billing.autoRotatedByop : t.billing.autoRotated}
                           </td>
                         );
                       })}
