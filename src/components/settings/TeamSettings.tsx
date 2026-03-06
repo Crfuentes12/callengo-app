@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { useStripe } from '@/hooks/useStripe';
 
 interface TeamMember {
   id: string;
@@ -395,6 +394,27 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
     router.refresh();
   };
 
+  // Seat checkout state — must be before any early returns (Rules of Hooks)
+  const [buyingSeat, setBuyingSeat] = useState(false);
+
+  const handleBuyExtraSeat = async () => {
+    setBuyingSeat(true);
+    try {
+      const res = await fetch('/api/billing/seat-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1, currency: 'USD' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create checkout');
+      if (data.url) window.location.href = data.url;
+    } catch (err: any) {
+      alert(err.message || 'Could not start checkout');
+    } finally {
+      setBuyingSeat(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -417,27 +437,6 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
 
   // Plans that support buying extra seats directly
   const canBuyExtraSeats = planConfig.extraCost !== null;
-
-  const { loading: seatCheckoutLoading } = useStripe();
-  const [buyingSeat, setBuyingSeat] = useState(false);
-
-  const handleBuyExtraSeat = async () => {
-    setBuyingSeat(true);
-    try {
-      const res = await fetch('/api/billing/seat-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity: 1, currency: 'USD' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create checkout');
-      if (data.url) window.location.href = data.url;
-    } catch (err: any) {
-      alert(err.message || 'Could not start checkout');
-    } finally {
-      setBuyingSeat(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
