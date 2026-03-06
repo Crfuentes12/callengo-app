@@ -102,7 +102,6 @@ export default async function Integrations() {
     .maybeSingle();
 
   // Determine Twilio connection status
-  const twilioConnected = !!settings.twilio_encrypted_key;
 
   // Determine Slack connection status
   const slackConnected = !!settings.slack_connected;
@@ -147,9 +146,6 @@ export default async function Integrations() {
           connected: slackConnected,
           teamName: slackTeamName,
           channelName: slackChannelName,
-        },
-        twilio: {
-          connected: twilioConnected,
         },
         salesforce: {
           connected: !!sfIntegration,
