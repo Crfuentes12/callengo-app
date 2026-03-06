@@ -647,10 +647,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     {/* Price — same height for all */}
                     <div className="mb-4 pb-4 border-b border-slate-100 min-h-[4.5rem]">
                       <div className="flex items-baseline gap-1">
+                        {isEnterprise && <span className="text-sm text-slate-400 font-normal">from</span>}
                         <span className="text-3xl font-bold text-slate-900">{formatPrice(monthlyPrice)}</span>
                         <span className="text-sm text-slate-500">{t.billing.mo}</span>
                       </div>
-                      {!isEnterprise && billingCycle === 'annual' && <div className="text-xs text-slate-500 mt-1">{formatPrice(yearlyTotal)}{t.billing.yr}</div>}
                       {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
                         <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">{t.billing.save} {discountPercent}%</div>
                       )}
@@ -1432,10 +1432,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     </div>
                     <div className="mb-3 pb-3 border-b border-slate-100 min-h-[4rem]">
                       <div className="flex items-baseline gap-1">
+                        {isEnterprise && <span className="text-xs text-slate-400 font-normal">from</span>}
                         <span className="text-2xl font-bold text-slate-900">{formatPrice(monthlyPrice)}</span>
                         <span className="text-xs text-slate-500">{t.billing.mo}</span>
                       </div>
-                      {!isEnterprise && billingCycle === 'annual' && <div className="text-[10px] text-slate-500 mt-1">{formatPrice(yearlyTotal)}/{t.billing.yr}</div>}
                       {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
                         <div className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">{t.billing.save} {discountPercent}%</div>
                       )}
