@@ -1,7 +1,7 @@
 // components/settings/SettingsManager.tsx
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@/types/supabase';
@@ -38,6 +38,130 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   const { language, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<'general' | 'company' | 'calling' | 'billing'>('general');
   const [savingLanguage, setSavingLanguage] = useState(false);
+
+  // Profile state
+  const [fullName, setFullName] = useState(user.full_name || '');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState('');
+
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+
+  // 2FA state
+  const [mfaFactors, setMfaFactors] = useState<any[]>([]);
+  const [mfaLoading, setMfaLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState(false);
+  const [mfaEnrollData, setMfaEnrollData] = useState<{ factorId: string; qrCode: string; secret: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaVerifying, setMfaVerifying] = useState(false);
+  const [mfaError, setMfaError] = useState('');
+  const [mfaSuccess, setMfaSuccess] = useState('');
+  const [disabling2FA, setDisabling2FA] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'general') {
+      loadMfaFactors();
+    }
+  }, [activeTab]);
+
+  const loadMfaFactors = async () => {
+    setMfaLoading(true);
+    try {
+      const { data } = await supabase.auth.mfa.listFactors();
+      setMfaFactors(data?.totp || []);
+    } catch { /* non-critical */ }
+    setMfaLoading(false);
+  };
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    setProfileSuccess('');
+    try {
+      const { error } = await supabase.from('users').update({ full_name: fullName }).eq('id', user.id);
+      if (error) throw error;
+      setProfileSuccess('Name updated successfully.');
+      setTimeout(() => setProfileSuccess(''), 3000);
+    } catch {
+      alert('Could not update name. Please try again.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError('');
+    setPasswordSuccess('');
+    if (newPassword.length < 8) { setPasswordError('Password must be at least 8 characters.'); return; }
+    if (newPassword !== confirmPassword) { setPasswordError('Passwords do not match.'); return; }
+    setSavingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setPasswordSuccess('Password updated successfully.');
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+      setTimeout(() => setPasswordSuccess(''), 4000);
+    } catch (err: any) {
+      setPasswordError(err.message || 'Failed to update password.');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const handleEnroll2FA = async () => {
+    setEnrolling(true);
+    setMfaError('');
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', issuer: 'Callengo', friendlyName: 'Authenticator App' });
+      if (error) throw error;
+      setMfaEnrollData({ factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret });
+    } catch (err: any) {
+      setMfaError(err.message || 'Could not start 2FA setup.');
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
+  const handleVerify2FA = async () => {
+    if (!mfaEnrollData || mfaCode.length < 6) return;
+    setMfaVerifying(true);
+    setMfaError('');
+    try {
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaEnrollData.factorId });
+      if (challengeError) throw challengeError;
+      const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: mfaEnrollData.factorId, challengeId: challengeData.id, code: mfaCode });
+      if (verifyError) throw verifyError;
+      setMfaSuccess('Two-factor authentication is now active.');
+      setMfaEnrollData(null);
+      setMfaCode('');
+      await loadMfaFactors();
+    } catch (err: any) {
+      setMfaError(err.message || 'Invalid code. Please try again.');
+    } finally {
+      setMfaVerifying(false);
+    }
+  };
+
+  const handleDisable2FA = async (factorId: string) => {
+    if (!confirm('Are you sure you want to disable two-factor authentication?')) return;
+    setDisabling2FA(true);
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId });
+      if (error) throw error;
+      setMfaSuccess('2FA has been disabled.');
+      await loadMfaFactors();
+    } catch (err: any) {
+      setMfaError(err.message || 'Could not disable 2FA.');
+    } finally {
+      setDisabling2FA(false);
+    }
+  };
 
   // Handle URL query params for deep linking (e.g., from Integrations → Twilio)
   useEffect(() => {
@@ -504,71 +628,255 @@ export default function SettingsManager({ company: initialCompany, settings: ini
             </Suspense>
           )}
 
-          {/* General Settings Tab (Language + Notifications) */}
+          {/* General Settings Tab */}
           {activeTab === 'general' && (
             <div className="space-y-8">
-              {/* Language Section */}
+
+              {/* ── Profile ── */}
               <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-sm">🌐</span>
-                    {t.settings.language.title}
-                  </h3>
-                  <p className="text-sm text-slate-500">{t.settings.language.subtitle}</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">Profile</h3>
                 </div>
 
-                <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                  <label className="block text-sm font-semibold text-slate-700 mb-3">
-                    {t.settings.language.selectLanguage}
-                  </label>
-                  <LanguageSelector value={language} onChange={(lang) => setLanguage(lang)} />
-                  <p className="text-xs text-slate-500 mt-3">{t.settings.language.description}</p>
-                </div>
-
-                <button
-                  onClick={async () => {
-                    setSavingLanguage(true);
-                    try {
-                      const existingJsonSettings = (initialSettings.settings as Record<string, unknown>) || {};
-                      const { error } = await supabase
-                        .from('company_settings')
-                        .update({
-                          settings: { ...existingJsonSettings, language }
-                        })
-                        .eq('company_id', initialCompany.id);
-                      if (error) throw error;
-
-                      setSuccess(t.settings.language.success);
-                    } catch {
-                      alert(t.settings.language.error);
-                    } finally {
-                      setSavingLanguage(false);
-                    }
-                  }}
-                  disabled={savingLanguage}
-                  className="btn-primary w-full py-4 font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg"
-                >
-                  {savingLanguage ? (
-                    <span className="flex items-center justify-center gap-3">
-                      <div className="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
-                      {t.settings.language.saving}
-                    </span>
-                  ) : (
-                    t.settings.language.saveButton
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 space-y-4">
+                  {profileSuccess && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm text-emerald-700 font-medium">{profileSuccess}</div>
                   )}
-                </button>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Full Name</label>
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={e => setFullName(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none bg-white"
+                        placeholder="Your full name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Email</label>
+                      <div className="relative">
+                        <input
+                          type="email"
+                          value={user.email}
+                          disabled
+                          className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded">Locked</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={savingProfile}
+                    className="btn-primary px-5 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
+                  >
+                    {savingProfile ? 'Saving...' : 'Save Profile'}
+                  </button>
+                </div>
               </div>
 
-              {/* Divider */}
               <div className="border-t border-slate-200" />
 
-              {/* Notifications Section */}
+              {/* ── Security ── */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">Security</h3>
+                </div>
+
+                {/* Change Password */}
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 space-y-4">
+                  <h4 className="text-sm font-semibold text-slate-900">Change Password</h4>
+                  {passwordError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">{passwordError}</div>
+                  )}
+                  {passwordSuccess && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm text-emerald-700 font-medium">{passwordSuccess}</div>
+                  )}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">New Password</label>
+                      <div className="relative">
+                        <input
+                          type={showNewPw ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={e => setNewPassword(e.target.value)}
+                          placeholder="Min. 8 characters"
+                          className="w-full px-3 py-2.5 pr-10 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none bg-white"
+                        />
+                        <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>{showNewPw ? <><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></> : <><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></>}</svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Confirm Password</label>
+                      <input
+                        type={showNewPw ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        placeholder="Repeat new password"
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none bg-white"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={savingPassword || !newPassword || !confirmPassword}
+                    className="btn-primary px-5 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
+                  >
+                    {savingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
+                </div>
+
+                {/* Two-Factor Authentication */}
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                        Two-Factor Authentication
+                        {!mfaLoading && mfaFactors.length > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                            Enabled
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">Use an authenticator app for extra account protection.</p>
+                    </div>
+                    {mfaLoading ? (
+                      <div className="w-5 h-5 border border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                    ) : mfaFactors.length > 0 ? (
+                      <button
+                        onClick={() => handleDisable2FA(mfaFactors[0].id)}
+                        disabled={disabling2FA}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50"
+                      >
+                        {disabling2FA ? 'Disabling...' : 'Disable 2FA'}
+                      </button>
+                    ) : !mfaEnrollData ? (
+                      <button
+                        onClick={handleEnroll2FA}
+                        disabled={enrolling}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-white gradient-bg hover:opacity-90 transition-all shadow-sm disabled:opacity-50"
+                      >
+                        {enrolling ? 'Loading...' : 'Enable 2FA'}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {mfaError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">{mfaError}</div>
+                  )}
+                  {mfaSuccess && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm text-emerald-700 font-medium">{mfaSuccess}</div>
+                  )}
+
+                  {mfaEnrollData && (
+                    <div className="space-y-4 pt-2 border-t border-slate-200">
+                      <p className="text-xs text-slate-600">Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password…)</p>
+                      <div className="flex flex-col sm:flex-row gap-5 items-start">
+                        <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex-shrink-0">
+                          <img
+                            src={mfaEnrollData.qrCode}
+                            alt="2FA QR Code"
+                            className="w-40 h-40"
+                          />
+                        </div>
+                        <div className="space-y-3 flex-1">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-600 uppercase mb-1">Manual entry key</p>
+                            <code className="block text-xs bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 font-mono text-slate-700 break-all select-all">
+                              {mfaEnrollData.secret}
+                            </code>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Enter 6-digit code from app</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={6}
+                                value={mfaCode}
+                                onChange={e => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                                placeholder="000000"
+                                className="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-sm font-mono tracking-widest focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none bg-white"
+                              />
+                              <button
+                                onClick={handleVerify2FA}
+                                disabled={mfaVerifying || mfaCode.length < 6}
+                                className="px-4 py-2.5 rounded-lg text-sm font-bold text-white gradient-bg hover:opacity-90 transition-all shadow-sm disabled:opacity-50"
+                              >
+                                {mfaVerifying ? 'Verifying...' : 'Verify & Enable'}
+                              </button>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => { setMfaEnrollData(null); setMfaCode(''); setMfaError(''); }}
+                            className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            Cancel setup
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200" />
+
+              {/* ── Language ── */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" /></svg>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">{t.settings.language.title}</h3>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 space-y-4">
+                  <LanguageSelector value={language} onChange={(lang) => setLanguage(lang)} />
+                  <button
+                    onClick={async () => {
+                      setSavingLanguage(true);
+                      try {
+                        const existingJsonSettings = (initialSettings.settings as Record<string, unknown>) || {};
+                        const { error } = await supabase
+                          .from('company_settings')
+                          .update({ settings: { ...existingJsonSettings, language } })
+                          .eq('company_id', initialCompany.id);
+                        if (error) throw error;
+                        setSuccess(t.settings.language.success);
+                      } catch {
+                        alert(t.settings.language.error);
+                      } finally {
+                        setSavingLanguage(false);
+                      }
+                    }}
+                    disabled={savingLanguage}
+                    className="btn-primary px-5 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
+                  >
+                    {savingLanguage ? t.settings.language.saving : t.settings.language.saveButton}
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200" />
+
+              {/* ── Notifications ── */}
               <div>
-                <div className="mb-4">
-                  <h3 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-sm">🔔</span>
-                    {t.settings.notifications.title}
-                  </h3>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">{t.settings.notifications.title}</h3>
                 </div>
                 <NotificationSettings
                   userId={user.id}

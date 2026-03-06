@@ -468,67 +468,109 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         {/* ── Add-ons ── */}
         {!isFreePlan && (
           <div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">Add-ons</h3>
-            <p className="text-sm text-slate-500 mb-4">Supercharge your plan with powerful extras. Cancel anytime.</p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 mb-0.5">Add-ons</h3>
+                <p className="text-sm text-slate-500">Supercharge your plan with powerful extras. Cancel anytime.</p>
+              </div>
+            </div>
             <div className="grid gap-4 sm:grid-cols-3">
               {[
                 {
                   key: 'dedicated_number' as const,
-                  icon: '📞',
-                  title: 'Dedicated Phone Number',
-                  desc: 'Your own caller ID — better deliverability, consistent brand.',
+                  icon: (
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                    </svg>
+                  ),
+                  iconBg: 'bg-blue-500',
+                  title: 'Dedicated Number',
+                  desc: 'Your own caller ID — better pickup rates, consistent brand identity, and real number recognition.',
                   price: 15,
                   badge: 'Better pickup rates',
-                  badgeColor: 'blue',
+                  badgeColor: 'blue' as const,
+                  highlight: 'from-blue-50 to-sky-50',
+                  highlightBorder: 'border-blue-200',
                 },
                 {
                   key: 'recording_vault' as const,
-                  icon: '🔒',
+                  icon: (
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.25c0 2.278-3.694 4.125-8.25 4.125S3.75 10.903 3.75 8.625m16.5 2.25c0 2.278-3.694 4.125-8.25 4.125S3.75 13.153 3.75 10.875" />
+                    </svg>
+                  ),
+                  iconBg: 'bg-violet-500',
                   title: 'Recording Vault',
-                  desc: 'Keep recordings for 12 months instead of 30 days. Searchable & downloadable.',
+                  desc: 'Keep recordings stored while you\'re subscribed — without it, recordings auto-delete every 30 days. Searchable & downloadable.',
                   price: 12,
-                  badge: '12-month retention',
-                  badgeColor: 'purple',
+                  badge: 'Never lose recordings',
+                  badgeColor: 'purple' as const,
+                  highlight: 'from-violet-50 to-purple-50',
+                  highlightBorder: 'border-violet-200',
                 },
                 {
                   key: 'calls_booster' as const,
-                  icon: '🚀',
+                  icon: (
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                    </svg>
+                  ),
+                  iconBg: 'bg-emerald-500',
                   title: 'Calls Booster',
-                  desc: '+150 calls (~+225 min) added to your plan each month. Stackable.',
+                  desc: '+150 calls (~225 min) added to your plan every month. Stack multiple boosters to scale campaigns faster.',
                   price: 35,
                   badge: '+150 calls/mo',
-                  badgeColor: 'green',
+                  badgeColor: 'green' as const,
+                  highlight: 'from-emerald-50 to-teal-50',
+                  highlightBorder: 'border-emerald-200',
                 },
               ].map((addon) => {
                 const isActive = activeAddons.includes(addon.key);
                 const isLoadingThis = addonLoading === addon.key;
                 const badgeClasses: Record<string, string> = {
-                  blue: 'bg-blue-100 text-blue-700',
-                  purple: 'bg-purple-100 text-purple-700',
-                  green: 'bg-emerald-100 text-emerald-700',
+                  blue: 'bg-blue-100 text-blue-700 border-blue-200',
+                  purple: 'bg-violet-100 text-violet-700 border-violet-200',
+                  green: 'bg-emerald-100 text-emerald-700 border-emerald-200',
                 };
                 return (
-                  <div key={addon.key} className={`rounded-xl border p-5 flex flex-col gap-3 transition-all ${isActive ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                    <div className="flex items-start justify-between">
-                      <div className="text-2xl">{addon.icon}</div>
-                      {isActive ? (
-                        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">Active</span>
-                      ) : (
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClasses[addon.badgeColor]}`}>{addon.badge}</span>
-                      )}
-                    </div>
-                    <div>
+                  <div
+                    key={addon.key}
+                    className={`relative rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 ${
+                      isActive
+                        ? 'border-emerald-300 shadow-md shadow-emerald-100'
+                        : `${addon.highlightBorder} hover:shadow-lg hover:shadow-slate-200/60 hover:-translate-y-0.5`
+                    }`}
+                  >
+                    {/* Card gradient header */}
+                    <div className={`bg-gradient-to-br ${isActive ? 'from-emerald-50 to-green-50' : addon.highlight} p-5 pb-4`}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className={`w-11 h-11 rounded-xl ${addon.iconBg} flex items-center justify-center text-white shadow-sm`}>
+                          {addon.icon}
+                        </div>
+                        {isActive ? (
+                          <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                            Active
+                          </span>
+                        ) : (
+                          <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${badgeClasses[addon.badgeColor]}`}>{addon.badge}</span>
+                        )}
+                      </div>
                       <h4 className="text-sm font-bold text-slate-900 mb-1">{addon.title}</h4>
                       <p className="text-xs text-slate-500 leading-relaxed">{addon.desc}</p>
                     </div>
-                    <div className="mt-auto">
-                      <div className="text-xl font-bold text-slate-900 mb-2">{formatPrice(addon.price)}<span className="text-xs font-normal text-slate-500">/mo</span></div>
+                    {/* Card footer */}
+                    <div className="bg-white px-5 py-4 mt-auto border-t border-slate-100 flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-2xl font-bold text-slate-900">{formatPrice(addon.price)}</span>
+                        <span className="text-xs text-slate-400 ml-1">/mo</span>
+                      </div>
                       {isActive ? (
                         <button
                           onClick={() => openBillingPortal()}
-                          className="w-full py-2 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
                         >
-                          Manage in Portal
+                          Manage
                         </button>
                       ) : (
                         <button
@@ -541,9 +583,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                             }
                           }}
                           disabled={isLoadingThis || stripeLoading}
-                          className="w-full py-2 rounded-lg text-xs font-semibold gradient-bg text-white hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold gradient-bg text-white hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                         >
-                          {isLoadingThis ? 'Loading...' : `Add ${addon.title}`}
+                          {isLoadingThis ? (
+                            <span className="flex items-center gap-1.5">
+                              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                              Loading
+                            </span>
+                          ) : `Add ${addon.title}`}
                         </button>
                       )}
                     </div>
@@ -630,13 +677,20 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       <div className="w-full py-2.5 rounded-lg text-sm font-semibold text-center text-slate-500 bg-slate-100 mt-auto">
                         {t.billing.currentPlan}
                       </div>
+                    ) : isEnterprise ? (
+                      <a
+                        href="mailto:sales@callengo.com?subject=Enterprise Plan Inquiry"
+                        className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto text-center block bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white hover:from-purple-700 hover:to-fuchsia-700"
+                      >
+                        Contact Sales
+                      </a>
                     ) : (
                       <button
                         onClick={() => handleChangePlan(plan.id)}
                         disabled={changing}
-                        className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto ${isRecommended ? 'gradient-bg text-white hover:opacity-90 shadow-md' : isEnterprise ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white hover:from-purple-700 hover:to-fuchsia-700' : 'bg-slate-800 text-white hover:bg-slate-900'}`}
+                        className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto ${isRecommended ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-slate-800 text-white hover:bg-slate-900'}`}
                       >
-                        {changing ? t.common.loading : isEnterprise ? t.billing.changePlan : `${t.billing.upgradePlan} ${plan.name}`}
+                        {changing ? t.common.loading : `${t.billing.upgradePlan} ${plan.name}`}
                       </button>
                     )}
                   </div>
@@ -676,7 +730,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     {/* ── Pricing & Limits ── */}
                     <tr><td colSpan={comparisonPlans.length + 1} className="pt-4 pb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pricing & Limits</span></td></tr>
                     {[
-                      { label: t.billing.plan, render: (p: Plan) => { const mp = p.slug === 'enterprise' ? p.price_monthly : (billingCycle === 'monthly' ? p.price_monthly : p.price_annual); return <span className="font-semibold">{formatPrice(mp)}{t.billing.mo}</span>; }},
+                      { label: t.billing.plan, render: (p: Plan) => { const mp = p.slug === 'enterprise' ? p.price_monthly : (billingCycle === 'monthly' ? p.price_monthly : Math.round(p.price_annual / 12)); return <span className="font-semibold">{formatPrice(mp)}{t.billing.mo}</span>; }},
                       { label: t.billing.minutesIncludedLabel, render: (p: Plan) => <span className="font-semibold">{p.minutes_included.toLocaleString()}</span> },
                       { label: t.billing.maxCallDuration, render: (p: Plan) => <>{p.max_call_duration} {t.billing.min}</> },
                       { label: t.billing.usersLabel, render: (p: Plan) => <>{p.max_users === -1 ? t.billing.unlimited : p.max_users}</> },
@@ -1359,8 +1413,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             {higherPlans.map((plan) => {
               const isEnterprise = plan.slug === 'enterprise';
               const isPopular = plan.slug === 'business';
-              const monthlyPrice = billingCycle === 'monthly' ? plan.price_monthly : plan.price_annual;
-              const yearlyTotal = plan.price_annual * 12;
+              const monthlyPrice = isEnterprise ? plan.price_monthly : (billingCycle === 'monthly' ? plan.price_monthly : Math.round(plan.price_annual / 12));
+              // price_annual is the total annual charge
+              const yearlyTotal = plan.price_annual;
               const discountPercent = !isEnterprise && billingCycle === 'annual' ? Math.round(((plan.price_monthly * 12 - yearlyTotal) / (plan.price_monthly * 12)) * 100) : 0;
 
               return (
@@ -1400,9 +1455,18 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         ))}
                       </div>
                     </div>
-                    <button onClick={() => handleChangePlan(plan.id)} disabled={changing} className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto ${isPopular ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-slate-800 text-white hover:bg-slate-900'}`}>
-                      {changing ? t.common.loading : isEnterprise ? t.billing.changePlan : t.billing.upgradePlan}
-                    </button>
+                    {isEnterprise ? (
+                      <a
+                        href="mailto:sales@callengo.com?subject=Enterprise Plan Inquiry"
+                        className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto text-center block bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white hover:from-purple-700 hover:to-fuchsia-700`}
+                      >
+                        Contact Sales
+                      </a>
+                    ) : (
+                      <button onClick={() => handleChangePlan(plan.id)} disabled={changing} className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto ${isPopular ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-slate-800 text-white hover:bg-slate-900'}`}>
+                        {changing ? t.common.loading : t.billing.upgradePlan}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
