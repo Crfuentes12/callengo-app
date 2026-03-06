@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useStripe } from '@/hooks/useStripe';
 
 interface TeamMember {
   id: string;
@@ -414,6 +415,30 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
     return (tierOrder[slug] ?? 0) > (tierOrder[planSlug] ?? 0);
   });
 
+  // Plans that support buying extra seats directly
+  const canBuyExtraSeats = planConfig.extraCost !== null;
+
+  const { loading: seatCheckoutLoading } = useStripe();
+  const [buyingSeat, setBuyingSeat] = useState(false);
+
+  const handleBuyExtraSeat = async () => {
+    setBuyingSeat(true);
+    try {
+      const res = await fetch('/api/billing/seat-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1, currency: 'USD' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create checkout');
+      if (data.url) window.location.href = data.url;
+    } catch (err: any) {
+      alert(err.message || 'Could not start checkout');
+    } finally {
+      setBuyingSeat(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -436,7 +461,20 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
             <p className="text-xs text-slate-500">{planConfig.label} plan</p>
           </div>
         </div>
-        {!canInvite && nextUpgrade && (
+        {!canInvite && canBuyExtraSeats ? (
+          <button
+            onClick={handleBuyExtraSeat}
+            disabled={buyingSeat}
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg gradient-bg text-white text-xs font-semibold hover:opacity-90 transition-all whitespace-nowrap shadow-sm disabled:opacity-50"
+          >
+            {buyingSeat ? (
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            )}
+            Add seat (+${planConfig.extraCost}/mo)
+          </button>
+        ) : !canInvite && nextUpgrade ? (
           <a
             href="/settings?tab=billing"
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg gradient-bg text-white text-xs font-semibold hover:opacity-90 transition-all whitespace-nowrap shadow-sm"
@@ -444,15 +482,15 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
             Upgrade to {nextUpgrade[1].name}
           </a>
-        )}
-        {canInvite && maxSeats !== -1 && maxSeats - currentSeats <= 1 && (
-          <a
-            href="/settings?tab=billing"
-            className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-900 transition-colors whitespace-nowrap"
+        ) : canInvite && maxSeats !== -1 && maxSeats - currentSeats <= 1 && canBuyExtraSeats ? (
+          <button
+            onClick={handleBuyExtraSeat}
+            disabled={buyingSeat}
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-900 transition-colors whitespace-nowrap disabled:opacity-50"
           >
-            Add more seats
-          </a>
-        )}
+            {buyingSeat ? 'Loading...' : 'Add seat'}
+          </button>
+        ) : null}
       </div>
 
       {/* Messages */}
@@ -515,21 +553,35 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
 
             {planSlug === 'business' && (
               <div className="mt-3 p-4 bg-gradient-to-r from-[var(--color-primary-50)] via-indigo-50 to-purple-50 border border-[var(--color-primary-200)] rounded-xl">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                       </svg>
-                      <p className="text-sm font-bold text-slate-900">Upgrade to Teams</p>
+                      <p className="text-sm font-bold text-slate-900">Need more seats?</p>
                     </div>
                     <p className="text-xs text-slate-600">
-                      Get <span className="font-semibold">5 seats included</span> plus add more at <span className="font-semibold">$69/mo</span> per additional seat. Collaborate with your full team without limits.
+                      Add extra seats at <span className="font-semibold">$49/mo each</span> — or upgrade to Teams for <span className="font-semibold">5 seats included</span>.
                     </p>
                   </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleBuyExtraSeat}
+                    disabled={buyingSeat}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white gradient-bg hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50"
+                  >
+                    {buyingSeat ? (
+                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    ) : (
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    )}
+                    Add seat (+$49/mo)
+                  </button>
                   <a
                     href="/settings?tab=billing&upgrade=teams"
-                    className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white gradient-bg hover:opacity-90 transition-opacity shadow-sm"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
                   >
                     Upgrade to Teams
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
