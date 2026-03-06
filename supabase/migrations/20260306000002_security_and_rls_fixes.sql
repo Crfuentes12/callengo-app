@@ -103,7 +103,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_tracking_period_lookup
 -- ============================================================================
 
 CREATE INDEX IF NOT EXISTS idx_call_queue_pending
-  ON call_queue (status, scheduled_at)
+  ON call_queue (status, queued_at)
   WHERE status = 'pending';
 
 -- ============================================================================
