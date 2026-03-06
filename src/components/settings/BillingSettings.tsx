@@ -34,6 +34,10 @@ interface Subscription {
   overage_budget: number;
   overage_spent: number;
   overage_alert_level: number;
+  addon_dedicated_number?: boolean;
+  addon_recording_vault?: boolean;
+  addon_calls_booster?: boolean;
+  addon_calls_booster_count?: number;
 }
 
 interface Usage {
@@ -78,7 +82,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   // Extra seat pricing per plan (null = no extra seats available)
   const EXTRA_SEAT_PRICE: Record<string, number | null> = { free: null, starter: null, growth: null, business: 49, teams: 49, enterprise: null };
 
-  const { createCheckoutSession, openBillingPortal, loading: stripeLoading } = useStripe();
+  const { createCheckoutSession, createAddonCheckout, openBillingPortal, loading: stripeLoading } = useStripe();
   const { currency } = useUserCurrency();
   const searchParams = useSearchParams();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
@@ -90,6 +94,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const [success, setSuccess] = useState('');
   const [showOverageModal, setShowOverageModal] = useState(false);
   const [overageBudget, setOverageBudget] = useState(10);
+
+  // Add-on state
+  const [activeAddons, setActiveAddons] = useState<string[]>([]);
+  const [addonLoading, setAddonLoading] = useState<string | null>(null);
 
   // Billing details expandable section
   const [showBillingDetails, setShowBillingDetails] = useState(false);
@@ -128,6 +136,13 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         const subData = await subRes.json();
         setSubscription(subData.subscription);
         setUsage(subData.usage);
+        // Read addon flags from subscription
+        const sub = subData.subscription;
+        const active: string[] = [];
+        if (sub?.addon_dedicated_number) active.push('dedicated_number');
+        if (sub?.addon_recording_vault) active.push('recording_vault');
+        if (sub?.addon_calls_booster) active.push('calls_booster');
+        setActiveAddons(active);
       }
     } catch (error) {
       console.error('Error fetching billing data:', error);
@@ -450,6 +465,95 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           </div>
         </div>
 
+        {/* ── Add-ons ── */}
+        {!isFreePlan && (
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">Add-ons</h3>
+            <p className="text-sm text-slate-500 mb-4">Supercharge your plan with powerful extras. Cancel anytime.</p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                {
+                  key: 'dedicated_number' as const,
+                  icon: '📞',
+                  title: 'Dedicated Phone Number',
+                  desc: 'Your own caller ID — better deliverability, consistent brand.',
+                  price: 15,
+                  badge: 'Better pickup rates',
+                  badgeColor: 'blue',
+                },
+                {
+                  key: 'recording_vault' as const,
+                  icon: '🔒',
+                  title: 'Recording Vault',
+                  desc: 'Keep recordings for 12 months instead of 30 days. Searchable & downloadable.',
+                  price: 12,
+                  badge: '12-month retention',
+                  badgeColor: 'purple',
+                },
+                {
+                  key: 'calls_booster' as const,
+                  icon: '🚀',
+                  title: 'Calls Booster',
+                  desc: '+150 calls (~+225 min) added to your plan each month. Stackable.',
+                  price: 35,
+                  badge: '+150 calls/mo',
+                  badgeColor: 'green',
+                },
+              ].map((addon) => {
+                const isActive = activeAddons.includes(addon.key);
+                const isLoadingThis = addonLoading === addon.key;
+                const badgeClasses: Record<string, string> = {
+                  blue: 'bg-blue-100 text-blue-700',
+                  purple: 'bg-purple-100 text-purple-700',
+                  green: 'bg-emerald-100 text-emerald-700',
+                };
+                return (
+                  <div key={addon.key} className={`rounded-xl border p-5 flex flex-col gap-3 transition-all ${isActive ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="text-2xl">{addon.icon}</div>
+                      {isActive ? (
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">Active</span>
+                      ) : (
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClasses[addon.badgeColor]}`}>{addon.badge}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 mb-1">{addon.title}</h4>
+                      <p className="text-xs text-slate-500 leading-relaxed">{addon.desc}</p>
+                    </div>
+                    <div className="mt-auto">
+                      <div className="text-xl font-bold text-slate-900 mb-2">{formatPrice(addon.price)}<span className="text-xs font-normal text-slate-500">/mo</span></div>
+                      {isActive ? (
+                        <button
+                          onClick={() => openBillingPortal()}
+                          className="w-full py-2 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                        >
+                          Manage in Portal
+                        </button>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            setAddonLoading(addon.key);
+                            try {
+                              await createAddonCheckout({ addonType: addon.key, currency: currency as 'USD' | 'EUR' | 'GBP' });
+                            } catch {
+                              setAddonLoading(null);
+                            }
+                          }}
+                          disabled={isLoadingThis || stripeLoading}
+                          className="w-full py-2 rounded-lg text-xs font-semibold gradient-bg text-white hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLoadingThis ? 'Loading...' : `Add ${addon.title}`}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── Plans Comparison (current + upgrades) ── */}
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -470,8 +574,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               const isEnterprise = plan.slug === 'enterprise';
               const isCurrent = plan.slug === currentPlan.slug;
               const isRecommended = !isCurrent && higherPlans.length > 0 && plan === higherPlans[0];
-              const monthlyPrice = isEnterprise ? plan.price_monthly : (billingCycle === 'monthly' ? plan.price_monthly : plan.price_annual);
-              const yearlyTotal = plan.price_annual * 12;
+              const monthlyPrice = isEnterprise ? plan.price_monthly : (billingCycle === 'monthly' ? plan.price_monthly : Math.round(plan.price_annual / 12));
+              // price_annual is the total annual charge
+              const yearlyTotal = plan.price_annual;
               const discountPercent = !isEnterprise && billingCycle === 'annual' ? Math.round(((plan.price_monthly * 12 - yearlyTotal) / (plan.price_monthly * 12)) * 100) : 0;
 
               return (

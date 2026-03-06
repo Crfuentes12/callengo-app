@@ -57,6 +57,43 @@ export function useStripe() {
   };
 
   /**
+   * Create addon checkout session and redirect
+   */
+  const createAddonCheckout = async (params: {
+    addonType: 'dedicated_number' | 'recording_vault' | 'calls_booster';
+    currency?: 'USD' | 'EUR' | 'GBP';
+  }) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/billing/addon-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create addon checkout');
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
    * Open Stripe billing portal
    */
   const openBillingPortal = async () => {
@@ -91,6 +128,7 @@ export function useStripe() {
 
   return {
     createCheckoutSession,
+    createAddonCheckout,
     openBillingPortal,
     loading,
     error,
