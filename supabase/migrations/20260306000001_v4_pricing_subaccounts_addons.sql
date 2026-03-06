@@ -478,8 +478,8 @@ CREATE POLICY "company_addons_company_members_select"
   ON company_addons FOR SELECT
   USING (
     company_id IN (
-      SELECT company_id FROM company_members
-      WHERE user_id = auth.uid()
+      SELECT company_id FROM users
+      WHERE id = auth.uid()
     )
   );
 
