@@ -7,6 +7,7 @@
  * One script to rule them all. Syncs everything to Stripe:
  * - Products with features (entitlements + marketing)
  * - Prices in multiple currencies (USD, EUR, GBP)
+ * - Add-on products (Dedicated Number, Recording Vault, Calls Booster)
  * - Promotional coupons
  * - Archives incorrect prices automatically
  *
@@ -23,6 +24,7 @@
  *   --skip-prices         Skip price creation/updates
  *   --skip-coupons        Skip coupon creation
  *   --skip-features       Skip feature creation
+ *   --skip-addons         Skip add-on product sync
  *
  * SAFE TO RUN:
  * - Idempotent (can run multiple times)
@@ -30,8 +32,7 @@
  * - Preserves existing subscriptions
  * - Updates Supabase with correct IDs
  *
- * @author Claude (Anthropic)
- * @version 3.0.0
+ * @version 4.0.0
  */
 
 import Stripe from 'stripe';
@@ -51,6 +52,7 @@ interface Config {
   SKIP_PRICES: boolean;
   SKIP_COUPONS: boolean;
   SKIP_FEATURES: boolean;
+  SKIP_ADDONS: boolean;
 }
 
 const CONFIG: Config = {
@@ -60,6 +62,7 @@ const CONFIG: Config = {
   SKIP_PRICES: process.argv.includes('--skip-prices'),
   SKIP_COUPONS: process.argv.includes('--skip-coupons'),
   SKIP_FEATURES: process.argv.includes('--skip-features'),
+  SKIP_ADDONS: process.argv.includes('--skip-addons'),
 };
 
 // Initialize Stripe
@@ -89,6 +92,77 @@ const CURRENCIES: Record<string, CurrencyConfig> = {
   EUR: { code: 'eur', symbol: '€', multiplier: 0.92 }, // ~0.92 EUR = 1 USD
   GBP: { code: 'gbp', symbol: '£', multiplier: 0.79 }, // ~0.79 GBP = 1 USD
 };
+
+// ============================================================================
+// ADD-ON PRODUCTS
+// ============================================================================
+
+interface AddonProduct {
+  key: string;
+  name: string;
+  description: string;
+  statement_descriptor: string;
+  price_usd_monthly: number;  // in dollars
+  metadata: Record<string, string>;
+  features: string[];
+}
+
+const ADDON_PRODUCTS: AddonProduct[] = [
+  {
+    key: 'dedicated_number',
+    name: 'Dedicated Phone Number',
+    description: 'Get your own dedicated phone number for outbound AI calls via Callengo. Improves brand recognition and deliverability.',
+    statement_descriptor: 'CALLENGO NUMBER',
+    price_usd_monthly: 15,
+    metadata: {
+      addon_type: 'dedicated_number',
+      min_plan: 'starter',
+    },
+    features: [
+      'Dedicated outbound caller ID',
+      'Better call deliverability',
+      'Consistent brand identity',
+      'Available on Starter and above',
+    ],
+  },
+  {
+    key: 'recording_vault',
+    name: 'Recording Vault',
+    description: 'Extend call recording retention from 30 days to 12 months. All recordings securely stored and downloadable anytime.',
+    statement_descriptor: 'CALLENGO VAULT',
+    price_usd_monthly: 12,
+    metadata: {
+      addon_type: 'recording_vault',
+      min_plan: 'starter',
+      retention_months: '12',
+    },
+    features: [
+      '12-month recording retention',
+      'Secure cloud storage',
+      'Downloadable anytime',
+      'Default is 30-day retention',
+    ],
+  },
+  {
+    key: 'calls_booster',
+    name: 'Calls Booster',
+    description: 'Add 150 extra calls (~225 minutes) to your monthly plan. Stack multiple boosters for more capacity.',
+    statement_descriptor: 'CALLENGO BOOST',
+    price_usd_monthly: 35,
+    metadata: {
+      addon_type: 'calls_booster',
+      min_plan: 'starter',
+      extra_calls: '150',
+      extra_minutes: '225',
+    },
+    features: [
+      '+150 calls per month',
+      '~+225 minutes included',
+      'Stackable (multiple per account)',
+      'Available on Starter and above',
+    ],
+  },
+];
 
 // ============================================================================
 // PROMOTIONAL COUPONS
@@ -121,7 +195,6 @@ const COUPONS = [
       target: 'qa_team',
       description: '3-month free access for testers (10 codes max)',
     },
-    // Custom promo codes: TESTER01 through TESTER10
     promoCodes: ['TESTER01', 'TESTER02', 'TESTER03', 'TESTER04', 'TESTER05', 'TESTER06', 'TESTER07', 'TESTER08', 'TESTER09', 'TESTER10'],
   },
 
@@ -215,7 +288,7 @@ const COUPONS = [
 ];
 
 // ============================================================================
-// FEATURES DEFINITION (COHERENT WITH PRODUCT SPEC)
+// FEATURES DEFINITION (V4 — COHERENT WITH plan-features.ts)
 // ============================================================================
 
 const COMMON_FEATURES = [
@@ -244,52 +317,68 @@ const COMMON_FEATURES = [
   'Usage dashboard',
   'Billing alerts',
   'Plan management',
+
+  // Always included
+  'Google Calendar + Meet',
+  'Zoom meetings',
+  'Auto-rotated phone numbers',
 ];
 
 const PLAN_FEATURES = {
   free: [
     ...COMMON_FEATURES,
-    '15 one-time minutes',
-    '3 min per call',
+    '10 calls included (trial)',
+    '15 minutes total',
+    '3 min max per call',
     '1 concurrent call',
     '1 active agent (locked)',
     '1 user',
     'No overage (upgrade required)',
-    'Google Calendar + Meet',
-    'Auto-rotated phone numbers',
   ],
 
   starter: [
     ...COMMON_FEATURES,
-    '300 minutes per month',
-    '3 min per call',
+    '200 calls/month (~300 min)',
+    '3 min max per call',
     '2 concurrent calls',
     '1 active agent (switchable)',
     '1 user',
-    '$0.55/min overage',
+    '$0.29/min overage',
     'Voicemail detection',
     'Follow-ups (max 2 attempts)',
-    'Google Calendar + Meet + Zoom',
     'Slack notifications',
     'SimplyBook.me integration',
     'Webhooks (Zapier, Make, n8n)',
     'Async email support',
-    'Auto-rotated phone numbers',
+  ],
+
+  growth: [
+    ...COMMON_FEATURES,
+    '400 calls/month (~600 min)',
+    '4 min max per call',
+    '3 concurrent calls',
+    'Unlimited agents',
+    '1 user',
+    '$0.26/min overage',
+    'Voicemail detection & smart handling',
+    'Smart follow-ups (max 5 attempts)',
+    'Slack notifications',
+    'SimplyBook.me integration',
+    'Webhooks (Zapier, Make, n8n)',
+    'Priority email support',
   ],
 
   business: [
     ...COMMON_FEATURES,
-    '1,200 minutes per month',
-    '5 min per call',
+    '800 calls/month (~1,200 min)',
+    '5 min max per call',
     '5 concurrent calls',
     'Unlimited agents',
-    '3 users',
-    '$0.39/min overage',
+    '3 users ($49/extra seat)',
+    '$0.23/min overage',
     'Smart follow-ups (max 5 attempts)',
-    'Google Calendar + Outlook',
-    'Meet + Zoom + Teams',
-    'Slack notifications',
-    'Twilio BYOP',
+    'Voicemail detection & smart handling',
+    'Microsoft Outlook & Teams',
     'HubSpot CRM',
     'Pipedrive CRM',
     'Zoho CRM',
@@ -299,27 +388,27 @@ const PLAN_FEATURES = {
 
   teams: [
     ...COMMON_FEATURES,
-    '2,500 minutes per month',
-    '8 min per call',
+    '1,500 calls/month (~2,250 min)',
+    '6 min max per call',
     '10 concurrent calls',
     'Unlimited agents',
-    '5 users ($69/extra)',
-    '$0.29/min overage',
-    'User permissions',
-    'Advanced follow-ups (max 10)',
+    '5 users ($49/extra seat)',
+    '$0.20/min overage',
+    'User permissions (admin/member)',
+    'Advanced follow-ups (max 10 attempts)',
     'Salesforce CRM',
-    'Dynamics 365',
+    'Microsoft Dynamics 365',
     'All Business integrations',
     'Priority support',
   ],
 
   enterprise: [
     ...COMMON_FEATURES,
-    '6,000+ minutes per month',
-    '15 min per call',
-    '25+ concurrent calls',
+    '4,000+ calls/month (~6,000 min)',
+    'Unlimited call duration',
+    'Unlimited concurrent calls',
     'Unlimited agents & users',
-    '$0.25/min overage',
+    '$0.17/min overage',
     'Unlimited follow-ups',
     'All integrations (current + future)',
     'SLA guarantee',
@@ -330,28 +419,33 @@ const PLAN_FEATURES = {
 
 const PRODUCT_DESCRIPTIONS = {
   free: {
-    short: 'Try AI calling - 15 one-time minutes',
-    long: 'Try Callengo with 15 one-time minutes. Experience the full platform with 1 AI agent.',
+    short: 'Try AI calling — 10 calls / 15 min trial',
+    long: 'Try Callengo with 10 calls and 15 minutes. Experience the full platform with 1 AI agent. No credit card required.',
     statement_descriptor: 'CALLENGO FREE',
   },
   starter: {
-    short: 'Solo use - 300 minutes/month',
-    long: 'Perfect for solo founders and freelancers. 300 minutes/month with voicemail, follow-ups, Slack, and Zoom.',
+    short: 'Solo use — 200 calls/month',
+    long: 'Perfect for solo founders and freelancers. 200 calls/month with voicemail detection, follow-ups, Slack, and Zoom.',
     statement_descriptor: 'CALLENGO STARTER',
   },
+  growth: {
+    short: 'Growing businesses — 400 calls/month',
+    long: 'For growing businesses. 400 calls/month, unlimited agents, smart follow-ups, and priority support.',
+    statement_descriptor: 'CALLENGO GROWTH',
+  },
   business: {
-    short: 'Growing teams - 1,200 minutes/month',
-    long: 'For growing businesses. Unlimited agents, 3 users, smart follow-ups, CRM integrations (HubSpot, Pipedrive, Zoho, Clio).',
+    short: 'Scaling teams — 800 calls/month',
+    long: 'For scaling businesses. Unlimited agents, 3 users, CRM integrations (HubSpot, Pipedrive, Zoho, Clio), Microsoft 365.',
     statement_descriptor: 'CALLENGO BUSINESS',
   },
   teams: {
-    short: 'Collaboration - 2,500 minutes/month',
-    long: 'For collaborative teams. 5 users, user permissions, enterprise CRMs (Salesforce, Dynamics 365), all Business integrations.',
+    short: 'Collaboration — 1,500 calls/month',
+    long: 'For collaborative teams. 5 users, permissions, enterprise CRMs (Salesforce, Dynamics 365), all Business integrations.',
     statement_descriptor: 'CALLENGO TEAMS',
   },
   enterprise: {
-    short: 'Enterprise - 6,000+ minutes/month',
-    long: 'For large organizations. Unlimited users, SLA guarantee, dedicated account manager, all integrations.',
+    short: 'Enterprise — 4,000+ calls/month',
+    long: 'For large organizations. Unlimited everything, SLA guarantee, dedicated account manager, all integrations.',
     statement_descriptor: 'CALLENGO ENTERPRISE',
   },
 };
@@ -385,7 +479,7 @@ async function confirmAction(message: string): Promise<boolean> {
 
 async function main() {
   console.log('\n╔═══════════════════════════════════════════════════════════╗');
-  console.log('║     CALLENGO - UNIVERSAL STRIPE SYNCHRONIZATION v3.0     ║');
+  console.log('║     CALLENGO - UNIVERSAL STRIPE SYNCHRONIZATION v4.0     ║');
   console.log('╚═══════════════════════════════════════════════════════════╝\n');
 
   log(`Environment: ${CONFIG.ENV.toUpperCase()}`, 'info');
@@ -396,7 +490,7 @@ async function main() {
   // Test Stripe connection
   log('Testing Stripe connection...', 'info');
   try {
-    const balance = await stripe.balance.retrieve();
+    await stripe.balance.retrieve();
     log(`Connected to Stripe account successfully`, 'success');
   } catch (error: any) {
     log(`Failed to connect to Stripe: ${error.message}`, 'error');
@@ -408,8 +502,13 @@ async function main() {
     await syncCoupons();
   }
 
-  // Sync plans
+  // Sync subscription plans
   await syncPlans();
+
+  // Sync add-on products
+  if (!CONFIG.SKIP_ADDONS) {
+    await syncAddons();
+  }
 
   // Summary
   console.log('\n╔═══════════════════════════════════════════════════════════╗');
@@ -436,7 +535,6 @@ async function syncCoupons() {
     try {
       log(`Processing coupon: ${couponConfig.id} (${couponConfig.name})`, 'info');
 
-      // Check if coupon exists
       let existingCoupon: Stripe.Coupon | null = null;
       try {
         existingCoupon = await stripe.coupons.retrieve(couponConfig.id);
@@ -446,13 +544,10 @@ async function syncCoupons() {
       }
 
       if (!existingCoupon && await confirmAction(`Create coupon ${couponConfig.id}`)) {
-        // Clean metadata
         const cleanMetadata: Record<string, string | number | null> = {};
         if (couponConfig.metadata) {
           Object.entries(couponConfig.metadata).forEach(([key, value]) => {
-            if (value !== undefined) {
-              cleanMetadata[key] = value;
-            }
+            if (value !== undefined) cleanMetadata[key] = value;
           });
         }
 
@@ -470,14 +565,14 @@ async function syncCoupons() {
         log(`   Coupon already exists (${existingCoupon.times_redeemed || 0}/${existingCoupon.max_redemptions || '∞'} used)`, 'info');
       }
 
-      // Create promotion codes (using raw API to avoid SDK version issues)
+      // Create promotion codes
       if (!CONFIG.DRY_RUN) {
-        const config = couponConfig as any;
-        const codes: string[] = config.promoCodes || [couponConfig.id];
+        const cfg = couponConfig as any;
+        const codes: string[] = cfg.promoCodes || [couponConfig.id];
 
         for (const code of codes) {
           try {
-            const maxRedemptions = config.promoCodes ? 1 : couponConfig.max_redemptions;
+            const maxRedemptions = cfg.promoCodes ? 1 : couponConfig.max_redemptions;
             const bodyParams = new URLSearchParams();
             bodyParams.set('coupon', couponConfig.id);
             bodyParams.set('code', code);
@@ -523,7 +618,6 @@ async function syncCoupons() {
 async function syncPlans() {
   log('\n🚀 Starting subscription plans synchronization...', 'info');
 
-  // Fetch all active plans
   const { data: plans, error } = await supabase
     .from('subscription_plans')
     .select('*')
@@ -567,11 +661,8 @@ async function syncSinglePlan(plan: any) {
   const productDesc = PRODUCT_DESCRIPTIONS[plan.slug as keyof typeof PRODUCT_DESCRIPTIONS];
   const features = PLAN_FEATURES[plan.slug as keyof typeof PLAN_FEATURES] || COMMON_FEATURES;
 
-  // ============================================================================
-  // STEP 1: Create/Update Product
-  // ============================================================================
+  // ── Create/Update Product ──
 
-  // Verify the product actually exists in the current Stripe environment
   if (productId) {
     try {
       await stripe.products.retrieve(productId);
@@ -593,12 +684,14 @@ async function syncSinglePlan(plan: any) {
         metadata: {
           plan_id: plan.id,
           slug: plan.slug,
+          calls_included: (plan.calls_included || 0).toString(),
           minutes_included: plan.minutes_included.toString(),
           max_users: plan.max_users.toString(),
           max_agents: plan.max_agents?.toString() || 'unlimited',
           max_concurrent_calls: plan.max_concurrent_calls.toString(),
+          overage_rate: plan.price_per_extra_minute.toString(),
           source: 'supabase',
-          sync_version: '3.0',
+          sync_version: '4.0',
           environment: CONFIG.ENV,
         },
       } as any);
@@ -610,7 +703,6 @@ async function syncSinglePlan(plan: any) {
   } else {
     logVerbose(`Using existing product: ${productId}`);
 
-    // Update product
     if (!CONFIG.DRY_RUN) {
       await stripe.products.update(productId, {
         name: plan.name,
@@ -620,12 +712,14 @@ async function syncSinglePlan(plan: any) {
         metadata: {
           plan_id: plan.id,
           slug: plan.slug,
+          calls_included: (plan.calls_included || 0).toString(),
           minutes_included: plan.minutes_included.toString(),
           max_users: plan.max_users.toString(),
           max_agents: plan.max_agents?.toString() || 'unlimited',
           max_concurrent_calls: plan.max_concurrent_calls.toString(),
+          overage_rate: plan.price_per_extra_minute.toString(),
           source: 'supabase',
-          sync_version: '3.0',
+          sync_version: '4.0',
           last_synced: new Date().toISOString(),
           environment: CONFIG.ENV,
         },
@@ -634,9 +728,7 @@ async function syncSinglePlan(plan: any) {
     }
   }
 
-  // ============================================================================
-  // STEP 1.5: Create and Attach Entitlement Features
-  // ============================================================================
+  // ── Sync Entitlement Features ──
 
   if (!CONFIG.SKIP_FEATURES && features && features.length > 0 && productId) {
     logVerbose(`Syncing ${features.length} entitlement features...`);
@@ -662,7 +754,6 @@ async function syncSinglePlan(plan: any) {
             } as any);
             logVerbose(`     Created feature: ${featureName}`);
           } catch (createErr: any) {
-            // Feature already exists but wasn't in the first 100 results
             if (createErr.message?.includes('lookup_key') || createErr.message?.includes('already')) {
               logVerbose(`     Feature exists: ${featureName}`);
             } else {
@@ -696,9 +787,7 @@ async function syncSinglePlan(plan: any) {
     log(`  Synced ${features.length} features to product`, 'success');
   }
 
-  // ============================================================================
-  // STEP 2 & 3: Create Prices in Multiple Currencies
-  // ============================================================================
+  // ── Create Prices in Multiple Currencies ──
 
   if (!CONFIG.SKIP_PRICES) {
     for (const [currencyName, currencyConfig] of Object.entries(CURRENCIES)) {
@@ -706,9 +795,7 @@ async function syncSinglePlan(plan: any) {
     }
   }
 
-  // ============================================================================
-  // STEP 4: Update Supabase
-  // ============================================================================
+  // ── Update Supabase ──
 
   if (!CONFIG.DRY_RUN && productId) {
     const { error: updateError } = await supabase
@@ -742,7 +829,6 @@ async function syncPricesForCurrency(
 
   logVerbose(`  ${currency.code.toUpperCase()} Prices:`);
 
-  // Initialize price IDs for this currency
   if (!priceIds[currency.code.toUpperCase()]) {
     priceIds[currency.code.toUpperCase()] = { monthly: null, annual: null };
   }
@@ -774,21 +860,17 @@ async function syncPricesForCurrency(
   if (priceAnnual > 0) {
     const monthlyEquivalent = Math.round(priceAnnual * currency.multiplier * 100);
 
-    // Check for incorrect existing price
     if (plan.stripe_price_id_annual && currency.code === 'usd' && !CONFIG.DRY_RUN) {
       try {
         const existingPrice = await stripe.prices.retrieve(plan.stripe_price_id_annual);
-        const expectedAmount = annualAmount;
-
-        if (existingPrice.unit_amount !== expectedAmount) {
-          log(`     Incorrect annual price detected: ${currency.symbol}${(existingPrice.unit_amount || 0) / 100} (expected ${currency.symbol}${expectedAmount / 100})`, 'warning');
-
+        if (existingPrice.unit_amount !== annualAmount) {
+          log(`     Incorrect annual price detected: ${currency.symbol}${(existingPrice.unit_amount || 0) / 100} (expected ${currency.symbol}${annualAmount / 100})`, 'warning');
           await stripe.prices.update(plan.stripe_price_id_annual, { active: false });
           log(`     Archived incorrect price`, 'success');
         } else {
           priceIds[currency.code.toUpperCase()].annual = existingPrice.id;
           logVerbose(`     ${currency.code.toUpperCase()} Annual exists and is correct`);
-          return; // Skip creation
+          return;
         }
       } catch (err) {
         // Price doesn't exist or can't be retrieved
@@ -817,6 +899,128 @@ async function syncPricesForCurrency(
 
       priceIds[currency.code.toUpperCase()].annual = price.id;
       log(`     ${currency.code.toUpperCase()} Annual: ${price.id} (${currency.symbol}${annualAmount / 100}/yr = ${currency.symbol}${monthlyEquivalent / 100}/mo, save ${savings}%)`, 'success');
+    }
+  }
+}
+
+// ============================================================================
+// ADD-ON PRODUCT SYNCHRONIZATION
+// ============================================================================
+
+async function syncAddons() {
+  log('\n🔌 Starting add-on products synchronization...', 'info');
+  console.log('');
+
+  for (const addon of ADDON_PRODUCTS) {
+    log(`\n🧩 Processing add-on: ${addon.name}`, 'info');
+    console.log('─'.repeat(60));
+
+    try {
+      await syncSingleAddon(addon);
+      log(`Completed: ${addon.name}\n`, 'success');
+    } catch (error) {
+      log(`Error processing add-on ${addon.name}: ${error}`, 'error');
+    }
+  }
+
+  log('\n🔌 Add-on synchronization completed!', 'success');
+}
+
+async function syncSingleAddon(addon: AddonProduct) {
+  // Search for existing product by metadata key
+  let productId: string | null = null;
+
+  if (!CONFIG.DRY_RUN) {
+    const existingProducts = await stripe.products.search({
+      query: `metadata['addon_type']:'${addon.key}'`,
+    });
+
+    if (existingProducts.data.length > 0) {
+      productId = existingProducts.data[0].id;
+      logVerbose(`Found existing add-on product: ${productId}`);
+
+      await stripe.products.update(productId, {
+        name: addon.name,
+        description: addon.description,
+        statement_descriptor: addon.statement_descriptor,
+        marketing_features: addon.features.map(f => ({ name: f })),
+        metadata: {
+          ...addon.metadata,
+          sync_version: '4.0',
+          last_synced: new Date().toISOString(),
+        },
+      } as any);
+      logVerbose('Add-on product updated');
+    }
+  }
+
+  if (!productId && await confirmAction(`Create add-on product: ${addon.name}`)) {
+    const product = await stripe.products.create({
+      name: addon.name,
+      description: addon.description,
+      statement_descriptor: addon.statement_descriptor,
+      marketing_features: addon.features.map(f => ({ name: f })),
+      metadata: {
+        ...addon.metadata,
+        product_type: 'addon',
+        sync_version: '4.0',
+        environment: CONFIG.ENV,
+      },
+    } as any);
+    productId = product.id;
+    log(`  Add-on product created: ${productId}`, 'success');
+  }
+
+  if (!productId) return;
+
+  // Create prices for each currency
+  for (const [, currency] of Object.entries(CURRENCIES)) {
+    const amount = Math.round(addon.price_usd_monthly * currency.multiplier * 100);
+
+    if (await confirmAction(`Create ${currency.code.toUpperCase()} monthly price for ${addon.name}: ${currency.symbol}${amount / 100}`)) {
+      // Check if a price already exists for this currency and product
+      if (!CONFIG.DRY_RUN) {
+        const existingPrices = await stripe.prices.list({
+          product: productId,
+          currency: currency.code,
+          active: true,
+          limit: 10,
+        });
+
+        const correctPrice = existingPrices.data.find(
+          p => p.unit_amount === amount && p.recurring?.interval === 'month'
+        );
+
+        if (correctPrice) {
+          logVerbose(`     ${currency.code.toUpperCase()} Monthly price exists and is correct: ${correctPrice.id}`);
+          continue;
+        }
+
+        // Archive incorrect prices
+        for (const price of existingPrices.data) {
+          if (price.unit_amount !== amount) {
+            await stripe.prices.update(price.id, { active: false });
+            logVerbose(`     Archived incorrect price: ${price.id}`);
+          }
+        }
+      }
+
+      if (await confirmAction(`Create ${currency.code.toUpperCase()} price for ${addon.name}`)) {
+        const price = await stripe.prices.create({
+          product: productId,
+          currency: currency.code,
+          unit_amount: amount,
+          recurring: { interval: 'month' },
+          nickname: `${addon.name} - Monthly (${currency.code.toUpperCase()})`,
+          tax_behavior: 'exclusive',
+          metadata: {
+            addon_key: addon.key,
+            billing_cycle: 'monthly',
+            currency: currency.code,
+          },
+        });
+        log(`     ${currency.code.toUpperCase()} Monthly: ${price.id} (${currency.symbol}${amount / 100}/mo)`, 'success');
+      }
     }
   }
 }

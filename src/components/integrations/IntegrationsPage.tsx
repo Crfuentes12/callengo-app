@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SiTwilio } from 'react-icons/si';
 import { FaSalesforce, FaHubspot, FaLock } from 'react-icons/fa';
 import Link from 'next/link';
 import { BiLogoZoom } from 'react-icons/bi';
@@ -22,7 +21,7 @@ import {
 
 type PlanTier = 'free' | 'starter' | 'business' | 'teams' | 'enterprise';
 type CategoryFilter = 'all' | 'calendar' | 'video' | 'communication' | 'crm' | 'payment';
-type PlanFilter = 'all_plans' | 'free' | 'starter' | 'business' | 'teams' | 'enterprise';
+type PlanFilter = 'all_plans' | 'free' | 'starter' | 'growth' | 'business' | 'teams' | 'enterprise';
 
 interface IntegrationsPageProps {
   integrations: {
@@ -30,7 +29,6 @@ interface IntegrationsPageProps {
     microsoft_outlook: { connected: boolean; email?: string; lastSynced?: string; integrationId?: string };
     zoom: { connected: boolean };
     slack: { connected: boolean; teamName?: string; channelName?: string };
-    twilio: { connected: boolean };
     salesforce: { connected: boolean; email?: string; username?: string; displayName?: string; lastSynced?: string; integrationId?: string };
     hubspot?: { connected: boolean; email?: string; displayName?: string; hubDomain?: string; lastSynced?: string; integrationId?: string };
     pipedrive?: { connected: boolean; email?: string; displayName?: string; companyName?: string; companyDomain?: string; lastSynced?: string; integrationId?: string };
@@ -58,7 +56,7 @@ interface IntegrationItem {
   connectedInfo?: { label: string; value: string }[];
   autoEnabledWith?: string;
   connectUrl?: string;
-  connectMethod?: 'redirect' | 'post' | 'twilio_inline' | 'webhooks_inline' | 'simplybook_inline';
+  connectMethod?: 'redirect' | 'post' | 'webhooks_inline' | 'simplybook_inline';
   disconnectUrl?: string;
   syncUrl?: string;
   settingsUrl?: string;
@@ -72,301 +70,7 @@ interface IntegrationItem {
 // ============================================================================
 // Helper functions and icons imported from ./integration-helpers
 
-// ============================================================================
-// TWILIO SETUP MODAL
-// ============================================================================
-
-function TwilioSetupModal({
-  companyId,
-  onClose,
-  onSuccess,
-}: {
-  companyId: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const supabase = createClient();
-  const [step, setStep] = useState(1);
-  const [accountSid, setAccountSid] = useState('');
-  const [authToken, setAuthToken] = useState('');
-  const [phoneNumbers, setPhoneNumbers] = useState('');
-  const [connecting, setConnecting] = useState(false);
-  const [error, setError] = useState('');
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
-
-  const handleTest = async () => {
-    if (!accountSid || !authToken) {
-      setError('Please enter both Account SID and Auth Token');
-      return;
-    }
-    setTesting(true);
-    setError('');
-    setTestResult(null);
-    try {
-      const res = await fetch('/api/bland/twilio/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account_sid: accountSid, auth_token: authToken, test_only: true }),
-      });
-      if (res.ok) {
-        setTestResult('success');
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setTestResult('error');
-        setError(data.error || 'Invalid credentials. Check your Account SID and Auth Token.');
-      }
-    } catch {
-      setTestResult('error');
-      setError('Connection failed. Please try again.');
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const handleConnect = async () => {
-    if (!accountSid || !authToken) {
-      setError('Please enter both Account SID and Auth Token');
-      return;
-    }
-    setConnecting(true);
-    setError('');
-    try {
-      const res = await fetch('/api/bland/twilio/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account_sid: accountSid, auth_token: authToken }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to connect');
-
-      // Save encrypted key to company settings
-      const { data: currentSettings } = await supabase
-        .from('company_settings')
-        .select('settings')
-        .eq('company_id', companyId)
-        .single();
-      const existingSettings = (currentSettings?.settings as any) || {};
-      await supabase
-        .from('company_settings')
-        .update({
-          settings: {
-            ...existingSettings,
-            twilio_encrypted_key: data.encrypted_key,
-            twilio_connected_at: new Date().toISOString(),
-          },
-        })
-        .eq('company_id', companyId);
-
-      // Import phone numbers if provided
-      if (phoneNumbers.trim()) {
-        const numbers = phoneNumbers.split(/[,\n]/).map(n => n.trim()).filter(Boolean);
-        if (numbers.length > 0) {
-          await fetch('/api/bland/twilio/import-numbers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ numbers, encrypted_key: data.encrypted_key }),
-          });
-        }
-      }
-
-      onSuccess();
-    } catch (err: any) {
-      setError(err.message || 'Failed to connect Twilio');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="p-6 border-b border-slate-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-red-50 text-[#F22F46] flex items-center justify-center">
-                <SiTwilio className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">Connect Twilio</h3>
-                <p className="text-sm text-slate-500">Step {step} of 3</p>
-              </div>
-            </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
-          {/* Progress bar */}
-          <div className="flex gap-1.5 mt-4">
-            {[1, 2, 3].map(s => (
-              <div key={s} className={`h-1 flex-1 rounded-full transition-all ${s <= step ? 'bg-[#F22F46]' : 'bg-slate-200'}`} />
-            ))}
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="p-6 space-y-4">
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-xs text-red-800 font-medium">{error}</p>
-            </div>
-          )}
-
-          {step === 1 && (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="flex gap-2">
-                  <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <div className="text-xs text-blue-900">
-                    <p className="font-semibold mb-0.5">Where to find your credentials</p>
-                    <p className="text-blue-700">Log in to <strong>twilio.com/console</strong>. Your Account SID and Auth Token are on the main dashboard page.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <label className="block text-sm font-bold text-slate-700">Account SID</label>
-                  <Tooltip text="Your Twilio Account SID starts with 'AC' and is 34 characters long. Find it on your Twilio Console dashboard." />
-                </div>
-                <input
-                  type="text" value={accountSid} onChange={e => setAccountSid(e.target.value)}
-                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#F22F46]/20 focus:border-[#F22F46] outline-none transition-all font-mono text-sm"
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <label className="block text-sm font-bold text-slate-700">Auth Token</label>
-                  <Tooltip text="Your Auth Token is a 32-character string visible below your Account SID in Twilio Console. Click the eye icon to reveal it." />
-                </div>
-                <input
-                  type="password" value={authToken} onChange={e => setAuthToken(e.target.value)}
-                  placeholder="Your Twilio Auth Token"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#F22F46]/20 focus:border-[#F22F46] outline-none transition-all text-sm"
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="flex gap-2">
-                  <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <div className="text-xs text-blue-900">
-                    <p className="font-semibold mb-0.5">Test your credentials</p>
-                    <p className="text-blue-700">We&apos;ll validate your Account SID and Auth Token before saving. This ensures a smooth setup.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Account SID</span>
-                  <span className="font-mono text-slate-900 text-xs">{accountSid.slice(0, 6)}...{accountSid.slice(-4)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Auth Token</span>
-                  <span className="font-mono text-slate-900 text-xs">{'*'.repeat(8)}...{authToken.slice(-4)}</span>
-                </div>
-              </div>
-
-              {testResult === 'success' && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <p className="text-xs text-emerald-800 font-semibold">Credentials verified successfully</p>
-                </div>
-              )}
-
-              <button
-                onClick={handleTest}
-                disabled={testing}
-                className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold border border-[#F22F46] text-[#F22F46] hover:bg-[#F22F46]/5 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
-              >
-                {testing ? <Spinner className="w-4 h-4" /> : (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                )}
-                {testing ? 'Testing...' : testResult === 'success' ? 'Re-test Connection' : 'Test Connection'}
-              </button>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="flex gap-2">
-                  <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <div className="text-xs text-blue-900">
-                    <p className="font-semibold mb-0.5">Import your phone numbers</p>
-                    <p className="text-blue-700">In Twilio Console go to <strong>Phone Numbers &rarr; Manage &rarr; Active Numbers</strong>. Copy them in E.164 format (e.g. +12223334444).</p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <label className="block text-sm font-bold text-slate-700">Phone Numbers <span className="text-slate-400 font-normal">(optional)</span></label>
-                  <Tooltip text="Add your Twilio phone numbers in E.164 format. You can also add them later from Settings. One per line or comma-separated." />
-                </div>
-                <textarea
-                  value={phoneNumbers} onChange={e => setPhoneNumbers(e.target.value)}
-                  placeholder={"+12223334444\n+13334445555"}
-                  rows={3}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#F22F46]/20 focus:border-[#F22F46] outline-none transition-all font-mono text-sm resize-none"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 pt-0 flex gap-2">
-          {step > 1 && (
-            <button
-              onClick={() => { setStep(step - 1); setError(''); }}
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all"
-            >
-              Back
-            </button>
-          )}
-          {step === 1 && (
-            <button
-              onClick={() => {
-                if (!accountSid || !authToken) { setError('Fill in both fields to continue'); return; }
-                setError(''); setStep(2);
-              }}
-              disabled={!accountSid || !authToken}
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#F22F46] hover:bg-[#D92030] transition-all disabled:opacity-50"
-            >
-              Next
-            </button>
-          )}
-          {step === 2 && (
-            <button
-              onClick={() => { setError(''); setStep(3); }}
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#F22F46] hover:bg-[#D92030] transition-all"
-            >
-              {testResult === 'success' ? 'Continue' : 'Skip Test & Continue'}
-            </button>
-          )}
-          {step === 3 && (
-            <button
-              onClick={handleConnect}
-              disabled={connecting}
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#F22F46] hover:bg-[#D92030] transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
-            >
-              {connecting ? <Spinner className="w-4 h-4" /> : null}
-              {connecting ? 'Connecting...' : 'Connect Twilio'}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+// (Twilio BYOP removed — not compatible with Bland AI sub-account architecture)
 
 // ============================================================================
 // SIMPLYBOOK SETUP MODAL
@@ -1350,7 +1054,6 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>('all');
   const [planFilter, setPlanFilter] = useState<PlanFilter>('all_plans');
   const [configItem, setConfigItem] = useState<IntegrationItem | null>(null);
-  const [showTwilioSetup, setShowTwilioSetup] = useState(false);
   const [showSlackConfig, setShowSlackConfig] = useState(false);
   const [showWebhooksSetup, setShowWebhooksSetup] = useState(false);
   const [showSimplyBookSetup, setShowSimplyBookSetup] = useState(false);
@@ -1373,11 +1076,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   // Actions - OAuth opens in NEW TAB
   // --------------------------------------------------------------------------
 
-  const handleConnect = useCallback(async (provider: string, connectUrl: string, method?: 'redirect' | 'post' | 'twilio_inline' | 'webhooks_inline' | 'simplybook_inline') => {
-    if (method === 'twilio_inline') {
-      setShowTwilioSetup(true);
-      return;
-    }
+  const handleConnect = useCallback(async (provider: string, connectUrl: string, method?: 'redirect' | 'post' | 'webhooks_inline' | 'simplybook_inline') => {
     if (method === 'webhooks_inline') {
       setShowWebhooksSetup(true);
       return;
@@ -1530,17 +1229,6 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         ...(integrations.slack.teamName ? [{ label: 'Workspace', value: integrations.slack.teamName }] : []),
         ...(integrations.slack.channelName ? [{ label: 'Channel', value: `#${integrations.slack.channelName}` }] : []),
       ] : undefined,
-    },
-    {
-      id: 'twilio', provider: 'twilio', name: 'Twilio',
-      description: 'Voice calling and SMS phone numbers',
-      icon: <SiTwilio className="w-6 h-6" />, iconColor: 'text-[#F22F46]', iconBg: 'bg-red-50',
-      category: 'communication', requiredPlan: 'business',
-      status: integrations.twilio.connected ? 'connected' : 'available',
-      connectUrl: '#twilio-setup',
-      connectMethod: 'twilio_inline',
-      settingsUrl: integrations.twilio.connected ? '/settings?section=call-settings&scroll=phone-numbers' : undefined,
-      connectedInfo: integrations.twilio.connected ? [{ label: 'Config', value: 'Managed via Settings' }] : undefined,
     },
     {
       id: 'google-sheets', provider: 'google-sheets', name: 'Google Sheets',
@@ -1738,7 +1426,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         unlocksCount: nextItems.length,
         headline: tier === 'free'
           ? 'Unlock Slack, webhooks, CRM sync, and more'
-          : 'Unlock Twilio, HubSpot, Pipedrive, and Microsoft 365',
+          : 'Unlock HubSpot, Pipedrive, Zoho CRM, and Microsoft 365',
         cta: `Upgrade to ${nextTier}`,
       };
     }
@@ -1995,7 +1683,6 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
                   <SlackIcon key="sl" className="w-5 h-5" />,
                   <FaSalesforce key="sf" className="w-5 h-5 text-[#00A1E0]" />,
                   <FaHubspot key="hs" className="w-5 h-5 text-[#FF7A59]" />,
-                  <SiTwilio key="tw" className="w-4 h-4 text-[#F22F46]" />,
                   <BiLogoZoom key="zm" className="w-5 h-5 text-[#2D8CFF]" />,
                 ].map((icon, i) => (
                   <div key={i} className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center border-2 border-white/50">
@@ -2159,19 +1846,6 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       {/* FEEDBACK SECTION                                                   */}
       {/* ================================================================== */}
       <FeedbackSection />
-
-      {/* Twilio Setup Modal */}
-      {showTwilioSetup && (
-        <TwilioSetupModal
-          companyId={companyId}
-          onClose={() => setShowTwilioSetup(false)}
-          onSuccess={() => {
-            setShowTwilioSetup(false);
-            showToast('Twilio connected successfully', 'success');
-            router.refresh();
-          }}
-        />
-      )}
 
       {/* Slack Configure Modal */}
       {showSlackConfig && (

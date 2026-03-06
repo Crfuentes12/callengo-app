@@ -76,7 +76,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   };
 
   // Extra seat pricing per plan (null = no extra seats available)
-  const EXTRA_SEAT_PRICE: Record<string, number | null> = { free: null, starter: null, business: null, teams: 69, enterprise: null };
+  const EXTRA_SEAT_PRICE: Record<string, number | null> = { free: null, starter: null, growth: null, business: 49, teams: 49, enterprise: null };
 
   const { createCheckoutSession, openBillingPortal, loading: stripeLoading } = useStripe();
   const { currency } = useUserCurrency();
@@ -340,10 +340,11 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const isFreePlan = currentPlan?.slug === 'free';
   const isPaidPlan = currentPlan && !isFreePlan;
   const usagePercent = usage ? Math.min((usage.minutes_used / usage.minutes_included) * 100, 100) : 0;
-  const getApproxCalls = (minutes: number, avgDuration: number = 3) => Math.floor(minutes / avgDuration);
+  // 1.5 min effective average per call attempt (mix of no-answer 0.5, voicemail 1.5, connected 2.5)
+  const getApproxCalls = (minutes: number) => Math.floor(minutes / 1.5);
 
   // Plan tier ordering for filtering higher tiers only
-  const PLAN_TIER_ORDER: Record<string, number> = { free: 0, starter: 1, business: 2, teams: 3, enterprise: 4 };
+  const PLAN_TIER_ORDER: Record<string, number> = { free: 0, starter: 1, growth: 2, business: 3, teams: 4, enterprise: 5 };
   const currentTier = PLAN_TIER_ORDER[currentPlan?.slug || 'free'] ?? 0;
   const higherPlans = plans.filter(p => (PLAN_TIER_ORDER[p.slug] ?? 0) > currentTier);
   const comparisonPlans = plans.filter(p => (PLAN_TIER_ORDER[p.slug] ?? 0) >= currentTier);
@@ -409,7 +410,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <div className="h-2 bg-white/80 rounded-full overflow-hidden">
                   <div className="h-full gradient-bg transition-all duration-500" style={{ width: `${usagePercent}%` }} />
                 </div>
-                <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} {t.billing.callsMade} · ~{getApproxCalls(usage.minutes_included - usage.minutes_used)} {t.billing.remaining}</p>
+                <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} calls used · ~{getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining</p>
               </div>
             )}
 
@@ -504,9 +505,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     </div>
                     {/* Metrics — same rows for all plans */}
                     <div className="mb-4 space-y-2.5 text-xs">
+                      <div className="flex items-center justify-between"><span className="text-slate-500">Calls/month</span><span className="font-semibold text-slate-900">~{getApproxCalls(plan.minutes_included).toLocaleString()}</span></div>
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.minutesIncludedLabel}</span><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span></div>
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.usersLabel}</span><span className="font-semibold text-slate-900">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}{EXTRA_SEAT_PRICE[plan.slug] ? ` (${formatPrice(EXTRA_SEAT_PRICE[plan.slug]!)}${t.billing.perSeat})` : ''}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-slate-900">{plan.max_concurrent_calls === 999 ? '∞' : plan.max_concurrent_calls}</span></div>
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.overageRateLabel}</span><span className="font-semibold text-slate-900">{plan.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(plan.price_per_extra_minute)}${t.billing.min}` : '—'}</span></div>
                     </div>
                     {/* Key features — 3 highlights */}
@@ -629,7 +631,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         const phone = getPhoneNumberFeatures(plan.slug);
                         return (
                           <td key={plan.id} className={`text-center py-2.5 px-3 text-slate-700 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
-                            {phone.twilioByop ? t.billing.autoRotatedByop : t.billing.autoRotated}
+                            {phone.dedicatedNumberAddon ? t.billing.autoRotatedDedicated : t.billing.autoRotated}
                           </td>
                         );
                       })}
@@ -637,8 +639,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     {/* CRM integrations per plan */}
                     {['Google Calendar & Meet', 'SimplyBook.me', 'HubSpot CRM', 'Pipedrive CRM', 'Zoho CRM', 'Salesforce CRM', 'Microsoft Dynamics 365', 'Clio'].map((integration, i) => {
                       const integrationsByPlan: Record<string, string[]> = {
-                        free: [],
+                        free: ['Google Calendar & Meet'],
                         starter: ['Google Calendar & Meet', 'SimplyBook.me'],
+                        growth: ['Google Calendar & Meet', 'SimplyBook.me'],
                         business: ['Google Calendar & Meet', 'SimplyBook.me', 'HubSpot CRM', 'Pipedrive CRM', 'Zoho CRM', 'Clio'],
                         teams: ['Google Calendar & Meet', 'SimplyBook.me', 'HubSpot CRM', 'Pipedrive CRM', 'Zoho CRM', 'Clio', 'Salesforce CRM', 'Microsoft Dynamics 365'],
                         enterprise: ['Google Calendar & Meet', 'SimplyBook.me', 'HubSpot CRM', 'Pipedrive CRM', 'Zoho CRM', 'Clio', 'Salesforce CRM', 'Microsoft Dynamics 365'],
@@ -676,7 +679,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     <tr><td colSpan={comparisonPlans.length + 1} className="pt-5 pb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.billing.supportLabel}</span></td></tr>
                     {[
                       { label: t.billing.supportLabel, render: (slug: string) => {
-                        const supportByPlan: Record<string, string> = { free: '—', starter: 'Email', business: 'Priority email', teams: 'Priority', enterprise: 'Dedicated manager' };
+                        const supportByPlan: Record<string, string> = { free: '—', starter: 'Email', growth: 'Priority email', business: 'Priority email', teams: 'Priority', enterprise: 'Dedicated manager' };
                         return supportByPlan[slug] || '—';
                       }},
                       { label: t.billing.slaGuarantee, render: (slug: string) => slug === 'enterprise' },
@@ -1209,7 +1212,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <div className="h-2 bg-white/80 rounded-full overflow-hidden">
                 <div className={`h-full transition-all duration-500 ${usagePercent >= 100 ? 'bg-red-500' : 'bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)]'}`} style={{ width: `${usagePercent}%` }} />
               </div>
-              <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} {t.billing.callsMade} · {usage.minutes_used >= usage.minutes_included ? t.billing.noMinutesRemaining : `~${getApproxCalls(usage.minutes_included - usage.minutes_used)} ${t.billing.remaining}`}</p>
+              <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} calls used · {usage.minutes_used >= usage.minutes_included ? 'No minutes remaining' : `~${getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining`}</p>
             </div>
             <div className="mt-4 pt-4 border-t border-amber-200 bg-amber-50/50 -m-6 p-4 rounded-b-xl">
               <div className="flex items-start gap-2">
@@ -1278,9 +1281,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       )}
                     </div>
                     <div className="mb-3 space-y-2 text-[11px]">
+                      <div className="flex items-center justify-between"><span className="text-slate-500">Calls/month</span><span className="font-semibold text-slate-900">~{getApproxCalls(plan.minutes_included).toLocaleString()}</span></div>
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.minutesIncludedLabel}</span><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span></div>
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.usersLabel}</span><span className="font-semibold text-slate-900">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}{EXTRA_SEAT_PRICE[plan.slug] ? ` (${formatPrice(EXTRA_SEAT_PRICE[plan.slug]!)}${t.billing.perSeat})` : ''}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-slate-900">{plan.max_concurrent_calls}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-slate-900">{plan.max_concurrent_calls === 999 ? '∞' : plan.max_concurrent_calls}</span></div>
                       <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.overageRateLabel}</span><span className="font-semibold text-slate-900">{plan.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(plan.price_per_extra_minute)}${t.billing.min}` : '—'}</span></div>
                     </div>
                     <div className="flex-grow mb-3 pt-3 border-t border-slate-100">
