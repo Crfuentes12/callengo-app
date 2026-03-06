@@ -1,42 +1,56 @@
 # CALLENGO — Complete Platform Master Document
 
-> **Version:** 1.0.0
+> **Version:** 1.1.0
 > **Last Updated:** March 2026
-> **Purpose:** Comprehensive reference for the entire Callengo platform — architecture, features, pricing, database schema, API endpoints, integrations, and business logic.
+> **Purpose:** Comprehensive reference for the entire Callengo platform — business strategy, target market, architecture, features, pricing, database schema, API endpoints, integrations, and business logic.
 
 ---
 
 ## Table of Contents
 
-1. [Platform Overview](#1-platform-overview)
-2. [Technology Stack](#2-technology-stack)
-3. [Subscription Plans & Pricing](#3-subscription-plans--pricing)
-4. [Application Pages & Features](#4-application-pages--features)
-5. [AI Agent System](#5-ai-agent-system)
-6. [Contact Management](#6-contact-management)
-7. [Call System](#7-call-system)
-8. [Calendar & Scheduling](#8-calendar--scheduling)
-9. [Follow-ups & Voicemails](#9-follow-ups--voicemails)
-10. [Integrations](#10-integrations)
-11. [Billing & Usage](#11-billing--usage)
-12. [Database Schema](#12-database-schema)
-13. [API Endpoints](#13-api-endpoints)
-14. [Authentication & Security](#14-authentication--security)
-15. [Internationalization](#15-internationalization)
-16. [Frontend Architecture](#16-frontend-architecture)
-17. [Business Logic & Constraints](#17-business-logic--constraints)
-18. [Promotional Coupons](#18-promotional-coupons)
-19. [Notification System](#19-notification-system)
-20. [Utility Libraries](#20-utility-libraries)
-21. [Environment & Deployment](#21-environment--deployment)
+### Business & Strategy
+1. [Platform Overview & Vision](#1-platform-overview--vision)
+2. [Problem & Pain Points](#2-problem--pain-points)
+3. [Target Market & ICP](#3-target-market--icp)
+4. [Use Cases by Agent](#4-use-cases-by-agent)
+5. [Business Model & Revenue](#5-business-model--revenue)
+6. [Go-to-Market & Positioning](#6-go-to-market--positioning)
+
+### Product & Pricing
+7. [Subscription Plans & Pricing](#7-subscription-plans--pricing)
+8. [Application Pages & Features](#8-application-pages--features)
+9. [AI Agent System](#9-ai-agent-system)
+10. [Contact Management](#10-contact-management)
+11. [Call System](#11-call-system)
+12. [Calendar & Scheduling](#12-calendar--scheduling)
+13. [Follow-ups & Voicemails](#13-follow-ups--voicemails)
+14. [Integrations](#14-integrations)
+15. [Billing & Usage](#15-billing--usage)
+
+### Technical Reference
+16. [Technology Stack](#16-technology-stack)
+17. [Database Schema](#17-database-schema)
+18. [API Endpoints](#18-api-endpoints)
+19. [Authentication & Security](#19-authentication--security)
+20. [Internationalization](#20-internationalization)
+21. [Frontend Architecture](#21-frontend-architecture)
+22. [Business Logic & Constraints](#22-business-logic--constraints)
+23. [Promotional Coupons](#23-promotional-coupons)
+24. [Notification System](#24-notification-system)
+25. [Utility Libraries](#25-utility-libraries)
+26. [Environment & Deployment](#26-environment--deployment)
 
 ---
 
-## 1. Platform Overview
+## 1. Platform Overview & Vision
 
-Callengo is a B2B SaaS platform for AI-powered outbound calling campaigns. Businesses use Callengo to automate phone calls for lead qualification, data validation, and appointment confirmation using AI voice agents.
+Callengo is a B2B SaaS platform that automates outbound phone calls using AI voice agents. It replaces manual, repetitive calling tasks — lead qualification, data verification, and appointment confirmation — with intelligent AI agents that call, converse, analyze, and follow up autonomously.
 
-**Core Value Proposition:**
+**Vision:** Become the default AI calling infrastructure for any business that needs to talk to its contacts at scale, starting with three high-pain, high-frequency use cases.
+
+**One-Line Pitch:** "AI agents that call your contacts, qualify your leads, verify your data, and confirm your appointments — so your team never has to."
+
+**Core Capabilities:**
 - Create AI calling agents from templates (Lead Qualification, Data Validation, Appointment Confirmation)
 - Import contacts from CSV, Excel, Google Sheets, JSON, or CRM integrations
 - Run automated calling campaigns with voicemail detection, follow-ups, and smart scheduling
@@ -45,112 +59,369 @@ Callengo is a B2B SaaS platform for AI-powered outbound calling campaigns. Busin
 
 ---
 
-## 2. Technology Stack
+## 2. Problem & Pain Points
 
-### Core Framework
-| Technology | Version | Purpose |
-|---|---|---|
-| Next.js | 16.1.1 | React framework (App Router) |
-| React | 19.2.1 | UI library |
-| TypeScript | 5.9.3 | Type safety |
-| Tailwind CSS | 4 | Styling (with PostCSS) |
-| Supabase | 2.87.1 | Database, auth, real-time |
-| Zod | 4.3.6 | Schema validation |
+### The Core Problem
+Businesses waste enormous amounts of time and money on repetitive, low-skill outbound calls. These calls are necessary but draining — and when they don't happen, the consequences are expensive: dirty CRM data, unqualified leads clogging sales pipelines, and no-show appointments that cost real revenue.
 
-### Key Dependencies
-| Library | Version | Purpose |
-|---|---|---|
-| Stripe | 20.1.0 (Node), 8.6.0 (JS) | Billing & payments |
-| OpenAI | 6.15.0 | AI chat assistant |
-| Bland AI | (API) | AI voice calling engine |
-| Google APIs | 144.0.0 | Calendar, Sheets, Meet |
-| Axios | 1.13.2 | HTTP client |
-| LRU-Cache | 11.2.6 | Performance caching |
-| Lucide React | 0.562.0 | Icon library |
-| PapaParse | 5.5.3 | CSV parsing |
-| XLSX | 0.18.5 | Excel file support |
-| XML2JS | 0.6.2 | XML parsing |
+### Three Pain Pillars
 
-### External Services
-| Service | Purpose |
-|---|---|
-| Supabase | PostgreSQL database, authentication, row-level security |
-| Stripe | Payment processing, subscriptions, invoicing |
-| Bland AI | AI voice call engine (send calls, transcription, analysis) |
-| OpenAI | AI chat assistant, call analysis, context suggestions |
-| Twilio | BYOP (Bring Your Own Phone) for Business+ plans |
-| Vercel | Hosting & deployment |
+#### Pain 1: "My database is garbage"
+**Who feels it:** Operations managers, CRM administrators, sales ops teams
+**What happens:**
+- Emails bounce because contacts changed jobs
+- Phone numbers are wrong or disconnected
+- Leads are duplicated across systems
+- CRM is inflated with outdated, unverified data
+- Marketing campaigns underperform because they target bad data
+
+**Cost of inaction:** Wasted ad spend, failed campaigns, poor deliverability, compliance risk (calling wrong people).
+
+**Callengo solution:** The **Data Validation Agent** calls contacts to verify and update their information — email, phone, address, job title — and writes the clean data back to your CRM.
+
+#### Pain 2: "No-shows are killing my revenue"
+**Who feels it:** Clinic administrators, practice managers, salon owners, service-based business operators
+**What happens:**
+- Patients/clients don't show up for scheduled appointments
+- Staff sits idle, rooms are empty, revenue is lost
+- Manual confirmation calls consume hours of receptionist time
+- Some businesses lose 15-30% of appointments to no-shows
+
+**Cost of inaction:** Direct revenue loss ($150-500+ per missed medical appointment), wasted staff time, scheduling inefficiency.
+
+**Callengo solution:** The **Appointment Confirmation Agent** calls every contact 24-48h before their appointment. Confirms attendance, handles rescheduling requests, detects no-shows and auto-retries, and syncs results to your calendar.
+
+#### Pain 3: "My sales team wastes time on junk leads"
+**Who feels it:** Sales directors, SDR managers, founders doing their own sales
+**What happens:**
+- SDRs spend 60%+ of their time on calls that go nowhere
+- Unqualified leads clog the pipeline and distort forecasts
+- High-value reps waste energy on people who can't buy
+- Manual qualification is slow, inconsistent, and hard to scale
+
+**Cost of inaction:** Burned-out SDRs, low conversion rates, missed quota, high sales team turnover.
+
+**Callengo solution:** The **Lead Qualification Agent** calls leads, runs BANT qualification (Budget, Authority, Need, Timeline), scores them, and schedules meetings with sales reps for qualified prospects — only human-ready leads reach your team.
 
 ---
 
-## 3. Subscription Plans & Pricing
+## 3. Target Market & ICP
+
+### Primary Target Segments
+
+#### 1. Healthcare & Medical Practices
+- **Pain:** No-shows (15-30% rates), manual confirmation calls
+- **Agent:** Appointment Confirmation
+- **Examples:** Dental clinics, medical practices, specialist offices, wellness centers, vision/eye care, dermatology, pediatrics, cardiology
+- **Why they buy:** Direct ROI — every confirmed appointment = revenue retained
+- **Plan fit:** Starter ($99/mo) for solo practices, Business ($299/mo) for multi-location
+
+#### 2. Real Estate Agencies
+- **Pain:** Outdated contact databases, unverified property leads
+- **Agent:** Data Validation + Lead Qualification
+- **Examples:** Brokerages, property management firms, real estate groups
+- **Why they buy:** Clean data = better listings, qualified leads = faster closings
+- **Plan fit:** Business ($299/mo) for CRM integration (HubSpot, Pipedrive)
+
+#### 3. SaaS & Technology Companies
+- **Pain:** SDR burnout, unqualified demo requests, bloated pipelines
+- **Agent:** Lead Qualification
+- **Examples:** B2B SaaS, tech startups, cloud services, digital platforms
+- **Why they buy:** Automate top-of-funnel qualification, free SDRs for closing
+- **Plan fit:** Teams ($649/mo) for Salesforce integration and multi-user access
+
+#### 4. Financial Services
+- **Pain:** Compliance data verification, lead qualification, appointment setting
+- **Agent:** All three
+- **Examples:** Insurance agencies, wealth management, accounting firms, banks, credit unions, mortgage brokers
+- **Why they buy:** Regulatory compliance requires verified data; high-value client relationships need qualification
+- **Plan fit:** Business to Teams
+
+#### 5. Legal Firms
+- **Pain:** Client data accuracy, consultation confirmation, lead intake
+- **Agent:** Data Validation + Appointment Confirmation
+- **Examples:** Law firms, legal practices (personal injury, family, corporate)
+- **Why they buy:** Clio integration, matter-linked scheduling, client verification
+- **Plan fit:** Business ($299/mo) with Clio integration
+
+#### 6. E-commerce & Retail (Emerging)
+- **Pain:** Cart abandonment, customer reactivation, feedback collection
+- **Agent:** Future agents (abandoned cart, winback, feedback — in development for Q1 2026)
+- **Plan fit:** Starter to Business
+
+### Ideal Customer Profile (ICP)
+
+| Attribute | Ideal Profile |
+|---|---|
+| **Company size** | 5-500 employees |
+| **Revenue** | $500K - $50M ARR |
+| **Contact database** | 500 - 50,000 contacts |
+| **Monthly call volume** | 300 - 6,000+ calls |
+| **Current process** | Manual calling, no automation, or basic auto-dialers |
+| **CRM usage** | Uses HubSpot, Salesforce, Pipedrive, Zoho, or Clio |
+| **Decision maker** | VP Sales, Operations Manager, Practice Manager, CRM Admin |
+| **Budget** | $99 - $1,499/month |
+| **Key trigger** | Scaling pains — too many calls for current staff, data quality complaints, no-show rates climbing |
+
+### Who is NOT the target
+- Individual consumers (B2C cold calling)
+- Very large enterprises with custom telephony infrastructure (they build in-house)
+- Businesses without existing contact databases
+- Companies with <100 contacts (not enough volume to justify)
+
+---
+
+## 4. Use Cases by Agent
+
+### Lead Qualification Agent
+**Category:** Sales
+**Tagline:** "Qualify leads before sales touches them — stop wasting your team's time"
+
+**How it works:**
+1. Upload lead list (CSV, CRM sync, Google Sheets)
+2. Agent calls each lead using BANT framework
+3. Asks about Budget, Authority, Need, Timeline
+4. Scores lead as hot/warm/cold
+5. If qualified + interested → schedules meeting with sales rep (Google Meet, Zoom, Teams)
+6. Writes qualification data back to CRM
+7. Unqualified leads are flagged — sales never wastes time on them
+
+**Qualification Data Captured:**
+- Budget range and timeline
+- Decision-making authority level
+- Specific needs and product interest
+- Lead temperature (hot/warm/cold)
+- Meeting scheduled (yes/no, date, video link)
+
+**ROI Example:** A 10-person SDR team spending 60% time on unqualified calls saves ~2,400 hours/year. At $25/hr loaded cost = $60,000/year saved. Callengo Teams plan = $7,788/year.
+
+### Data Validation Agent
+**Category:** Verification
+**Tagline:** "Clean my database — stop wasting money on bad data"
+
+**How it works:**
+1. Import contact database with existing data
+2. Agent calls each contact to verify: email, phone, address, job title, company info
+3. Updates records with verified data
+4. Flags disconnected numbers, wrong contacts, outdated info
+5. Syncs clean data back to CRM
+6. Schedules callbacks for contacts who weren't available
+
+**Verified Fields:**
+- Email address (current/changed)
+- Phone number (correct/disconnected/changed)
+- Mailing address (current/moved)
+- Job title and department
+- Company name confirmation
+- Decision maker identification
+
+**ROI Example:** A database of 10,000 contacts with 20% outdated data = 2,000 bad records. Manual verification at 5 min/call = 166 hours. At $20/hr = $3,333. Callengo Business plan verifies all 10,000 in days for $299/mo.
+
+### Appointment Confirmation Agent
+**Category:** Appointment
+**Tagline:** "Stop losing money from no-shows — every missed appointment is money lost"
+
+**How it works:**
+1. Connect calendar (Google Calendar, Outlook)
+2. Agent identifies upcoming appointments
+3. Calls contacts 24-48h before appointment
+4. Confirms attendance, handles rescheduling, answers logistics questions
+5. If no answer → auto-retry with follow-up system
+6. Updates calendar with confirmed/rescheduled/cancelled status
+7. Sends video meeting links if switching to virtual
+
+**Confirmation Outcomes:**
+- Confirmed — attendance verified
+- Rescheduled — new time set with reason recorded
+- Cancelled — freed slot, reason captured
+- No-show flagged — auto-retry scheduled
+- Callback requested — specific time noted
+
+**ROI Example:** A dental clinic with 40 appointments/day at 20% no-show rate loses 8 appointments/day. At $200 avg revenue per visit = $1,600/day lost = $33,600/month. Reducing no-shows to 5% recovers $25,200/month. Callengo Starter plan = $99/mo.
+
+---
+
+## 5. Business Model & Revenue
+
+### Revenue Streams
+
+| Stream | Description | % of Revenue (Target) |
+|---|---|---|
+| **Subscription Revenue** | Monthly/annual plan fees | 70-75% |
+| **Overage Revenue** | Per-minute charges above included minutes | 20-25% |
+| **Extra Seat Revenue** | $69/seat on Teams plan | 3-5% |
+| **Enterprise Custom** | Custom contracts above standard tiers | 2-5% |
+
+### Unit Economics Model
+
+| Metric | Value |
+|---|---|
+| **Cost per AI minute** | Bland AI rate (variable) |
+| **Revenue per minute (Starter)** | $0.33/min ($99 ÷ 300 min) |
+| **Revenue per minute (Business)** | $0.25/min ($299 ÷ 1,200 min) |
+| **Revenue per minute (Teams)** | $0.26/min ($649 ÷ 2,500 min) |
+| **Revenue per minute (Enterprise)** | $0.25/min ($1,499 ÷ 6,000 min) |
+| **Overage margin** | Higher than base (overage rates: $0.25-0.55/min) |
+
+### Expansion Revenue Strategy
+1. **Vertical expansion:** User starts with one agent, discovers value, activates other agents
+2. **Volume expansion:** Growing contact lists push users into overage → upgrade to next tier
+3. **Seat expansion:** Teams plan users add team members at $69/seat
+4. **Integration expansion:** Users connect CRMs → become stickier → lower churn
+5. **Annual lock-in:** 10-12% discount for annual billing → improved cash flow + retention
+
+### Customer Journey
+```
+Free Trial (15 min) → Starter ($99/mo) → Business ($299/mo) → Teams ($649/mo) → Enterprise ($1,499/mo)
+     │                      │                    │                    │
+     │                      │                    │                    └─ Multi-team, Salesforce/Dynamics
+     │                      │                    └─ CRM integrations, unlimited agents, 3 users
+     │                      └─ Voicemail, follow-ups, Slack/Zoom
+     └─ Test with 15 minutes, 1 agent
+```
+
+---
+
+## 6. Go-to-Market & Positioning
+
+### Positioning Statement
+"For sales teams, operations managers, and practice administrators who waste hours on repetitive outbound calls, Callengo is the AI calling platform that automates lead qualification, data verification, and appointment confirmation — so your team focuses only on high-value work."
+
+### Competitive Differentiation
+| Dimension | Callengo | Generic Auto-dialers | Manual BPOs |
+|---|---|---|---|
+| Intelligence | AI conversation + analysis | Recorded messages | Human agents |
+| Setup time | Minutes (template agents) | Hours/days | Weeks |
+| Cost per call | $0.25-0.55/min | $0.05-0.15/min (no intelligence) | $2-5/min |
+| Scalability | 50 concurrent calls | Depends on lines | Depends on headcount |
+| Data capture | Auto-structured + CRM sync | None | Manual entry |
+| Follow-up | Automated scheduling | None | Manual |
+| Availability | 24/7 | 24/7 | Business hours only |
+
+### Key Differentiators
+1. **Template-first approach:** Three proven, battle-tested agent templates vs. "build from scratch" competitors
+2. **Full-loop automation:** Not just the call — includes follow-ups, voicemail handling, calendar scheduling, CRM sync
+3. **Deep CRM integration:** Native integrations with 6 major CRMs (not just Zapier/webhook)
+4. **Vertical expertise:** Clio for legal, SimplyBook.me for services — not just generic
+5. **Try-before-you-buy:** 15 free minutes with full platform access, not a gated demo
+
+### Onboarding Flow (Pain-First)
+1. Signup → Company details + website scraping for context
+2. **"What challenge would you like to solve first?"**
+   - "Clean my database" → Data Validation Agent
+   - "Stop losing money from no-shows" → Appointment Confirmation Agent
+   - "Qualify leads before sales touches them" → Lead Qualification Agent
+3. Agent test call → user experiences the AI firsthand
+4. Dashboard → ready to create first campaign
+
+### Promotional Strategy
+- **LAUNCH50:** 50% off for 3 months (launch campaign, 100 uses)
+- **EARLY25:** 25% off first month (early bird, 500 uses)
+- **WELCOME15:** 15% off first month (new user, 1,000 uses)
+- **LEGAL20:** 20% off for 12 months (law firms via Clio vertical, 200 uses)
+- **PARTNER40:** 40% off for 6 months (referral/partner program, 50 uses)
+- **ANNUAL20:** 20% off forever (annual billing incentive)
+
+### Future Product Roadmap (Agents in Development)
+- **Abandoned Cart Agent** — E-commerce recovery calls
+- **Win-back Agent** — Re-engage churned customers
+- **Feedback Collection Agent** — Post-service satisfaction calls
+- Target release: Q1 2026
+
+---
+
+## 7. Subscription Plans & Pricing
 
 ### Plan Tiers (V3 — March 2026)
 
 #### FREE (Trial)
 - **Price:** $0
-- **Minutes:** 15 one-time (not monthly)
+- **Minutes:** 15 one-time (not monthly, no renewal)
 - **Max Call Duration:** 3 min per call
 - **Concurrent Calls:** 1
-- **Active Agents:** 1 (locked after selection)
+- **Active Agents:** 1 (locked after selection — cannot switch)
 - **Users:** 1
-- **Overage:** None — must upgrade after minutes used
+- **Overage:** Blocked — must upgrade after minutes used
 - **Integrations:** Google Calendar, Google Meet, Google Sheets
 - **Features:** Full campaign wizard, CSV/Excel/JSON import, phone normalization, contact deduplication, custom fields, tags, AI agent creation, call analytics, transcription downloads, usage dashboard, billing alerts, auto-rotated phone numbers
+- **Target:** Anyone testing the platform before committing
 
-#### STARTER — $299/month
+#### STARTER — $99/month ($87/mo annual)
 - **Minutes:** 300/month
 - **Max Call Duration:** 3 min per call
-- **Concurrent Calls:** 2
+- **Concurrent Calls:** 1
 - **Active Agents:** 1 (switchable between campaigns)
 - **Users:** 1
 - **Overage:** $0.55/min
+- **Annual Price:** $87/mo ($1,044/year — 12% savings)
 - **Integrations:** Everything in Free + Zoom, Slack notifications, SimplyBook.me, Webhooks (Zapier/Make/n8n)
 - **Features:** Voicemail detection, follow-ups (max 2 attempts), rescheduling, data export, async email support, auto-rotated phone numbers
+- **Target:** Solo founders, freelancers, small clinics, individual agents
 
-#### BUSINESS — $299/month
+#### BUSINESS — $299/month ($269/mo annual)
 - **Minutes:** 1,200/month
 - **Max Call Duration:** 5 min per call
-- **Concurrent Calls:** 5
+- **Concurrent Calls:** 3
 - **Active Agents:** Unlimited (simultaneous)
 - **Users:** 3
 - **Overage:** $0.39/min
+- **Annual Price:** $269/mo ($3,228/year — 10% savings)
 - **Integrations:** Everything in Starter + Microsoft Outlook, Microsoft Teams, HubSpot, Pipedrive, Zoho, Clio (legal), Twilio BYOP
 - **Features:** Smart follow-ups (max 5 attempts), voicemail smart handling, no-show auto-retry, priority email support
+- **Target:** Growing businesses, multi-agent operations, CRM-integrated teams
 
-#### TEAMS — $649/month
+#### TEAMS — $649/month ($579/mo annual)
 - **Minutes:** 2,500/month
 - **Max Call Duration:** 8 min per call
 - **Concurrent Calls:** 10
 - **Active Agents:** Unlimited
 - **Users:** 5 (+$69/extra seat)
 - **Overage:** $0.29/min
+- **Annual Price:** $579/mo ($6,948/year — 11% savings)
 - **Integrations:** Everything in Business + Salesforce, Microsoft Dynamics 365
 - **Features:** User permissions (admin/member roles), advanced follow-ups (max 10 attempts), priority support
+- **Target:** Sales teams, multi-department operations, enterprise CRM users
 
-#### ENTERPRISE — $1,499/month
+#### ENTERPRISE — $1,499/month ($1,349/mo annual)
 - **Minutes:** 6,000+/month
 - **Max Call Duration:** 15 min per call
-- **Concurrent Calls:** 25+
+- **Concurrent Calls:** 50
 - **Active Agents:** Unlimited
 - **Users:** Unlimited
 - **Overage:** $0.25/min
+- **Annual Price:** $1,349/mo ($16,188/year — 10% savings)
 - **Integrations:** All current + future integrations
 - **Features:** Unlimited follow-up attempts, SLA guarantee, dedicated account manager, annual contract required
+- **Target:** Large organizations with high-volume calling needs
 
 ### Pricing by Currency
 | Currency | Multiplier | Example (Starter) |
 |---|---|---|
-| USD | 1.00x | $299/mo |
-| EUR | 0.92x | ~€275/mo |
-| GBP | 0.79x | ~£236/mo |
+| USD | 1.00x | $99/mo |
+| EUR | 0.92x | ~€91/mo |
+| GBP | 0.79x | ~€78/mo |
+
+### Annual vs. Monthly Comparison
+
+| Plan | Monthly | Annual (per mo) | Annual Total | Savings |
+|---|---|---|---|---|
+| Free | $0 | $0 | $0 | — |
+| Starter | $99 | $87 | $1,044 | 12% |
+| Business | $299 | $269 | $3,228 | 10% |
+| Teams | $649 | $579 | $6,948 | 11% |
+| Enterprise | $1,499 | $1,349 | $16,188 | 10% |
 
 ### Feature Access Matrix
 
 | Feature | Free | Starter | Business | Teams | Enterprise |
 |---|---|---|---|---|---|
+| Price (monthly) | $0 | $99 | $299 | $649 | $1,499 |
+| Minutes Included | 15 (one-time) | 300/mo | 1,200/mo | 2,500/mo | 6,000+/mo |
+| Max Call Duration | 3 min | 3 min | 5 min | 8 min | 15 min |
+| Concurrent Calls | 1 | 1 | 3 | 10 | 50 |
 | Max Active Agents | 1 (locked) | 1 (switchable) | Unlimited | Unlimited | Unlimited |
 | Max Users | 1 | 1 | 3 | 5 (+$69/ea) | Unlimited |
+| Overage Rate | Blocked | $0.55/min | $0.39/min | $0.29/min | $0.25/min |
 | Voicemail Detection | No | Yes | Yes | Yes | Yes |
 | Follow-ups | No | 2 attempts | 5 attempts | 10 attempts | Unlimited |
 | Smart Follow-up | No | No | Yes | Yes | Yes |
@@ -177,7 +448,7 @@ Callengo is a B2B SaaS platform for AI-powered outbound calling campaigns. Busin
 
 ---
 
-## 4. Application Pages & Features
+## 8. Application Pages & Features
 
 ### Routing Structure
 
@@ -378,7 +649,7 @@ Callengo is a B2B SaaS platform for AI-powered outbound calling campaigns. Busin
 
 ---
 
-## 5. AI Agent System
+## 9. AI Agent System
 
 ### Agent Templates
 Three core templates (seeded in database):
@@ -433,7 +704,7 @@ interface AgentRunSettings {
 
 ---
 
-## 6. Contact Management
+## 10. Contact Management
 
 ### Contact Fields
 
@@ -505,7 +776,7 @@ The system recognizes 88+ field name patterns for automatic column mapping from 
 
 ---
 
-## 7. Call System
+## 11. Call System
 
 ### Call Provider
 Bland AI is the underlying call engine. Calls are initiated via the Bland AI API and results are received via webhook.
@@ -564,7 +835,7 @@ Each completed call captures:
 
 ---
 
-## 8. Calendar & Scheduling
+## 12. Calendar & Scheduling
 
 ### Calendar Event Types
 `call`, `follow_up`, `no_show_retry`, `meeting`, `appointment`, `callback`, `voicemail_followup`
@@ -608,7 +879,7 @@ Each completed call captures:
 
 ---
 
-## 9. Follow-ups & Voicemails
+## 13. Follow-ups & Voicemails
 
 ### Follow-up System
 - Automatically queued after initial call failure (no answer, voicemail, busy)
@@ -643,7 +914,7 @@ Each completed call captures:
 
 ---
 
-## 10. Integrations
+## 14. Integrations
 
 ### Integration Summary
 
@@ -756,7 +1027,7 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 
 ---
 
-## 11. Billing & Usage
+## 15. Billing & Usage
 
 ### Billing System
 - **Provider:** Stripe
@@ -802,7 +1073,45 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 
 ---
 
-## 12. Database Schema
+## 16. Technology Stack
+
+### Core Framework
+| Technology | Version | Purpose |
+|---|---|---|
+| Next.js | 16.1.1 | React framework (App Router) |
+| React | 19.2.1 | UI library |
+| TypeScript | 5.9.3 | Type safety |
+| Tailwind CSS | 4 | Styling (with PostCSS) |
+| Supabase | 2.87.1 | Database, auth, real-time |
+| Zod | 4.3.6 | Schema validation |
+
+### Key Dependencies
+| Library | Version | Purpose |
+|---|---|---|
+| Stripe | 20.1.0 (Node), 8.6.0 (JS) | Billing & payments |
+| OpenAI | 6.15.0 | AI chat assistant |
+| Bland AI | (API) | AI voice calling engine |
+| Google APIs | 144.0.0 | Calendar, Sheets, Meet |
+| Axios | 1.13.2 | HTTP client |
+| LRU-Cache | 11.2.6 | Performance caching |
+| Lucide React | 0.562.0 | Icon library |
+| PapaParse | 5.5.3 | CSV parsing |
+| XLSX | 0.18.5 | Excel file support |
+| XML2JS | 0.6.2 | XML parsing |
+
+### External Services
+| Service | Purpose |
+|---|---|
+| Supabase | PostgreSQL database, authentication, row-level security |
+| Stripe | Payment processing, subscriptions, invoicing |
+| Bland AI | AI voice call engine (send calls, transcription, analysis) |
+| OpenAI | AI chat assistant, call analysis, context suggestions |
+| Twilio | BYOP (Bring Your Own Phone) for Business+ plans |
+| Vercel | Hosting & deployment |
+
+---
+
+## 17. Database Schema
 
 ### Tables (23 total)
 
@@ -1288,7 +1597,7 @@ Each follows the same pattern:
 
 ---
 
-## 13. API Endpoints
+## 18. API Endpoints
 
 ### Authentication
 | Method | Endpoint | Purpose |
@@ -1426,7 +1735,7 @@ Each follows the same pattern:
 
 ---
 
-## 14. Authentication & Security
+## 19. Authentication & Security
 
 ### Authentication Flow
 1. **Supabase Auth** — email/password and OAuth providers
@@ -1466,7 +1775,7 @@ Each follows the same pattern:
 
 ---
 
-## 15. Internationalization
+## 20. Internationalization
 
 ### Supported Languages
 | Code | Language |
@@ -1483,7 +1792,7 @@ Each follows the same pattern:
 
 ---
 
-## 16. Frontend Architecture
+## 21. Frontend Architecture
 
 ### Component Organization
 ```
@@ -1527,7 +1836,7 @@ Each follows the same pattern:
 
 ---
 
-## 17. Business Logic & Constraints
+## 22. Business Logic & Constraints
 
 ### Agent/Campaign Limits
 - Free: 1 agent, locked after first selection
@@ -1558,7 +1867,7 @@ Each follows the same pattern:
 
 ---
 
-## 18. Promotional Coupons
+## 23. Promotional Coupons
 
 | Code | Discount | Duration | Max Uses | Target |
 |---|---|---|---|---|
@@ -1574,7 +1883,7 @@ Each follows the same pattern:
 
 ---
 
-## 19. Notification System
+## 24. Notification System
 
 ### Notification Types
 - Email notifications (various events)
@@ -1594,7 +1903,7 @@ Each follows the same pattern:
 
 ---
 
-## 20. Utility Libraries
+## 25. Utility Libraries
 
 ### `/lib/call-agent-utils.ts`
 - Voice configuration mapping
@@ -1638,7 +1947,7 @@ Each follows the same pattern:
 
 ---
 
-## 21. Environment & Deployment
+## 26. Environment & Deployment
 
 ### Required Environment Variables
 | Variable | Purpose |
@@ -1668,4 +1977,4 @@ Each follows the same pattern:
 
 ---
 
-*End of Callengo Master Document v1.0.0*
+*End of Callengo Master Document v1.1.0*
