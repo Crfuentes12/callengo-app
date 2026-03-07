@@ -407,7 +407,7 @@ function RecommendedVoices({
 
   const categories = [
     { key: 'american', label: 'American', flag: '🇺🇸', color: 'from-blue-500 to-blue-700' },
-    { key: 'british', label: 'British', flag: '🇬🇧', color: 'from-[var(--color-primary)] to-[var(--color-accent)]' },
+    { key: 'british', label: 'British', flag: '🇬🇧', color: 'from-[var(--color-deep-indigo)] to-[var(--color-electric)]' },
     { key: 'australian', label: 'Australian', flag: '🇦🇺', color: 'from-emerald-500 to-teal-600' },
     { key: 'spanish', label: 'Spanish', flag: '🇪🇸', color: 'from-amber-500 to-orange-600' },
   ];

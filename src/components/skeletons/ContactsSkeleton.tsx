@@ -17,27 +17,27 @@ export default function ContactsSkeleton() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl p-5 border border-blue-200 animate-skeleton-slide [animation-delay:100ms]">
+        <div className="bg-gradient-to-br from-[var(--color-info-50)] to-[var(--color-primary-50)] rounded-xl p-5 border border-[var(--color-info-200)] animate-skeleton-slide [animation-delay:100ms]">
           <Skeleton className="h-4 w-32 mb-3" />
           <Skeleton className="h-8 w-20" />
         </div>
-        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-5 border border-emerald-200 animate-skeleton-slide [animation-delay:150ms]">
+        <div className="bg-gradient-to-br from-[var(--color-success-50)] to-[var(--color-success-100)] rounded-xl p-5 border border-[var(--color-success-200)] animate-skeleton-slide [animation-delay:150ms]">
           <Skeleton className="h-4 w-32 mb-3" />
           <Skeleton className="h-8 w-20" />
         </div>
-        <div className="gradient-bg-subtle rounded-xl p-5 border border-[var(--color-primary)]/20 animate-skeleton-slide [animation-delay:200ms]">
+        <div className="gradient-bg-subtle rounded-xl p-5 border border-[var(--color-primary-500)]/20 animate-skeleton-slide [animation-delay:200ms]">
           <Skeleton className="h-4 w-32 mb-3" />
           <Skeleton className="h-8 w-20" />
         </div>
       </div>
 
       {/* Contacts Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-skeleton-slide [animation-delay:280ms]">
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden animate-skeleton-slide [animation-delay:280ms]">
+        <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between">
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-8 w-24 rounded-lg" />
         </div>
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-[var(--border-subtle)]">
           {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className={`p-4 flex items-center gap-4 animate-skeleton-slide`} style={{ animationDelay: `${320 + i * 30}ms` }}>
               <Skeleton variant="circular" className="w-10 h-10 flex-shrink-0" />

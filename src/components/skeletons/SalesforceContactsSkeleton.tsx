@@ -26,7 +26,7 @@ export default function SalesforceContactsSkeleton() {
       </div>
 
       {/* Connection Info Bar */}
-      <div className="bg-gradient-to-r from-blue-50 to-slate-50 rounded-xl border border-blue-100 p-4 flex items-center justify-between animate-skeleton-slide [animation-delay:120ms]">
+      <div className="bg-gradient-to-r from-[var(--color-info-50)] to-[var(--color-neutral-50)] rounded-xl border border-[var(--color-info-100)] p-4 flex items-center justify-between animate-skeleton-slide [animation-delay:120ms]">
         <div className="flex items-center gap-3">
           <Skeleton className="h-6 w-20 rounded-full" />
           <Skeleton className="h-4 w-48" />
@@ -51,9 +51,9 @@ export default function SalesforceContactsSkeleton() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-skeleton-slide [animation-delay:280ms]">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden animate-skeleton-slide [animation-delay:280ms]">
         {/* Table Header */}
-        <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-4">
+        <div className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)] px-4 py-3 flex items-center gap-4">
           <Skeleton className="w-5 h-5 rounded" />
           <Skeleton className="w-5 h-5" />
           <Skeleton className="h-4 w-24" />
@@ -65,7 +65,7 @@ export default function SalesforceContactsSkeleton() {
           <Skeleton className="h-4 w-20" />
         </div>
         {/* Table Rows */}
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-[var(--border-subtle)]">
           {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className="px-4 py-3 flex items-center gap-4" style={{ animationDelay: `${320 + i * 25}ms` }}>
               <Skeleton className="w-5 h-5 rounded flex-shrink-0" />

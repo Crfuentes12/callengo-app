@@ -534,7 +534,7 @@ export default function CalendarConfigStep({
       {/* Calendar Context Info - compact */}
       <div className="bg-gradient-to-r from-[var(--color-primary)]/5 to-[var(--color-accent)]/5 rounded-xl px-4 py-3 border border-[var(--color-primary)]/15">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-deep-indigo)] to-[var(--color-electric)] flex items-center justify-center flex-shrink-0">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -587,7 +587,7 @@ export default function CalendarConfigStep({
               ) : (
                 <a href="/settings?tab=billing" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 border border-[var(--color-primary)]/20 rounded-lg hover:shadow-sm transition-all">
                   <OutlookIcon className="w-4 h-4 opacity-50" />
-                  <span className="text-[9px] font-bold text-white bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] px-1.5 py-0.5 rounded-full">PRO</span>
+                  <span className="text-[9px] font-bold text-white bg-gradient-to-r from-[var(--color-deep-indigo)] to-[var(--color-electric)] px-1.5 py-0.5 rounded-full">PRO</span>
                 </a>
               )}
 
@@ -611,7 +611,7 @@ export default function CalendarConfigStep({
               ) : (
                 <a href="/settings?tab=billing" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 border border-[var(--color-primary)]/20 rounded-lg hover:shadow-sm transition-all">
                   <SlackIcon className="w-4 h-4 opacity-50" />
-                  <span className="text-[9px] font-bold text-white bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] px-1.5 py-0.5 rounded-full">PRO</span>
+                  <span className="text-[9px] font-bold text-white bg-gradient-to-r from-[var(--color-deep-indigo)] to-[var(--color-electric)] px-1.5 py-0.5 rounded-full">PRO</span>
                 </a>
               )}
             </div>
@@ -963,7 +963,7 @@ export default function CalendarConfigStep({
             ) : (
               <div className="relative overflow-hidden rounded-xl border border-[var(--color-primary)]/20 bg-gradient-to-r from-[var(--color-primary)]/5 via-white to-[var(--color-accent)]/5">
                 <div className="px-3 py-3 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center flex-shrink-0 shadow-md">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[var(--color-deep-indigo)] to-[var(--color-electric)] flex items-center justify-center flex-shrink-0 shadow-md">
                     <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
@@ -971,7 +971,7 @@ export default function CalendarConfigStep({
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
                       Smart scheduling
-                      <span className="text-[9px] font-bold text-white bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] px-1.5 py-0.5 rounded-full">PRO</span>
+                      <span className="text-[9px] font-bold text-white bg-gradient-to-r from-[var(--color-deep-indigo)] to-[var(--color-electric)] px-1.5 py-0.5 rounded-full">PRO</span>
                     </p>
                     <p className="text-[11px] text-slate-500">AI auto-schedules callbacks at the perfect time</p>
                   </div>

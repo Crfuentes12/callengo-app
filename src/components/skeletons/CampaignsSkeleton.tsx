@@ -18,7 +18,7 @@ export default function CampaignsSkeleton() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className={`bg-white rounded-xl border border-slate-200 p-5 animate-skeleton-slide [animation-delay:${80 + i * 50}ms]`}>
+          <div key={i} className={`bg-white rounded-xl border border-[var(--border-default)] p-5 animate-skeleton-slide [animation-delay:${80 + i * 50}ms]`}>
             <div className="flex items-center justify-between mb-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="w-8 h-8 rounded-lg" />
@@ -30,7 +30,7 @@ export default function CampaignsSkeleton() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 animate-skeleton-slide [animation-delay:300ms]">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] p-4 animate-skeleton-slide [animation-delay:300ms]">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-wrap">
             {[0, 1, 2, 3, 4].map((i) => (
@@ -42,11 +42,11 @@ export default function CampaignsSkeleton() {
       </div>
 
       {/* Campaigns Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-skeleton-slide [animation-delay:370ms]">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden animate-skeleton-slide [animation-delay:370ms]">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
+              <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
                 {['Campaign', 'Agent', 'Status', 'Progress', 'Success Rate', 'Features', 'Created'].map((_, i) => (
                   <th key={i} className="text-left py-4 px-6">
                     <Skeleton className="h-3 w-20" />
@@ -54,7 +54,7 @@ export default function CampaignsSkeleton() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[var(--border-subtle)]">
               {Array.from({ length: 6 }, (_, i) => (
                 <tr key={i} className={`animate-skeleton-slide [animation-delay:${420 + i * 40}ms]`}>
                   <td className="py-4 px-6">

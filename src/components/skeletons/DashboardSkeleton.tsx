@@ -20,7 +20,7 @@ export default function DashboardSkeleton() {
           {/* Quick Stats in Banner */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className={`bg-white/60 rounded-xl p-4 border border-slate-200/60 animate-skeleton-slide [animation-delay:${150 + i * 50}ms]`}>
+              <div key={i} className={`bg-white/60 rounded-xl p-4 border border-[var(--border-default)]/60 animate-skeleton-slide [animation-delay:${150 + i * 50}ms]`}>
                 <Skeleton className="h-3 w-24 mb-2" />
                 <Skeleton className="h-8 w-16" />
               </div>
@@ -32,7 +32,7 @@ export default function DashboardSkeleton() {
       {/* Main Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[0, 1, 2].map((i) => (
-          <div key={i} className={`bg-white rounded-xl p-6 border border-slate-200 shadow-sm animate-skeleton-slide [animation-delay:${350 + i * 60}ms]`}>
+          <div key={i} className={`bg-white rounded-xl p-6 border border-[var(--border-default)] shadow-sm animate-skeleton-slide [animation-delay:${350 + i * 60}ms]`}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <Skeleton className="h-5 w-32 mb-2" />
@@ -48,7 +48,7 @@ export default function DashboardSkeleton() {
       {/* Usage & Campaigns Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Usage Card */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm animate-skeleton-slide [animation-delay:550ms]">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-6 shadow-sm animate-skeleton-slide [animation-delay:550ms]">
           <Skeleton className="h-6 w-48 mb-4" />
           <div className="space-y-4">
             <div>
@@ -69,14 +69,14 @@ export default function DashboardSkeleton() {
         </div>
 
         {/* Campaigns List */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm animate-skeleton-slide [animation-delay:600ms]">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-6 shadow-sm animate-skeleton-slide [animation-delay:600ms]">
           <div className="flex items-center justify-between mb-4">
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-9 w-32 rounded-lg" />
           </div>
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className={`p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200 animate-skeleton-slide [animation-delay:${650 + i * 60}ms]`}>
+              <div key={i} className={`p-4 bg-gradient-to-br from-[var(--color-neutral-50)] to-white rounded-xl border border-[var(--border-default)] animate-skeleton-slide [animation-delay:${650 + i * 60}ms]`}>
                 <div className="flex items-start justify-between mb-3">
                   <Skeleton className="h-5 w-40" />
                   <Skeleton className="h-6 w-24 rounded-lg" />
@@ -96,10 +96,10 @@ export default function DashboardSkeleton() {
       </div>
 
       {/* Recent Calls Table */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm animate-skeleton-slide [animation-delay:850ms]">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] p-6 shadow-sm animate-skeleton-slide [animation-delay:850ms]">
         <Skeleton className="h-6 w-48 mb-4" />
         <div className="space-y-3">
-          <div className="grid grid-cols-5 gap-4 pb-3 border-b border-slate-200">
+          <div className="grid grid-cols-5 gap-4 pb-3 border-b border-[var(--border-default)]">
             {[0, 1, 2, 3, 4].map((i) => (
               <Skeleton key={i} className="h-4 w-20" />
             ))}

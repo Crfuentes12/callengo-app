@@ -609,7 +609,7 @@ function WebhooksSetupModal({
           <div className="relative p-6 border-b border-[var(--color-primary-100)]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white flex items-center justify-center shadow-md">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--color-deep-indigo)] to-[var(--color-electric)] text-white flex items-center justify-center shadow-md">
                   <WebhookIcon className="w-5 h-5" />
                 </div>
                 <div>
@@ -986,7 +986,7 @@ function FeedbackSection() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary-50)] to-[var(--color-accent)]/5" />
         <div className="relative px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center shrink-0 shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-deep-indigo)] to-[var(--color-electric)] flex items-center justify-center shrink-0 shadow-sm">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
             </svg>
@@ -1489,13 +1489,13 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       >
         {/* Status indicator line at top */}
         {isActive && (
-          <div className="absolute top-0 left-4 right-4 h-[2px] rounded-b-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]" />
+          <div className="absolute top-0 left-4 right-4 h-[2px] rounded-b-full bg-gradient-to-r from-[var(--color-deep-indigo)] to-[var(--color-electric)]" />
         )}
 
         {/* Locked overlay accent */}
         {isLocked && (
           <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden rounded-tr-2xl">
-            <div className="absolute top-2 right-[-20px] w-[80px] text-center bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white text-[8px] font-bold uppercase tracking-wider py-0.5 rotate-45">
+            <div className="absolute top-2 right-[-20px] w-[80px] text-center bg-gradient-to-r from-[var(--color-deep-indigo)] to-[var(--color-electric)] text-white text-[8px] font-bold uppercase tracking-wider py-0.5 rotate-45">
               {getPlanLabel(item.requiredPlan)}
             </div>
           </div>
@@ -1564,7 +1564,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
           {/* Locked - upgrade CTA */}
           {isLocked && (
             <Link href="/settings?section=billing"
-              className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded-xl text-[11px] font-bold transition-all bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white shadow-sm hover:shadow-md hover:translate-y-[-1px]">
+              className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded-xl text-[11px] font-bold transition-all btn-premium">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
               Unlock with {getPlanLabel(item.requiredPlan)}
             </Link>
@@ -1718,7 +1718,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       {upgradeInfo.show && (
         <div className="flex items-center justify-between gap-4 px-5 py-3.5 rounded-xl bg-gradient-to-r from-[var(--color-primary-50)] to-[var(--color-accent)]/5 border border-[var(--color-primary-100)]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-deep-indigo)] to-[var(--color-electric)] flex items-center justify-center shrink-0">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
             </div>
             <div>
@@ -1799,7 +1799,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary-50)] via-white to-[var(--color-accent)]/5" />
         <div className="relative p-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-deep-indigo)] to-[var(--color-electric)] flex items-center justify-center shrink-0 shadow-sm">
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
               </svg>
