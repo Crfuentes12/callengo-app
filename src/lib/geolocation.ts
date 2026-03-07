@@ -194,9 +194,9 @@ export function createLocationLogEntry(location: GeoLocation): {
  * Keeps only last 50 entries to prevent bloat
  */
 export function appendLocationLog(
-  existingLogs: any[] | null,
+  existingLogs: Record<string, unknown>[] | null,
   newEntry: ReturnType<typeof createLocationLogEntry>
-): any[] {
+): Record<string, unknown>[] {
   const logs = Array.isArray(existingLogs) ? existingLogs : [];
 
   // Add new entry at the beginning

@@ -156,7 +156,7 @@ export async function parseXMLFile(file: File): Promise<ParsedData> {
 
           try {
             // Try to extract data from common XML structures
-            let contacts: any[] = [];
+            let contacts: Record<string, unknown>[] = [];
 
             // Try different XML structures
             if (result.contacts?.contact) {
@@ -236,7 +236,7 @@ export async function parseJSONFile(file: File): Promise<ParsedData> {
 
         const data = JSON.parse(jsonText);
 
-        let contacts: any[] = [];
+        let contacts: Record<string, unknown>[] = [];
 
         // Handle different JSON structures
         if (Array.isArray(data)) {
