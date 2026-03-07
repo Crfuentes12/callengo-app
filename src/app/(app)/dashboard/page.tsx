@@ -168,7 +168,7 @@ export default async function DashboardPage() {
   return (
     <DashboardOverview
       contacts={contacts || []}
-      recentCalls={recentCalls || []}
+      recentCalls={(recentCalls || []) as Parameters<typeof DashboardOverview>[0]['recentCalls']}
       company={company!}
       agentTemplates={agentTemplates || []}
       companyAgents={companyAgents || []}

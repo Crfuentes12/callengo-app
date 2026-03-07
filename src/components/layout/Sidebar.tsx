@@ -169,27 +169,26 @@ export default function Sidebar({
 
   // Dynamically calculate sidebar width based on widest nav item
   const allNavLabels = useMemo(() => {
-    const labels = navGroups.flat().map(item => item.name);
-    labels.push(...adminNavigation.map(item => item.name));
-    labels.push(t.nav.signOut);
-    return labels;
-  }, [t]);
+    return [
+      t.nav.dashboard, t.nav.contacts, t.nav.campaigns, t.nav.agents,
+      t.nav.callHistory, t.nav.calendar, t.nav.voicemails, t.nav.followUps,
+      t.nav.analytics, t.nav.integrations, t.nav.team,
+      t.nav.adminFinances, t.nav.signOut,
+    ];
+  }, [t.nav.dashboard, t.nav.contacts, t.nav.campaigns, t.nav.agents, t.nav.callHistory, t.nav.calendar, t.nav.voicemails, t.nav.followUps, t.nav.analytics, t.nav.integrations, t.nav.team, t.nav.adminFinances, t.nav.signOut]);
 
   const expandedWidth = useMemo(() => {
     if (typeof document === 'undefined') return 200;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return 200;
-    // Match the sidebar font: 14px font-medium (500 weight)
     ctx.font = '500 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     let maxTextWidth = 0;
     for (const label of allNavLabels) {
       const width = ctx.measureText(label).width;
       if (width > maxTextWidth) maxTextWidth = width;
     }
-    // icon (20px) + gap (12px) + text + px padding (12px each side) + buffer
     const totalWidth = Math.ceil(maxTextWidth + 20 + 12 + 24 + 8);
-    // Clamp between 180 and 280px
     return Math.max(180, Math.min(totalWidth, 280));
   }, [allNavLabels]);
 

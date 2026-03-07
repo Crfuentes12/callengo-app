@@ -98,16 +98,10 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
   // Load conversations list
   const loadConversations = useCallback(async () => {
     try {
-      // @ts-ignore - ai_conversations table from new migration
-      const { data } = await supabase
-        .from('ai_conversations' as any)
-        .select('id, title, created_at, updated_at')
-        .eq('user_id', userId)
-        .eq('company_id', companyId)
-        .order('updated_at', { ascending: false })
-        .limit(20);
+      // @ts-expect-error - ai_conversations table from new migration
+      const { data } = await supabase.from('ai_conversations').select('id, title, created_at, updated_at').eq('user_id', userId).eq('company_id', companyId).order('updated_at', { ascending: false }).limit(20);
 
-      if (data) setConversations(data as any);
+      if (data) setConversations(data as unknown as typeof conversations);
     } catch {
       // Table might not exist yet
     }
@@ -116,14 +110,10 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
   // Load messages for a conversation
   const loadMessages = useCallback(async (conversationId: string) => {
     try {
-      // @ts-ignore - ai_messages table from new migration
-      const { data } = await supabase
-        .from('ai_messages' as any)
-        .select('id, role, content, created_at')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+      // @ts-expect-error - ai_messages table from new migration
+      const { data } = await supabase.from('ai_messages').select('id, role, content, created_at').eq('conversation_id', conversationId).order('created_at', { ascending: true });
 
-      if (data) setMessages(data as any);
+      if (data) setMessages(data as unknown as typeof messages);
     } catch {
       // Table might not exist yet
     }

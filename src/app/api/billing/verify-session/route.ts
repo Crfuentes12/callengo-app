@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     const stripeSubId =
       typeof subscriptionId === 'string'
         ? subscriptionId
-        : (subscriptionId as any)?.id || null;
+        : (subscriptionId as unknown as Record<string, unknown>)?.id as string || null;
 
     // Update the existing subscription record using .update().eq()
     // This avoids the upsert/onConflict issue that requires a UNIQUE constraint

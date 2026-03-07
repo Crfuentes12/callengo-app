@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || 'current';
 
     let periodStart: Date;
-    let periodEnd: Date = new Date();
+    const periodEnd: Date = new Date();
 
     switch (period) {
       case 'last_30':

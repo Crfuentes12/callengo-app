@@ -34,7 +34,7 @@ interface CalendarConfigStepProps {
   onConfigChange: (config: CalendarStepConfig) => void;
   gradientColor: string;
   planSlug?: string;
-  companySettings?: any;
+  companySettings?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -140,19 +140,22 @@ function MiniCalendarPreview({
   const year = today.getFullYear();
   const month = today.getMonth();
 
-  const holidays = useMemo(() => {
-    if (!excludeHolidays) return new Set<string>();
+  let holidays: Set<string>;
+  if (!excludeHolidays) {
+    holidays = new Set<string>();
+  } else {
     const h = getUSHolidaysForYear(year);
-    return new Set(h.map(hol => hol.date));
-  }, [year, excludeHolidays]);
+    holidays = new Set(h.map(hol => hol.date));
+  }
 
-  const holidayNames = useMemo(() => {
-    if (!excludeHolidays) return new Map<string, string>();
+  let holidayNames: Map<string, string>;
+  if (!excludeHolidays) {
+    holidayNames = new Map<string, string>();
+  } else {
     const h = getUSHolidaysForYear(year);
-    const map = new Map<string, string>();
-    h.forEach(hol => map.set(hol.date, hol.name));
-    return map;
-  }, [year, excludeHolidays]);
+    holidayNames = new Map<string, string>();
+    h.forEach(hol => holidayNames.set(hol.date, hol.name));
+  }
 
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);

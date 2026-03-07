@@ -28,6 +28,7 @@ import {
 } from '@/lib/salesforce';
 // Google Sheets is import-only — no outbound push from webhooks
 import type { CalendarStepConfig } from '@/types/calendar';
+import type { Json } from '@/types/supabase';
 import { dispatchWebhookEvent } from '@/lib/webhooks';
 import {
   analyzeCallIntent,
@@ -38,6 +39,33 @@ import {
 import { enqueueAnalysis } from '@/lib/queue/analysis-queue';
 import { autoAssignEvent } from '@/lib/calendar/resource-routing';
 import { trackCallUsage } from '@/lib/billing/usage-tracker';
+
+interface WebhookMetadata {
+  company_id?: string;
+  contact_id?: string;
+  agent_name?: string;
+  agent_run_id?: string;
+  agent_template_slug?: string;
+  campaign_id?: string;
+  calendar_event_id?: string;
+  follow_up_needed?: boolean;
+  follow_up_date?: string;
+  follow_up_reason?: string;
+  started_at?: string;
+  no_show?: boolean;
+  appointment_confirmed?: boolean;
+  needs_reschedule?: boolean;
+  new_appointment_time?: string;
+  reschedule_reason?: string;
+  callback_requested?: boolean;
+  for_callback?: boolean;
+  callback_date?: string;
+  meeting_scheduled?: boolean;
+  meeting_requested?: boolean;
+  meeting_time?: string;
+  contact_email?: string;
+  [key: string]: unknown;
+}
 
 function verifyBlandSignature(rawBody: string, signature: string | null, secret: string): boolean {
   if (!signature) return false;
@@ -80,23 +108,19 @@ export async function POST(request: NextRequest) {
       console.warn('BLAND_WEBHOOK_SECRET not configured — webhook signature verification skipped (dev only)');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typedBody = body as any;
-    const {
-      call_id,
-      status,
-      completed,
-      call_length,
-      to,
-      from,
-      answered_by,
-      recording_url,
-      concatenated_transcript,
-      summary,
-      error_message,
-      price,
-      metadata,
-    } = typedBody;
+    const call_id = body.call_id as string | undefined;
+    const status = body.status as string | undefined;
+    const completed = body.completed as boolean | undefined;
+    const call_length = body.call_length as number | undefined;
+    const to = body.to as string | undefined;
+    const from = body.from as string | undefined;
+    const answered_by = body.answered_by as string | undefined;
+    const recording_url = body.recording_url as string | undefined;
+    const concatenated_transcript = body.concatenated_transcript as string | undefined;
+    const summary = body.summary as string | undefined;
+    const error_message = body.error_message as string | undefined;
+    const price = body.price as number | undefined;
+    const metadata = body.metadata as WebhookMetadata | undefined;
 
     console.log('Webhook received for call:', call_id);
 
@@ -110,22 +134,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the call
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     await supabaseAdmin.from('call_logs').insert({
       company_id: companyId,
       contact_id: contactId || null,
-      call_id,
-      status,
+      call_id: call_id as string,
+      status: status || null,
       completed: completed || false,
-      call_length,
-      price,
-      answered_by,
-      recording_url,
-      transcript: concatenated_transcript,
-      summary,
-      error_message,
-      metadata: typedBody,
-    } as any);
+      call_length: call_length || null,
+      price: price || null,
+      answered_by: answered_by || null,
+      recording_url: recording_url || null,
+      transcript: concatenated_transcript || null,
+      summary: summary || null,
+      error_message: error_message || null,
+      metadata: body as unknown as Json,
+    });
 
     // Lock the contact during processing to prevent user edits
     if (contactId) {
@@ -138,13 +162,13 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin
         .from('contacts')
         .update({
-          custom_fields: {
+          custom_fields: JSON.parse(JSON.stringify({
             ...lockCf,
             _locked: true,
             _locked_at: new Date().toISOString(),
             _locked_by: 'webhook_processing',
             _lock_call_id: call_id,
-          },
+          })),
         })
         .eq('id', contactId);
     }
@@ -181,9 +205,9 @@ export async function POST(request: NextRequest) {
     // CALENDAR INTEGRATION: Create calendar events based on call outcome
     // ================================================================
     try {
-      const contactName = contactId
+      const contactName: string = contactId
         ? await getContactName(contactId)
-        : to || 'Unknown';
+        : (to as string) || 'Unknown';
 
       // If call was not answered or voicemail, schedule a callback event
       if (answered_by === 'voicemail' || status === 'no_answer' || status === 'voicemail') {
@@ -205,7 +229,7 @@ export async function POST(request: NextRequest) {
       // If call completed and follow-up is needed (based on analysis/metadata)
       if (completed && metadata?.follow_up_needed) {
         const followUpDate = metadata?.follow_up_date
-          ? new Date(metadata.follow_up_date)
+          ? new Date(metadata.follow_up_date as string)
           : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // Default 3 days
 
         await createAgentFollowUp(companyId, {
@@ -221,7 +245,7 @@ export async function POST(request: NextRequest) {
 
       // If call completed successfully, log it as a completed event
       if (completed && status === 'completed') {
-        const callStart = new Date(metadata?.started_at || new Date());
+        const callStart = new Date((metadata?.started_at as string) || new Date());
         const callEnd = new Date(callStart);
         callEnd.setSeconds(callEnd.getSeconds() + (call_length || 0));
 
@@ -231,7 +255,7 @@ export async function POST(request: NextRequest) {
           description: summary || `Outbound call to ${contactName}`,
           start_time: callStart.toISOString(),
           end_time: callEnd.toISOString(),
-          event_type: 'call',
+          event_type: 'call' as const,
           status: 'completed',
           source: 'campaign',
           contact_id: contactId || null,
@@ -240,12 +264,12 @@ export async function POST(request: NextRequest) {
           agent_name: metadata?.agent_name || null,
           ai_notes: summary || null,
           confirmation_status: 'confirmed',
-          metadata: {
+          metadata: JSON.parse(JSON.stringify({
             call_id,
             call_length,
             answered_by,
             recording_url,
-          },
+          })),
         }).select('id').single();
 
         // Auto-assign to team member based on contact's doctor_assigned
@@ -264,8 +288,8 @@ export async function POST(request: NextRequest) {
     // Use the campaign's calendar config for intelligent scheduling
     // ================================================================
     try {
-      const agentRunId = metadata?.agent_run_id;
-      const agentTemplateSlug = metadata?.agent_template_slug;
+      const agentRunId = metadata?.agent_run_id as string | undefined;
+      const agentTemplateSlug = metadata?.agent_template_slug as string | undefined;
 
       if (agentRunId && completed) {
         // Fetch the campaign's calendar config and agent template slug
@@ -285,13 +309,13 @@ export async function POST(request: NextRequest) {
         const { data: callLogData } = await supabaseAdmin
           .from('call_logs')
           .select('id')
-          .eq('call_id', call_id)
+          .eq('call_id', call_id as string)
           .single();
         const callLogId = callLogData?.id;
 
-        const contactName = contactId
+        const contactName: string = contactId
           ? await getContactName(contactId)
-          : to || 'Unknown';
+          : (to as string) || 'Unknown';
 
         // ---- AI-POWERED INTENT ANALYSIS ----
         // Dual-mode: async queue for high volume, sync for real-time needs
@@ -299,7 +323,7 @@ export async function POST(request: NextRequest) {
         let intentResult;
         const useAsyncQueue = process.env.AI_ANALYSIS_MODE === 'async';
 
-        if (templateSlug && transcript.length > 10) {
+        if (templateSlug && (transcript as string).length > 10) {
           if (useAsyncQueue && callLogId) {
             // ASYNC MODE: Enqueue for background processing (< 50ms)
             // The queue worker will process this and apply results later
@@ -308,8 +332,8 @@ export async function POST(request: NextRequest) {
                 companyId,
                 callLogId,
                 contactId: contactId || null,
-                agentRunId: agentRunId as string || null,
-                templateSlug,
+                agentRunId: agentRunId || null,
+                templateSlug: templateSlug as string,
                 transcript,
                 callMetadata: {
                   ...((metadata || {}) as Record<string, unknown>),
@@ -346,7 +370,7 @@ export async function POST(request: NextRequest) {
           // SYNC MODE: Analyze inline (default, or fallback if queue fails)
           if (!useAsyncQueue || !callLogId) {
             try {
-              intentResult = await analyzeCallIntent(templateSlug, transcript, {
+              intentResult = await analyzeCallIntent(templateSlug as string, transcript, {
                 ...((metadata || {}) as Record<string, unknown>),
                 contact_name: contactName,
               });

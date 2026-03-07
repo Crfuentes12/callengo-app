@@ -316,7 +316,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                       </svg>
                       <div className="text-sm text-blue-800">
                         <p className="font-semibold mb-1">Important:</p>
-                        <p>Make sure your Google Sheet is <strong>publicly accessible</strong> (set sharing to "Anyone with the link can view")</p>
+                        <p>Make sure your Google Sheet is <strong>publicly accessible</strong> (set sharing to &quot;Anyone with the link can view&quot;)</p>
                       </div>
                     </div>
                   </div>

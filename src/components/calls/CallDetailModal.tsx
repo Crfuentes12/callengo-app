@@ -14,9 +14,9 @@ interface CallDetailData {
   recording_url: string | null;
   transcript: string | null;
   summary: string | null;
-  analysis: any;
+  analysis: CallAnalysis;
   error_message: string | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
   voicemail_detected?: boolean;
   voicemail_left?: boolean;
@@ -30,6 +30,22 @@ interface CallDetailData {
   agent_runs?: { name: string } | null;
 }
 
+interface CallAnalysis {
+  callSentiment?: string;
+  customerInterestLevel?: string;
+  callCategory?: string;
+  businessConfirmed?: boolean;
+  keyPoints?: string[];
+  outcomeNotes?: string;
+  extractedData?: Record<string, unknown>;
+  validatedFields?: Record<string, unknown>;
+  nextActions?: string[];
+  callQuality?: { rating?: number; reason?: string };
+  followUpRequired?: boolean;
+  followUpReason?: string;
+  [key: string]: unknown;
+}
+
 interface CallDetailModalProps {
   call: CallDetailData;
   onClose: () => void;
@@ -38,7 +54,7 @@ interface CallDetailModalProps {
 export default function CallDetailModal({ call, onClose }: CallDetailModalProps) {
   const [activeSection, setActiveSection] = useState<'overview' | 'transcript' | 'analysis' | 'recording'>('overview');
 
-  const analysis = call.analysis || {};
+  const analysis = (call.analysis || {}) as CallAnalysis;
   const hasTranscript = !!call.transcript;
   const hasRecording = !!call.recording_url || !!call.voicemail_message_url;
   const hasAnalysis = call.analysis && Object.keys(call.analysis).length > 0;

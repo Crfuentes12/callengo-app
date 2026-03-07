@@ -338,24 +338,24 @@ export function generateVoicemailMessage(contactCompanyName: string, voiceConfig
   return `Hi, this is ${voiceConfig.agentName} from ${userCompanyName} calling for ${contactCompanyName}. Just calling to verify some business information. Please call back at your convenience. Thanks!`;
 }
 
-export function extractCallMetadata(callDetails: any): CallMetadata {
+export function extractCallMetadata(callDetails: Record<string, unknown>): CallMetadata {
   return {
-    price: callDetails.price || null,
-    from: callDetails.from || null,
-    to: callDetails.to || null,
-    startedAt: callDetails.started_at || null,
-    endedAt: callDetails.end_at || null,
-    createdAt: callDetails.created_at || null,
-    localDialing: callDetails.local_dialing || false,
-    queueStatus: callDetails.queue_status || null,
-    maxDuration: callDetails.max_duration || null,
-    correctedDuration: callDetails.corrected_duration || null,
-    batchId: callDetails.batch_id || null,
-    summary: callDetails.summary || null,
-    errorMessage: callDetails.error_message || null,
-    answeredBy: callDetails.answered_by || null,
-    model: callDetails.model || null,
-    language: callDetails.language || null,
+    price: (callDetails.price as number) || null,
+    from: (callDetails.from as string) || null,
+    to: (callDetails.to as string) || null,
+    startedAt: (callDetails.started_at as string) || null,
+    endedAt: (callDetails.end_at as string) || null,
+    createdAt: (callDetails.created_at as string) || null,
+    localDialing: (callDetails.local_dialing as boolean) || false,
+    queueStatus: (callDetails.queue_status as string) || null,
+    maxDuration: (callDetails.max_duration as number) || null,
+    correctedDuration: (callDetails.corrected_duration as number) || null,
+    batchId: (callDetails.batch_id as string) || null,
+    summary: (callDetails.summary as string) || null,
+    errorMessage: (callDetails.error_message as string) || null,
+    answeredBy: (callDetails.answered_by as CallMetadata['answeredBy']) || null,
+    model: (callDetails.model as string) || null,
+    language: (callDetails.language as string) || null,
     voicemailDetected: callDetails.answered_by === 'voicemail',
   };
 }

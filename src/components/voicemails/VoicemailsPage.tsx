@@ -255,9 +255,9 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
             summary: selectedVoicemail.message_left
               ? `Voicemail was left for ${selectedVoicemail.contacts?.contact_name || selectedVoicemail.contacts?.company_name || 'contact'}. Detection confidence: ${selectedVoicemail.confidence_score ? Math.round(selectedVoicemail.confidence_score * 100) + '%' : 'N/A'}.`
               : `Voicemail was detected but no message was left. Detection method: ${selectedVoicemail.detection_method || 'Unknown'}.`,
-            analysis: null,
+            analysis: {},
             error_message: null,
-            metadata: null,
+            metadata: {},
             created_at: selectedVoicemail.detected_at,
             voicemail_detected: true,
             voicemail_left: selectedVoicemail.message_left,

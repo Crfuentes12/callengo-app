@@ -37,9 +37,9 @@ function LoginForm() {
       // Success! Redirect to dashboard
       router.push('/dashboard');
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+      setError(err instanceof Error ? err.message : 'Failed to sign in. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -155,7 +155,7 @@ function LoginForm() {
 
           <div className="mt-8 pt-6 border-t border-slate-200">
             <p className="text-center text-sm text-slate-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/signup" className="text-[var(--color-primary)] font-semibold hover:opacity-80 transition-colors">
                 Sign up for free
               </Link>

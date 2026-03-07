@@ -69,9 +69,11 @@ export default function CommandCenter({ isOpen, onClose, companyId }: CommandCen
   // Reset & focus on open
   useEffect(() => {
     if (isOpen) {
-      setQuery('');
-      setSelectedIndex(0);
-      setDbResults([]);
+      queueMicrotask(() => {
+        setQuery('');
+        setSelectedIndex(0);
+        setDbResults([]);
+      });
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
@@ -92,7 +94,7 @@ export default function CommandCenter({ isOpen, onClose, companyId }: CommandCen
   // DB search with debounce
   useEffect(() => {
     if (!query || query.length < 2 || !companyId) {
-      setDbResults([]);
+      queueMicrotask(() => setDbResults([]));
       return;
     }
     const timer = setTimeout(async () => {

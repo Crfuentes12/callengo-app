@@ -109,7 +109,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
         .single();
 
       if (sub?.subscription_plans) {
-        setPlanSlug((sub.subscription_plans as any).slug || 'free');
+        setPlanSlug((sub.subscription_plans as Record<string, unknown>).slug as string || 'free');
       }
 
       // Fetch team data via API to avoid direct table dependency
@@ -180,8 +180,8 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       setInviteEmail('');
       await loadTeamData();
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'Failed to send invitation');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to send invitation');
     } finally {
       setInviting(false);
     }
@@ -240,8 +240,8 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       if (!response.ok) throw new Error(data.error || 'Failed to resend invitation');
 
       setSuccess(`Invitation resent to ${invite.email}`);
-    } catch (err: any) {
-      setError(err.message || 'Failed to resend invitation');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to resend invitation');
     } finally {
       setResendingId(null);
     }
@@ -288,9 +288,9 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       if (res.ok) {
         const data = await res.json();
         const raw = data[source.memberKey] || [];
-        const mapped: IntegrationMember[] = raw.map((m: any) => ({
+        const mapped: IntegrationMember[] = raw.map((m: Record<string, unknown>) => ({
           id: m[source.id === 'simplybook' ? 'sb_provider_id' : `${source.id}_user_id`] || m.id || m.email,
-          name: m.name || m.full_name || m.email?.split('@')[0] || 'Unknown',
+          name: m.name || m.full_name || (m.email as string | undefined)?.split('@')[0] || 'Unknown',
           email: m.email || '',
           role: m.role || m.profile || undefined,
           already_in_callengo: !!m.already_in_callengo,
@@ -408,8 +408,8 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create checkout');
       if (data.url) window.location.href = data.url;
-    } catch (err: any) {
-      alert(err.message || 'Could not start checkout');
+    } catch (err: unknown) {
+      alert((err as Error).message || 'Could not start checkout');
     } finally {
       setBuyingSeat(false);
     }

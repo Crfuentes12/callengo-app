@@ -17,7 +17,7 @@ interface AgentConfigModalProps {
   agent: AgentTemplate;
   companyId: string;
   company: Company;
-  companySettings?: any;
+  companySettings?: Record<string, unknown>;
   onClose: () => void;
 }
 
@@ -67,13 +67,13 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
   const [callDuration, setCallDuration] = useState(0);
   const [callId, setCallId] = useState<string | null>(null);
-  const [callData, setCallData] = useState<any>(null);
+  const [callData, setCallData] = useState<Record<string, unknown> | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Use ref instead of state
   const hasAnalyzedRef = useRef(false); // Track if call has been analyzed
-  const [callAnalysis, setCallAnalysis] = useState<any>(null);
+  const [callAnalysis, setCallAnalysis] = useState<Record<string, unknown> | null>(null);
   const [analyzingCall, setAnalyzingCall] = useState(false);
   const [listContactCounts, setListContactCounts] = useState<Record<string, number>>({});
-  const [contactPreview, setContactPreview] = useState<any[]>([]);
+  const [contactPreview, setContactPreview] = useState<Record<string, unknown>[]>([]);
   const [setAsDefaultVoice, setSetAsDefaultVoice] = useState(false);
   const [planLimits, setPlanLimits] = useState<{ maxCallDuration: number; maxCallsPerDay: number | null; minutesIncluded: number; slug: string } | null>(null);
   const [overageData, setOverageData] = useState<{ enabled: boolean; budget: number; spent: number; pricePerMinute: number; subscriptionId: string } | null>(null);
@@ -82,23 +82,23 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   // Pre-fill from company settings
-  const additionalSettings = (companySettings?.settings as any) || {};
+  const additionalSettings = (companySettings?.settings as Record<string, unknown>) || {};
   const [settings, setSettings] = useState({
-    voice: companySettings?.default_voice || '',
-    maxDuration: companySettings?.default_max_duration || 5,
-    intervalMinutes: companySettings?.default_interval_minutes || 5,
-    maxCallsPerDay: additionalSettings.max_calls_per_day || 100,
-    workingHoursStart: additionalSettings.working_hours_start || '09:00',
-    workingHoursEnd: additionalSettings.working_hours_end || '18:00',
-    timezone: additionalSettings.timezone || 'America/New_York',
+    voice: (companySettings?.default_voice as string) || '',
+    maxDuration: (companySettings?.default_max_duration as number) || 5,
+    intervalMinutes: (companySettings?.default_interval_minutes as number) || 5,
+    maxCallsPerDay: (additionalSettings.max_calls_per_day as number) || 100,
+    workingHoursStart: (additionalSettings.working_hours_start as string) || '09:00',
+    workingHoursEnd: (additionalSettings.working_hours_end as string) || '18:00',
+    timezone: (additionalSettings.timezone as string) || 'America/New_York',
     customTask: '',
     selectedLists: [] as string[],
-    testPhoneNumber: companySettings?.test_phone_number || '',
-    voicemailEnabled: additionalSettings.voicemail_enabled ?? false,
-    followUpEnabled: additionalSettings.followup_enabled ?? false,
-    followUpMaxAttempts: additionalSettings.followup_max_attempts || 3,
-    followUpIntervalHours: additionalSettings.followup_interval_hours || 24,
-    smartFollowUp: additionalSettings.smart_followup_enabled ?? false,
+    testPhoneNumber: (companySettings?.test_phone_number as string) || '',
+    voicemailEnabled: (additionalSettings.voicemail_enabled as boolean) ?? false,
+    followUpEnabled: (additionalSettings.followup_enabled as boolean) ?? false,
+    followUpMaxAttempts: (additionalSettings.followup_max_attempts as number) || 3,
+    followUpIntervalHours: (additionalSettings.followup_interval_hours as number) || 24,
+    smartFollowUp: (additionalSettings.smart_followup_enabled as boolean) ?? false,
     companyInfo: {
       name: company.name,
       description: company.description || '',
@@ -112,16 +112,16 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
 
   // Calendar configuration state - pre-fill from company settings
   const [calendarConfig, setCalendarConfig] = useState<CalendarStepConfig>({
-    timezone: additionalSettings.timezone || 'America/New_York',
-    workingHoursStart: additionalSettings.working_hours_start || '09:00',
-    workingHoursEnd: additionalSettings.working_hours_end || '18:00',
-    workingDays: additionalSettings.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    excludeUSHolidays: additionalSettings.exclude_holidays ?? true,
-    voicemailEnabled: additionalSettings.voicemail_enabled ?? false,
-    followUpEnabled: additionalSettings.followup_enabled ?? false,
-    followUpMaxAttempts: additionalSettings.followup_max_attempts || 3,
-    followUpIntervalHours: additionalSettings.followup_interval_hours || 24,
-    smartFollowUp: additionalSettings.smart_followup_enabled ?? false,
+    timezone: (additionalSettings.timezone as string) || 'America/New_York',
+    workingHoursStart: (additionalSettings.working_hours_start as string) || '09:00',
+    workingHoursEnd: (additionalSettings.working_hours_end as string) || '18:00',
+    workingDays: (additionalSettings.working_days as string[]) || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    excludeUSHolidays: (additionalSettings.exclude_holidays as boolean) ?? true,
+    voicemailEnabled: (additionalSettings.voicemail_enabled as boolean) ?? false,
+    followUpEnabled: (additionalSettings.followup_enabled as boolean) ?? false,
+    followUpMaxAttempts: (additionalSettings.followup_max_attempts as number) || 3,
+    followUpIntervalHours: (additionalSettings.followup_interval_hours as number) || 24,
+    smartFollowUp: (additionalSettings.smart_followup_enabled as boolean) ?? false,
     calendarContextEnabled: true,
     defaultMeetingDuration: 30,
     preferredVideoProvider: 'zoom',
@@ -311,7 +311,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   };
 
   // Analyze call with OpenAI
-  const analyzeCall = async (callData: any) => {
+  const analyzeCall = async (callData: Record<string, unknown>) => {
     setAnalyzingCall(true);
     try {
       const response = await fetch('/api/openai/analyze-call', {
@@ -490,9 +490,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       };
 
       // Create agent run - calendar config stored in settings JSONB
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { data: run, error } = await (supabase
-        .from('agent_runs') as any)
+        .from('agent_runs') as unknown as { insert: (data: Record<string, unknown>) => { select: () => { single: () => Promise<{ data: Record<string, unknown> | null; error: unknown }> } } })
         .insert({
           company_id: companyId,
           agent_template_id: agent.id,
@@ -511,7 +511,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       if (error) throw error;
 
       // Redirect to campaign page
-      router.push(`/dashboard/campaigns/${run.id}`);
+      router.push(`/dashboard/campaigns/${run?.id as string}`);
     } catch (error) {
       alert('Failed to create campaign');
     } finally {
@@ -901,7 +901,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     {/* Left Column */}
                     <div className="space-y-4">
                       {/* Call Recording */}
-                      {(callData.recording_url || callData.recording || callData.concatenated_recording) && (
+                      {Boolean(callData.recording_url || callData.recording || callData.concatenated_recording) && (
                         <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                           <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                             <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -910,15 +910,15 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                             Call Recording
                           </h3>
                           <audio controls className="w-full" controlsList="nodownload">
-                            <source src={callData.recording_url || callData.recording || callData.concatenated_recording} type="audio/mpeg" />
-                            <source src={callData.recording_url || callData.recording || callData.concatenated_recording} type="audio/wav" />
+                            <source src={(callData.recording_url || callData.recording || callData.concatenated_recording) as string} type="audio/mpeg" />
+                            <source src={(callData.recording_url || callData.recording || callData.concatenated_recording) as string} type="audio/wav" />
                             Your browser does not support the audio element.
                           </audio>
                         </div>
                       )}
 
                       {/* Transcript */}
-                      {callData.transcripts && (
+                      {Boolean(callData.transcripts) && (
                         <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                           <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                             <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -927,7 +927,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                             Transcript
                           </h3>
                           <div className="space-y-3 max-h-64 overflow-y-auto">
-                            {callData.transcripts.map((t: any, i: number) => {
+                            {(callData.transcripts as Array<{ user: string; text: string }>).map((t, i: number) => {
                               const isAgent = t.user === 'assistant' || t.user === 'agent';
                               return (
                                 <div key={i} className={`flex gap-2 ${isAgent ? 'justify-start' : 'justify-end'}`}>
@@ -956,7 +956,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-slate-600">Status:</span>
-                            <span className="text-emerald-600 font-bold capitalize">{callData.status}</span>
+                            <span className="text-emerald-600 font-bold capitalize">{String(callData.status)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600">Duration:</span>
@@ -1009,7 +1009,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                                 </svg>
                                 Call Outcome
                               </h3>
-                              <p className="text-sm text-slate-600 font-medium">{callAnalysis.outcome}</p>
+                              <p className="text-sm text-slate-600 font-medium">{String(callAnalysis.outcome)}</p>
                             </div>
                           )}
 
@@ -1115,7 +1115,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           )}
 
                           {/* Next Actions */}
-                          {callAnalysis.nextActions && callAnalysis.nextActions.length > 0 && (
+                          {callAnalysis.nextActions && (callAnalysis.nextActions as string[]).length > 0 && (
                             <div className="bg-slate-50 rounded-lg p-4 border border-amber-200">
                               <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                                 <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1124,7 +1124,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                                 Next Actions
                               </h3>
                               <ul className="space-y-2">
-                                {callAnalysis.nextActions.map((action: string, idx: number) => (
+                                {(callAnalysis.nextActions as string[]).map((action: string, idx: number) => (
                                   <li key={idx} className="flex items-start gap-2 text-xs">
                                     <div className="w-5 h-5 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
                                       <span className="text-amber-600 font-bold text-[10px]">{idx + 1}</span>
@@ -1150,13 +1150,13 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                                 <div className="flex-1 h-3 bg-slate-200 rounded-full overflow-hidden">
                                   <div
                                     className="h-full gradient-bg rounded-full transition-all"
-                                    style={{ width: `${(callAnalysis.callQuality.rating || 0) * 10}%` }}
+                                    style={{ width: `${((callAnalysis.callQuality as Record<string, unknown>)?.rating as number || 0) * 10}%` }}
                                   ></div>
                                 </div>
-                                <span className="text-lg font-bold text-emerald-600">{callAnalysis.callQuality.rating}/10</span>
+                                <span className="text-lg font-bold text-emerald-600">{(callAnalysis.callQuality as Record<string, unknown>)?.rating as number}/10</span>
                               </div>
-                              {callAnalysis.callQuality.reason && (
-                                <p className="text-xs text-slate-500 italic">{callAnalysis.callQuality.reason}</p>
+                              {!!(callAnalysis.callQuality as Record<string, unknown>)?.reason && (
+                                <p className="text-xs text-slate-500 italic">{String((callAnalysis.callQuality as Record<string, unknown>).reason)}</p>
                               )}
                             </div>
                           )}
@@ -1341,7 +1341,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     <div>
                       <p className="text-sm font-bold text-[var(--color-primary)] mb-1">Test with Demo Data</p>
                       <p className="text-xs text-slate-600">
-                        <span className="text-[var(--color-primary)] font-bold">{agentName || agent.name}</span> will call you using the demo data. You'll experience a real conversation.
+                        <span className="text-[var(--color-primary)] font-bold">{agentName || agent.name}</span> will call you using the demo data. You&apos;ll experience a real conversation.
                       </p>
                     </div>
                   </div>
@@ -1419,7 +1419,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     Set as Default
                   </button>
                   <p className="text-xs text-slate-500 mt-2">
-                    You'll receive a demo call at this number
+                    You&apos;ll receive a demo call at this number
                   </p>
                 </div>
 
@@ -1776,9 +1776,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     </div>
                     {contactPreview.length > 0 && (
                       <div className="flex -space-x-2">
-                        {contactPreview.slice(0, 4).map((c: any) => (
-                          <div key={c.id} className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-slate-500">{(c.contact_name || '?')[0].toUpperCase()}</span>
+                        {contactPreview.slice(0, 4).map((c) => (
+                          <div key={c.id as string} className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-slate-500">{((c.contact_name as string) || '?')[0].toUpperCase()}</span>
                           </div>
                         ))}
                         {contactCount > 4 && (
@@ -1986,7 +1986,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               config={calendarConfig}
               onConfigChange={setCalendarConfig}
               gradientColor={gradientColor}
-              planSlug={companySettings?.plan_slug || 'free'}
+              planSlug={(companySettings?.plan_slug as string) || 'free'}
               companySettings={companySettings}
             />
 

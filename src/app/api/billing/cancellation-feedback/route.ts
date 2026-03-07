@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const planData = subscription?.subscription_plans as any;
+    const planData = subscription?.subscription_plans as Record<string, unknown> | null;
 
     // Insert feedback using untyped admin client (new table not in DB types yet)
     const { data: feedback, error: insertError } = await supabaseAdminRaw
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       status: 'saved',
-      feedback_id: (feedback as any)?.id,
+      feedback_id: (feedback as Record<string, unknown>)?.id,
       months_subscribed: monthsSubscribed,
     });
   } catch (error) {

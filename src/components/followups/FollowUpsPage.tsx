@@ -267,9 +267,9 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
               : selectedFollowUp.status === 'completed'
               ? `Follow-up completed after ${selectedFollowUp.attempt_number} attempt(s).`
               : `Follow-up ${selectedFollowUp.status}. Reason: ${selectedFollowUp.reason || 'No reason provided'}.`,
-            analysis: null,
+            analysis: {},
             error_message: null,
-            metadata: null,
+            metadata: {},
             created_at: selectedFollowUp.created_at,
             contacts: selectedFollowUp.contacts ? {
               company_name: selectedFollowUp.contacts.company_name || 'Unknown',

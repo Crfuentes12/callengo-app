@@ -211,8 +211,8 @@ export default function AnalyticsDashboard({
     const headers = ['Date', 'Contact', 'Phone', 'Status', 'Duration (s)', 'Completed', 'Agent'];
     const rows = callLogs.map(log => [
       new Date(log.created_at).toLocaleDateString(),
-      (log as any).contact_name || log.contact_id || 'Unknown',
-      (log as any).contact_phone || '',
+      (log as unknown as Record<string, unknown>).contact_name || log.contact_id || 'Unknown',
+      (log as unknown as Record<string, unknown>).contact_phone || '',
       log.status || '',
       log.call_length || 0,
       log.completed ? 'Yes' : 'No',
@@ -231,8 +231,8 @@ export default function AnalyticsDashboard({
     } else {
       const jsonData = callLogs.map(log => ({
         date: new Date(log.created_at).toLocaleDateString(),
-        contact: (log as any).contact_name || log.contact_id || 'Unknown',
-        phone: (log as any).contact_phone || '',
+        contact: (log as unknown as Record<string, unknown>).contact_name || log.contact_id || 'Unknown',
+        phone: (log as unknown as Record<string, unknown>).contact_phone || '',
         status: log.status || '',
         duration_seconds: log.call_length || 0,
         completed: log.completed,
@@ -256,7 +256,7 @@ export default function AnalyticsDashboard({
       c.total_contacts,
       c.completed_calls,
       c.successful_calls,
-      (c as any).failed_calls || (c.completed_calls - c.successful_calls),
+      (c as unknown as Record<string, unknown>).failed_calls || (c.completed_calls - c.successful_calls),
       c.completed_calls > 0 ? ((c.successful_calls / c.completed_calls) * 100).toFixed(1) + '%' : '0%',
       new Date(c.created_at).toLocaleDateString(),
     ]);
@@ -284,10 +284,10 @@ export default function AnalyticsDashboard({
   const handleExportContacts = useCallback(() => {
     const headers = ['Name', 'Status', 'Phone', 'Email', 'Created'];
     const rows = contacts.map(c => [
-      `${(c as any).first_name || ''} ${(c as any).last_name || ''}`.trim() || 'Unknown',
+      `${(c as unknown as Record<string, unknown>).first_name || ''} ${(c as unknown as Record<string, unknown>).last_name || ''}`.trim() || 'Unknown',
       c.status || '',
-      (c as any).phone || '',
-      (c as any).email || '',
+      (c as unknown as Record<string, unknown>).phone || '',
+      (c as unknown as Record<string, unknown>).email || '',
       new Date(c.created_at).toLocaleDateString(),
     ]);
 

@@ -48,7 +48,7 @@ interface CampaignsOverviewProps {
   voicemailStats: VoicemailStat[];
   agentTemplates: AgentTemplate[];
   company: Company;
-  companySettings?: any;
+  companySettings?: Record<string, unknown>;
 }
 
 type FilterStatus = 'all' | 'active' | 'completed' | 'paused' | 'failed';

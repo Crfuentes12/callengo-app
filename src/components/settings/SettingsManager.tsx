@@ -55,7 +55,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   const [showNewPw, setShowNewPw] = useState(false);
 
   // 2FA state
-  const [mfaFactors, setMfaFactors] = useState<any[]>([]);
+  const [mfaFactors, setMfaFactors] = useState<Record<string, unknown>[]>([]);
   const [mfaLoading, setMfaLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [mfaEnrollData, setMfaEnrollData] = useState<{ factorId: string; qrCode: string; secret: string } | null>(null);
@@ -107,8 +107,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       setPasswordSuccess('Password updated successfully.');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
       setTimeout(() => setPasswordSuccess(''), 4000);
-    } catch (err: any) {
-      setPasswordError(err.message || 'Failed to update password.');
+    } catch (err: unknown) {
+      setPasswordError((err as Error).message || 'Failed to update password.');
     } finally {
       setSavingPassword(false);
     }
@@ -121,8 +121,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', issuer: 'Callengo', friendlyName: 'Authenticator App' });
       if (error) throw error;
       setMfaEnrollData({ factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret });
-    } catch (err: any) {
-      setMfaError(err.message || 'Could not start 2FA setup.');
+    } catch (err: unknown) {
+      setMfaError((err as Error).message || 'Could not start 2FA setup.');
     } finally {
       setEnrolling(false);
     }
@@ -141,8 +141,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       setMfaEnrollData(null);
       setMfaCode('');
       await loadMfaFactors();
-    } catch (err: any) {
-      setMfaError(err.message || 'Invalid code. Please try again.');
+    } catch (err: unknown) {
+      setMfaError((err as Error).message || 'Invalid code. Please try again.');
     } finally {
       setMfaVerifying(false);
     }
@@ -156,8 +156,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       if (error) throw error;
       setMfaSuccess('2FA has been disabled.');
       await loadMfaFactors();
-    } catch (err: any) {
-      setMfaError(err.message || 'Could not disable 2FA.');
+    } catch (err: unknown) {
+      setMfaError((err as Error).message || 'Could not disable 2FA.');
     } finally {
       setDisabling2FA(false);
     }
@@ -187,24 +187,24 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   });
 
   // Extract additional settings from JSON field or use defaults
-  const additionalSettings = (initialSettings.settings as any) || {};
+  const additionalSettings = (initialSettings.settings as Record<string, unknown>) || {};
   const [settings, setSettings] = useState({
     default_voice: initialSettings.default_voice,
     default_interval_minutes: initialSettings.default_interval_minutes,
     default_max_duration: initialSettings.default_max_duration,
     test_phone_number: initialSettings.test_phone_number || '',
-    timezone: additionalSettings.timezone || user.timezone || 'America/New_York',
-    working_hours_start: additionalSettings.working_hours_start || '09:00',
-    working_hours_end: additionalSettings.working_hours_end || '18:00',
-    max_calls_per_day: additionalSettings.max_calls_per_day || 100,
-    language: additionalSettings.language || 'en-US',
-    working_days: additionalSettings.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    exclude_holidays: additionalSettings.exclude_holidays ?? true,
-    voicemail_enabled: additionalSettings.voicemail_enabled ?? false,
-    followup_enabled: additionalSettings.followup_enabled ?? false,
-    followup_max_attempts: additionalSettings.followup_max_attempts || 3,
-    followup_interval_hours: additionalSettings.followup_interval_hours || 24,
-    smart_followup_enabled: additionalSettings.smart_followup_enabled ?? false,
+    timezone: (additionalSettings.timezone as string) || user.timezone || 'America/New_York',
+    working_hours_start: (additionalSettings.working_hours_start as string) || '09:00',
+    working_hours_end: (additionalSettings.working_hours_end as string) || '18:00',
+    max_calls_per_day: (additionalSettings.max_calls_per_day as number) || 100,
+    language: (additionalSettings.language as string) || 'en-US',
+    working_days: (additionalSettings.working_days as string[]) || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    exclude_holidays: (additionalSettings.exclude_holidays as boolean) ?? true,
+    voicemail_enabled: (additionalSettings.voicemail_enabled as boolean) ?? false,
+    followup_enabled: (additionalSettings.followup_enabled as boolean) ?? false,
+    followup_max_attempts: (additionalSettings.followup_max_attempts as number) || 3,
+    followup_interval_hours: (additionalSettings.followup_interval_hours as number) || 24,
+    smart_followup_enabled: (additionalSettings.smart_followup_enabled as boolean) ?? false,
   });
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -410,7 +410,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as 'general' | 'company' | 'calling' | 'billing')}
                 className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-all ${
                   activeTab === tab.id
                     ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-50)]'
@@ -608,7 +608,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
           {activeTab === 'calling' && (
             <CallSettings
               settings={settings}
-              onSettingsChange={setSettings}
+              onSettingsChange={(s: Record<string, unknown>) => setSettings(prev => ({ ...prev, ...s }))}
               onSubmit={handleUpdateSettings}
               loading={loading}
               success={success}
@@ -754,7 +754,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       <div className="w-5 h-5 border border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                     ) : mfaFactors.length > 0 ? (
                       <button
-                        onClick={() => handleDisable2FA(mfaFactors[0].id)}
+                        onClick={() => handleDisable2FA(mfaFactors[0].id as string)}
                         disabled={disabling2FA}
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50"
                       >

@@ -25,9 +25,9 @@ interface CallLog {
   recording_url: string | null;
   transcript: string | null;
   summary: string | null;
-  analysis: any;
+  analysis: Record<string, unknown> | null;
   error_message: string | null;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -81,7 +81,7 @@ interface ContactStatsFromServer {
 }
 
 interface DashboardOverviewProps {
-  contacts: any[];
+  contacts: Record<string, unknown>[];
   recentCalls: CallLog[];
   company: Company;
   agentTemplates: AgentTemplate[];
@@ -118,7 +118,7 @@ export default function DashboardOverview({
   };
 
   const stats = useMemo(() => {
-    const typedContacts = contacts as Contact[];
+    const typedContacts = contacts as unknown as Contact[];
 
     // Use server stats for accurate totals (avoids 1000 row cap)
     const total = serverStats?.total ?? typedContacts.length;
@@ -750,7 +750,7 @@ export default function DashboardOverview({
 
       {/* Call Detail Modal */}
       {selectedCall && (
-        <CallDetailModal call={selectedCall} onClose={() => setSelectedCall(null)} />
+        <CallDetailModal call={{ ...selectedCall, analysis: selectedCall.analysis ?? {}, metadata: (selectedCall.metadata ?? {}) as Record<string, string> }} onClose={() => setSelectedCall(null)} />
       )}
     </div>
   );

@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     const newLogEntry = createLocationLogEntry(location);
 
     // Append to existing logs
-    const updatedLogs = appendLocationLog(userData?.location_logs as any[] | null, newLogEntry);
+    const updatedLogs = appendLocationLog(userData?.location_logs as Record<string, unknown>[] | null, newLogEntry);
 
     // Update user record
     const { error: updateError } = await supabase
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         region: location.region,
         timezone: location.timezone,
         ip_address: location.ip,
-        location_logs: updatedLogs,
+        location_logs: updatedLogs as unknown as import('@/types/supabase').Json,
         location_updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
@@ -87,10 +87,10 @@ export async function POST(req: NextRequest) {
       city: location.city,
       ip: location.ip,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[UpdateLocation] Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
+      { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -128,10 +128,10 @@ export async function GET(req: NextRequest) {
       ip: userData.ip_address,
       last_updated: userData.location_updated_at,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[GetLocation] Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
+      { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

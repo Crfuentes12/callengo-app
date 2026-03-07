@@ -193,10 +193,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function processUsagePostUpdate(
   supabase: typeof supabaseAdmin,
-  subscription: Record<string, any>,
+  subscription: Record<string, unknown>,
   companyId: string,
   callId: string | undefined,
   minutes: number,
@@ -206,16 +206,22 @@ async function processUsagePostUpdate(
   pricePerMinute: number,
   overageCost: number,
 ) {
+  const subId = subscription.id as string;
+  const overageEnabled = subscription.overage_enabled as boolean | null;
+  const stripeSubItemId = subscription.stripe_subscription_item_id as string | null;
+  const overageBudget = subscription.overage_budget as number | null;
+  const overageAlertLevel = subscription.overage_alert_level as number | null;
+
   // Update company subscription overage tracking
   await supabase
     .from('company_subscriptions')
     .update({ overage_spent: overageCost })
-    .eq('id', subscription.id);
+    .eq('id', subId);
 
   // Log billing event
   await supabase.from('billing_events').insert({
     company_id: companyId,
-    subscription_id: subscription.id,
+    subscription_id: subId,
     event_type: 'usage_recorded',
     event_data: {
       call_id: callId,
@@ -228,10 +234,10 @@ async function processUsagePostUpdate(
   });
 
   // Report to Stripe if needed
-  if (subscription.overage_enabled && overageMinutes > 0 && subscription.stripe_subscription_item_id) {
+  if (overageEnabled && overageMinutes > 0 && stripeSubItemId) {
     try {
       await reportUsage({
-        subscriptionItemId: subscription.stripe_subscription_item_id!,
+        subscriptionItemId: stripeSubItemId,
         quantity: Math.ceil(overageMinutes),
         action: 'set',
       });
@@ -241,38 +247,38 @@ async function processUsagePostUpdate(
   }
 
   // Check overage budget alerts
-  if (subscription.overage_enabled && subscription.overage_budget) {
-    const budgetUsagePercent = (overageCost / subscription.overage_budget) * 100;
+  if (overageEnabled && overageBudget) {
+    const budgetUsagePercent = (overageCost / overageBudget) * 100;
     let alertLevel = 0;
     if (budgetUsagePercent >= 90) alertLevel = 3;
     else if (budgetUsagePercent >= 75) alertLevel = 2;
     else if (budgetUsagePercent >= 50) alertLevel = 1;
 
-    if (alertLevel > (subscription.overage_alert_level || 0)) {
+    if (alertLevel > (overageAlertLevel || 0)) {
       await supabase
         .from('company_subscriptions')
         .update({
           overage_alert_level: alertLevel,
           last_overage_alert_at: new Date().toISOString(),
         })
-        .eq('id', subscription.id);
+        .eq('id', subId);
 
       await supabase.from('billing_events').insert({
         company_id: companyId,
-        subscription_id: subscription.id,
+        subscription_id: subId,
         event_type: 'overage_alert',
-        event_data: { level: alertLevel, budget: subscription.overage_budget, spent: overageCost, percent: budgetUsagePercent },
+        event_data: { level: alertLevel, budget: overageBudget, spent: overageCost, percent: budgetUsagePercent },
         minutes_consumed: 0,
         cost_usd: 0,
       });
     }
 
-    if (overageCost >= subscription.overage_budget) {
+    if (overageCost >= overageBudget) {
       await supabase.from('billing_events').insert({
         company_id: companyId,
-        subscription_id: subscription.id,
+        subscription_id: subId,
         event_type: 'overage_budget_exceeded',
-        event_data: { budget: subscription.overage_budget, spent: overageCost },
+        event_data: { budget: overageBudget, spent: overageCost },
         minutes_consumed: 0,
         cost_usd: 0,
       });
@@ -286,8 +292,8 @@ async function processUsagePostUpdate(
       minutes_included: minutesIncluded,
       overage_minutes: overageMinutes,
       overage_cost: overageCost,
-      budget_remaining: subscription.overage_budget
-        ? Math.max(0, subscription.overage_budget - overageCost)
+      budget_remaining: overageBudget
+        ? Math.max(0, overageBudget - overageCost)
         : null,
     },
   };

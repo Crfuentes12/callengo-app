@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active')
       .single();
 
-    const planSlug = (subscription?.plan as any)?.slug;
-    if (!subscription || !SEAT_PRICE_USD[planSlug]) {
+    const planSlug = (subscription?.plan as Record<string, unknown>)?.slug as string | undefined;
+    if (!subscription || !planSlug || !SEAT_PRICE_USD[planSlug]) {
       return NextResponse.json(
         { error: 'Extra seats are available on Business and Teams plans.' },
         { status: 403 }
@@ -87,14 +87,14 @@ export async function POST(req: NextRequest) {
         currency: currency.toLowerCase() as 'usd' | 'eur' | 'gbp',
         active: true,
         limit: 10,
-      } as any);
+      } as Record<string, unknown>);
       const monthlyPrice = prices.data.find((p) => p.recurring?.interval === 'month');
       seatPriceId = monthlyPrice?.id;
     }
 
     // Fallback: create a price on-the-fly if product doesn't exist yet
     if (!seatPriceId) {
-      const unitAmount = SEAT_PRICE_USD[planSlug];
+      const unitAmount = SEAT_PRICE_USD[planSlug!];
       // Create or reuse a simple product
       let product = products.data.find((p) => p.metadata?.product_type === 'extra_seat');
       if (!product) {
@@ -145,8 +145,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url, sessionId: session.id });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Seat checkout error:', err);
-    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Internal error' }, { status: 500 });
   }
 }

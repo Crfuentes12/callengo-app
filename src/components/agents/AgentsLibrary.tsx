@@ -15,7 +15,7 @@ interface CompanyAgentWithTemplate {
   name: string;
   is_active: boolean;
   custom_task: string | null;
-  custom_settings: any;
+  custom_settings: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   agent_templates: AgentTemplate | null;
@@ -23,10 +23,10 @@ interface CompanyAgentWithTemplate {
 
 interface AgentsLibraryProps {
   agentTemplates: AgentTemplate[];
-  companyAgents: any[];
+  companyAgents: CompanyAgentWithTemplate[];
   companyId: string;
   company: Company;
-  companySettings?: any;
+  companySettings?: Record<string, unknown>;
 }
 
 export default function AgentsLibrary({ agentTemplates, companyAgents, companyId, company, companySettings }: AgentsLibraryProps) {
@@ -36,12 +36,12 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const [pendingAgent, setPendingAgent] = useState<AgentTemplate | null>(null);
 
-  const planSlug = companySettings?.plan_slug || 'free';
+  const planSlug = (companySettings?.plan_slug as string) || 'free';
   const isLimitedPlan = ['free', 'starter'].includes(planSlug);
   const isFreePlan = planSlug === 'free';
 
   // Find the currently active agent for limited plans
-  const activeCompanyAgent = companyAgents.find((ca: any) => ca.is_active);
+  const activeCompanyAgent = companyAgents.find((ca) => ca.is_active);
   const activeTemplateId = activeCompanyAgent?.agent_template_id;
 
   const handleSelectAgent = (agent: AgentTemplate) => {

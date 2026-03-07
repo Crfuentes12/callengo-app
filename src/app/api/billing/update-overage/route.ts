@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Apply budget for paid plans
-    let finalBudget = budget || 0;
+    const finalBudget = budget || 0;
 
     // Use Stripe integration to enable/disable overage
     if (enabled && !subscription.overage_enabled) {

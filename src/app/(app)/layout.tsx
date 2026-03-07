@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import Layout from '@/components/layout/Layout';
+import type { Database } from '@/types/supabase';
 
 export default async function AppLayout({
   children,
@@ -26,8 +27,7 @@ export default async function AppLayout({
     redirect('/onboarding');
   }
 
-  // @ts-ignore - Supabase join typing
-  const company = userData.companies;
+  const company = (userData as Record<string, unknown>).companies as Database['public']['Tables']['companies']['Row'];
   if (!company) {
     redirect('/onboarding');
   }

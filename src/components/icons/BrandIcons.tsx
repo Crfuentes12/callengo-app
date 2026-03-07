@@ -1,5 +1,6 @@
 // components/icons/BrandIcons.tsx
 // Colored SVG brand icons for integrations
+import { useId } from 'react';
 
 interface IconProps {
   className?: string;
@@ -85,7 +86,7 @@ export function MicrosoftIcon({ className = 'w-6 h-6' }: IconProps) {
 }
 
 export function OutlookIcon({ className = 'w-6 h-6' }: IconProps) {
-  const id = `outlook-${Math.random().toString(36).slice(2, 8)}`;
+  const id = `outlook-${useId()}`;
   return (
     <svg className={className} viewBox="60 90.4 570.02 539.67" xmlns="http://www.w3.org/2000/svg">
       <defs>

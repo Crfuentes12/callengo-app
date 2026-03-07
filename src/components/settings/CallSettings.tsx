@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 import { useTranslation } from '@/i18n';
+import type { Json } from '@/types/supabase';
 
 interface CallSettingsProps {
   settings: {
@@ -24,7 +25,7 @@ interface CallSettingsProps {
     followup_interval_hours?: number;
     smart_followup_enabled?: boolean;
   };
-  onSettingsChange: (settings: any) => void;
+  onSettingsChange: (settings: Record<string, unknown>) => void;
   onSubmit: (e: React.FormEvent) => void;
   loading: boolean;
   success: string;
@@ -111,7 +112,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
         .eq('status', 'active')
         .single();
 
-      const planData = subscription?.subscription_plans as any;
+      const planData = subscription?.subscription_plans as unknown as SubscriptionPlan;
       if (planData) setPlan(planData);
 
       const now = new Date();
@@ -162,9 +163,9 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
         .eq('company_id', companyId)
         .single();
 
-      const settingsData = companySettings?.settings as any;
+      const settingsData = companySettings?.settings as Record<string, unknown> | undefined;
       if (settingsData?.phone_numbers) {
-        setPhoneNumbers(settingsData.phone_numbers);
+        setPhoneNumbers(settingsData.phone_numbers as unknown as PhoneNumber[]);
       }
 
       const { data: recentCalls } = await supabase
@@ -178,10 +179,10 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
       if (recentCalls && recentCalls.length > 0) {
         const uniqueNumbers = new Map<string, string>();
         recentCalls.forEach(call => {
-          const meta = call.metadata as any;
-          const fromNumber = meta?.from_number || meta?.from;
+          const meta = call.metadata as Record<string, unknown> | undefined;
+          const fromNumber = (meta?.from_number || meta?.from) as string | undefined;
           if (fromNumber && !uniqueNumbers.has(fromNumber)) {
-            uniqueNumbers.set(fromNumber, call.created_at);
+            uniqueNumbers.set(fromNumber, call.created_at as string);
           }
         });
 
@@ -214,12 +215,12 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
         .eq('company_id', companyId)
         .single();
 
-      const existingSettings = (currentSettings?.settings as any) || {};
+      const existingSettings = (currentSettings?.settings as Record<string, unknown>) || {};
 
       await supabase
         .from('company_settings')
         .update({
-          settings: { ...existingSettings, phone_numbers: numbers.filter(n => n.type !== 'rotated') }
+          settings: { ...existingSettings, phone_numbers: numbers.filter(n => n.type !== 'rotated') } as unknown as { [key: string]: Json | undefined }
         })
         .eq('company_id', companyId);
     } catch (error) {

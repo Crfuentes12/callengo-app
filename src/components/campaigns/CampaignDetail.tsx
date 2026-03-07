@@ -119,7 +119,7 @@ export default function CampaignDetail({
   }, [campaign, callLogs, followUps, voicemailLogs]);
 
   // Build activity timeline from real data
-  const activityTimeline = useMemo(() => {
+  const activityTimeline = (() => {
     const events: { id: string; type: string; title: string; description: string; time: string; icon: string; color: string }[] = [];
 
     // Campaign created
@@ -180,7 +180,7 @@ export default function CampaignDetail({
     events.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
     return events;
-  }, [campaign, callLogs, t]);
+  })();
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; text: string; bgColor: string }> = {
@@ -631,9 +631,9 @@ export default function CampaignDetail({
             recording_url: selectedCallLog.recording_url,
             transcript: null,
             summary: null,
-            analysis: null,
+            analysis: {},
             error_message: null,
-            metadata: null,
+            metadata: {},
             created_at: selectedCallLog.created_at,
             voicemail_detected: selectedCallLog.voicemail_detected,
             voicemail_left: selectedCallLog.voicemail_left,

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             currency: currency.toLowerCase(),
             active: true,
             limit: 100,
-          } as any);
+          } as Record<string, unknown>);
 
           const monthlyPrice = prices.data.find(
             (p) => p.recurring?.interval === 'month' && p.recurring?.usage_type !== 'metered'

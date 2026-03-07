@@ -10,7 +10,7 @@ export interface UsageReport {
   companyId: string;
   minutes: number;
   callId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UsageCheckResult {

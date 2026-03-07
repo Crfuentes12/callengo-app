@@ -204,7 +204,7 @@ export async function reportUsage(params: {
   quantity: number;
   timestamp?: number;
   action?: 'increment' | 'set';
-}): Promise<any> {
+}): Promise<unknown> {
   const {
     subscriptionItemId,
     quantity,

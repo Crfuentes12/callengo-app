@@ -227,14 +227,14 @@ export default function OnboardingPage() {
       setProgress(90);
       setStep('pain_selection');
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Onboarding error:', err);
-      setError(err.message || t.common.somethingWentWrong);
+      setError(err instanceof Error ? err.message : t.common.somethingWentWrong);
       setStep('error');
     }
   };
 
-  const handlePainSelection = (pain: any) => {
+  const handlePainSelection = (pain: Pain) => {
     setSelectedPain(pain);
     setProgress(95);
     setStep('agent_test');
@@ -249,7 +249,7 @@ export default function OnboardingPage() {
     }, 1500);
   };
 
-  const handleAgentTestComplete = async (callData: any) => {
+  const handleAgentTestComplete = async (callData: unknown) => {
     setProgress(100);
     setStep('complete');
     await new Promise(resolve => setTimeout(resolve, 1500));
