@@ -901,7 +901,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     {/* Left Column */}
                     <div className="space-y-4">
                       {/* Call Recording */}
-                      {!!(callData.recording_url || callData.recording || callData.concatenated_recording) && (
+                      {Boolean(callData.recording_url || callData.recording || callData.concatenated_recording) && (
                         <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                           <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                             <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -918,7 +918,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       )}
 
                       {/* Transcript */}
-                      {callData.transcripts && (
+                      {Boolean(callData.transcripts) && (
                         <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                           <h3 className="text-sm font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                             <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">

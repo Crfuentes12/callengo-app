@@ -35,7 +35,7 @@ export default async function CallsPage() {
 
   return (
     <CallsHistory
-      callLogs={callLogs || []}
+      callLogs={(callLogs || []) as Parameters<typeof CallsHistory>[0]['callLogs']}
       agentTemplates={agentTemplates || []}
     />
   );

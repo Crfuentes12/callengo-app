@@ -70,7 +70,7 @@ export default async function CampaignsPage() {
       voicemailStats={voicemailStats || []}
       agentTemplates={agentTemplates || []}
       company={company!}
-      companySettings={companySettings}
+      companySettings={companySettings ?? undefined}
     />
   );
 }

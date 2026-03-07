@@ -750,7 +750,7 @@ export default function DashboardOverview({
 
       {/* Call Detail Modal */}
       {selectedCall && (
-        <CallDetailModal call={{ ...selectedCall, analysis: selectedCall.analysis ?? {}, metadata: selectedCall.metadata ?? {} }} onClose={() => setSelectedCall(null)} />
+        <CallDetailModal call={{ ...selectedCall, analysis: selectedCall.analysis ?? {}, metadata: (selectedCall.metadata ?? {}) as Record<string, string> }} onClose={() => setSelectedCall(null)} />
       )}
     </div>
   );

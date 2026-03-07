@@ -20,9 +20,9 @@ interface CallLogWithContact {
   recording_url: string | null;
   transcript: string | null;
   summary: string | null;
-  analysis: Record<string, unknown>;
+  analysis: Record<string, unknown> | null;
   error_message: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
   created_at: string;
   contacts: {
     company_name: string;
@@ -398,7 +398,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
       {/* Call Detail Modal */}
       {selectedCall && (
-        <CallDetailModal call={selectedCall} onClose={() => setSelectedCall(null)} />
+        <CallDetailModal call={{...selectedCall, analysis: (selectedCall.analysis || {}) as Record<string, unknown>, metadata: (selectedCall.metadata || {}) as Record<string, string>}} onClose={() => setSelectedCall(null)} />
       )}
     </div>
   );
