@@ -55,7 +55,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   const [showNewPw, setShowNewPw] = useState(false);
 
   // 2FA state
-  const [mfaFactors, setMfaFactors] = useState<any[]>([]);
+  const [mfaFactors, setMfaFactors] = useState<Record<string, unknown>[]>([]);
   const [mfaLoading, setMfaLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [mfaEnrollData, setMfaEnrollData] = useState<{ factorId: string; qrCode: string; secret: string } | null>(null);
@@ -107,8 +107,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       setPasswordSuccess('Password updated successfully.');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
       setTimeout(() => setPasswordSuccess(''), 4000);
-    } catch (err: any) {
-      setPasswordError(err.message || 'Failed to update password.');
+    } catch (err: unknown) {
+      setPasswordError((err as Error).message || 'Failed to update password.');
     } finally {
       setSavingPassword(false);
     }
@@ -121,8 +121,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', issuer: 'Callengo', friendlyName: 'Authenticator App' });
       if (error) throw error;
       setMfaEnrollData({ factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret });
-    } catch (err: any) {
-      setMfaError(err.message || 'Could not start 2FA setup.');
+    } catch (err: unknown) {
+      setMfaError((err as Error).message || 'Could not start 2FA setup.');
     } finally {
       setEnrolling(false);
     }
@@ -141,8 +141,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       setMfaEnrollData(null);
       setMfaCode('');
       await loadMfaFactors();
-    } catch (err: any) {
-      setMfaError(err.message || 'Invalid code. Please try again.');
+    } catch (err: unknown) {
+      setMfaError((err as Error).message || 'Invalid code. Please try again.');
     } finally {
       setMfaVerifying(false);
     }
@@ -156,8 +156,8 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       if (error) throw error;
       setMfaSuccess('2FA has been disabled.');
       await loadMfaFactors();
-    } catch (err: any) {
-      setMfaError(err.message || 'Could not disable 2FA.');
+    } catch (err: unknown) {
+      setMfaError((err as Error).message || 'Could not disable 2FA.');
     } finally {
       setDisabling2FA(false);
     }
@@ -187,7 +187,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   });
 
   // Extract additional settings from JSON field or use defaults
-  const additionalSettings = (initialSettings.settings as any) || {};
+  const additionalSettings = (initialSettings.settings as Record<string, unknown>) || {};
   const [settings, setSettings] = useState({
     default_voice: initialSettings.default_voice,
     default_interval_minutes: initialSettings.default_interval_minutes,
@@ -410,7 +410,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as 'general' | 'company' | 'calling' | 'billing')}
                 className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-all ${
                   activeTab === tab.id
                     ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-50)]'
