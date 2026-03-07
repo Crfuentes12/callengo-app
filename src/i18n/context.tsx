@@ -117,30 +117,32 @@ export function LanguageProvider({
   useEffect(() => {
     if (initialLanguage || getStoredLanguage()) {
       // User has an explicit preference, don't auto-detect
-      setIsAutoDetected(false);
+      queueMicrotask(() => setIsAutoDetected(false));
       return;
     }
 
     if (userCountryCode) {
       const detected = detectLanguageFromGeo(userCountryCode, userRegion);
-      setDetectedLanguage(detected);
-      setDetectedCountry(userCountryCode);
-
-      // Auto-set language if it was detected and different from current
-      if (detected !== language) {
-        setLanguageState(detected);
-        storeLanguage(detected);
-      }
-      setIsAutoDetected(true);
+      queueMicrotask(() => {
+        setDetectedLanguage(detected);
+        setDetectedCountry(userCountryCode);
+        if (detected !== language) {
+          setLanguageState(detected);
+          storeLanguage(detected);
+        }
+        setIsAutoDetected(true);
+      });
     } else {
       // Fallback to browser language detection
       const browserLang = detectLanguageFromBrowser();
-      setDetectedLanguage(browserLang);
-      if (browserLang !== language) {
-        setLanguageState(browserLang);
-        storeLanguage(browserLang);
-      }
-      setIsAutoDetected(true);
+      queueMicrotask(() => {
+        setDetectedLanguage(browserLang);
+        if (browserLang !== language) {
+          setLanguageState(browserLang);
+          storeLanguage(browserLang);
+        }
+        setIsAutoDetected(true);
+      });
     }
   }, [userCountryCode, userRegion, initialLanguage]);
 

@@ -239,9 +239,6 @@ export async function listMicrosoftEvents(
   const client = await getMicrosoftCalendarClient(integration);
   const calendarId = integration.microsoft_calendar_id;
 
-  // Build the request URL
-  let url: string;
-
   if (options.nextLink) {
     // Follow pagination link (already a full URL, use it directly)
     const response = await axios.get<{
@@ -306,7 +303,7 @@ export async function listMicrosoftEvents(
     ? `/me/calendars/${calendarId}/calendarView`
     : '/me/calendarView';
 
-  url = viewPath;
+  const url = viewPath;
 
   const params: Record<string, string> = {
     startDateTime: timeMin,

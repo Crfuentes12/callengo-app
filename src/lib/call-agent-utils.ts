@@ -338,7 +338,7 @@ export function generateVoicemailMessage(contactCompanyName: string, voiceConfig
   return `Hi, this is ${voiceConfig.agentName} from ${userCompanyName} calling for ${contactCompanyName}. Just calling to verify some business information. Please call back at your convenience. Thanks!`;
 }
 
-export function extractCallMetadata(callDetails: any): CallMetadata {
+export function extractCallMetadata(callDetails: Record<string, unknown>): CallMetadata {
   return {
     price: callDetails.price || null,
     from: callDetails.from || null,

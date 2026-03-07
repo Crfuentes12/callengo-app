@@ -110,8 +110,8 @@ function SimplyBookSetupModal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to connect');
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || 'Failed to connect to SimplyBook.me');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to connect to SimplyBook.me');
     } finally {
       setConnecting(false);
     }

@@ -705,7 +705,7 @@ export async function pushCallResultToZoho(
   }
 
   const client = await getZohoClient(integration);
-  const module = mapping.zoho_object_type === 'Leads' ? 'Leads' : 'Contacts';
+  const zohoModule = mapping.zoho_object_type === 'Leads' ? 'Leads' : 'Contacts';
 
   // Create a note with call details on the Zoho record
   const callStatus = (contact.call_status as string) || 'completed';
@@ -736,8 +736,8 @@ export async function pushCallResultToZoho(
         data: [{
           Note_Title: noteTitle,
           Note_Content: noteParts.join('\n'),
-          Parent_Id: { module, id: mapping.zoho_contact_id },
-          se_module: module,
+          Parent_Id: { module: zohoModule, id: mapping.zoho_contact_id },
+          se_module: zohoModule,
         }],
       }),
     });

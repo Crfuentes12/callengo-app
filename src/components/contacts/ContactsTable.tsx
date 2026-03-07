@@ -63,6 +63,7 @@ export default function ContactsTable({
   onPageSizeChange,
 }: ContactsTableProps) {
   const { t } = useTranslation();
+  const [lockedCheckTime] = useState(() => Date.now());
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const columnMenuRef = useRef<HTMLTableCellElement>(null);
   const [visibleColumns, setVisibleColumns] = useState({
@@ -102,7 +103,7 @@ export default function ContactsTable({
   const allSelected = contacts.length > 0 && contacts.every(c => selectedContactIds.includes(c.id));
   const someSelected = contacts.some(c => selectedContactIds.includes(c.id)) && !allSelected;
 
-  const SortableHeader = ({ field, children, className = '' }: { field: SortField; children: React.ReactNode; className?: string }) => (
+  const renderSortableHeader = (field: SortField, children: React.ReactNode, className = '') => (
     <th
       className={`px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer select-none group hover:bg-slate-100/80 transition-colors ${className}`}
       onClick={() => onSort(field)}
@@ -133,18 +134,18 @@ export default function ContactsTable({
                   className="w-4 h-4 text-[var(--color-primary)] bg-white border-slate-300 rounded focus:ring-[var(--color-primary)] focus:ring-2 cursor-pointer"
                 />
               </th>
-              <SortableHeader field="company_name">{t.contacts.company}</SortableHeader>
-              <SortableHeader field="phone_number">{t.contacts.phone}</SortableHeader>
-              <SortableHeader field="city">{t.contacts.city}</SortableHeader>
-              {visibleColumns.address && <SortableHeader field="city">{t.contacts.address}</SortableHeader>}
+              {renderSortableHeader('company_name', t.contacts.company)}
+              {renderSortableHeader('phone_number', t.contacts.phone)}
+              {renderSortableHeader('city', t.contacts.city)}
+              {visibleColumns.address && renderSortableHeader('city', t.contacts.address)}
               {visibleColumns.zipCode && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.contacts.zipCode}</th>}
-              <SortableHeader field="status">{t.contacts.status}</SortableHeader>
+              {renderSortableHeader('status', t.contacts.status)}
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.contacts.list}</th>
-              <SortableHeader field="contact_name">{t.contacts.name}</SortableHeader>
-              <SortableHeader field="email">{t.contacts.email}</SortableHeader>
-              {visibleColumns.lastCallDate && <SortableHeader field="last_call_date">{t.contacts.lastCall}</SortableHeader>}
-              {visibleColumns.callAttempts && <SortableHeader field="call_attempts">{t.contacts.call}</SortableHeader>}
-              {visibleColumns.source && <SortableHeader field="source">Source</SortableHeader>}
+              {renderSortableHeader('contact_name', t.contacts.name)}
+              {renderSortableHeader('email', t.contacts.email)}
+              {visibleColumns.lastCallDate && renderSortableHeader('last_call_date', t.contacts.lastCall)}
+              {visibleColumns.callAttempts && renderSortableHeader('call_attempts', t.contacts.call)}
+              {visibleColumns.source && renderSortableHeader('source', 'Source')}
               <th className="px-4 py-3 w-12 relative" ref={columnMenuRef}>
                 <button
                   onClick={() => setShowColumnMenu(!showColumnMenu)}
@@ -212,7 +213,7 @@ export default function ContactsTable({
                 // Check if contact is locked (being processed by an active call)
                 const cf = (contact.custom_fields as Record<string, unknown>) || {};
                 const isLocked = cf._locked === true;
-                const lockAge = cf._locked_at ? (Date.now() - new Date(cf._locked_at as string).getTime()) / 1000 : Infinity;
+                const lockAge = cf._locked_at ? (lockedCheckTime - new Date(cf._locked_at as string).getTime()) / 1000 : Infinity;
                 const effectivelyLocked = isLocked && lockAge < 600;
 
                 return (

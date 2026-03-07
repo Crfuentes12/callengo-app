@@ -40,9 +40,9 @@ export async function loadTranslation(lang: SupportedLanguage): Promise<Translat
   }
 
   try {
-    const module = await loader();
-    loadedTranslations[lang] = module.default;
-    return module.default;
+    const translationModule = await loader();
+    loadedTranslations[lang] = translationModule.default;
+    return translationModule.default;
   } catch (error) {
     console.error(`[i18n] Failed to load translation for ${lang}:`, error);
     return en;

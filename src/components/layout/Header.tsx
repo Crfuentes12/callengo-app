@@ -110,7 +110,7 @@ export default function Header({
         .single();
 
       if (subscription?.subscription_plans) {
-        const plan = subscription.subscription_plans as any;
+        const plan = subscription.subscription_plans as Record<string, unknown>;
         const isFree = plan.slug === 'free';
         setPlanInfo({
           name: isFree ? 'Trial' : (plan.name || 'Free'),
