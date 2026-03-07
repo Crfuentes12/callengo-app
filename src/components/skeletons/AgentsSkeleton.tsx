@@ -25,7 +25,7 @@ export default function AgentsSkeleton() {
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
-              className={`group relative bg-white rounded-2xl border border-slate-200 p-6 shadow-sm animate-skeleton-slide [animation-delay:${150 + i * 60}ms]`}
+              className={`group relative bg-white rounded-2xl border border-[var(--border-default)] p-6 shadow-sm animate-skeleton-slide [animation-delay:${150 + i * 60}ms]`}
             >
               <div className="flex items-start gap-4 mb-4">
                 <Skeleton className="w-16 h-16 rounded-xl" />
@@ -47,7 +47,7 @@ export default function AgentsSkeleton() {
                   <Skeleton className="h-6 w-18 rounded" />
                 </div>
               </div>
-              <div className="flex gap-2 pt-4 border-t border-slate-200">
+              <div className="flex gap-2 pt-4 border-t border-[var(--border-default)]">
                 <Skeleton className="h-10 flex-1 rounded-xl" />
                 <Skeleton className="h-10 w-10 rounded-xl" />
               </div>

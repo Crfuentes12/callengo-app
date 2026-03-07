@@ -7,8 +7,8 @@ export default function SettingsSkeleton() {
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm animate-skeleton-slide">
-        <div className="border-b border-slate-100">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden shadow-sm animate-skeleton-slide">
+        <div className="border-b border-[var(--border-subtle)]">
           <div className="flex">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className={`flex-1 px-6 py-4 animate-skeleton-slide [animation-delay:${50 + i * 40}ms]`}>

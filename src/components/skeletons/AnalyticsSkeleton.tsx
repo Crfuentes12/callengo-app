@@ -19,7 +19,7 @@ export default function AnalyticsSkeleton() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className={`p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 animate-skeleton-slide [animation-delay:${150 + i * 50}ms]`}>
+              <div key={i} className={`p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-[var(--border-default)] animate-skeleton-slide [animation-delay:${150 + i * 50}ms]`}>
                 <div className="flex items-center gap-2 mb-2">
                   <Skeleton className="w-2 h-2 rounded-full" />
                   <Skeleton className="h-3 w-20" />
@@ -33,7 +33,7 @@ export default function AnalyticsSkeleton() {
       </div>
 
       {/* Call Trends */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm animate-skeleton-slide [animation-delay:350ms]">
+      <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 p-6 shadow-sm animate-skeleton-slide [animation-delay:350ms]">
         <div className="flex items-center justify-between mb-6">
           <div>
             <Skeleton className="h-6 w-48 mb-2" />
@@ -57,8 +57,8 @@ export default function AnalyticsSkeleton() {
 
       {/* Agent Performance & Contact Status */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm animate-skeleton-slide [animation-delay:700ms]">
-          <div className="p-6 border-b border-slate-100 gradient-bg-subtle">
+        <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 overflow-hidden shadow-sm animate-skeleton-slide [animation-delay:700ms]">
+          <div className="p-6 border-b border-[var(--border-subtle)] gradient-bg-subtle">
             <div className="flex items-center gap-3">
               <Skeleton className="w-10 h-10 rounded-xl" />
               <div>
@@ -69,7 +69,7 @@ export default function AnalyticsSkeleton() {
           </div>
           <div className="p-6 space-y-4">
             {[0, 1, 2].map((i) => (
-              <div key={i} className={`p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200 animate-skeleton-slide [animation-delay:${750 + i * 50}ms]`}>
+              <div key={i} className={`p-4 bg-gradient-to-br from-[var(--color-neutral-50)] to-white rounded-xl border border-[var(--border-default)] animate-skeleton-slide [animation-delay:${750 + i * 50}ms]`}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <Skeleton className="h-5 w-32 mb-2" />
@@ -82,7 +82,7 @@ export default function AnalyticsSkeleton() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {[0, 1].map((j) => (
-                    <div key={j} className="bg-white/80 rounded-lg p-3 border border-slate-200">
+                    <div key={j} className="bg-white/80 rounded-lg p-3 border border-[var(--border-default)]">
                       <Skeleton className="h-3 w-20 mb-2" />
                       <Skeleton className="h-5 w-12" />
                     </div>
@@ -93,8 +93,8 @@ export default function AnalyticsSkeleton() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm animate-skeleton-slide [animation-delay:750ms]">
-          <div className="p-6 border-b border-slate-100 gradient-bg-subtle">
+        <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 overflow-hidden shadow-sm animate-skeleton-slide [animation-delay:750ms]">
+          <div className="p-6 border-b border-[var(--border-subtle)] gradient-bg-subtle">
             <div className="flex items-center gap-3">
               <Skeleton className="w-10 h-10 rounded-xl" />
               <div>
@@ -121,7 +121,7 @@ export default function AnalyticsSkeleton() {
       </div>
 
       {/* Hourly Distribution */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm animate-skeleton-slide [animation-delay:1000ms]">
+      <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 p-6 shadow-sm animate-skeleton-slide [animation-delay:1000ms]">
         <div className="flex items-center gap-3 mb-6">
           <Skeleton className="w-10 h-10 rounded-xl" />
           <div>

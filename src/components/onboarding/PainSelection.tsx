@@ -44,7 +44,7 @@ const PAINS_BASE = [
   {
     id: 'lead-qualification',
     emoji: '🎯',
-    color: 'from-[var(--color-primary)] to-[var(--color-accent)]',
+    color: 'from-[var(--color-deep-indigo)] to-[var(--color-electric)]',
     gradient: 'from-[var(--color-primary)]/20 to-[var(--color-accent)]/20',
     agentSlug: 'lead-qualification',
     titleKey: 'qualifyLeads' as const,

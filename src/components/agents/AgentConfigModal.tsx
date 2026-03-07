@@ -1256,7 +1256,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         {[...Array(20)].map((_, i) => (
                           <div
                             key={i}
-                            className="w-1 bg-gradient-to-t from-[var(--color-primary)] to-[var(--color-accent)] rounded-full"
+                            className="w-1 bg-gradient-to-t from-[var(--color-deep-indigo)] to-[var(--color-electric)] rounded-full"
                             style={{
                               height: `${Math.random() * 100}%`,
                               animation: `wave 0.${5 + Math.random() * 10}s ease-in-out infinite`,

@@ -22,7 +22,7 @@ export function Skeleton({ className = '', variant = 'default', width, height }:
 
   return (
     <div
-      className={`bg-slate-200 skeleton-shimmer ${variantClasses[variant]} ${className}`}
+      className={`bg-[var(--color-neutral-200)] skeleton-shimmer ${variantClasses[variant]} ${className}`}
       style={style}
     />
   );
@@ -30,7 +30,7 @@ export function Skeleton({ className = '', variant = 'default', width, height }:
 
 export function SkeletonCard({ className = '' }: { className?: string }) {
   return (
-    <div className={`bg-white rounded-xl border border-slate-200 p-6 ${className}`}>
+    <div className={`bg-[var(--surface-card)] rounded-xl border border-[var(--border-default)] p-6 ${className}`}>
       <div className="space-y-4">
         <Skeleton className="h-6 w-1/3" />
         <Skeleton className="h-4 w-full" />
@@ -42,11 +42,11 @@ export function SkeletonCard({ className = '' }: { className?: string }) {
 
 export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div className="p-4 border-b border-slate-200">
+    <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border-default)] overflow-hidden">
+      <div className="p-4 border-b border-[var(--border-default)]">
         <Skeleton className="h-8 w-64" />
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-[var(--border-subtle)]">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="p-4 flex items-center gap-4">
             <Skeleton variant="circular" className="w-10 h-10 flex-shrink-0" />
@@ -64,7 +64,7 @@ export function SkeletonTable({ rows = 5 }: { rows?: number }) {
 
 export function SkeletonStat() {
   return (
-    <div className="gradient-bg-subtle rounded-xl p-6 border border-[var(--color-primary)]/20">
+    <div className="gradient-bg-subtle rounded-xl p-6 border border-[var(--color-primary-500)]/20">
       <div className="flex items-center justify-between mb-3">
         <Skeleton className="h-5 w-32" />
         <Skeleton variant="circular" className="w-10 h-10" />

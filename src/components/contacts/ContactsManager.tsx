@@ -896,7 +896,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                   <div className="px-4 py-3 flex gap-2">
                     <button
                       onClick={handleManualAdd}
-                      className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white hover:opacity-90 transition-all shadow-sm"
+                      className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-br from-[var(--color-deep-indigo)] to-[var(--color-electric)] text-white hover:opacity-90 transition-all shadow-sm"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
