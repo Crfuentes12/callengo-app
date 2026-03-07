@@ -58,12 +58,13 @@ export default function AdminFinances() {
   };
 
   // Calculate addon revenue breakdown (with fallbacks for new columns)
-  const addonRevenue = (currentFinance as any).addon_revenue || 0;
-  const dedicatedNumberRevenue = (currentFinance as any).dedicated_number_revenue || 0;
-  const recordingVaultRevenue = (currentFinance as any).recording_vault_revenue || 0;
-  const callsBoosterRevenue = (currentFinance as any).calls_booster_revenue || 0;
-  const activeSubaccounts = (currentFinance as any).active_subaccounts || 0;
-  const blandInfrastructureCost = (currentFinance as any).bland_infrastructure_cost || 0;
+  const financeRecord = currentFinance as Record<string, unknown>;
+  const addonRevenue = (financeRecord.addon_revenue as number) || 0;
+  const dedicatedNumberRevenue = (financeRecord.dedicated_number_revenue as number) || 0;
+  const recordingVaultRevenue = (financeRecord.recording_vault_revenue as number) || 0;
+  const callsBoosterRevenue = (financeRecord.calls_booster_revenue as number) || 0;
+  const activeSubaccounts = (financeRecord.active_subaccounts as number) || 0;
+  const blandInfrastructureCost = (financeRecord.bland_infrastructure_cost as number) || 0;
 
   const totalRevenue = (currentFinance.revenue_total || 0) + addonRevenue;
 
@@ -305,7 +306,7 @@ export default function AdminFinances() {
             { slug: 'teams', label: 'Teams', price: '$649/mo', color: 'bg-purple-50 text-purple-700 border-purple-200' },
             { slug: 'enterprise', label: 'Enterprise', price: '$1,499/mo', color: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200' },
           ].map(plan => {
-            const count = (currentFinance as any)[`companies_on_${plan.slug}`] || 0;
+            const count = (financeRecord[`companies_on_${plan.slug}`] as number) || 0;
             return (
               <div key={plan.slug} className={`p-3 rounded-lg border ${plan.color}`}>
                 <p className="text-xs font-bold uppercase mb-1">{plan.label}</p>
