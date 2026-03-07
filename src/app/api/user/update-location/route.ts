@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     const newLogEntry = createLocationLogEntry(location);
 
     // Append to existing logs
-    const updatedLogs = appendLocationLog(userData?.location_logs as unknown[] | null, newLogEntry);
+    const updatedLogs = appendLocationLog(userData?.location_logs as Record<string, unknown>[] | null, newLogEntry);
 
     // Update user record
     const { error: updateError } = await supabase
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         region: location.region,
         timezone: location.timezone,
         ip_address: location.ip,
-        location_logs: updatedLogs,
+        location_logs: updatedLogs as unknown as import('@/types/supabase').Json,
         location_updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);

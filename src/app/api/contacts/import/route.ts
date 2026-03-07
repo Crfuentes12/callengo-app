@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (contacts.length > 0) {
-      const { error } = await supabase.from('contacts').insert(contacts);
+      const { error } = await supabase.from('contacts').insert(contacts as never);
       if (error) throw error;
     }
 

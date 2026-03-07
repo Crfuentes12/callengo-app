@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
       totalPaidMonths = paidInvoices.length;
 
       if (rec.last_redeemed_at) {
-        const lastRedeemed = new Date(rec.last_redeemed_at).getTime() / 1000;
+        const lastRedeemed = new Date(rec.last_redeemed_at as string).getTime() / 1000;
         paidMonthsSinceLastRedemption = paidInvoices.filter(
           inv => inv.created > lastRedeemed
         ).length;
@@ -211,7 +211,7 @@ export async function POST(req: NextRequest) {
       const paidInvoices = invoices.data.filter(inv => inv.amount_paid > 0);
 
       if (rec.last_redeemed_at) {
-        const lastRedeemed = new Date(rec.last_redeemed_at).getTime() / 1000;
+        const lastRedeemed = new Date(rec.last_redeemed_at as string).getTime() / 1000;
         paidMonthsSinceLastRedemption = paidInvoices.filter(
           inv => inv.created > lastRedeemed
         ).length;
@@ -237,7 +237,7 @@ export async function POST(req: NextRequest) {
         metadata: {
           type: 'retention_offer',
           company_id: companyId,
-          times_redeemed: String(rec.times_redeemed + 1),
+          times_redeemed: String((rec.times_redeemed as number) + 1),
         },
       });
       couponId = coupon.id;
@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to apply Stripe coupon' }, { status: 500 });
     }
 
-    const newTimesRedeemed = rec.times_redeemed + 1;
+    const newTimesRedeemed = (rec.times_redeemed as number) + 1;
     const nextMonthsRequired = getMonthsRequired(newTimesRedeemed);
 
     // Update retention record

@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     const planSlug = (subscription?.plan as Record<string, unknown>)?.slug as string | undefined;
-    if (!subscription || !SEAT_PRICE_USD[planSlug]) {
+    if (!subscription || !planSlug || !SEAT_PRICE_USD[planSlug]) {
       return NextResponse.json(
         { error: 'Extra seats are available on Business and Teams plans.' },
         { status: 403 }
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // Fallback: create a price on-the-fly if product doesn't exist yet
     if (!seatPriceId) {
-      const unitAmount = SEAT_PRICE_USD[planSlug];
+      const unitAmount = SEAT_PRICE_USD[planSlug!];
       // Create or reuse a simple product
       let product = products.data.find((p) => p.metadata?.product_type === 'extra_seat');
       if (!product) {

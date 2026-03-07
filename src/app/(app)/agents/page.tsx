@@ -17,7 +17,7 @@ export default async function AgentsPage() {
     .eq('id', user!.id)
     .single();
 
-  const company = (userData as Record<string, unknown>).companies as Record<string, unknown>;
+  const company = (userData as Record<string, unknown>).companies as unknown as import('@/types/supabase').Company;
 
   // Get active agents (the migration ensures only the 3 core agents are active)
   const { data: agentTemplates } = await supabase
@@ -56,7 +56,7 @@ export default async function AgentsPage() {
   return (
     <AgentsLibrary
       agentTemplates={agentTemplates || []}
-      companyAgents={companyAgents || []}
+      companyAgents={(companyAgents || []) as unknown as Parameters<typeof AgentsLibrary>[0]['companyAgents']}
       companyId={userData!.company_id}
       company={company}
       companySettings={{ ...companySettings, plan_slug: planSlug }}

@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Default: CSV
-    const csvContent = contactsToCSV((allContacts || []) as Contact[]);
+    const csvContent = contactsToCSV((allContacts || []) as unknown as Contact[]);
 
     return new NextResponse(csvContent, {
       status: 200,

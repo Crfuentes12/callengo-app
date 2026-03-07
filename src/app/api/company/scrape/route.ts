@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         .from('companies')
         .update({
           name: detectedName, // Update company name with detected name
-          context_data: scrapedData as unknown,
+          context_data: scrapedData as unknown as import('@/types/supabase').Json,
           context_summary: summary,
           favicon_url: scrapedData.faviconUrl,
           description: company.description || scrapedData.description,
