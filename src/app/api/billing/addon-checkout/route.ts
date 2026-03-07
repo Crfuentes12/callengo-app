@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active')
       .single();
 
-    const planSlug = (subscription?.plan as any)?.slug;
+    const planSlug = (subscription?.plan as Record<string, unknown>)?.slug as string | undefined;
     if (!subscription || planSlug === 'free') {
       return NextResponse.json(
         { error: 'Add-ons require an active paid plan (Starter or above)' },
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       currency: currency.toLowerCase() as 'usd' | 'eur' | 'gbp',
       active: true,
       limit: 10,
-    } as any);
+    } as Record<string, unknown>);
 
     const addonPrice = prices.data.find((p) => p.recurring?.interval === 'month');
     if (!addonPrice) {

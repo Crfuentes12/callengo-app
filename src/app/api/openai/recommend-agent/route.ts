@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Build agents list for the prompt
     const agentsText = availableAgents
-      .map((agent: any, index: number) =>
+      .map((agent: Record<string, unknown>, index: number) =>
         `${index + 1}. **${agent.name}** (${agent.slug})\n   ${agent.description}`
       )
       .join('\n\n');
@@ -59,7 +59,7 @@ Choose the single best match.`;
     const recommendedSlug = completion.choices[0].message.content?.trim().replace(/['"]/g, '');
 
     // Validate that the recommended slug exists
-    const isValid = availableAgents.some((agent: any) => agent.slug === recommendedSlug);
+    const isValid = availableAgents.some((agent: Record<string, unknown>) => agent.slug === recommendedSlug);
 
     if (!isValid) {
       // Fallback to first agent if recommendation doesn't match

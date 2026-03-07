@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Build conversation text from transcripts
     const conversationText = transcripts
-      .map((t: any) => {
+      .map((t: Record<string, unknown>) => {
         const speaker = t.user === 'assistant' ? 'Agent' : 'Customer';
         return `${speaker}: ${t.text}`;
       })

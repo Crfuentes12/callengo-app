@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File contains no data rows' }, { status: 400 });
     }
 
-    const contacts: any[] = [];
-    const skipped: any[] = [];
+    const contacts: Record<string, unknown>[] = [];
+    const skipped: { row: number; reason: string }[] = [];
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];

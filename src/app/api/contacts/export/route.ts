@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const status = request.nextUrl.searchParams.get('status');
 
     // Fetch ALL contacts (no 1000 limit) using pagination
-    let allContacts: any[] = [];
+    let allContacts: Record<string, unknown>[] = [];
     let page = 0;
     const pageSize = 1000;
     let hasMore = true;

@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
           currency: currency.toLowerCase() as 'usd' | 'eur' | 'gbp',
           active: true,
           limit: 100,
-        } as any);
+        } as Record<string, unknown>);
 
         // Find price matching the billing cycle
         const interval = billingCycle === 'monthly' ? 'month' : 'year';

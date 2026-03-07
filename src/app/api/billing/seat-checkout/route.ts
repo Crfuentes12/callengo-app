@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active')
       .single();
 
-    const planSlug = (subscription?.plan as any)?.slug;
+    const planSlug = (subscription?.plan as Record<string, unknown>)?.slug as string | undefined;
     if (!subscription || !SEAT_PRICE_USD[planSlug]) {
       return NextResponse.json(
         { error: 'Extra seats are available on Business and Teams plans.' },
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
         currency: currency.toLowerCase() as 'usd' | 'eur' | 'gbp',
         active: true,
         limit: 10,
-      } as any);
+      } as Record<string, unknown>);
       const monthlyPrice = prices.data.find((p) => p.recurring?.interval === 'month');
       seatPriceId = monthlyPrice?.id;
     }
@@ -145,8 +145,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url, sessionId: session.id });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Seat checkout error:', err);
-    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Internal error' }, { status: 500 });
   }
 }

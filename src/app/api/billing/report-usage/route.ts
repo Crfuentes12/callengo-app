@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
  
 async function processUsagePostUpdate(
   supabase: typeof supabaseAdmin,
-  subscription: Record<string, any>,
+  subscription: Record<string, unknown>,
   companyId: string,
   callId: string | undefined,
   minutes: number,

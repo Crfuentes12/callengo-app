@@ -80,8 +80,7 @@ export async function POST(request: NextRequest) {
       console.warn('BLAND_WEBHOOK_SECRET not configured — webhook signature verification skipped (dev only)');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typedBody = body as any;
+    const typedBody = body as Record<string, unknown>;
     const {
       call_id,
       status,
@@ -125,7 +124,7 @@ export async function POST(request: NextRequest) {
       summary,
       error_message,
       metadata: typedBody,
-    } as any);
+    } as Record<string, unknown>);
 
     // Lock the contact during processing to prevent user edits
     if (contactId) {

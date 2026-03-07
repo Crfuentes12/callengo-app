@@ -26,7 +26,7 @@ export default async function AppLayout({
     redirect('/onboarding');
   }
 
-  // @ts-ignore - Supabase join typing
+  // @ts-expect-error - Supabase join typing
   const company = userData.companies;
   if (!company) {
     redirect('/onboarding');

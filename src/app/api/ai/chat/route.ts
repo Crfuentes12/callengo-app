@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
-    const company = userData.companies as any;
+    const company = userData.companies as Record<string, unknown>;
     const companyId = userData.company_id;
 
     // Fetch context data in parallel
@@ -178,8 +178,8 @@ export async function POST(request: NextRequest) {
       supabase.from('usage_tracking').select('minutes_used, minutes_included').eq('company_id', companyId).order('period_start', { ascending: false }).limit(1).single(),
     ]);
 
-    const plan = subscriptionResult.data?.subscription_plans as any;
-    const campaigns = (campaignsResult.data || []).map((c: any) => ({
+    const plan = subscriptionResult.data?.subscription_plans as Record<string, unknown> | null;
+    const campaigns = (campaignsResult.data || []).map((c: Record<string, unknown>) => ({
       name: c.name,
       status: c.status,
       total_calls: c.total_contacts || 0,
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
       totalCalls: callsResult.count || 0,
       totalCampaigns: campaigns.length,
       totalAgents: agentsResult.count || 0,
-      teamMembers: (teamResult.data || []) as any[],
+      teamMembers: (teamResult.data || []) as Array<{ full_name: string | null; email: string; role: string }>,
       recentCampaigns: campaigns,
       minutesUsed: usageResult.data?.minutes_used || 0,
       minutesIncluded: plan?.minutes_included || usageResult.data?.minutes_included || 15,
@@ -241,9 +241,9 @@ export async function POST(request: NextRequest) {
       if (!savedConversationId) {
         // Create new conversation
         const title = message.length > 60 ? message.substring(0, 60) + '...' : message;
-        // @ts-ignore - ai_conversations table from new migration
+        // @ts-expect-error - ai_conversations table from new migration
         const { data: conv } = await supabase
-          .from('ai_conversations' as any)
+          .from('ai_conversations' as unknown)
           .insert({
             user_id: user.id,
             company_id: companyId,
@@ -252,20 +252,20 @@ export async function POST(request: NextRequest) {
           .select('id')
           .single();
 
-        if (conv) savedConversationId = (conv as any).id;
+        if (conv) savedConversationId = (conv as Record<string, unknown>).id;
       } else {
         // Update conversation timestamp
-        // @ts-ignore - ai_conversations table from new migration
+        // @ts-expect-error - ai_conversations table from new migration
         await supabase
-          .from('ai_conversations' as any)
+          .from('ai_conversations' as unknown)
           .update({ updated_at: new Date().toISOString() })
           .eq('id', savedConversationId);
       }
 
       // Save messages
       if (savedConversationId) {
-        // @ts-ignore - ai_messages table from new migration
-        await supabase.from('ai_messages' as any).insert([
+        // @ts-expect-error - ai_messages table from new migration
+        await supabase.from('ai_messages' as unknown).insert([
           {
             conversation_id: savedConversationId,
             role: 'user',

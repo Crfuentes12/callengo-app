@@ -77,8 +77,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ eligible: false, reason: 'record_error' });
     }
 
-    const rec = retentionRecord as any;
-    const monthsRequired = getMonthsRequired(rec.times_redeemed);
+    const rec = retentionRecord as Record<string, unknown>;
+    const monthsRequired = getMonthsRequired(rec.times_redeemed as number);
 
     // Count paid invoices from Stripe
     let totalPaidMonths = 0;
@@ -118,8 +118,8 @@ export async function GET(req: NextRequest) {
       months_paid_at_time: paidMonthsSinceLastRedemption,
       months_required: monthsRequired,
       was_eligible: eligible,
-      plan_name: (subscription.subscription_plans as any)?.name || null,
-      plan_slug: (subscription.subscription_plans as any)?.slug || null,
+      plan_name: (subscription.subscription_plans as Record<string, unknown>)?.name || null,
+      plan_slug: (subscription.subscription_plans as Record<string, unknown>)?.slug || null,
       details: {
         total_paid_months: totalPaidMonths,
         times_redeemed: rec.times_redeemed,
@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
       total_paid_months: totalPaidMonths,
       months_since_last_redemption: paidMonthsSinceLastRedemption,
       months_required: monthsRequired,
-      times_redeemed: rec.times_redeemed,
+      times_redeemed: rec.times_redeemed as number,
     });
   } catch (error) {
     console.error('[check-retention] Error:', error);
@@ -197,8 +197,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Retention record not found' }, { status: 400 });
     }
 
-    const rec = retentionData as any;
-    const monthsRequired = getMonthsRequired(rec.times_redeemed);
+    const rec = retentionData as Record<string, unknown>;
+    const monthsRequired = getMonthsRequired(rec.times_redeemed as number);
 
     // Re-verify eligibility
     let paidMonthsSinceLastRedemption = 0;
@@ -276,8 +276,8 @@ export async function POST(req: NextRequest) {
       months_required: monthsRequired,
       was_eligible: true,
       stripe_coupon_id: couponId,
-      plan_name: (subscription.subscription_plans as any)?.name || null,
-      plan_slug: (subscription.subscription_plans as any)?.slug || null,
+      plan_name: (subscription.subscription_plans as Record<string, unknown>)?.name || null,
+      plan_slug: (subscription.subscription_plans as Record<string, unknown>)?.slug || null,
       details: {
         new_times_redeemed: newTimesRedeemed,
         next_months_required: nextMonthsRequired,
