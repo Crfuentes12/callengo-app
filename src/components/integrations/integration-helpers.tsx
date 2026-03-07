@@ -15,7 +15,7 @@ export function getPlanLabel(plan: PlanTier): string {
 
 export function getPlanBadgeColors(plan: PlanTier): string {
   switch (plan) {
-    case 'free': return 'bg-slate-100 text-slate-500';
+    case 'free': return 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0';
     case 'starter': return 'bg-blue-50 text-blue-600';
     case 'business': return 'bg-violet-50 text-violet-600';
     case 'teams': return 'bg-amber-50 text-amber-600';
@@ -46,12 +46,12 @@ export function Spinner({ className = 'w-4 h-4' }: { className?: string }) {
 export function Tooltip({ text }: { text: string }) {
   return (
     <div className="relative group/tip inline-flex">
-      <svg className="w-3.5 h-3.5 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="w-3.5 h-3.5 text-[var(--color-neutral-400)] cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
       </svg>
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-slate-800 text-white text-[11px] rounded-lg p-2.5 opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-xl leading-relaxed">
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-[var(--color-neutral-800)] text-white text-[11px] rounded-lg p-2.5 opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-xl leading-relaxed">
         {text}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-transparent border-t-slate-800" />
+        <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-transparent border-t-[var(--color-neutral-800)]" />
       </div>
     </div>
   );

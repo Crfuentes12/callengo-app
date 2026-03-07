@@ -51,22 +51,22 @@ export default function SimplyBookOrgMembers({ companyId, planSlug, sbConnected 
   if (!sbConnected) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[var(--border-default)] overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+        className="w-full p-5 flex items-center justify-between hover:bg-[var(--color-neutral-50)] transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center">
             <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-6 h-6 rounded" />
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-semibold text-slate-900">SimplyBook.me Providers</h3>
-            <p className="text-xs text-slate-500">Staff and service providers from your booking system</p>
+            <h3 className="text-sm font-semibold text-[var(--color-ink)]">SimplyBook.me Providers</h3>
+            <p className="text-xs text-[var(--color-neutral-500)]">Staff and service providers from your booking system</p>
           </div>
         </div>
         <svg
-          className={`w-5 h-5 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-[var(--color-neutral-400)] transition-transform ${expanded ? 'rotate-180' : ''}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -74,27 +74,27 @@ export default function SimplyBookOrgMembers({ companyId, planSlug, sbConnected 
       </button>
 
       {expanded && (
-        <div className="border-t border-slate-100">
+        <div className="border-t border-[var(--border-subtle)]">
           {loading ? (
             <div className="p-6">
               <div className="space-y-3">
                 {[1, 2, 3].map(i => (
                   <div key={i} className="flex items-center gap-3 animate-pulse">
-                    <div className="w-10 h-10 rounded-full bg-slate-100" />
+                    <div className="w-10 h-10 rounded-full bg-[var(--color-neutral-100)]" />
                     <div className="flex-1">
-                      <div className="h-4 w-32 bg-slate-100 rounded" />
-                      <div className="h-3 w-48 bg-slate-100 rounded mt-1" />
+                      <div className="h-4 w-32 bg-[var(--color-neutral-100)] rounded" />
+                      <div className="h-3 w-48 bg-[var(--color-neutral-100)] rounded mt-1" />
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           ) : providers.length === 0 ? (
-            <div className="p-6 text-center text-sm text-slate-400">
+            <div className="p-6 text-center text-sm text-[var(--color-neutral-400)]">
               No providers found in your SimplyBook.me account
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[var(--border-subtle)]">
               {providers.map((provider) => (
                 <div key={provider.sb_provider_id} className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -102,8 +102,8 @@ export default function SimplyBookOrgMembers({ companyId, planSlug, sbConnected 
                       {provider.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-900">{provider.name}</p>
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <p className="text-sm font-medium text-[var(--color-ink)]">{provider.name}</p>
+                      <div className="flex items-center gap-2 text-xs text-[var(--color-neutral-500)]">
                         {provider.email && <span>{provider.email}</span>}
                         {provider.phone && <span>· {provider.phone}</span>}
                       </div>
@@ -111,7 +111,7 @@ export default function SimplyBookOrgMembers({ companyId, planSlug, sbConnected 
                   </div>
                   <div className="flex items-center gap-2">
                     {!provider.is_active && (
-                      <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-xs">Inactive</span>
+                      <span className="px-2 py-0.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] rounded-full text-xs">Inactive</span>
                     )}
                     {provider.already_in_callengo ? (
                       <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium">

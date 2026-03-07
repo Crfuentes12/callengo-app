@@ -267,11 +267,11 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
 
   return (
     <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200/50 overflow-hidden">
-        <div className="p-6 border-b border-slate-100">
+      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-[var(--border-default)]/50 overflow-hidden">
+        <div className="p-6 border-b border-[var(--border-subtle)]">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">{typeInfo.icon} {typeInfo.title}</h2>
-            <button onClick={onClose} className="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group">
+            <h2 className="text-xl font-bold text-[var(--color-ink)]">{typeInfo.icon} {typeInfo.title}</h2>
+            <button onClick={onClose} className="w-9 h-9 rounded-lg bg-white border border-[var(--border-default)] text-[var(--color-neutral-600)] hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group">
               <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -285,7 +285,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
                   step === s ? 'gradient-bg text-white shadow-md' :
                   ['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]' :
-                  'bg-slate-100 text-slate-400'
+                  'bg-[var(--color-neutral-100)] text-[var(--color-neutral-400)]'
                 }`}>
                   {['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? (
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -295,7 +295,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                 </div>
                 {idx < 4 && (
                   <div className={`flex-1 h-1 mx-2 rounded-full transition-all ${
-                    ['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'gradient-bg' : 'bg-slate-200'
+                    ['upload', 'list-select', 'mapping', 'preview', 'complete'].indexOf(step) > idx ? 'gradient-bg' : 'bg-[var(--color-neutral-200)]'
                   }`}></div>
                 )}
               </div>
@@ -322,7 +322,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--color-neutral-700)] mb-2">
                       Google Sheets URL
                     </label>
                     <input
@@ -330,10 +330,10 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                       value={googleSheetUrl}
                       onChange={(e) => setGoogleSheetUrl(e.target.value)}
                       placeholder="https://docs.google.com/spreadsheets/d/..."
-                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      className="w-full px-4 py-3 border-2 border-[var(--border-default)] rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                       disabled={loading}
                     />
-                    <p className="text-xs text-slate-500 mt-2">Paste the full URL of your Google Sheet</p>
+                    <p className="text-xs text-[var(--color-neutral-50)]0 mt-2">Paste the full URL of your Google Sheet</p>
                   </div>
 
                   <button
@@ -362,7 +362,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
               ) : (
                 // File Upload Interface
                 <div
-                  className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5 cursor-pointer transition-all group"
+                  className="border-2 border-dashed border-[var(--border-default)] rounded-xl p-12 text-center hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5 cursor-pointer transition-all group"
                   onClick={() => document.getElementById('csv-upload')?.click()}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
@@ -384,18 +384,18 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   {loading ? (
                     <div className="flex items-center justify-center gap-3">
                       <div className="w-6 h-6 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-slate-600 font-medium">Processing...</span>
+                      <span className="text-[var(--color-neutral-600)] font-medium">Processing...</span>
                     </div>
                   ) : (
                     <>
-                      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-100 group-hover:bg-[var(--color-primary)]/10 flex items-center justify-center transition-colors">
-                        <svg className="w-7 h-7 text-slate-400 group-hover:text-[var(--color-primary)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[var(--color-neutral-100)] group-hover:bg-[var(--color-primary)]/10 flex items-center justify-center transition-colors">
+                        <svg className="w-7 h-7 text-[var(--color-neutral-400)] group-hover:text-[var(--color-primary)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                       </div>
-                      <p className="text-slate-700 font-semibold">{t.contacts.importModal.dragDrop}</p>
-                      <p className="text-sm text-slate-500 mt-1">{t.contacts.importModal.supportedFormats}</p>
-                      <p className="text-xs text-slate-400 mt-3">{typeInfo.accept}</p>
+                      <p className="text-[var(--color-neutral-700)] font-semibold">{t.contacts.importModal.dragDrop}</p>
+                      <p className="text-sm text-[var(--color-neutral-50)]0 mt-1">{t.contacts.importModal.supportedFormats}</p>
+                      <p className="text-xs text-[var(--color-neutral-400)] mt-3">{typeInfo.accept}</p>
                     </>
                   )}
                 </div>
@@ -405,8 +405,8 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
 
           {step === 'list-select' && (
             <div>
-              <p className="text-sm text-slate-600 mb-4">
-                Assign these <span className="font-semibold text-slate-900">{rows.length} contacts</span> to a list (optional):
+              <p className="text-sm text-[var(--color-neutral-600)] mb-4">
+                Assign these <span className="font-semibold text-[var(--color-ink)]">{rows.length} contacts</span> to a list (optional):
               </p>
 
               <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
@@ -415,7 +415,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   className={`w-full p-3 rounded-lg border transition-all duration-300 text-left ${
                     selectedListId === ''
                       ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)] shadow-md'
-                      : 'bg-white border-slate-200 hover:border-slate-300'
+                      : 'bg-white border-[var(--border-default)] hover:border-[var(--border-strong)]'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -423,7 +423,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                         selectedListId === ''
                           ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
-                          : 'border-slate-300'
+                          : 'border-[var(--border-strong)]'
                       }`}
                     >
                       {selectedListId === '' && (
@@ -431,8 +431,8 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{t.contacts.allLists}</p>
-                      <p className="text-xs text-slate-500">{t.contacts.importContacts}</p>
+                      <p className="text-sm font-semibold text-[var(--color-ink)]">{t.contacts.allLists}</p>
+                      <p className="text-xs text-[var(--color-neutral-50)]0">{t.contacts.importContacts}</p>
                     </div>
                   </div>
                 </button>
@@ -444,7 +444,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                     className={`w-full p-3 rounded-lg border transition-all duration-300 text-left ${
                       selectedListId === list.id
                         ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)] shadow-md'
-                        : 'bg-white border-slate-200 hover:border-slate-300'
+                        : 'bg-white border-[var(--border-default)] hover:border-[var(--border-strong)]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -453,7 +453,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                             selectedListId === list.id
                               ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
-                              : 'border-slate-300'
+                              : 'border-[var(--border-strong)]'
                           }`}
                         >
                           {selectedListId === list.id && (
@@ -461,9 +461,9 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-slate-900">{list.name}</p>
+                          <p className="text-sm font-semibold text-[var(--color-ink)]">{list.name}</p>
                           {list.description && (
-                            <p className="text-xs text-slate-500 mt-0.5">{list.description}</p>
+                            <p className="text-xs text-[var(--color-neutral-50)]0 mt-0.5">{list.description}</p>
                           )}
                         </div>
                       </div>
@@ -481,7 +481,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
               {!showCreateList ? (
                 <button
                   onClick={() => setShowCreateList(true)}
-                  className="w-full p-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 transition-all flex items-center justify-center gap-2 font-medium"
+                  className="w-full p-3 border-2 border-dashed border-[var(--border-strong)] rounded-lg text-[var(--color-neutral-600)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 transition-all flex items-center justify-center gap-2 font-medium"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -492,29 +492,29 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                 <div className="border border-[var(--color-primary)]/20 rounded-lg p-4 bg-[var(--color-primary)]/5">
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t.contacts.name}</label>
+                      <label className="block text-sm font-semibold text-[var(--color-neutral-700)] mb-1.5">{t.contacts.name}</label>
                       <input
                         type="text"
                         value={newListName}
                         onChange={(e) => setNewListName(e.target.value)}
                         placeholder="e.g., Summer Campaign 2025"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none"
+                        className="w-full px-3 py-2 border border-[var(--border-strong)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t.common.description}</label>
+                      <label className="block text-sm font-semibold text-[var(--color-neutral-700)] mb-1.5">{t.common.description}</label>
                       <input
                         type="text"
                         value={newListDescription}
                         onChange={(e) => setNewListDescription(e.target.value)}
                         placeholder="Brief description..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none"
+                        className="w-full px-3 py-2 border border-[var(--border-strong)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none"
                       />
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setShowCreateList(false)}
-                        className="flex-1 px-3 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
+                        className="flex-1 px-3 py-2 border border-[var(--border-strong)] text-[var(--color-neutral-700)] rounded-lg hover:bg-[var(--color-neutral-50)] transition-all text-sm font-medium"
                       >
                         {t.common.cancel}
                       </button>
@@ -533,7 +533,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setStep('upload')}
-                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
+                  className="flex-1 px-4 py-2.5 border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-xl hover:bg-[var(--color-neutral-50)] hover:border-[var(--border-strong)] transition-all font-medium"
                 >
                   {t.common.back}
                 </button>
@@ -549,11 +549,11 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
 
           {step === 'mapping' && (
             <div>
-              <p className="text-sm text-slate-600 mb-4">
-                Map your CSV columns to contact fields. Found <span className="font-semibold text-slate-900">{rows.length}</span> rows with <span className="font-semibold text-slate-900">{headers.length}</span> columns.
+              <p className="text-sm text-[var(--color-neutral-600)] mb-4">
+                Map your CSV columns to contact fields. Found <span className="font-semibold text-[var(--color-ink)]">{rows.length}</span> rows with <span className="font-semibold text-[var(--color-ink)]">{headers.length}</span> columns.
               </p>
               <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t.contacts.importModal.mapping}</div>
+                <div className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider mb-1">{t.contacts.importModal.mapping}</div>
                 {Object.entries({
                   firstName: 'First Name',
                   lastName: 'Last Name',
@@ -567,11 +567,11 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   zipCode: 'Zip Code',
                 }).map(([field, label]) => (
                   <div key={field} className="flex items-center gap-4">
-                    <label className="w-36 text-sm font-medium text-slate-700 flex-shrink-0">{label}</label>
+                    <label className="w-36 text-sm font-medium text-[var(--color-neutral-700)] flex-shrink-0">{label}</label>
                     <select
                       value={(mapping as unknown as Record<string, unknown>)[field] as string || ''}
                       onChange={(e) => setMapping({ ...mapping, [field]: e.target.value || null })}
-                      className="flex-1 px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white transition-all cursor-pointer text-sm"
+                      className="flex-1 px-3 py-2 border border-[var(--border-default)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white transition-all cursor-pointer text-sm"
                     >
                       <option value="">-- Select Column --</option>
                       {headers.map((header) => (
@@ -595,23 +595,23 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                     {Object.keys(mapping.extraFields).length} Additional Columns Detected (stored in Custom Fields)
                   </button>
                   {showExtraFields && (
-                    <div className="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1 border border-slate-100 rounded-xl p-3 bg-slate-50/50">
+                    <div className="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1 border border-[var(--border-subtle)] rounded-xl p-3 bg-[var(--color-neutral-50)]/50">
                       {Object.entries(mapping.extraFields).map(([fieldName, headerName]) => (
                         <div key={fieldName} className="flex items-center gap-3">
-                          <span className="w-40 text-xs font-medium text-slate-600 truncate flex-shrink-0" title={fieldName}>
+                          <span className="w-40 text-xs font-medium text-[var(--color-neutral-600)] truncate flex-shrink-0" title={fieldName}>
                             {fieldName.replace(/_/g, ' ')}
                           </span>
-                          <svg className="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-3 h-3 text-[var(--color-neutral-300)] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                           </svg>
-                          <span className="text-xs text-slate-500 truncate">{headerName}</span>
+                          <span className="text-xs text-[var(--color-neutral-50)]0 truncate">{headerName}</span>
                           <button
                             onClick={() => {
                               const newExtra = { ...mapping.extraFields };
                               delete newExtra[fieldName];
                               setMapping({ ...mapping, extraFields: newExtra });
                             }}
-                            className="ml-auto flex-shrink-0 w-5 h-5 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-all"
+                            className="ml-auto flex-shrink-0 w-5 h-5 rounded text-[var(--color-neutral-400)] hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-all"
                             title="Remove this mapping"
                           >
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -628,7 +628,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setStep('list-select')}
-                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
+                  className="flex-1 px-4 py-2.5 border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-xl hover:bg-[var(--color-neutral-50)] hover:border-[var(--border-strong)] transition-all font-medium"
                 >
                   {t.common.back}
                 </button>
@@ -645,23 +645,23 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
 
           {step === 'preview' && (
             <div>
-              <p className="text-sm text-slate-600 mb-4">Preview of first 5 rows:</p>
-              <div className="overflow-x-auto mb-6 rounded-xl border border-slate-200/80 shadow-sm">
-                <table className="min-w-full divide-y divide-slate-100 text-sm">
-                  <thead className="bg-slate-50/80">
+              <p className="text-sm text-[var(--color-neutral-600)] mb-4">Preview of first 5 rows:</p>
+              <div className="overflow-x-auto mb-6 rounded-xl border border-[var(--border-default)]/80 shadow-sm">
+                <table className="min-w-full divide-y divide-[var(--border-subtle)] text-sm">
+                  <thead className="bg-[var(--color-neutral-50)]/80">
                     <tr>
                       {headers.slice(0, 6).map((header) => (
-                        <th key={header} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <th key={header} className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider">
                           {header}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
+                  <tbody className="divide-y divide-[var(--border-subtle)] bg-white">
                     {rows.slice(0, 5).map((row, i) => (
-                      <tr key={i} className="hover:bg-slate-50/50">
+                      <tr key={i} className="hover:bg-[var(--color-neutral-50)]/50">
                         {row.slice(0, 6).map((cell, j) => (
-                          <td key={j} className="px-4 py-3 text-slate-700 truncate max-w-xs">{cell}</td>
+                          <td key={j} className="px-4 py-3 text-[var(--color-neutral-700)] truncate max-w-xs">{cell}</td>
                         ))}
                       </tr>
                     ))}
@@ -671,7 +671,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep('mapping')}
-                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
+                  className="flex-1 px-4 py-2.5 border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-xl hover:bg-[var(--color-neutral-50)] hover:border-[var(--border-strong)] transition-all font-medium"
                 >
                   {t.common.back}
                 </button>
@@ -693,8 +693,8 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">{t.contacts.importModal.success}</h3>
-              <p className="text-slate-600 mb-6">
+              <h3 className="text-xl font-bold text-[var(--color-ink)] mb-2">{t.contacts.importModal.success}</h3>
+              <p className="text-[var(--color-neutral-600)] mb-6">
                 <span className="font-semibold text-emerald-600">{result.imported}</span> {t.contacts.importModal.success}
                 {result.skipped > 0 && <span className="text-amber-600"> {result.skipped}</span>}
               </p>

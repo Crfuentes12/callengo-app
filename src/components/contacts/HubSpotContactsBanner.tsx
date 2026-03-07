@@ -24,8 +24,8 @@ export default function HubSpotContactsBanner({
             <FaHubspot className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">HubSpot Connected</p>
-            <p className="text-xs text-slate-500">View and sync your HubSpot contacts</p>
+            <p className="text-sm font-semibold text-[var(--color-ink)]">HubSpot Connected</p>
+            <p className="text-xs text-[var(--color-neutral-50)]0">View and sync your HubSpot contacts</p>
           </div>
         </div>
         <Link
@@ -45,14 +45,14 @@ export default function HubSpotContactsBanner({
   // Has access but not connected: prompt to connect
   if (hasHubSpotAccess && !hsConnected) {
     return (
-      <div className="mb-4 bg-slate-50 rounded-xl border border-slate-200 p-4 flex items-center justify-between">
+      <div className="mb-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-orange-50 text-[#FF7A59] flex items-center justify-center">
             <FaHubspot className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">Import from HubSpot</p>
-            <p className="text-xs text-slate-500">Connect your HubSpot account to import contacts</p>
+            <p className="text-sm font-semibold text-[var(--color-ink)]">Import from HubSpot</p>
+            <p className="text-xs text-[var(--color-neutral-50)]0">Connect your HubSpot account to import contacts</p>
           </div>
         </div>
         <Link
@@ -74,8 +74,8 @@ export default function HubSpotContactsBanner({
           <FaHubspot className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-900">HubSpot CRM Integration</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-sm font-semibold text-[var(--color-ink)]">HubSpot CRM Integration</p>
+          <p className="text-xs text-[var(--color-neutral-50)]0">
             Import contacts from HubSpot. Available on Business plan and above.
           </p>
         </div>

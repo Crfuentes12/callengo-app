@@ -98,7 +98,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
       case 'no_answer':
         return 'bg-amber-50 text-amber-700 border-amber-200';
       default:
-        return 'bg-slate-50 text-slate-600 border-slate-200';
+        return 'bg-[var(--color-neutral-50)] text-[var(--color-neutral-600)] border-[var(--border-default)]';
     }
   };
 
@@ -115,7 +115,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
       <Breadcrumbs items={[{ label: t.calls.title }]} />
 
       {/* Section Header */}
-      <div className="gradient-bg-subtle rounded-2xl p-10 shadow-sm border border-slate-200">
+      <div className="gradient-bg-subtle rounded-2xl p-10 shadow-sm border border-[var(--border-default)]">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-2xl gradient-bg flex items-center justify-center shadow-md">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -123,54 +123,54 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
             </svg>
           </div>
           <div>
-            <h2 className="text-3xl font-bold text-slate-900">
+            <h2 className="text-3xl font-bold text-[var(--color-ink)]">
               {t.calls.title}
             </h2>
-            <p className="text-base text-slate-500 font-medium">
+            <p className="text-base text-[var(--color-neutral-500)] font-medium">
               {t.calls.summary}
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 bg-white rounded-xl border border-[var(--border-default)] shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
-              <span className="text-xs text-slate-500 uppercase font-semibold">{t.common.total} {t.calls.title}</span>
+              <span className="text-xs text-[var(--color-neutral-500)] uppercase font-semibold">{t.common.total} {t.calls.title}</span>
             </div>
-            <span className="text-3xl text-slate-900 font-bold">{stats.total.toLocaleString()}</span>
+            <span className="text-3xl text-[var(--color-ink)] font-bold">{stats.total.toLocaleString()}</span>
           </div>
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 bg-white rounded-xl border border-[var(--border-default)] shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-              <span className="text-xs text-slate-500 uppercase font-semibold">{t.calls.completed}</span>
+              <span className="text-xs text-[var(--color-neutral-500)] uppercase font-semibold">{t.calls.completed}</span>
             </div>
-            <span className="text-3xl text-slate-900 font-bold">{stats.successful.toLocaleString()}</span>
+            <span className="text-3xl text-[var(--color-ink)] font-bold">{stats.successful.toLocaleString()}</span>
           </div>
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 bg-white rounded-xl border border-[var(--border-default)] shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-xs text-slate-500 uppercase font-semibold">{t.calls.failed}</span>
+              <span className="text-xs text-[var(--color-neutral-500)] uppercase font-semibold">{t.calls.failed}</span>
             </div>
-            <span className="text-3xl text-slate-900 font-bold">{stats.failed.toLocaleString()}</span>
+            <span className="text-3xl text-[var(--color-ink)] font-bold">{stats.failed.toLocaleString()}</span>
           </div>
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 bg-white rounded-xl border border-[var(--border-default)] shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-              <span className="text-xs text-slate-500 uppercase font-semibold">{t.calls.duration}</span>
+              <span className="text-xs text-[var(--color-neutral-500)] uppercase font-semibold">{t.calls.duration}</span>
             </div>
-            <span className="text-3xl text-slate-900 font-bold">{formatDuration(stats.avgDuration)}</span>
+            <span className="text-3xl text-[var(--color-ink)] font-bold">{formatDuration(stats.avgDuration)}</span>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 p-6 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
             <div className="relative">
-              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -178,7 +178,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                 placeholder={t.calls.searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-900 placeholder-slate-400 font-medium"
+                className="w-full pl-11 pr-4 py-2.5 border border-[var(--border-default)] rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-[var(--color-ink)] placeholder-[var(--color-neutral-400)] font-medium"
               />
             </div>
           </div>
@@ -188,7 +188,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer font-medium"
+              className="px-4 py-2.5 border border-[var(--border-default)] rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-[var(--color-neutral-700)] cursor-pointer font-medium"
             >
               <option value="all">{t.common.filter} {t.calls.status}</option>
               <option value="completed">{t.calls.completed}</option>
@@ -200,7 +200,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
             <select
               value={agentFilter}
               onChange={(e) => setAgentFilter(e.target.value)}
-              className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer font-medium"
+              className="px-4 py-2.5 border border-[var(--border-default)] rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-[var(--color-neutral-700)] cursor-pointer font-medium"
             >
               <option value="all">All Agents</option>
               {agentTemplates.map(agent => (
@@ -211,7 +211,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
             <select
               value={answeredByFilter}
               onChange={(e) => setAnsweredByFilter(e.target.value)}
-              className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-slate-700 cursor-pointer font-medium"
+              className="px-4 py-2.5 border border-[var(--border-default)] rounded-xl bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-[var(--color-neutral-700)] cursor-pointer font-medium"
             >
               <option value="all">All Types</option>
               <option value="human">Human</option>
@@ -220,7 +220,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
             <button
               onClick={resetFilters}
-              className="px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 font-semibold"
+              className="px-4 py-2.5 border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-xl hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)] transition-all flex items-center gap-2 font-semibold"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -232,72 +232,72 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
         {/* Results count */}
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-slate-600 font-medium">
-            Showing <span className="font-bold text-slate-900">{filteredCalls.length}</span> of <span className="font-bold text-slate-900">{callLogs.length}</span> calls
+          <p className="text-sm text-[var(--color-neutral-600)] font-medium">
+            Showing <span className="font-bold text-[var(--color-ink)]">{filteredCalls.length}</span> of <span className="font-bold text-[var(--color-ink)]">{callLogs.length}</span> calls
           </p>
         </div>
       </div>
 
       {/* Calls Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 overflow-hidden shadow-sm">
         {filteredCalls.length === 0 ? (
           <div className="text-center py-20 px-6">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-10 h-10 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[var(--color-neutral-100)] to-[var(--color-neutral-200)] flex items-center justify-center mx-auto mb-4">
+              <svg className="w-10 h-10 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
             </div>
-            <p className="text-slate-900 font-semibold text-lg mb-2">{t.calls.noCalls}</p>
-            <p className="text-sm text-slate-500">{t.calls.noCallsDesc}</p>
+            <p className="text-[var(--color-ink)] font-semibold text-lg mb-2">{t.calls.noCalls}</p>
+            <p className="text-sm text-[var(--color-neutral-500)]">{t.calls.noCallsDesc}</p>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                       Call ID
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                       {t.calls.contact}
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                       {t.calls.status}
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                       {t.calls.duration}
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                       {t.calls.voicemail}
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                       {t.calls.date}
                     </th>
-                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                       {t.common.actions}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[var(--border-subtle)]">
                   {paginatedCalls.map((call) => (
-                    <tr key={call.id} className="hover:bg-slate-50 transition-colors group cursor-pointer" onClick={() => setSelectedCall(call)}>
+                    <tr key={call.id} className="hover:bg-[var(--surface-hover)] transition-colors group cursor-pointer" onClick={() => setSelectedCall(call)}>
                       <td className="py-4 px-6">
-                        <p className="text-sm font-semibold text-slate-900 font-mono">
+                        <p className="text-sm font-semibold text-[var(--color-ink)] font-mono">
                           {call.call_id.substring(0, 16)}...
                         </p>
                       </td>
                       <td className="py-4 px-6">
                         <div>
-                          <p className="text-sm font-semibold text-slate-900">
+                          <p className="text-sm font-semibold text-[var(--color-ink)]">
                             {call.contacts?.company_name || 'Unknown'}
                           </p>
                           {call.contacts?.contact_name && (
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
                               {call.contacts.contact_name}
                             </p>
                           )}
-                          <p className="text-xs text-slate-400 mt-0.5 font-mono">
+                          <p className="text-xs text-[var(--color-neutral-400)] mt-0.5 font-mono">
                             {call.contacts?.phone_number}
                           </p>
                         </div>
@@ -308,7 +308,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                         </span>
                       </td>
                       <td className="py-4 px-6">
-                        <p className="text-sm font-semibold text-slate-700">
+                        <p className="text-sm font-semibold text-[var(--color-neutral-700)]">
                           {formatDuration(call.call_length)}
                         </p>
                       </td>
@@ -318,13 +318,13 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                             ? 'bg-emerald-100 text-emerald-700'
                             : call.answered_by === 'voicemail'
                             ? 'bg-amber-100 text-amber-700'
-                            : 'bg-slate-100 text-slate-600'
+                            : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)]'
                         }`}>
                           {call.answered_by || 'Unknown'}
                         </span>
                       </td>
                       <td className="py-4 px-6">
-                        <p className="text-sm text-slate-500 font-medium">
+                        <p className="text-sm text-[var(--color-neutral-500)] font-medium">
                           {new Date(call.created_at).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -341,7 +341,7 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
                               href={call.recording_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-2 rounded-lg text-[var(--color-primary)] hover:bg-slate-50 transition-all"
+                              className="p-2 rounded-lg text-[var(--color-primary)] hover:bg-[var(--surface-hover)] transition-all"
                               title={t.calls.playRecording}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -370,15 +370,15 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-                <p className="text-sm text-slate-600 font-medium">
-                  {t.common.page} <span className="font-bold text-slate-900">{currentPage}</span> {t.common.of} <span className="font-bold text-slate-900">{totalPages}</span>
+              <div className="px-6 py-4 bg-[var(--color-neutral-50)] border-t border-[var(--border-default)] flex items-center justify-between">
+                <p className="text-sm text-[var(--color-neutral-600)] font-medium">
+                  {t.common.page} <span className="font-bold text-[var(--color-ink)]">{currentPage}</span> {t.common.of} <span className="font-bold text-[var(--color-ink)]">{totalPages}</span>
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-white hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                    className="px-4 py-2 border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-xl hover:bg-white hover:border-[var(--border-strong)] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                   >
                     {t.common.previous}
                   </button>

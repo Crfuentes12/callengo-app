@@ -9,7 +9,7 @@ export default function Loading() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className={`bg-white rounded-xl border border-slate-200 p-5 animate-skeleton-slide [animation-delay:${80 + i * 50}ms]`}>
+          <div key={i} className={`bg-white rounded-xl border border-[var(--border-default)] p-5 animate-skeleton-slide [animation-delay:${80 + i * 50}ms]`}>
             <div className="flex items-center justify-between mb-3">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="w-8 h-8 rounded-lg" />
@@ -18,7 +18,7 @@ export default function Loading() {
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 p-6 animate-skeleton-slide [animation-delay:300ms]">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] p-6 animate-skeleton-slide [animation-delay:300ms]">
         <div className="space-y-4">
           {[0, 1, 2, 3, 4].map((i) => (
             <div key={i} className={`flex gap-6 animate-skeleton-slide [animation-delay:${350 + i * 40}ms]`}>

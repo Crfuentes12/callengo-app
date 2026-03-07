@@ -78,7 +78,7 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-950)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4">
       {/* Background */}
 
       <div className="relative z-10 max-w-6xl w-full">
@@ -90,7 +90,7 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
             {t.onboarding.painSelection.title}
           </h1>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+          <p className="text-xl text-[var(--color-neutral-400)] max-w-2xl mx-auto">
             {t.onboarding.painSelection.subtitle}
           </p>
         </div>
@@ -108,8 +108,8 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
                 transition-all duration-300 ease-out
                 ${selectedId === pain.id ? 'ring-2 ring-[var(--color-primary)]' : ''}
                 ${hoveredId === pain.id ? 'shadow-2xl' : 'shadow-xl'}
-                border border-slate-800 hover:border-slate-700
-                bg-gradient-to-br from-slate-900/90 to-slate-800/90
+                border border-[var(--color-neutral-800)] hover:border-[var(--color-neutral-700)]
+                bg-gradient-to-br from-[var(--color-neutral-900)]/90 to-[var(--color-neutral-800)]/90
                 backdrop-blur-sm
               `}
             >
@@ -136,16 +136,16 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
                 </h3>
 
                 {/* Description */}
-                <p className="text-slate-300 mb-4 leading-relaxed">
+                <p className="text-[var(--color-neutral-300)] mb-4 leading-relaxed">
                   {pain.description}
                 </p>
 
                 {/* Pain Points */}
-                <div className="pt-4 border-t border-slate-700/50">
-                  <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-wide">
+                <div className="pt-4 border-t border-[var(--color-neutral-700)]/50">
+                  <p className="text-xs text-[var(--color-neutral-500)] mb-2 font-semibold uppercase tracking-wide">
                     {t.onboarding.painSelection.dealingWith}
                   </p>
-                  <p className="text-sm text-slate-400 leading-relaxed">
+                  <p className="text-sm text-[var(--color-neutral-400)] leading-relaxed">
                     {pain.value}
                   </p>
                 </div>
@@ -170,7 +170,7 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
         <div className="text-center">
           <button
             onClick={onSkip}
-            className="text-slate-500 hover:text-slate-400 text-sm font-medium transition-colors underline"
+            className="text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-400)] text-sm font-medium transition-colors underline"
           >
             {t.onboarding.painSelection.skipStep}
           </button>
@@ -178,7 +178,7 @@ export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) 
 
         {/* Bottom note */}
         <div className="mt-12 text-center">
-          <p className="text-slate-500 text-sm">
+          <p className="text-[var(--color-neutral-500)] text-sm">
             💡 {t.onboarding.painSelection.activateLater}
           </p>
         </div>

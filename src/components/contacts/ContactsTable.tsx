@@ -32,7 +32,7 @@ interface ContactsTableProps {
 function SortIcon({ field, currentSort, currentOrder }: { field: SortField; currentSort: SortField; currentOrder: SortOrder }) {
   const isActive = field === currentSort;
   return (
-    <span className={`inline-flex ml-1 ${isActive ? 'text-[var(--color-primary)]' : 'text-slate-300 group-hover:text-slate-400'}`}>
+    <span className={`inline-flex ml-1 ${isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-neutral-300)] group-hover:text-[var(--color-neutral-400)]'}`}>
       {isActive && currentOrder === 'asc' ? (
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" /></svg>
       ) : isActive && currentOrder === 'desc' ? (
@@ -105,7 +105,7 @@ export default function ContactsTable({
 
   const renderSortableHeader = (field: SortField, children: React.ReactNode, className = '') => (
     <th
-      className={`px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer select-none group hover:bg-slate-100/80 transition-colors ${className}`}
+      className={`px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider cursor-pointer select-none group hover:bg-[var(--surface-hover)]/80 transition-colors ${className}`}
       onClick={() => onSort(field)}
     >
       <span className="inline-flex items-center">
@@ -119,11 +119,11 @@ export default function ContactsTable({
   const to = Math.min(page * pageSize, total);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-xl border border-[var(--border-default)]/80 overflow-hidden shadow-sm">
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-100">
-          <thead className="bg-slate-50/80 sticky top-0 z-10">
+        <table className="min-w-full divide-y divide-[var(--border-subtle)]">
+          <thead className="bg-[var(--color-neutral-50)]/80 sticky top-0 z-10">
             <tr>
               <th className="px-4 py-3 w-12">
                 <input
@@ -131,16 +131,16 @@ export default function ContactsTable({
                   checked={allSelected}
                   ref={input => { if (input) input.indeterminate = someSelected; }}
                   onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="w-4 h-4 text-[var(--color-primary)] bg-white border-slate-300 rounded focus:ring-[var(--color-primary)] focus:ring-2 cursor-pointer"
+                  className="w-4 h-4 text-[var(--color-primary)] bg-white border-[var(--border-strong)] rounded focus:ring-[var(--color-primary)] focus:ring-2 cursor-pointer"
                 />
               </th>
               {renderSortableHeader('company_name', t.contacts.company)}
               {renderSortableHeader('phone_number', t.contacts.phone)}
               {renderSortableHeader('city', t.contacts.city)}
               {visibleColumns.address && renderSortableHeader('city', t.contacts.address)}
-              {visibleColumns.zipCode && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.contacts.zipCode}</th>}
+              {visibleColumns.zipCode && <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.zipCode}</th>}
               {renderSortableHeader('status', t.contacts.status)}
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.contacts.list}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.list}</th>
               {renderSortableHeader('contact_name', t.contacts.name)}
               {renderSortableHeader('email', t.contacts.email)}
               {visibleColumns.lastCallDate && renderSortableHeader('last_call_date', t.contacts.lastCall)}
@@ -149,7 +149,7 @@ export default function ContactsTable({
               <th className="px-4 py-3 w-12 relative" ref={columnMenuRef}>
                 <button
                   onClick={() => setShowColumnMenu(!showColumnMenu)}
-                  className="w-7 h-7 rounded-lg hover:bg-slate-200 transition-all flex items-center justify-center text-slate-400 hover:text-slate-600"
+                  className="w-7 h-7 rounded-lg hover:bg-[var(--color-neutral-200)] transition-all flex items-center justify-center text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)]"
                   title="Show/hide columns"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -157,8 +157,8 @@ export default function ContactsTable({
                   </svg>
                 </button>
                 {showColumnMenu && (
-                  <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-xl border border-slate-200 py-1.5 z-50">
-                    <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.contacts.filters}</div>
+                  <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-xl border border-[var(--border-default)] py-1.5 z-50">
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider">{t.contacts.filters}</div>
                     {Object.entries({
                       address: t.contacts.address,
                       zipCode: t.contacts.zipCode,
@@ -169,12 +169,12 @@ export default function ContactsTable({
                       <button
                         key={key}
                         onClick={() => setVisibleColumns(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
-                        className="w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2.5"
+                        className="w-full px-3 py-1.5 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-50)] transition-colors flex items-center gap-2.5"
                       >
                         <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
                           visibleColumns[key as keyof typeof visibleColumns]
                             ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
-                            : 'border-slate-300'
+                            : 'border-[var(--border-strong)]'
                         }`}>
                           {visibleColumns[key as keyof typeof visibleColumns] && (
                             <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -190,21 +190,21 @@ export default function ContactsTable({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-[var(--color-neutral-50)]">
             {isLoading ? (
               Array.from({ length: pageSize > 10 ? 10 : pageSize }, (_, i) => (
                 <tr key={i} className="animate-pulse">
-                  <td className="px-4 py-3.5"><div className="w-4 h-4 bg-slate-200 rounded" /></td>
-                  <td className="px-4 py-3.5"><div className="h-4 w-32 bg-slate-200 rounded" /></td>
-                  <td className="px-4 py-3.5"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
-                  <td className="px-4 py-3.5"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
-                  <td className="px-4 py-3.5"><div className="h-5 w-20 bg-slate-200 rounded-lg" /></td>
-                  <td className="px-4 py-3.5"><div className="h-5 w-16 bg-slate-200 rounded-lg" /></td>
-                  <td className="px-4 py-3.5"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                  <td className="px-4 py-3.5"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
-                  {visibleColumns.lastCallDate && <td className="px-4 py-3.5"><div className="h-4 w-20 bg-slate-200 rounded" /></td>}
-                  {visibleColumns.callAttempts && <td className="px-4 py-3.5"><div className="h-4 w-8 bg-slate-200 rounded" /></td>}
-                  {visibleColumns.source && <td className="px-4 py-3.5"><div className="h-4 w-16 bg-slate-200 rounded" /></td>}
+                  <td className="px-4 py-3.5"><div className="w-4 h-4 bg-[var(--color-neutral-200)] rounded" /></td>
+                  <td className="px-4 py-3.5"><div className="h-4 w-32 bg-[var(--color-neutral-200)] rounded" /></td>
+                  <td className="px-4 py-3.5"><div className="h-4 w-28 bg-[var(--color-neutral-200)] rounded" /></td>
+                  <td className="px-4 py-3.5"><div className="h-4 w-24 bg-[var(--color-neutral-200)] rounded" /></td>
+                  <td className="px-4 py-3.5"><div className="h-5 w-20 bg-[var(--color-neutral-200)] rounded-lg" /></td>
+                  <td className="px-4 py-3.5"><div className="h-5 w-16 bg-[var(--color-neutral-200)] rounded-lg" /></td>
+                  <td className="px-4 py-3.5"><div className="h-4 w-20 bg-[var(--color-neutral-200)] rounded" /></td>
+                  <td className="px-4 py-3.5"><div className="h-4 w-28 bg-[var(--color-neutral-200)] rounded" /></td>
+                  {visibleColumns.lastCallDate && <td className="px-4 py-3.5"><div className="h-4 w-20 bg-[var(--color-neutral-200)] rounded" /></td>}
+                  {visibleColumns.callAttempts && <td className="px-4 py-3.5"><div className="h-4 w-8 bg-[var(--color-neutral-200)] rounded" /></td>}
+                  {visibleColumns.source && <td className="px-4 py-3.5"><div className="h-4 w-16 bg-[var(--color-neutral-200)] rounded" /></td>}
                   <td className="px-4 py-3.5" />
                 </tr>
               ))
@@ -219,7 +219,7 @@ export default function ContactsTable({
                 return (
                 <tr
                   key={contact.id}
-                  className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${selectedContactIds.includes(contact.id) ? 'bg-[var(--color-primary-50)]/40' : ''} ${effectivelyLocked ? 'bg-amber-50/40 border-l-2 border-l-amber-400' : ''}`}
+                  className={`hover:bg-[var(--color-neutral-50)]/80 transition-colors cursor-pointer ${selectedContactIds.includes(contact.id) ? 'bg-[var(--color-primary-50)]/40' : ''} ${effectivelyLocked ? 'bg-amber-50/40 border-l-2 border-l-amber-400' : ''}`}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest('input[type="checkbox"]') || (e.target as HTMLElement).closest('button')) return;
                     onContactClick(contact);
@@ -230,13 +230,13 @@ export default function ContactsTable({
                       type="checkbox"
                       checked={selectedContactIds.includes(contact.id)}
                       onChange={(e) => handleSelectOne(contact.id, e.target.checked)}
-                      className="w-4 h-4 text-[var(--color-primary)] bg-white border-slate-300 rounded focus:ring-[var(--color-primary)] focus:ring-2 cursor-pointer"
+                      className="w-4 h-4 text-[var(--color-primary)] bg-white border-[var(--border-strong)] rounded focus:ring-[var(--color-primary)] focus:ring-2 cursor-pointer"
                       disabled={effectivelyLocked}
                     />
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${effectivelyLocked ? 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-600' : 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${effectivelyLocked ? 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-600' : 'bg-gradient-to-br from-[var(--color-neutral-100)] to-[var(--color-neutral-200)] text-[var(--color-neutral-50)]0'}`}>
                         {effectivelyLocked ? (
                           <svg className="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -244,7 +244,7 @@ export default function ContactsTable({
                         ) : (contact.company_name || '?')[0].toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <span className="text-sm font-medium text-slate-900 truncate block max-w-[180px]">{contact.company_name}</span>
+                        <span className="text-sm font-medium text-[var(--color-ink)] truncate block max-w-[180px]">{contact.company_name}</span>
                         <div className="flex items-center gap-1">
                           {effectivelyLocked && (
                             <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-medium rounded border border-amber-200 animate-pulse">Processing</span>
@@ -256,20 +256,20 @@ export default function ContactsTable({
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 font-mono text-xs">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-[var(--color-neutral-600)] font-mono text-xs">
                     {formatPhoneForDisplay(contact.phone_number)}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
-                    {contact.city ? `${contact.city}${contact.state ? `, ${contact.state}` : ''}` : <span className="text-slate-300">—</span>}
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-[var(--color-neutral-600)]">
+                    {contact.city ? `${contact.city}${contact.state ? `, ${contact.state}` : ''}` : <span className="text-[var(--color-neutral-300)]">—</span>}
                   </td>
                   {visibleColumns.address && (
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 max-w-[200px] truncate">
-                      {contact.address || <span className="text-slate-300">—</span>}
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-[var(--color-neutral-600)] max-w-[200px] truncate">
+                      {contact.address || <span className="text-[var(--color-neutral-300)]">—</span>}
                     </td>
                   )}
                   {visibleColumns.zipCode && (
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
-                      {contact.zip_code || <span className="text-slate-300">—</span>}
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-[var(--color-neutral-600)]">
+                      {contact.zip_code || <span className="text-[var(--color-neutral-300)]">—</span>}
                     </td>
                   )}
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -294,32 +294,32 @@ export default function ContactsTable({
                           {list.name}
                         </button>
                       ) : (
-                        <span className="text-slate-300 text-xs">—</span>
+                        <span className="text-[var(--color-neutral-300)] text-xs">—</span>
                       );
                     })()}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
-                    {contact.contact_name || <span className="text-slate-300">—</span>}
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-[var(--color-neutral-600)]">
+                    {contact.contact_name || <span className="text-[var(--color-neutral-300)]">—</span>}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500 max-w-[180px] truncate">
-                    {contact.email || <span className="text-slate-300">—</span>}
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-[var(--color-neutral-50)]0 max-w-[180px] truncate">
+                    {contact.email || <span className="text-[var(--color-neutral-300)]">—</span>}
                   </td>
                   {visibleColumns.lastCallDate && (
-                    <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
-                      {contact.last_call_date ? new Date(contact.last_call_date).toLocaleDateString() : <span className="text-slate-300">—</span>}
+                    <td className="px-4 py-3 whitespace-nowrap text-xs text-[var(--color-neutral-50)]0">
+                      {contact.last_call_date ? new Date(contact.last_call_date).toLocaleDateString() : <span className="text-[var(--color-neutral-300)]">—</span>}
                     </td>
                   )}
                   {visibleColumns.callAttempts && (
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 text-center">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-[var(--color-neutral-600)] text-center">
                       {contact.call_attempts || 0}
                     </td>
                   )}
                   {visibleColumns.source && (
                     <td className="px-4 py-3 whitespace-nowrap">
                       {contact.source ? (
-                        <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded font-medium capitalize">{contact.source}</span>
+                        <span className="px-1.5 py-0.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 text-[10px] rounded font-medium capitalize">{contact.source}</span>
                       ) : (
-                        <span className="text-slate-300 text-xs">—</span>
+                        <span className="text-[var(--color-neutral-300)] text-xs">—</span>
                       )}
                     </td>
                   )}
@@ -335,27 +335,27 @@ export default function ContactsTable({
       {/* Empty state */}
       {!isLoading && contacts.length === 0 && (
         <div className="text-center py-16">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
-            <svg className="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[var(--color-neutral-100)] flex items-center justify-center">
+            <svg className="w-7 h-7 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <p className="text-slate-700 font-semibold">{t.contacts.noContacts}</p>
-          <p className="text-sm text-slate-500 mt-1">{t.contacts.noContactsDesc}</p>
+          <p className="text-[var(--color-neutral-700)] font-semibold">{t.contacts.noContacts}</p>
+          <p className="text-sm text-[var(--color-neutral-50)]0 mt-1">{t.contacts.noContactsDesc}</p>
         </div>
       )}
 
       {/* Pagination */}
       {total > 0 && (
-        <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        <div className="px-4 py-3 border-t border-[var(--border-subtle)] bg-[var(--color-neutral-50)]/50 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">
-              <span className="font-semibold text-slate-700">{from.toLocaleString()}</span>–<span className="font-semibold text-slate-700">{to.toLocaleString()}</span> {t.common.of} <span className="font-semibold text-slate-700">{total.toLocaleString()}</span>
+            <span className="text-xs text-[var(--color-neutral-50)]0">
+              <span className="font-semibold text-[var(--color-neutral-700)]">{from.toLocaleString()}</span>–<span className="font-semibold text-[var(--color-neutral-700)]">{to.toLocaleString()}</span> {t.common.of} <span className="font-semibold text-[var(--color-neutral-700)]">{total.toLocaleString()}</span>
             </span>
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-600 cursor-pointer focus:ring-1 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] outline-none"
+              className="text-xs border border-[var(--border-default)] rounded-md px-2 py-1 bg-white text-[var(--color-neutral-600)] cursor-pointer focus:ring-1 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] outline-none"
             >
               <option value={25}>25 / page</option>
               <option value={50}>50 / page</option>
@@ -367,14 +367,14 @@ export default function ContactsTable({
             <button
               onClick={() => onPageChange(1)}
               disabled={page <= 1}
-              className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="px-2 py-1 text-xs rounded-md border border-[var(--border-default)] text-[var(--color-neutral-600)] hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
             </button>
             <button
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
-              className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="px-2 py-1 text-xs rounded-md border border-[var(--border-default)] text-[var(--color-neutral-600)] hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             </button>
@@ -395,7 +395,7 @@ export default function ContactsTable({
               }
               return pages.map((p, i) =>
                 typeof p === 'string' ? (
-                  <span key={`ellipsis-${i}`} className="px-1 text-slate-400 text-xs">...</span>
+                  <span key={`ellipsis-${i}`} className="px-1 text-[var(--color-neutral-400)] text-xs">...</span>
                 ) : (
                   <button
                     key={p}
@@ -403,7 +403,7 @@ export default function ContactsTable({
                     className={`min-w-[28px] px-1.5 py-1 text-xs rounded-md border transition-all ${
                       p === page
                         ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-sm'
-                        : 'border-slate-200 text-slate-600 hover:bg-white'
+                        : 'border-[var(--border-default)] text-[var(--color-neutral-600)] hover:bg-white'
                     }`}
                   >
                     {p}
@@ -414,14 +414,14 @@ export default function ContactsTable({
             <button
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages}
-              className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="px-2 py-1 text-xs rounded-md border border-[var(--border-default)] text-[var(--color-neutral-600)] hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </button>
             <button
               onClick={() => onPageChange(totalPages)}
               disabled={page >= totalPages}
-              className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="px-2 py-1 text-xs rounded-md border border-[var(--border-default)] text-[var(--color-neutral-600)] hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
             </button>

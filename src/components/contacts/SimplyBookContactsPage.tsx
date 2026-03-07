@@ -12,15 +12,15 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 function TableSkeleton() {
   return (
-    <div className="divide-y divide-slate-100">
+    <div className="divide-y divide-[var(--border-subtle)]">
       {Array.from({ length: 8 }, (_, i) => (
         <div key={i} className="px-4 py-3.5 flex items-center gap-4 animate-pulse" style={{ animationDelay: `${i * 50}ms` }}>
-          <div className="w-5 h-5 rounded bg-slate-100 shrink-0" />
-          <div className="w-4 h-4 rounded bg-slate-100 shrink-0" />
-          <div className="h-4 w-28 rounded bg-slate-100" />
-          <div className="h-4 w-40 rounded bg-slate-100" />
-          <div className="h-4 w-24 rounded bg-slate-100" />
-          <div className="h-5 w-14 rounded-full bg-slate-100" />
+          <div className="w-5 h-5 rounded bg-[var(--color-neutral-100)] shrink-0" />
+          <div className="w-4 h-4 rounded bg-[var(--color-neutral-100)] shrink-0" />
+          <div className="h-4 w-28 rounded bg-[var(--color-neutral-100)]" />
+          <div className="h-4 w-40 rounded bg-[var(--color-neutral-100)]" />
+          <div className="h-4 w-24 rounded bg-[var(--color-neutral-100)]" />
+          <div className="h-5 w-14 rounded-full bg-[var(--color-neutral-100)]" />
         </div>
       ))}
     </div>
@@ -309,13 +309,13 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
           { label: 'SimplyBook.me' },
         ]} />
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 max-w-lg mx-auto">
+        <div className="bg-white rounded-2xl border border-[var(--border-default)] p-8 max-w-lg mx-auto">
           <div className="text-center mb-6">
             <div className="w-16 h-16 rounded-2xl bg-sky-50 flex items-center justify-center mx-auto mb-4">
               <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-10 h-10 rounded" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">Connect SimplyBook.me</h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <h2 className="text-xl font-bold text-[var(--color-ink)]">Connect SimplyBook.me</h2>
+            <p className="text-sm text-[var(--color-neutral-500)] mt-1">
               Enter your SimplyBook.me credentials to sync clients and bookings
             </p>
           </div>
@@ -328,36 +328,36 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Company Login</label>
+              <label className="block text-sm font-medium text-[var(--color-neutral-700)] mb-1">Company Login</label>
               <input
                 type="text"
                 value={companyLogin}
                 onChange={(e) => setCompanyLogin(e.target.value)}
                 placeholder="your-company"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
+                className="w-full px-3 py-2 border border-[var(--border-strong)] rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
               />
-              <p className="text-xs text-slate-400 mt-1">Your SimplyBook.me subdomain (e.g., &quot;mycompany&quot; from mycompany.simplybook.me)</p>
+              <p className="text-xs text-[var(--color-neutral-400)] mt-1">Your SimplyBook.me subdomain (e.g., &quot;mycompany&quot; from mycompany.simplybook.me)</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">User Login</label>
+              <label className="block text-sm font-medium text-[var(--color-neutral-700)] mb-1">User Login</label>
               <input
                 type="text"
                 value={userLogin}
                 onChange={(e) => setUserLogin(e.target.value)}
                 placeholder="admin@example.com"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
+                className="w-full px-3 py-2 border border-[var(--border-strong)] rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-[var(--color-neutral-700)] mb-1">Password</label>
               <input
                 type="password"
                 value={userPassword}
                 onChange={(e) => setUserPassword(e.target.value)}
                 placeholder="********"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
+                className="w-full px-3 py-2 border border-[var(--border-strong)] rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
               />
             </div>
 
@@ -370,7 +370,7 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
             </button>
           </div>
 
-          <p className="text-xs text-slate-400 mt-4 text-center">
+          <p className="text-xs text-[var(--color-neutral-400)] mt-4 text-center">
             Your credentials are encrypted and stored securely. We never share them with third parties.
           </p>
         </div>
@@ -411,15 +411,15 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
       </div>
 
       {/* Connection info header */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+      <div className="bg-white rounded-2xl border border-[var(--border-default)] p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-sky-50 flex items-center justify-center">
               <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-8 h-8 rounded" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">SimplyBook.me</h2>
-              <div className="flex items-center gap-3 text-sm text-slate-500">
+              <h2 className="text-lg font-bold text-[var(--color-ink)]">SimplyBook.me</h2>
+              <div className="flex items-center gap-3 text-sm text-[var(--color-neutral-500)]">
                 {sbIntegration?.companyName && <span>{sbIntegration.companyName}</span>}
                 {sbIntegration?.email && <span>· {sbIntegration.email}</span>}
                 {sbIntegration?.lastSynced && (
@@ -454,7 +454,7 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
             </button>
             <Link
               href="/integrations"
-              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+              className="px-4 py-2 bg-[var(--color-neutral-100)] text-[var(--color-neutral-700)] rounded-lg text-sm font-medium hover:bg-[var(--color-neutral-200)] transition-colors"
             >
               Settings
             </Link>
@@ -463,14 +463,14 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="flex border-b border-slate-200">
+      <div className="bg-white rounded-2xl border border-[var(--border-default)] overflow-hidden">
+        <div className="flex border-b border-[var(--border-default)]">
           <button
             onClick={() => setActiveTab('clients')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'clients'
                 ? 'text-sky-600 border-b-2 border-sky-600 bg-sky-50/50'
-                : 'text-slate-500 hover:text-slate-700'
+                : 'text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)]'
             }`}
           >
             Clients
@@ -480,7 +480,7 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'bookings'
                 ? 'text-sky-600 border-b-2 border-sky-600 bg-sky-50/50'
-                : 'text-slate-500 hover:text-slate-700'
+                : 'text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)]'
             }`}
           >
             Bookings
@@ -491,9 +491,9 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
         {activeTab === 'clients' && (
           <div>
             {/* Search & actions bar */}
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-3">
+            <div className="p-4 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3">
               <div className="relative flex-1 max-w-xs">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
                 <input
@@ -501,7 +501,7 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
                   placeholder="Search clients..."
                   value={clientSearch}
                   onChange={(e) => { setClientSearch(e.target.value); setClientPage(1); }}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
+                  className="w-full pl-9 pr-3 py-2 border border-[var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
                 />
               </div>
               {selectedClientIds.size > 0 && (
@@ -518,19 +518,19 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
             {clientsLoading ? (
               <TableSkeleton />
             ) : clients.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 text-sm">
+              <div className="p-8 text-center text-[var(--color-neutral-400)] text-sm">
                 {clientSearch ? 'No clients match your search' : 'No clients found in SimplyBook.me'}
               </div>
             ) : (
               <>
                 {/* Table header */}
-                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-4 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <div className="px-4 py-2.5 bg-[var(--color-neutral-50)] border-b border-[var(--border-subtle)] flex items-center gap-4 text-xs font-medium text-[var(--color-neutral-500)] uppercase tracking-wider">
                   <div className="w-5">
                     <input
                       type="checkbox"
                       checked={selectedClientIds.size > 0 && selectedClientIds.size === clients.filter(c => !c.already_synced).length}
                       onChange={toggleSelectAll}
-                      className="rounded border-slate-300 text-sky-600"
+                      className="rounded border-[var(--border-strong)] text-sky-600"
                     />
                   </div>
                   <div className="flex-1">Name</div>
@@ -540,22 +540,22 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
                 </div>
 
                 {/* Table rows */}
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-[var(--border-subtle)]">
                   {clients.map((client) => (
-                    <div key={client.id} className="px-4 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                    <div key={client.id} className="px-4 py-3 flex items-center gap-4 hover:bg-[var(--surface-hover)] transition-colors">
                       <div className="w-5">
                         {!client.already_synced && (
                           <input
                             type="checkbox"
                             checked={selectedClientIds.has(client.id)}
                             onChange={() => toggleClientSelection(client.id)}
-                            className="rounded border-slate-300 text-sky-600"
+                            className="rounded border-[var(--border-strong)] text-sky-600"
                           />
                         )}
                       </div>
-                      <div className="flex-1 font-medium text-sm text-slate-900">{client.name || '—'}</div>
-                      <div className="w-48 text-sm text-slate-500 truncate">{client.email || '—'}</div>
-                      <div className="w-36 text-sm text-slate-500">{client.phone || '—'}</div>
+                      <div className="flex-1 font-medium text-sm text-[var(--color-ink)]">{client.name || '—'}</div>
+                      <div className="w-48 text-sm text-[var(--color-neutral-500)] truncate">{client.email || '—'}</div>
+                      <div className="w-36 text-sm text-[var(--color-neutral-500)]">{client.phone || '—'}</div>
                       <div className="w-24 text-center">
                         {client.already_synced ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium">
@@ -565,7 +565,7 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
                             Synced
                           </span>
                         ) : (
-                          <span className="inline-flex px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-xs font-medium">
+                          <span className="inline-flex px-2 py-0.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] rounded-full text-xs font-medium">
                             Not synced
                           </span>
                         )}
@@ -576,21 +576,21 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
 
                 {/* Pagination */}
                 {clientTotalPages > 1 && (
-                  <div className="p-4 border-t border-slate-100 flex items-center justify-center gap-2">
+                  <div className="p-4 border-t border-[var(--border-subtle)] flex items-center justify-center gap-2">
                     <button
                       onClick={() => setClientPage(p => Math.max(1, p - 1))}
                       disabled={clientPage <= 1}
-                      className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg disabled:opacity-50 hover:bg-slate-50"
+                      className="px-3 py-1.5 text-sm border border-[var(--border-default)] rounded-lg disabled:opacity-50 hover:bg-[var(--surface-hover)]"
                     >
                       Previous
                     </button>
-                    <span className="text-sm text-slate-500">
+                    <span className="text-sm text-[var(--color-neutral-500)]">
                       Page {clientPage} of {clientTotalPages}
                     </span>
                     <button
                       onClick={() => setClientPage(p => Math.min(clientTotalPages, p + 1))}
                       disabled={clientPage >= clientTotalPages}
-                      className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg disabled:opacity-50 hover:bg-slate-50"
+                      className="px-3 py-1.5 text-sm border border-[var(--border-default)] rounded-lg disabled:opacity-50 hover:bg-[var(--surface-hover)]"
                     >
                       Next
                     </button>
@@ -605,13 +605,13 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
         {activeTab === 'bookings' && (
           <div>
             {/* Filter bar */}
-            <div className="p-4 border-b border-slate-100 flex items-center gap-3">
-              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+            <div className="p-4 border-b border-[var(--border-subtle)] flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-[var(--color-neutral-600)] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={showUpcomingOnly}
                   onChange={() => { setShowUpcomingOnly(!showUpcomingOnly); setBookingPage(1); }}
-                  className="rounded border-slate-300 text-sky-600"
+                  className="rounded border-[var(--border-strong)] text-sky-600"
                 />
                 Show upcoming only
               </label>
@@ -620,13 +620,13 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
             {bookingsLoading ? (
               <TableSkeleton />
             ) : bookings.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 text-sm">
+              <div className="p-8 text-center text-[var(--color-neutral-400)] text-sm">
                 No bookings found
               </div>
             ) : (
               <>
                 {/* Table header */}
-                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-4 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <div className="px-4 py-2.5 bg-[var(--color-neutral-50)] border-b border-[var(--border-subtle)] flex items-center gap-4 text-xs font-medium text-[var(--color-neutral-500)] uppercase tracking-wider">
                   <div className="w-20">Code</div>
                   <div className="flex-1">Service</div>
                   <div className="w-32">Provider</div>
@@ -636,25 +636,25 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
                   <div className="w-24 text-center">Status</div>
                 </div>
 
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-[var(--border-subtle)]">
                   {bookings.map((booking) => (
-                    <div key={booking.id} className="px-4 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors">
-                      <div className="w-20 text-sm font-mono text-slate-500">{booking.code}</div>
-                      <div className="flex-1 text-sm font-medium text-slate-900">
+                    <div key={booking.id} className="px-4 py-3 flex items-center gap-4 hover:bg-[var(--surface-hover)] transition-colors">
+                      <div className="w-20 text-sm font-mono text-[var(--color-neutral-500)]">{booking.code}</div>
+                      <div className="flex-1 text-sm font-medium text-[var(--color-ink)]">
                         {booking.service?.name || `Service #${booking.id}`}
                         {booking.service?.price ? (
-                          <span className="ml-1 text-slate-400 font-normal">
+                          <span className="ml-1 text-[var(--color-neutral-400)] font-normal">
                             ({booking.service.currency} {booking.service.price})
                           </span>
                         ) : null}
                       </div>
-                      <div className="w-32 text-sm text-slate-500 truncate">{booking.provider?.name || '—'}</div>
-                      <div className="w-32 text-sm text-slate-500 truncate">{booking.client?.name || '—'}</div>
-                      <div className="w-36 text-sm text-slate-500">
+                      <div className="w-32 text-sm text-[var(--color-neutral-500)] truncate">{booking.provider?.name || '—'}</div>
+                      <div className="w-32 text-sm text-[var(--color-neutral-500)] truncate">{booking.client?.name || '—'}</div>
+                      <div className="w-36 text-sm text-[var(--color-neutral-500)]">
                         {new Date(booking.start_datetime).toLocaleDateString()}{' '}
                         {new Date(booking.start_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
-                      <div className="w-16 text-center text-sm text-slate-500">{booking.duration}m</div>
+                      <div className="w-16 text-center text-sm text-[var(--color-neutral-500)]">{booking.duration}m</div>
                       <div className="w-24 text-center">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                           booking.status === 'confirmed' || booking.is_confirmed
@@ -672,21 +672,21 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
 
                 {/* Pagination */}
                 {bookingTotalPages > 1 && (
-                  <div className="p-4 border-t border-slate-100 flex items-center justify-center gap-2">
+                  <div className="p-4 border-t border-[var(--border-subtle)] flex items-center justify-center gap-2">
                     <button
                       onClick={() => setBookingPage(p => Math.max(1, p - 1))}
                       disabled={bookingPage <= 1}
-                      className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg disabled:opacity-50 hover:bg-slate-50"
+                      className="px-3 py-1.5 text-sm border border-[var(--border-default)] rounded-lg disabled:opacity-50 hover:bg-[var(--surface-hover)]"
                     >
                       Previous
                     </button>
-                    <span className="text-sm text-slate-500">
+                    <span className="text-sm text-[var(--color-neutral-500)]">
                       Page {bookingPage} of {bookingTotalPages}
                     </span>
                     <button
                       onClick={() => setBookingPage(p => Math.min(bookingTotalPages, p + 1))}
                       disabled={bookingPage >= bookingTotalPages}
-                      className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg disabled:opacity-50 hover:bg-slate-50"
+                      className="px-3 py-1.5 text-sm border border-[var(--border-default)] rounded-lg disabled:opacity-50 hover:bg-[var(--surface-hover)]"
                     >
                       Next
                     </button>

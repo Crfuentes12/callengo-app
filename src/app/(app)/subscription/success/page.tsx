@@ -81,10 +81,10 @@ function SubscriptionSuccessContent() {
         </div>
 
         {/* Title */}
-        <h1 className="text-3xl font-bold text-slate-900 mb-3">Subscription Activated!</h1>
+        <h1 className="text-3xl font-bold text-[var(--color-ink)] mb-3">Subscription Activated!</h1>
 
         {/* Message */}
-        <p className="text-base text-slate-600 mb-2">
+        <p className="text-base text-[var(--color-neutral-600)] mb-2">
           Your plan has been successfully upgraded. You now have access to all your new features.
         </p>
         {verifying && (
@@ -98,13 +98,13 @@ function SubscriptionSuccessContent() {
             Subscription activated successfully!
           </p>
         )}
-        <p className="text-sm text-slate-500 mb-8">
+        <p className="text-sm text-[var(--color-neutral-500)] mb-8">
           Your payment has been processed securely through Stripe.
         </p>
 
         {/* Features unlocked */}
-        <div className="gradient-bg-subtle border border-slate-200 rounded-xl p-6 mb-8">
-          <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">What&apos;s next?</h3>
+        <div className="gradient-bg-subtle border border-[var(--border-default)] rounded-xl p-6 mb-8">
+          <h3 className="text-sm font-bold text-[var(--color-ink)] mb-3 uppercase tracking-wide">What&apos;s next?</h3>
           <div className="space-y-3 text-left">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/5 flex items-center justify-center flex-shrink-0">
@@ -112,7 +112,7 @@ function SubscriptionSuccessContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                 </svg>
               </div>
-              <p className="text-sm text-slate-700">Launch AI calling campaigns with your new minute allowance</p>
+              <p className="text-sm text-[var(--color-neutral-700)]">Launch AI calling campaigns with your new minute allowance</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/5 flex items-center justify-center flex-shrink-0">
@@ -120,7 +120,7 @@ function SubscriptionSuccessContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                 </svg>
               </div>
-              <p className="text-sm text-slate-700">Import contacts and start qualifying leads automatically</p>
+              <p className="text-sm text-[var(--color-neutral-700)]">Import contacts and start qualifying leads automatically</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/5 flex items-center justify-center flex-shrink-0">
@@ -128,13 +128,13 @@ function SubscriptionSuccessContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                 </svg>
               </div>
-              <p className="text-sm text-slate-700">Track performance and analytics across all your campaigns</p>
+              <p className="text-sm text-[var(--color-neutral-700)]">Track performance and analytics across all your campaigns</p>
             </div>
           </div>
         </div>
 
         {/* Redirect notice */}
-        <p className="text-sm text-slate-500 mb-4">
+        <p className="text-sm text-[var(--color-neutral-500)] mb-4">
           Redirecting to dashboard in <span className="font-bold text-[var(--color-primary)]">{countdown}</span> seconds...
         </p>
 

@@ -82,12 +82,12 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
 
   const typeIcons = {
     danger: (
-      <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className="w-6 h-6 text-[var(--color-error-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
     ),
     warning: (
-      <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className="w-6 h-6 text-[var(--color-warning-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
     ),
@@ -102,22 +102,22 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-md border border-slate-100 animate-slideUp">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-md border border-[var(--border-subtle)] animate-slideUp">
         <div className="p-6">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
               {typeIcons[type]}
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">{dialog.title}</h3>
-              <p className="text-sm text-slate-600 leading-relaxed">{dialog.message}</p>
+              <h3 className="text-lg font-semibold text-[var(--color-ink)] mb-2">{dialog.title}</h3>
+              <p className="text-sm text-[var(--color-neutral-600)] leading-relaxed">{dialog.message}</p>
             </div>
           </div>
         </div>
-        <div className="px-6 py-4 bg-slate-50 rounded-b-2xl flex gap-3">
+        <div className="px-6 py-4 bg-[var(--color-neutral-50)] rounded-b-2xl flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-white hover:border-slate-300 transition-all font-medium"
+            className="flex-1 px-4 py-2.5 border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-xl hover:bg-white hover:border-[var(--border-strong)] transition-all font-medium"
           >
             {dialog.cancelText || t.common.cancel}
           </button>
@@ -520,62 +520,62 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     <div className="space-y-5">
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-[var(--border-default)]/80 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <div className="w-10 h-10 rounded-lg bg-[var(--color-info-50)] flex items-center justify-center">
+              <svg className="w-5 h-5 text-[var(--color-info-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase">{t.common.total}</p>
+              <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase">{t.common.total}</p>
               {statsLoading ? (
-                <div className="h-7 w-16 bg-slate-200 rounded animate-pulse mt-0.5" />
+                <div className="h-7 w-16 bg-[var(--color-neutral-200)] rounded animate-pulse mt-0.5" />
               ) : (
-                <p className="text-2xl font-bold text-slate-900">{(stats?.total || total).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-[var(--color-ink)]">{(stats?.total || total).toLocaleString()}</p>
               )}
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-[var(--border-default)]/80 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+            <div className="w-10 h-10 rounded-lg bg-[var(--color-success-50)] flex items-center justify-center">
+              <svg className="w-5 h-5 text-[var(--color-success-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase">{t.contacts.called}</p>
+              <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase">{t.contacts.called}</p>
               {statsLoading ? (
-                <div className="h-7 w-12 bg-slate-200 rounded animate-pulse mt-0.5" />
+                <div className="h-7 w-12 bg-[var(--color-neutral-200)] rounded animate-pulse mt-0.5" />
               ) : (
-                <p className="text-2xl font-bold text-slate-900">{(stats?.called || 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-[var(--color-ink)]">{(stats?.called || 0).toLocaleString()}</p>
               )}
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-[var(--border-default)]/80 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
               <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase">{t.contacts.email}</p>
+              <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase">{t.contacts.email}</p>
               {statsLoading ? (
-                <div className="h-7 w-12 bg-slate-200 rounded animate-pulse mt-0.5" />
+                <div className="h-7 w-12 bg-[var(--color-neutral-200)] rounded animate-pulse mt-0.5" />
               ) : (
-                <p className="text-2xl font-bold text-slate-900">{(stats?.withEmail || 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-[var(--color-ink)]">{(stats?.withEmail || 0).toLocaleString()}</p>
               )}
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-[var(--border-default)]/80 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-              <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <svg className="w-5 h-5 text-[var(--color-warning-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase">{t.contacts.lastCall}</p>
+              <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase">{t.contacts.lastCall}</p>
               {statsLoading ? (
-                <div className="h-7 w-12 bg-slate-200 rounded animate-pulse mt-0.5" />
+                <div className="h-7 w-12 bg-[var(--color-neutral-200)] rounded animate-pulse mt-0.5" />
               ) : (
-                <p className="text-2xl font-bold text-slate-900">{(stats?.recentlyAdded || 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-[var(--color-ink)]">{(stats?.recentlyAdded || 0).toLocaleString()}</p>
               )}
             </div>
           </div>
@@ -584,15 +584,15 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
 
       {/* Quick Filters - List Badges */}
       {contactLists.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-sm">
+        <div className="bg-white rounded-xl border border-[var(--border-default)]/80 p-4 shadow-sm">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-semibold text-slate-600">{t.contacts.filters}:</span>
+            <span className="text-sm font-semibold text-[var(--color-neutral-600)]">{t.contacts.filters}:</span>
             <button
               onClick={() => setSelectedListFilter('all')}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
                 selectedListFilter === 'all'
                   ? 'bg-[var(--color-primary-50)] border-[var(--color-primary)] text-[var(--color-primary)] shadow-md'
-                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
+                  : 'bg-[var(--color-neutral-50)] border-[var(--border-default)] text-[var(--color-neutral-600)] hover:border-[var(--border-strong)] hover:bg-[var(--color-neutral-100)]'
               }`}
             >
               {t.contacts.allLists} ({(stats?.total || total).toLocaleString()})
@@ -601,8 +601,8 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               onClick={() => setSelectedListFilter('none')}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
                 selectedListFilter === 'none'
-                  ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-md'
-                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
+                  ? 'bg-amber-50 border-amber-500 text-[var(--color-warning-700)] shadow-md'
+                  : 'bg-[var(--color-neutral-50)] border-[var(--border-default)] text-[var(--color-neutral-600)] hover:border-[var(--border-strong)] hover:bg-[var(--color-neutral-100)]'
               }`}
             >
               {t.contacts.noContacts} ({(stats?.noList || 0).toLocaleString()})
@@ -637,7 +637,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
             {/* Add New List Button */}
             <button
               onClick={() => setShowListManager(true)}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-dashed border-slate-300 text-slate-400 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-slate-50 transition-all"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-dashed border-[var(--border-strong)] text-[var(--color-neutral-400)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-[var(--surface-hover)] transition-all"
               title="Create new list"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -652,7 +652,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       {selectedContactIds.length > 0 && (
         <div className="bg-[var(--color-primary-50)] border border-[var(--color-primary-200)] rounded-xl p-4 flex items-center justify-between animate-slideDown relative z-50">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-slate-900">
+            <span className="text-sm font-semibold text-[var(--color-ink)]">
               {selectedContactIds.length} {t.contacts.selected}
             </span>
             <button
@@ -674,11 +674,11 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 {t.contacts.actions}
               </button>
               {showBatchActions && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-[9999]">
-                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">{t.contacts.list}</div>
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-[var(--border-default)] py-2 z-[9999]">
+                  <div className="px-3 py-2 text-xs font-semibold text-[var(--color-neutral-500)] uppercase">{t.contacts.list}</div>
                   <button
                     onClick={() => setShowListManager(true)}
-                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -689,7 +689,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                     <button
                       key={list.id}
                       onClick={() => handleBatchMoveToList(list.id)}
-                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-between"
+                      className="w-full px-4 py-2 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] transition-colors flex items-center justify-between"
                     >
                       <span>{list.name}</span>
                       {list.color && (
@@ -697,18 +697,18 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                       )}
                     </button>
                   ))}
-                  <div className="border-t border-slate-200 my-2"></div>
-                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">{t.contacts.bulkActions}</div>
+                  <div className="border-t border-[var(--border-default)] my-2"></div>
+                  <div className="px-3 py-2 text-xs font-semibold text-[var(--color-neutral-500)] uppercase">{t.contacts.bulkActions}</div>
                   <button
                     onClick={() => handleBatchMoveToList(null)}
-                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="w-full px-4 py-2 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] transition-colors"
                   >
                     {t.common.delete} {t.contacts.list}
                   </button>
-                  <div className="border-t border-slate-200 my-2"></div>
+                  <div className="border-t border-[var(--border-default)] my-2"></div>
                   <button
                     onClick={handleBatchDelete}
-                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors font-semibold flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-sm text-[var(--color-error-600)] hover:bg-[var(--color-error-50)] transition-colors font-semibold flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -723,12 +723,12 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       )}
 
       {/* Toolbar */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4">
+      <div className="bg-white rounded-xl border border-[var(--border-default)]/80 shadow-sm p-4">
         {/* Row 1: Search + Actions */}
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
           {/* Search */}
           <div className="flex-1 relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -736,7 +736,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               placeholder={t.contacts.searchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm text-slate-900 placeholder-slate-400"
+              className="w-full pl-9 pr-4 py-2 border border-[var(--border-default)] rounded-lg bg-[var(--color-neutral-50)]/50 focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm text-[var(--color-ink)] placeholder-[var(--color-neutral-400)]"
             />
           </div>
 
@@ -745,7 +745,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
             <select
               value={selectedListFilter}
               onChange={(e) => handleListFilterChange(e.target.value)}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-slate-700 cursor-pointer"
+              className="px-3 py-2 text-sm border border-[var(--border-default)] rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-[var(--color-neutral-700)] cursor-pointer"
             >
               <option value="all">{t.contacts.allLists}</option>
               <option value="none">{t.contacts.noContacts}</option>
@@ -756,7 +756,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
             <select
               value={statusFilter}
               onChange={(e) => handleStatusFilterChange(e.target.value)}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-slate-700 cursor-pointer"
+              className="px-3 py-2 text-sm border border-[var(--border-default)] rounded-lg bg-white focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-[var(--color-neutral-700)] cursor-pointer"
             >
               <option value="all">{t.contacts.allStatuses}</option>
               <option value="Pending">{t.contacts.pending}</option>
@@ -770,7 +770,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
           </div>
 
           {/* Divider */}
-          <div className="hidden lg:block w-px h-8 bg-slate-200" />
+          <div className="hidden lg:block w-px h-8 bg-[var(--color-neutral-200)]" />
 
           {/* Actions */}
           <div className="flex gap-2 items-center">
@@ -789,29 +789,29 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 AI Insights
               </button>
               {showAIMenu && (
-                <div className="absolute right-0 mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 overflow-hidden">
-                  <div className="px-4 py-2 border-b border-slate-100">
+                <div className="absolute right-0 mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-[var(--border-default)] py-1.5 z-50 overflow-hidden">
+                  <div className="px-4 py-2 border-b border-[var(--border-subtle)]">
                     <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider flex items-center gap-1.5">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
                       Powered by AI
                     </p>
                   </div>
-                  <button onClick={() => handleAIAnalysis('suggest-lists')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-purple-50 transition-colors flex items-center gap-3">
+                  <button onClick={() => handleAIAnalysis('suggest-lists')} className="w-full px-4 py-2.5 text-left text-sm text-[var(--color-neutral-700)] hover:bg-purple-50 transition-colors flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
                       <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-900">Suggest Lists</div>
-                      <div className="text-xs text-slate-400">Create smart lists automatically</div>
+                      <div className="font-semibold text-[var(--color-ink)]">Suggest Lists</div>
+                      <div className="text-xs text-[var(--color-neutral-400)]">Create smart lists automatically</div>
                     </div>
                   </button>
-                  <button onClick={() => handleAIAnalysis('analyze-quality')} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-purple-50 transition-colors flex items-center gap-3">
+                  <button onClick={() => handleAIAnalysis('analyze-quality')} className="w-full px-4 py-2.5 text-left text-sm text-[var(--color-neutral-700)] hover:bg-purple-50 transition-colors flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <svg className="w-4 h-4 text-[var(--color-success-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-900">Data Quality</div>
-                      <div className="text-xs text-slate-400">Analyze completeness &amp; issues</div>
+                      <div className="font-semibold text-[var(--color-ink)]">Data Quality</div>
+                      <div className="text-xs text-[var(--color-neutral-400)]">Analyze completeness &amp; issues</div>
                     </div>
                   </button>
                 </div>
@@ -820,7 +820,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
 
             <button
               onClick={() => setShowListManager(true)}
-              className="px-3 py-2 text-sm border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-1.5 font-medium"
+              className="px-3 py-2 text-sm border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-lg hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)] transition-all flex items-center gap-1.5 font-medium"
               title="Manage Lists"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -833,7 +833,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
                 disabled={total === 0}
-                className="px-3 py-2 text-sm border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium"
+                className="px-3 py-2 text-sm border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-lg hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium"
                 title="Export Contacts"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -843,29 +843,29 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 <svg className="w-3 h-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
               </button>
               {showExportMenu && (
-                <div className="absolute right-0 mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 overflow-hidden">
-                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Download as</div>
-                  <button onClick={() => handleExport('csv')} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2.5">
+                <div className="absolute right-0 mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-[var(--border-default)] py-1.5 z-50 overflow-hidden">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider">Download as</div>
+                  <button onClick={() => handleExport('csv')} className="w-full px-4 py-2 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2.5">
                     <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
                     <span className="font-medium">CSV</span>
-                    <span className="ml-auto text-xs text-slate-400">.csv</span>
+                    <span className="ml-auto text-xs text-[var(--color-neutral-400)]">.csv</span>
                   </button>
-                  <button onClick={() => handleExport('xlsx')} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
+                  <button onClick={() => handleExport('xlsx')} className="w-full px-4 py-2 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-[var(--color-success-50)]0 flex-shrink-0"></span>
                     <span className="font-medium">Excel</span>
-                    <span className="ml-auto text-xs text-slate-400">.xls</span>
+                    <span className="ml-auto text-xs text-[var(--color-neutral-400)]">.xls</span>
                   </button>
-                  <button onClick={() => handleExport('json')} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2.5">
+                  <button onClick={() => handleExport('json')} className="w-full px-4 py-2 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2.5">
                     <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></span>
                     <span className="font-medium">JSON</span>
-                    <span className="ml-auto text-xs text-slate-400">.json</span>
+                    <span className="ml-auto text-xs text-[var(--color-neutral-400)]">.json</span>
                   </button>
-                  <div className="border-t border-slate-100 my-1"></div>
-                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cloud</div>
-                  <button onClick={() => handleExport('gsheets')} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2.5">
+                  <div className="border-t border-[var(--border-subtle)] my-1"></div>
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider">Cloud</div>
+                  <button onClick={() => handleExport('gsheets')} className="w-full px-4 py-2 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2.5">
                     <GoogleSheetsIcon className="w-4 h-4 flex-shrink-0" />
                     <span className="font-medium">Google Sheets</span>
-                    {!gsConnected && <span className="ml-auto text-[10px] text-amber-600 font-bold">Connect</span>}
+                    {!gsConnected && <span className="ml-auto text-[10px] text-[var(--color-warning-600)] font-bold">Connect</span>}
                   </button>
                 </div>
               )}
@@ -885,11 +885,11 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 </svg>
               </button>
               {showAddContactsDropdown && (
-                <div className="absolute right-0 mt-2 w-[380px] bg-white rounded-2xl shadow-2xl border border-slate-200/80 z-50 animate-fadeIn overflow-hidden backdrop-blur-sm">
+                <div className="absolute right-0 mt-2 w-[380px] bg-white rounded-2xl shadow-2xl border border-[var(--border-default)]/80 z-50 animate-fadeIn overflow-hidden backdrop-blur-sm">
                   {/* Header */}
-                  <div className="px-5 py-3.5 bg-gradient-to-r from-[var(--color-primary-50)] to-white border-b border-slate-100">
-                    <p className="text-sm font-bold text-slate-900">{t.contacts.addContact}</p>
-                    <p className="text-[11px] text-slate-500">{t.contacts.importContacts}</p>
+                  <div className="px-5 py-3.5 bg-gradient-to-r from-[var(--color-primary-50)] to-white border-b border-[var(--border-subtle)]">
+                    <p className="text-sm font-bold text-[var(--color-ink)]">{t.contacts.addContact}</p>
+                    <p className="text-[11px] text-[var(--color-neutral-500)]">{t.contacts.importContacts}</p>
                   </div>
 
                   {/* Quick actions row */}
@@ -910,9 +910,9 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                       <button
                         key={type}
                         onClick={() => handleImportTypeSelect(type)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-[var(--border-default)] text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)] transition-all"
                       >
-                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="w-3.5 h-3.5 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                         </svg>
                         <span className="text-xs font-semibold">{label}</span>
@@ -920,7 +920,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                     ))}
                     <button
                       onClick={handleGoogleSheetsClick}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all"
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-[var(--border-default)] text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)] transition-all"
                     >
                       <GoogleSheetsIcon className="w-3.5 h-3.5 flex-shrink-0" />
                       <span className="text-xs font-semibold">Sheets</span>
@@ -933,7 +933,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                       <button
                         key={type}
                         onClick={() => handleImportTypeSelect(type)}
-                        className="text-[10px] font-semibold text-slate-400 hover:text-[var(--color-primary)] uppercase tracking-wider transition-colors"
+                        className="text-[10px] font-semibold text-[var(--color-neutral-400)] hover:text-[var(--color-primary)] uppercase tracking-wider transition-colors"
                       >
                         .{type}
                       </button>
@@ -941,8 +941,8 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                   </div>
 
                   {/* Integrations */}
-                  <div className="border-t border-slate-100 px-4 py-3">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">From Integrations</p>
+                  <div className="border-t border-[var(--border-subtle)] px-4 py-3">
+                    <p className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider mb-2 px-1">From Integrations</p>
                     <div className="grid grid-cols-2 gap-1.5">
                       {([
                         { name: 'Salesforce', icon: <FaSalesforce className="w-4 h-4 text-[#00A1E0]" />, connected: sfConnected, hasAccess: hasSalesforceAccess, href: sfConnected ? '/contacts/salesforce' : hasSalesforceAccess ? '/api/integrations/salesforce/connect?return_to=/contacts/salesforce' : '/settings?tab=billing' },
@@ -956,15 +956,15 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                         <Link
                           key={crm.name}
                           href={crm.href}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all group"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[var(--surface-hover)] transition-all group"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center flex-shrink-0 group-hover:border-slate-200 transition-colors">
+                          <div className="w-7 h-7 rounded-lg bg-[var(--color-neutral-50)] border border-[var(--border-subtle)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--border-default)] transition-colors">
                             {crm.icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <span className="text-xs font-semibold text-slate-700">{crm.name}</span>
+                            <span className="text-xs font-semibold text-[var(--color-neutral-700)]">{crm.name}</span>
                           </div>
-                          {crm.connected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>}
+                          {crm.connected && <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success-50)]0 shrink-0"></span>}
                           {!crm.hasAccess && (
                             <svg className="w-3 h-3 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
@@ -1075,15 +1075,15 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       {/* AI Results Modal */}
       {aiResult && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-md border border-slate-200 flex flex-col">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-md border border-[var(--border-default)] flex flex-col">
             {/* Header with AI branding */}
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-violet-50 to-purple-50 rounded-t-2xl">
+            <div className="p-6 border-b border-[var(--border-subtle)] flex items-center justify-between bg-gradient-to-r from-violet-50 to-purple-50 rounded-t-2xl">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">
+                  <h3 className="text-lg font-bold text-[var(--color-ink)]">
                     {aiResult.action === 'suggest-lists' ? 'Suggested Lists' :
                      'Data Quality Report'}
                   </h3>
@@ -1092,7 +1092,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               </div>
               <button
                 onClick={() => { setAIResult(null); setCreatingSegments(new Set()); setCreatedSegments(new Set()); }}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-lg transition-all"
+                className="p-2 text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-white rounded-lg transition-all"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1103,17 +1103,17 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               {aiResult.action === 'suggest-lists' && (
                 <>
                   {(aiResult.result as { lists?: { name: string; description: string; criteria: string; estimatedCount: number; color: string; filters?: Record<string, unknown> }[] }).lists?.map((seg, i) => (
-                    <div key={i} className="border border-slate-200 rounded-xl p-4 hover:shadow-sm transition-all">
+                    <div key={i} className="border border-[var(--border-default)] rounded-xl p-4 hover:shadow-sm transition-all">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: seg.color }} />
-                        <h4 className="font-semibold text-slate-900">{seg.name}</h4>
-                        <span className="ml-auto text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">~{seg.estimatedCount} contacts</span>
+                        <h4 className="font-semibold text-[var(--color-ink)]">{seg.name}</h4>
+                        <span className="ml-auto text-xs font-medium text-[var(--color-neutral-500)] bg-[var(--color-neutral-100)] px-2 py-0.5 rounded">~{seg.estimatedCount} contacts</span>
                       </div>
-                      <p className="text-sm text-slate-600 mb-1">{seg.description}</p>
-                      <p className="text-xs text-slate-400 mb-3">Criteria: {seg.criteria}</p>
+                      <p className="text-sm text-[var(--color-neutral-600)] mb-1">{seg.description}</p>
+                      <p className="text-xs text-[var(--color-neutral-400)] mb-3">Criteria: {seg.criteria}</p>
                       <div className="flex items-center justify-end">
                         {createdSegments.has(i) ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-[var(--color-success-50)] rounded-lg border border-emerald-200">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                             List Created
                           </span>
@@ -1160,38 +1160,38 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                   <div className="flex items-center gap-4 mb-4">
                     <div className="relative w-20 h-20">
                       <svg className="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
-                        <circle cx="18" cy="18" r="15.5" fill="none" className="stroke-slate-200" strokeWidth="3" />
+                        <circle cx="18" cy="18" r="15.5" fill="none" className="stroke-[var(--color-neutral-200)]" strokeWidth="3" />
                         <circle cx="18" cy="18" r="15.5" fill="none" className={`${
                           ((aiResult.result as { overallScore?: number }).overallScore || 0) >= 70 ? 'stroke-emerald-500' :
                           ((aiResult.result as { overallScore?: number }).overallScore || 0) >= 40 ? 'stroke-amber-500' : 'stroke-red-500'
                         }`} strokeWidth="3" strokeDasharray={`${((aiResult.result as { overallScore?: number }).overallScore || 0)} 100`} strokeLinecap="round" />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-lg font-bold text-slate-900">{(aiResult.result as { overallScore?: number }).overallScore || 0}</span>
+                        <span className="text-lg font-bold text-[var(--color-ink)]">{(aiResult.result as { overallScore?: number }).overallScore || 0}</span>
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">Overall Quality Score</p>
-                      <p className="text-xs text-slate-500">Based on data completeness and accuracy</p>
+                      <p className="text-sm font-semibold text-[var(--color-ink)]">Overall Quality Score</p>
+                      <p className="text-xs text-[var(--color-neutral-500)]">Based on data completeness and accuracy</p>
                     </div>
                   </div>
                   {(aiResult.result as { issues?: { type: string; count: number; severity: string; suggestion: string }[] }).issues?.map((issue, i) => (
                     <div key={i} className={`border rounded-xl p-3 flex items-start gap-3 ${
-                      issue.severity === 'high' ? 'border-red-200 bg-red-50/50' :
-                      issue.severity === 'medium' ? 'border-amber-200 bg-amber-50/50' : 'border-slate-200 bg-slate-50/50'
+                      issue.severity === 'high' ? 'border-[var(--color-error-200)] bg-[var(--color-error-50)]/50' :
+                      issue.severity === 'medium' ? 'border-amber-200 bg-amber-50/50' : 'border-[var(--border-default)] bg-[var(--color-neutral-50)]/50'
                     }`}>
                       <span className={`mt-0.5 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded ${
-                        issue.severity === 'high' ? 'bg-red-100 text-red-700' :
-                        issue.severity === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'
+                        issue.severity === 'high' ? 'bg-red-100 text-[var(--color-error-700)]' :
+                        issue.severity === 'medium' ? 'bg-amber-100 text-[var(--color-warning-700)]' : 'bg-[var(--color-neutral-200)] text-[var(--color-neutral-600)]'
                       }`}>{issue.severity}</span>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-900">{issue.type.replace(/_/g, ' ')} ({issue.count})</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{issue.suggestion}</p>
+                        <p className="text-sm font-medium text-[var(--color-ink)]">{issue.type.replace(/_/g, ' ')} ({issue.count})</p>
+                        <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{issue.suggestion}</p>
                       </div>
                     </div>
                   ))}
                   {(aiResult.result as { recommendations?: string[] }).recommendations && (
-                    <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+                    <div className="bg-[var(--color-success-50)] rounded-xl p-4 border border-emerald-100">
                       <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">Recommendations</h4>
                       <ul className="space-y-1">
                         {(aiResult.result as { recommendations: string[] }).recommendations.map((rec, i) => (
@@ -1207,10 +1207,10 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               )}
 
             </div>
-            <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+            <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--color-neutral-50)] rounded-b-2xl">
               <button
                 onClick={() => { setAIResult(null); setCreatingSegments(new Set()); setCreatedSegments(new Set()); }}
-                className="w-full px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
+                className="w-full px-4 py-2.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-700)] rounded-xl hover:bg-[var(--color-neutral-200)] transition-all font-medium"
               >
                 {t.common.close}
               </button>
@@ -1228,8 +1228,8 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               toast.type === 'success'
                 ? 'bg-green-50/95 border-green-400 text-green-800'
                 : toast.type === 'error'
-                ? 'bg-red-50/95 border-red-400 text-red-800'
-                : 'bg-blue-50/95 border-blue-400 text-blue-800'
+                ? 'bg-[var(--color-error-50)]/95 border-red-400 text-red-800'
+                : 'bg-[var(--color-info-50)]/95 border-blue-400 text-blue-800'
             }`}
           >
             <div className="flex-shrink-0">
@@ -1239,12 +1239,12 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                 </svg>
               )}
               {toast.type === 'error' && (
-                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 text-[var(--color-error-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               )}
               {toast.type === 'info' && (
-                <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 text-[var(--color-info-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               )}
@@ -1387,12 +1387,12 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
   ];
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-md border border-slate-200/50 flex flex-col">
-        <div className="p-6 border-b border-slate-100">
+    <div className="fixed inset-0 bg-[var(--color-neutral-900)]/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-md border border-[var(--border-default)]/50 flex flex-col">
+        <div className="p-6 border-b border-[var(--border-subtle)]">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-slate-900">{t.contacts.title}</h2>
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+            <h2 className="text-xl font-semibold text-[var(--color-ink)]">{t.contacts.title}</h2>
+            <button onClick={onClose} className="p-2 text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-100)] rounded-lg transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -1405,7 +1405,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
           {!showCreateForm ? (
             <button
               onClick={() => setShowCreateForm(true)}
-              className="w-full p-4 border border-dashed border-slate-300 rounded-xl text-slate-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-slate-50 transition-all flex items-center justify-center gap-2 font-medium mb-6"
+              className="w-full p-4 border border-dashed border-[var(--border-strong)] rounded-xl text-[var(--color-neutral-600)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-[var(--surface-hover)] transition-all flex items-center justify-center gap-2 font-medium mb-6"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1414,36 +1414,36 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
             </button>
           ) : (
             <div className="border border-[var(--color-primary-200)] rounded-xl p-5 gradient-bg-subtle mb-6">
-              <h3 className="text-sm font-semibold text-slate-900 mb-4">{t.common.create} {t.contacts.list}</h3>
+              <h3 className="text-sm font-semibold text-[var(--color-ink)] mb-4">{t.common.create} {t.contacts.list}</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t.contacts.name}</label>
+                  <label className="block text-sm font-semibold text-[var(--color-neutral-700)] mb-1.5">{t.contacts.name}</label>
                   <input
                     type="text"
                     value={newListName}
                     onChange={(e) => setNewListName(e.target.value)}
                     placeholder="e.g., Summer Campaign 2025"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                    className="w-full px-3 py-2 border border-[var(--border-strong)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t.common.description}</label>
+                  <label className="block text-sm font-semibold text-[var(--color-neutral-700)] mb-1.5">{t.common.description}</label>
                   <input
                     type="text"
                     value={newListDescription}
                     onChange={(e) => setNewListDescription(e.target.value)}
                     placeholder="Brief description..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                    className="w-full px-3 py-2 border border-[var(--border-strong)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Color</label>
+                  <label className="block text-sm font-semibold text-[var(--color-neutral-700)] mb-2">Color</label>
                   <div className="flex gap-2">
                     {colorOptions.map((color) => (
                       <button
                         key={color}
                         onClick={() => setNewListColor(color)}
-                        className={`w-8 h-8 rounded-lg transition-all ${newListColor === color ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-105'}`}
+                        className={`w-8 h-8 rounded-lg transition-all ${newListColor === color ? 'ring-2 ring-offset-2 ring-[var(--color-neutral-400)] scale-110' : 'hover:scale-105'}`}
                         style={{ backgroundColor: color }}
                       />
                     ))}
@@ -1457,7 +1457,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                       setNewListDescription('');
                       setNewListColor('#3b82f6');
                     }}
-                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
+                    className="flex-1 px-4 py-2 border border-[var(--border-strong)] text-[var(--color-neutral-700)] rounded-lg hover:bg-[var(--surface-hover)] transition-all text-sm font-medium"
                   >
                     {t.common.cancel}
                   </button>
@@ -1475,35 +1475,35 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
 
           {/* Existing Lists */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-slate-900 mb-3">{t.contacts.list} ({lists.length})</h3>
+            <h3 className="text-sm font-semibold text-[var(--color-ink)] mb-3">{t.contacts.list} ({lists.length})</h3>
             {lists.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">
+              <div className="text-center py-12 text-[var(--color-neutral-500)]">
                 <p className="text-sm">{t.contacts.noContacts}</p>
               </div>
             ) : (
               lists.map((list) => (
-                <div key={list.id} className="border border-slate-200 rounded-xl p-4 bg-white hover:shadow-md transition-all">
+                <div key={list.id} className="border border-[var(--border-default)] rounded-xl p-4 bg-white hover:shadow-md transition-all">
                   {editingList?.id === list.id ? (
                     <div className="space-y-3">
                       <input
                         type="text"
                         value={editingList.name}
                         onChange={(e) => setEditingList({ ...editingList, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none font-semibold"
+                        className="w-full px-3 py-2 border border-[var(--border-strong)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none font-semibold"
                       />
                       <input
                         type="text"
                         value={editingList.description || ''}
                         onChange={(e) => setEditingList({ ...editingList, description: e.target.value })}
                         placeholder="Description..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-sm"
+                        className="w-full px-3 py-2 border border-[var(--border-strong)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-sm"
                       />
                       <div className="flex gap-2">
                         {colorOptions.map((color) => (
                           <button
                             key={color}
                             onClick={() => setEditingList({ ...editingList, color })}
-                            className={`w-7 h-7 rounded-lg transition-all ${editingList.color === color ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-105'}`}
+                            className={`w-7 h-7 rounded-lg transition-all ${editingList.color === color ? 'ring-2 ring-offset-2 ring-[var(--color-neutral-400)] scale-110' : 'hover:scale-105'}`}
                             style={{ backgroundColor: color }}
                           />
                         ))}
@@ -1511,7 +1511,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                       <div className="flex gap-2">
                         <button
                           onClick={() => setEditingList(null)}
-                          className="flex-1 px-3 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
+                          className="flex-1 px-3 py-2 border border-[var(--border-strong)] text-[var(--color-neutral-700)] rounded-lg hover:bg-[var(--surface-hover)] transition-all text-sm font-medium"
                         >
                           {t.common.cancel}
                         </button>
@@ -1529,9 +1529,9 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                       <div className="flex items-center gap-3">
                         <div className="w-4 h-4 rounded-full" style={{ backgroundColor: list.color || '#3b82f6' }}></div>
                         <div>
-                          <p className="text-sm font-semibold text-slate-900">{list.name}</p>
+                          <p className="text-sm font-semibold text-[var(--color-ink)]">{list.name}</p>
                           {list.description && (
-                            <p className="text-xs text-slate-500 mt-0.5">{list.description}</p>
+                            <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{list.description}</p>
                           )}
                         </div>
                       </div>
@@ -1544,7 +1544,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
                         </button>
                         <button
                           onClick={() => handleDeleteList(list.id)}
-                          className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-all"
+                          className="px-3 py-1.5 text-xs font-medium text-[var(--color-error-600)] bg-[var(--color-error-50)] rounded-lg hover:bg-red-100 transition-all"
                         >
                           {t.contacts.delete}
                         </button>
@@ -1557,10 +1557,10 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-100">
+        <div className="p-6 border-t border-[var(--border-subtle)]">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
+            className="w-full px-4 py-2.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-700)] rounded-xl hover:bg-[var(--color-neutral-200)] transition-all font-medium"
           >
             {t.common.close}
           </button>
@@ -1726,9 +1726,9 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
 
   return (
     <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-md border border-slate-200 flex flex-col">
+      <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-md border border-[var(--border-default)] flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-slate-200 gradient-bg-subtle">
+        <div className="p-6 border-b border-[var(--border-default)] gradient-bg-subtle">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
@@ -1737,13 +1737,13 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                 </svg>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">{t.contacts.addContact}</h2>
-                <p className="text-sm text-slate-600 mt-0.5">{t.contacts.noContactsDesc}</p>
+                <h2 className="text-2xl font-bold text-[var(--color-ink)]">{t.contacts.addContact}</h2>
+                <p className="text-sm text-[var(--color-neutral-600)] mt-0.5">{t.contacts.noContactsDesc}</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+              className="p-2 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-100)] transition-all"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1757,7 +1757,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
           {/* Field Management */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-900">Custom Fields</h3>
+              <h3 className="text-lg font-semibold text-[var(--color-ink)]">Custom Fields</h3>
               <button
                 onClick={() => setShowAddField(!showAddField)}
                 className="btn-primary px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium"
@@ -1777,13 +1777,13 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                     value={newFieldName}
                     onChange={(e) => setNewFieldName(e.target.value)}
                     placeholder="Field name (e.g., Company, Address)"
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                    className="flex-1 px-3 py-2 border border-[var(--border-strong)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                     onKeyPress={(e) => e.key === 'Enter' && addField()}
                   />
                   <select
                     value={newFieldType}
                     onChange={(e) => setNewFieldType(e.target.value as 'text' | 'email' | 'phone' | 'number' | 'date')}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                    className="px-3 py-2 border border-[var(--border-strong)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   >
                     <option value="text">Text</option>
                     <option value="email">Email</option>
@@ -1804,7 +1804,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                       setNewFieldName('');
                       setNewFieldType('text');
                     }}
-                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all font-medium"
+                    className="px-4 py-2 bg-[var(--color-neutral-200)] text-[var(--color-neutral-700)] rounded-lg hover:bg-[var(--color-neutral-300)] transition-all font-medium"
                   >
                     Cancel
                   </button>
@@ -1816,16 +1816,16 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
               {fields.map((field) => (
                 <div
                   key={field.id}
-                  className="inline-flex items-center gap-2 px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm"
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-[var(--color-neutral-100)] border border-[var(--border-default)] rounded-lg text-sm"
                 >
-                  <span className="font-semibold text-slate-900">{field.name}</span>
-                  <span className="text-xs text-slate-500 px-2 py-0.5 bg-white rounded">
+                  <span className="font-semibold text-[var(--color-ink)]">{field.name}</span>
+                  <span className="text-xs text-[var(--color-neutral-500)] px-2 py-0.5 bg-white rounded">
                     {field.type}
                   </span>
                   {fields.length > 1 && (
                     <button
                       onClick={() => removeField(field.id)}
-                      className="text-red-500 hover:text-red-700 transition-colors"
+                      className="text-red-500 hover:text-[var(--color-error-700)] transition-colors"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1838,28 +1838,28 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
           </div>
 
           {/* Contacts Table */}
-          <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <div className="border border-[var(--border-default)] rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-100">
+                <thead className="bg-[var(--color-neutral-100)]">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-12">
+                    <th className="px-4 py-3 text-left text-xs font-bold text-[var(--color-neutral-700)] uppercase tracking-wider w-12">
                       #
                     </th>
                     {fields.map((field) => (
-                      <th key={field.id} className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th key={field.id} className="px-4 py-3 text-left text-xs font-bold text-[var(--color-neutral-700)] uppercase tracking-wider">
                         {field.name}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase tracking-wider w-24">
+                    <th className="px-4 py-3 text-right text-xs font-bold text-[var(--color-neutral-700)] uppercase tracking-wider w-24">
                       {t.contacts.actions}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-slate-200">
+                <tbody className="bg-white divide-y divide-[var(--color-neutral-200)]">
                   {rows.map((row, index) => (
-                    <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-sm font-semibold text-slate-500">
+                    <tr key={row.id} className="hover:bg-[var(--surface-hover)] transition-colors">
+                      <td className="px-4 py-3 text-sm font-semibold text-[var(--color-neutral-500)]">
                         {index + 1}
                       </td>
                       {fields.map((field) => (
@@ -1869,7 +1869,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                             value={row.data[field.name] || ''}
                             onChange={(e) => updateRowData(row.id, field.name, e.target.value)}
                             placeholder={`Enter ${field.name.toLowerCase()}`}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-sm"
+                            className="w-full px-3 py-2 border border-[var(--border-default)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none text-sm"
                           />
                         </td>
                       ))}
@@ -1877,7 +1877,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                         {rows.length > 1 && (
                           <button
                             onClick={() => removeRow(row.id)}
-                            className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-all"
+                            className="text-red-500 hover:text-[var(--color-error-700)] p-1.5 rounded hover:bg-[var(--color-error-50)] transition-all"
                             title="Remove row"
                           >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1895,7 +1895,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
 
           <button
             onClick={addRow}
-            className="mt-4 w-full px-4 py-3 border border-dashed border-[var(--color-primary)] text-[var(--color-primary)] rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2 font-semibold"
+            className="mt-4 w-full px-4 py-3 border border-dashed border-[var(--color-primary)] text-[var(--color-primary)] rounded-xl hover:bg-[var(--surface-hover)] transition-all flex items-center justify-center gap-2 font-semibold"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1905,7 +1905,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex gap-3 justify-end">
+        <div className="p-6 border-t border-[var(--border-default)] bg-[var(--color-neutral-50)] rounded-b-2xl flex gap-3 justify-end">
           <button
             onClick={onClose}
             disabled={loading}

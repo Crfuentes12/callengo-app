@@ -130,7 +130,7 @@ export default function CampaignDetail({
       description: `"${campaign.name}" - ${campaign.total_contacts} ${t.campaigns.contacts}`,
       time: campaign.created_at,
       icon: 'plus',
-      color: 'bg-slate-100 text-slate-600',
+      color: 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)]',
     });
 
     // Campaign started
@@ -189,7 +189,7 @@ export default function CampaignDetail({
       completed: { color: 'text-blue-700', text: t.campaigns.completed, bgColor: 'bg-blue-50 border-blue-200' },
       paused: { color: 'text-amber-700', text: t.campaigns.paused, bgColor: 'bg-amber-50 border-amber-200' },
       failed: { color: 'text-red-700', text: t.calls.failed, bgColor: 'bg-red-50 border-red-200' },
-      draft: { color: 'text-slate-700', text: t.campaigns.draft, bgColor: 'bg-slate-50 border-slate-200' },
+      draft: { color: 'text-[var(--color-neutral-700)]', text: t.campaigns.draft, bgColor: 'bg-[var(--color-neutral-50)] border-[var(--border-default)]' },
     };
 
     const config = statusConfig[status] || statusConfig.draft;
@@ -248,7 +248,7 @@ export default function CampaignDetail({
       );
     }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-50 border border-slate-200 text-slate-700">
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-neutral-50)] border border-[var(--border-default)] text-[var(--color-neutral-700)]">
         {status || t.common.noData}
       </span>
     );
@@ -336,27 +336,27 @@ export default function CampaignDetail({
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-slate-900">{campaign.name}</h1>
+              <h1 className="text-2xl font-bold text-[var(--color-ink)]">{campaign.name}</h1>
               {getStatusBadge(campaign.status)}
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--color-neutral-600)]">
               {campaign.agent_templates && (
                 <div className="flex items-center gap-1.5">
                   <div className="w-6 h-6 rounded-lg bg-[var(--color-primary-50)] flex items-center justify-center text-xs">
                     {campaign.agent_templates.icon || '🤖'}
                   </div>
-                  <span className="font-medium text-slate-700">{campaign.agent_templates.name}</span>
+                  <span className="font-medium text-[var(--color-neutral-700)]">{campaign.agent_templates.name}</span>
                   {campaign.agent_templates.category && (
-                    <span className="text-slate-400">/ {campaign.agent_templates.category}</span>
+                    <span className="text-[var(--color-neutral-400)]">/ {campaign.agent_templates.category}</span>
                   )}
                 </div>
               )}
-              <span className="text-slate-300">|</span>
+              <span className="text-[var(--color-neutral-300)]">|</span>
               <span>{t.campaigns.created} {formatDate(campaign.created_at)}</span>
               {campaign.started_at && (
                 <>
-                  <span className="text-slate-300">|</span>
+                  <span className="text-[var(--color-neutral-300)]">|</span>
                   <span>{t.campaigns.start} {formatDate(campaign.started_at)}</span>
                 </>
               )}
@@ -387,37 +387,37 @@ export default function CampaignDetail({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">{t.campaigns.totalContacts}</span>
-            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-              <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <span className="text-sm font-medium text-[var(--color-neutral-500)]">{t.campaigns.totalContacts}</span>
+            <div className="w-8 h-8 rounded-lg bg-[var(--color-neutral-100)] flex items-center justify-center">
+              <svg className="w-4 h-4 text-[var(--color-neutral-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
               </svg>
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">{campaign.total_contacts}</div>
-          <div className="text-xs text-slate-500 mt-1">{t.campaigns.contacts}</div>
+          <div className="text-2xl font-bold text-[var(--color-ink)]">{campaign.total_contacts}</div>
+          <div className="text-xs text-[var(--color-neutral-500)] mt-1">{t.campaigns.contacts}</div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">{t.campaigns.completedCalls}</span>
+            <span className="text-sm font-medium text-[var(--color-neutral-500)]">{t.campaigns.completedCalls}</span>
             <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-50)] flex items-center justify-center">
               <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
               </svg>
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">{campaign.completed_calls}</div>
-          <div className="text-xs text-slate-500 mt-1">
+          <div className="text-2xl font-bold text-[var(--color-ink)]">{campaign.completed_calls}</div>
+          <div className="text-xs text-[var(--color-neutral-500)] mt-1">
             {campaign.successful_calls} {t.campaigns.successfulCalls}
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">{t.campaigns.successRate}</span>
+            <span className="text-sm font-medium text-[var(--color-neutral-500)]">{t.campaigns.successRate}</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -427,58 +427,58 @@ export default function CampaignDetail({
           <div className={`text-2xl font-bold ${
             stats.successRate >= 70 ? 'text-emerald-600' :
             stats.successRate >= 40 ? 'text-amber-600' :
-            'text-slate-900'
+            'text-[var(--color-ink)]'
           }`}>
             {stats.successRate.toFixed(1)}%
           </div>
-          <div className="text-xs text-slate-500 mt-1">{t.campaigns.successRate}</div>
+          <div className="text-xs text-[var(--color-neutral-500)] mt-1">{t.campaigns.successRate}</div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">{t.campaigns.failedCalls}</span>
+            <span className="text-sm font-medium text-[var(--color-neutral-500)]">{t.campaigns.failedCalls}</span>
             <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">{campaign.failed_calls}</div>
-          <div className="text-xs text-slate-500 mt-1">{t.campaigns.failedCalls}</div>
+          <div className="text-2xl font-bold text-[var(--color-ink)]">{campaign.failed_calls}</div>
+          <div className="text-xs text-[var(--color-neutral-500)] mt-1">{t.campaigns.failedCalls}</div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">{t.analytics.avgDuration}</span>
+            <span className="text-sm font-medium text-[var(--color-neutral-500)]">{t.analytics.avgDuration}</span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">{formatDuration(stats.avgDuration)}</div>
-          <div className="text-xs text-slate-500 mt-1">{t.campaigns.calls}</div>
+          <div className="text-2xl font-bold text-[var(--color-ink)]">{formatDuration(stats.avgDuration)}</div>
+          <div className="text-xs text-[var(--color-neutral-500)] mt-1">{t.campaigns.calls}</div>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">{t.campaigns.overview}</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <h3 className="text-sm font-semibold text-[var(--color-ink)]">{t.campaigns.overview}</h3>
+            <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
               {campaign.completed_calls} {t.dashboard.of} {campaign.total_contacts} {t.campaigns.contacts}
             </p>
           </div>
-          <span className="text-lg font-bold text-slate-900">{Math.round(stats.progress)}%</span>
+          <span className="text-lg font-bold text-[var(--color-ink)]">{Math.round(stats.progress)}%</span>
         </div>
-        <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-3 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
           <div
             className="h-full gradient-bg rounded-full transition-all duration-500"
             style={{ width: `${Math.min(stats.progress, 100)}%` }}
           ></div>
         </div>
-        <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
+        <div className="flex items-center justify-between mt-3 text-xs text-[var(--color-neutral-500)]">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
@@ -510,51 +510,51 @@ export default function CampaignDetail({
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Calls Table - 2 columns */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border-default)]">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-semibold text-slate-900">{t.campaigns.callLog}</h3>
-                <p className="text-xs text-slate-500 mt-0.5">{callLogs.length} {t.campaigns.calls}</p>
+                <h3 className="text-base font-semibold text-[var(--color-ink)]">{t.campaigns.callLog}</h3>
+                <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{callLogs.length} {t.campaigns.calls}</p>
               </div>
             </div>
           </div>
 
           {callLogs.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="w-12 h-12 rounded-2xl bg-[var(--color-neutral-100)] flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
                 </svg>
               </div>
-              <p className="text-sm text-slate-600">{t.calls.noCalls}</p>
-              <p className="text-xs text-slate-400 mt-1">{t.calls.noCallsDesc}</p>
+              <p className="text-sm text-[var(--color-neutral-600)]">{t.calls.noCalls}</p>
+              <p className="text-xs text-[var(--color-neutral-400)] mt-1">{t.calls.noCallsDesc}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.calls.contact}</th>
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.contacts.phone}</th>
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.calls.status}</th>
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.calls.duration}</th>
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">{t.calls.date}</th>
+                  <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">{t.calls.contact}</th>
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">{t.contacts.phone}</th>
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">{t.calls.status}</th>
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">{t.calls.duration}</th>
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">{t.calls.date}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {callLogs.map((log) => (
-                    <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => setSelectedCallLog(log)}>
+                    <tr key={log.id} className="border-b border-[var(--border-subtle)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors" onClick={() => setSelectedCallLog(log)}>
                       <td className="py-3 px-6">
-                        <div className="font-medium text-sm text-slate-900">
+                        <div className="font-medium text-sm text-[var(--color-ink)]">
                           {log.contacts?.contact_name || log.contacts?.company_name || t.common.noData}
                         </div>
                         {log.contacts?.contact_name && log.contacts?.company_name && (
-                          <div className="text-xs text-slate-500">{log.contacts.company_name}</div>
+                          <div className="text-xs text-[var(--color-neutral-500)]">{log.contacts.company_name}</div>
                         )}
                       </td>
                       <td className="py-3 px-6">
-                        <span className="text-sm text-slate-600 font-mono">
+                        <span className="text-sm text-[var(--color-neutral-600)] font-mono">
                           {log.contacts?.phone_number || 'N/A'}
                         </span>
                       </td>
@@ -562,12 +562,12 @@ export default function CampaignDetail({
                         {getCallStatusBadge(log.status, log.completed)}
                       </td>
                       <td className="py-3 px-6">
-                        <span className="text-sm text-slate-700">
+                        <span className="text-sm text-[var(--color-neutral-700)]">
                           {log.call_length ? formatDuration(log.call_length) : '-'}
                         </span>
                       </td>
                       <td className="py-3 px-6">
-                        <span className="text-xs text-slate-500">{formatDate(log.created_at)}</span>
+                        <span className="text-xs text-[var(--color-neutral-500)]">{formatDate(log.created_at)}</span>
                       </td>
                     </tr>
                   ))}
@@ -578,16 +578,16 @@ export default function CampaignDetail({
         </div>
 
         {/* Activity Timeline - 1 column */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
           
-          <div className="px-6 py-4 border-b border-slate-200">
-            <h3 className="text-base font-semibold text-slate-900">{t.dashboard.recentActivity}</h3>
-            <p className="text-xs text-slate-500 mt-0.5">{t.campaigns.analytics}</p>
+          <div className="px-6 py-4 border-b border-[var(--border-default)]">
+            <h3 className="text-base font-semibold text-[var(--color-ink)]">{t.dashboard.recentActivity}</h3>
+            <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{t.campaigns.analytics}</p>
           </div>
 
           {activityTimeline.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-sm text-slate-600">{t.dashboard.noActivity}</p>
+              <p className="text-sm text-[var(--color-neutral-600)]">{t.dashboard.noActivity}</p>
             </div>
           ) : (
             <div className="p-6">
@@ -600,15 +600,15 @@ export default function CampaignDetail({
                         {renderTimelineIcon(event.icon)}
                       </div>
                       {index < activityTimeline.length - 1 && (
-                        <div className="w-px h-full min-h-[32px] bg-slate-200"></div>
+                        <div className="w-px h-full min-h-[32px] bg-[var(--color-neutral-200)]"></div>
                       )}
                     </div>
 
                     {/* Content */}
                     <div className={`pb-6 ${index === activityTimeline.length - 1 ? 'pb-0' : ''}`}>
-                      <p className="text-sm font-medium text-slate-900">{event.title}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{event.description}</p>
-                      <p className="text-xs text-slate-400 mt-1">{formatRelativeTime(event.time)}</p>
+                      <p className="text-sm font-medium text-[var(--color-ink)]">{event.title}</p>
+                      <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{event.description}</p>
+                      <p className="text-xs text-[var(--color-neutral-400)] mt-1">{formatRelativeTime(event.time)}</p>
                     </div>
                   </div>
                 ))}

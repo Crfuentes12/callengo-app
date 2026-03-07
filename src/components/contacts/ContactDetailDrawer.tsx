@@ -230,17 +230,17 @@ export default function ContactDetailDrawer({
 
   const InputField = ({ label, field, type = 'text' }: { label: string; field: keyof typeof editData; type?: string }) => (
     <div>
-      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</label>
+      <label className="block text-[10px] font-semibold text-[var(--color-neutral-400)] uppercase tracking-wider mb-1">{label}</label>
       {isEditing ? (
         <input
           type={type}
           value={editData[field]}
           onChange={(e) => setEditData(prev => ({ ...prev, [field]: e.target.value }))}
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all bg-white"
+          className="w-full px-3 py-2 border border-[var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all bg-white"
         />
       ) : (
-        <p className="text-sm font-medium text-slate-900 py-2">
-          {editData[field] || <span className="text-slate-300">—</span>}
+        <p className="text-sm font-medium text-[var(--color-ink)] py-2">
+          {editData[field] || <span className="text-[var(--color-neutral-300)]">—</span>}
         </p>
       )}
     </div>
@@ -249,10 +249,10 @@ export default function ContactDetailDrawer({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-40 transition-opacity" onClick={onClose} />
+      <div className="fixed inset-0 bg-[var(--color-neutral-900)]/40 backdrop-blur-[2px] z-40 transition-opacity" onClick={onClose} />
 
       {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col animate-slideInRight border-l border-slate-200/80">
+      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col animate-slideInRight border-l border-[var(--border-default)]/80">
         {/* Header */}
         <div className="gradient-bg px-5 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -262,7 +262,7 @@ export default function ContactDetailDrawer({
               </div>
               <div className="min-w-0">
                 <h2 className="text-lg font-bold text-white truncate">{contact.company_name}</h2>
-                <p className="text-slate-300 text-xs font-mono">{formatPhoneForDisplay(contact.phone_number)}</p>
+                <p className="text-[var(--color-neutral-300)] text-xs font-mono">{formatPhoneForDisplay(contact.phone_number)}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -284,7 +284,7 @@ export default function ContactDetailDrawer({
               )}
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg bg-slate-800/50 text-slate-400 hover:text-white hover:bg-red-600 transition-all flex items-center justify-center"
+                className="w-8 h-8 rounded-lg bg-[var(--color-neutral-800)]/50 text-[var(--color-neutral-400)] hover:text-white hover:bg-red-600 transition-all flex items-center justify-center"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -311,7 +311,7 @@ export default function ContactDetailDrawer({
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all capitalize ${
                   activeTab === tab
                     ? 'bg-white/20 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-white/10'
+                    : 'text-[var(--color-neutral-400)] hover:text-white hover:bg-white/10'
                 }`}
               >
                 {tab}
@@ -330,7 +330,7 @@ export default function ContactDetailDrawer({
                   <select
                     value={editData.status}
                     onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value as ContactStatus }))}
-                    className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
+                    className="px-3 py-2 border border-[var(--border-default)] rounded-lg text-sm font-medium focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   >
                     {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -340,15 +340,15 @@ export default function ContactDetailDrawer({
                   </span>
                 )}
                 {contact.source && (
-                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded font-medium capitalize">
+                  <span className="px-2 py-0.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 text-[10px] rounded font-medium capitalize">
                     via {contact.source}
                   </span>
                 )}
               </div>
 
               {/* Contact Info */}
-              <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100 space-y-3">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.contacts.viewDetails}</h3>
+              <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 border border-[var(--border-subtle)] space-y-3">
+                <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.viewDetails}</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <InputField label={t.contacts.company} field="company_name" />
                   <InputField label={t.contacts.name} field="contact_name" />
@@ -362,30 +362,30 @@ export default function ContactDetailDrawer({
               </div>
 
               {/* Notes */}
-              <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t.contacts.notes}</h3>
+              <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 border border-[var(--border-subtle)]">
+                <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-2">{t.contacts.notes}</h3>
                 {isEditing ? (
                   <textarea
                     value={editData.notes}
                     onChange={(e) => setEditData(prev => ({ ...prev, notes: e.target.value }))}
                     rows={3}
                     placeholder="Add notes..."
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none resize-none"
+                    className="w-full px-3 py-2 border border-[var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none resize-none"
                   />
                 ) : (
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{contact.notes || <span className="text-slate-300">{t.contacts.notes}</span>}</p>
+                  <p className="text-sm text-[var(--color-neutral-700)] whitespace-pre-wrap">{contact.notes || <span className="text-[var(--color-neutral-300)]">{t.contacts.notes}</span>}</p>
                 )}
               </div>
 
               {/* Call Stats */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50/80 rounded-xl p-4 text-center border border-slate-100">
-                  <p className="text-2xl font-bold text-slate-900">{contact.call_attempts}</p>
-                  <p className="text-[10px] text-slate-500 font-semibold uppercase mt-0.5">Attempts</p>
+                <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 text-center border border-[var(--border-subtle)]">
+                  <p className="text-2xl font-bold text-[var(--color-ink)]">{contact.call_attempts}</p>
+                  <p className="text-[10px] text-[var(--color-neutral-50)]0 font-semibold uppercase mt-0.5">Attempts</p>
                 </div>
-                <div className="bg-slate-50/80 rounded-xl p-4 text-center border border-slate-100">
-                  <p className="text-2xl font-bold text-slate-900">{formatDuration(contact.call_duration)}</p>
-                  <p className="text-[10px] text-slate-500 font-semibold uppercase mt-0.5">Duration</p>
+                <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 text-center border border-[var(--border-subtle)]">
+                  <p className="text-2xl font-bold text-[var(--color-ink)]">{formatDuration(contact.call_duration)}</p>
+                  <p className="text-[10px] text-[var(--color-neutral-50)]0 font-semibold uppercase mt-0.5">Duration</p>
                 </div>
               </div>
 
@@ -396,19 +396,19 @@ export default function ContactDetailDrawer({
                   {analysis.verifiedAddress && (
                     <div>
                       <p className="text-[10px] text-emerald-600 uppercase tracking-wide font-semibold">{t.contacts.address}</p>
-                      <p className="text-sm text-slate-900 mt-0.5">{analysis.verifiedAddress}</p>
+                      <p className="text-sm text-[var(--color-ink)] mt-0.5">{analysis.verifiedAddress}</p>
                     </div>
                   )}
                   {analysis.contactName && (
                     <div>
                       <p className="text-[10px] text-emerald-600 uppercase tracking-wide font-semibold">{t.contacts.name}</p>
-                      <p className="text-sm text-slate-900 mt-0.5">{analysis.contactName}</p>
+                      <p className="text-sm text-[var(--color-ink)] mt-0.5">{analysis.contactName}</p>
                     </div>
                   )}
                   {analysis.verifiedEmail && (
                     <div>
                       <p className="text-[10px] text-emerald-600 uppercase tracking-wide font-semibold">{t.contacts.email}</p>
-                      <p className="text-sm text-slate-900 mt-0.5">{analysis.verifiedEmail}</p>
+                      <p className="text-sm text-[var(--color-ink)] mt-0.5">{analysis.verifiedEmail}</p>
                     </div>
                   )}
                   <div className="flex gap-2">
@@ -428,7 +428,7 @@ export default function ContactDetailDrawer({
                       <p className="text-[10px] text-emerald-600 uppercase tracking-wide font-semibold mb-1">Key Points</p>
                       <ul className="space-y-1">
                         {analysis.keyPoints.map((point, idx) => (
-                          <li key={idx} className="text-sm text-slate-700 flex items-start gap-1.5">
+                          <li key={idx} className="text-sm text-[var(--color-neutral-700)] flex items-start gap-1.5">
                             <span className="text-emerald-500 mt-0.5 text-xs">&#x2022;</span>
                             {point}
                           </li>
@@ -442,7 +442,7 @@ export default function ContactDetailDrawer({
               {/* Custom Fields — Collapsable Categories */}
               {customFieldCategories.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.contacts.tags}</h3>
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.tags}</h3>
                   {customFieldCategories.map(([catKey, cat]) => {
                     const isExpanded = expandedCategories[catKey] ?? (cat.fields.length <= 4);
                     const colorMap: Record<string, string> = {
@@ -452,7 +452,7 @@ export default function ContactDetailDrawer({
                       amber: 'bg-amber-50/80 border-amber-100 text-amber-700',
                       indigo: 'bg-indigo-50/80 border-indigo-100 text-indigo-700',
                       rose: 'bg-rose-50/80 border-rose-100 text-rose-700',
-                      slate: 'bg-slate-50/80 border-slate-100 text-slate-700',
+                      slate: 'bg-[var(--color-neutral-50)]/80 border-[var(--border-subtle)] text-[var(--color-neutral-700)]',
                     };
                     const colors = colorMap[cat.color] || colorMap.slate;
                     return (
@@ -465,7 +465,7 @@ export default function ContactDetailDrawer({
                             {cat.label} ({cat.fields.length})
                           </span>
                           <svg
-                            className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            className={`w-4 h-4 text-[var(--color-neutral-400)] transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                             fill="none" viewBox="0 0 24 24" stroke="currentColor"
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -475,10 +475,10 @@ export default function ContactDetailDrawer({
                           <div className="px-4 pb-3 space-y-2">
                             {cat.fields.map(({ key, value }) => (
                               <div key={key} className="flex justify-between items-start gap-2">
-                                <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide whitespace-nowrap min-w-0 flex-shrink-0">
+                                <span className="text-[10px] text-[var(--color-neutral-50)]0 font-semibold uppercase tracking-wide whitespace-nowrap min-w-0 flex-shrink-0">
                                   {formatFieldName(key)}
                                 </span>
-                                <span className="text-xs text-slate-800 text-right break-words max-w-[60%]">
+                                <span className="text-xs text-[var(--color-neutral-800)] text-right break-words max-w-[60%]">
                                   {formatFieldValue(value)}
                                 </span>
                               </div>
@@ -494,9 +494,9 @@ export default function ContactDetailDrawer({
               {/* Transcript */}
               {contact.transcript_text && (
                 <div>
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Transcript</h3>
-                  <div className="bg-slate-50/80 rounded-xl p-4 max-h-48 overflow-y-auto border border-slate-100">
-                    <pre className="text-xs whitespace-pre-wrap text-slate-700 font-mono leading-relaxed">
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-2">Transcript</h3>
+                  <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 max-h-48 overflow-y-auto border border-[var(--border-subtle)]">
+                    <pre className="text-xs whitespace-pre-wrap text-[var(--color-neutral-700)] font-mono leading-relaxed">
                       {contact.transcript_text}
                     </pre>
                   </div>
@@ -506,7 +506,7 @@ export default function ContactDetailDrawer({
               {/* Recording */}
               {contact.recording_url && (
                 <div>
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Recording</h3>
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-2">Recording</h3>
                   <audio controls className="w-full rounded-xl">
                     <source src={contact.recording_url} type="audio/mpeg" />
                   </audio>
@@ -517,7 +517,7 @@ export default function ContactDetailDrawer({
 
           {activeTab === 'activity' && (
             <div className="space-y-4">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.contacts.lastCall}</h3>
+              <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.lastCall}</h3>
               {/* Call history timeline */}
               {contact.last_call_date ? (
                 <div className="space-y-3">
@@ -528,13 +528,13 @@ export default function ContactDetailDrawer({
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900">{t.contacts.lastCall}</p>
-                      <p className="text-xs text-slate-500">{new Date(contact.last_call_date).toLocaleString()}</p>
+                      <p className="text-sm font-medium text-[var(--color-ink)]">{t.contacts.lastCall}</p>
+                      <p className="text-xs text-[var(--color-neutral-50)]0">{new Date(contact.last_call_date).toLocaleString()}</p>
                       {contact.call_outcome && (
-                        <p className="text-xs text-slate-600 mt-1">Outcome: {contact.call_outcome}</p>
+                        <p className="text-xs text-[var(--color-neutral-600)] mt-1">Outcome: {contact.call_outcome}</p>
                       )}
                       {contact.call_duration && (
-                        <p className="text-xs text-slate-500">Duration: {formatDuration(contact.call_duration)}</p>
+                        <p className="text-xs text-[var(--color-neutral-50)]0">Duration: {formatDuration(contact.call_duration)}</p>
                       )}
                     </div>
                   </div>
@@ -546,38 +546,38 @@ export default function ContactDetailDrawer({
                         </svg>
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-900">Call Summary</p>
-                        <p className="text-xs text-slate-600 mt-0.5">{metadata.summary}</p>
+                        <p className="text-sm font-medium text-[var(--color-ink)]">Call Summary</p>
+                        <p className="text-xs text-[var(--color-neutral-600)] mt-0.5">{metadata.summary}</p>
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-slate-100 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-[var(--color-neutral-100)] flex items-center justify-center">
+                    <svg className="w-6 h-6 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <p className="text-sm text-slate-500">{t.contacts.noContacts}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{t.contacts.noContactsDesc}</p>
+                  <p className="text-sm text-[var(--color-neutral-50)]0">{t.contacts.noContacts}</p>
+                  <p className="text-xs text-[var(--color-neutral-400)] mt-0.5">{t.contacts.noContactsDesc}</p>
                 </div>
               )}
 
               {/* Contact metadata */}
-              <div className="border-t border-slate-100 pt-4 space-y-2">
+              <div className="border-t border-[var(--border-subtle)] pt-4 space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Created</span>
-                  <span className="text-slate-600">{new Date(contact.created_at).toLocaleString()}</span>
+                  <span className="text-[var(--color-neutral-400)]">Created</span>
+                  <span className="text-[var(--color-neutral-600)]">{new Date(contact.created_at).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Updated</span>
-                  <span className="text-slate-600">{new Date(contact.updated_at).toLocaleString()}</span>
+                  <span className="text-[var(--color-neutral-400)]">Updated</span>
+                  <span className="text-[var(--color-neutral-600)]">{new Date(contact.updated_at).toLocaleString()}</span>
                 </div>
                 {contact.source && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400">Source</span>
-                    <span className="text-slate-600 capitalize">{contact.source}</span>
+                    <span className="text-[var(--color-neutral-400)]">Source</span>
+                    <span className="text-[var(--color-neutral-600)] capitalize">{contact.source}</span>
                   </div>
                 )}
               </div>
@@ -589,24 +589,24 @@ export default function ContactDetailDrawer({
       {/* CRM Sync Dialog */}
       {showSyncDialog && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 animate-slideUp">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-[var(--border-default)] animate-slideUp">
             <div className="p-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-2">{t.contacts.saveSuccess}</h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <h3 className="text-lg font-bold text-[var(--color-ink)] mb-2">{t.contacts.saveSuccess}</h3>
+              <p className="text-sm text-[var(--color-neutral-600)] mb-4">
                 Where would you like to save these changes?
               </p>
 
               <div className="space-y-3">
-                <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-all">
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-default)] cursor-pointer hover:bg-[var(--color-neutral-50)] transition-all">
                   <input type="checkbox" checked disabled className="w-4 h-4 text-[var(--color-primary)] rounded" />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-900">Callengo</p>
-                    <p className="text-xs text-slate-500">Always saved locally</p>
+                    <p className="text-sm font-semibold text-[var(--color-ink)]">Callengo</p>
+                    <p className="text-xs text-[var(--color-neutral-50)]0">Always saved locally</p>
                   </div>
                 </label>
 
                 {sfConnected && crmMappings?.salesforce && (
-                  <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-all">
+                  <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-default)] cursor-pointer hover:bg-[var(--color-neutral-50)] transition-all">
                     <input
                       type="checkbox"
                       checked={syncSelections.includes('salesforce')}
@@ -614,14 +614,14 @@ export default function ContactDetailDrawer({
                       className="w-4 h-4 text-[#00A1E0] rounded"
                     />
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900">Salesforce</p>
-                      <p className="text-xs text-slate-500">Sync as {crmMappings.salesforce.sf_object_type}</p>
+                      <p className="text-sm font-semibold text-[var(--color-ink)]">Salesforce</p>
+                      <p className="text-xs text-[var(--color-neutral-50)]0">Sync as {crmMappings.salesforce.sf_object_type}</p>
                     </div>
                   </label>
                 )}
 
                 {hsConnected && crmMappings?.hubspot && (
-                  <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-all">
+                  <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-default)] cursor-pointer hover:bg-[var(--color-neutral-50)] transition-all">
                     <input
                       type="checkbox"
                       checked={syncSelections.includes('hubspot')}
@@ -629,32 +629,32 @@ export default function ContactDetailDrawer({
                       className="w-4 h-4 text-[#FF7A59] rounded"
                     />
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900">HubSpot</p>
-                      <p className="text-xs text-slate-500">Sync as {crmMappings.hubspot.hs_object_type}</p>
+                      <p className="text-sm font-semibold text-[var(--color-ink)]">HubSpot</p>
+                      <p className="text-xs text-[var(--color-neutral-50)]0">Sync as {crmMappings.hubspot.hs_object_type}</p>
                     </div>
                   </label>
                 )}
 
                 {pdConnected && crmMappings?.pipedrive && (
-                  <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-all">
+                  <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-default)] cursor-pointer hover:bg-[var(--color-neutral-50)] transition-all">
                     <input
                       type="checkbox"
                       checked={syncSelections.includes('pipedrive')}
                       onChange={(e) => setSyncSelections(prev => e.target.checked ? [...prev, 'pipedrive'] : prev.filter(s => s !== 'pipedrive'))}
-                      className="w-4 h-4 text-slate-900 rounded"
+                      className="w-4 h-4 text-[var(--color-ink)] rounded"
                     />
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900">Pipedrive</p>
-                      <p className="text-xs text-slate-500">Sync as {crmMappings.pipedrive.pd_object_type}</p>
+                      <p className="text-sm font-semibold text-[var(--color-ink)]">Pipedrive</p>
+                      <p className="text-xs text-[var(--color-neutral-50)]0">Sync as {crmMappings.pipedrive.pd_object_type}</p>
                     </div>
                   </label>
                 )}
               </div>
             </div>
-            <div className="px-6 py-4 bg-slate-50 rounded-b-2xl flex gap-3">
+            <div className="px-6 py-4 bg-[var(--color-neutral-50)] rounded-b-2xl flex gap-3">
               <button
                 onClick={() => { setShowSyncDialog(false); setSyncSelections([]); }}
-                className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-white transition-all font-medium text-sm"
+                className="flex-1 px-4 py-2.5 border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-xl hover:bg-white transition-all font-medium text-sm"
               >
                 {t.common.cancel}
               </button>

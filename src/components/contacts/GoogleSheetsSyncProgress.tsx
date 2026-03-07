@@ -167,7 +167,7 @@ export default function GoogleSheetsSyncProgress({
     return (
       <button
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 px-4 py-3 bg-white rounded-2xl shadow-xl border border-slate-200 hover:shadow-2xl hover:scale-[1.02] transition-all group"
+        className="fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 px-4 py-3 bg-white rounded-2xl shadow-xl border border-[var(--border-default)] hover:shadow-2xl hover:scale-[1.02] transition-all group"
         style={{ animation: 'slideUpIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
         <div className="relative">
@@ -190,10 +190,10 @@ export default function GoogleSheetsSyncProgress({
         </div>
 
         <div className="text-left">
-          <p className="text-xs font-semibold text-slate-700 group-hover:text-green-700 transition-colors">
+          <p className="text-xs font-semibold text-[var(--color-neutral-700)] group-hover:text-green-700 transition-colors">
             {isComplete ? t.contacts.importModal.success : isError ? t.contacts.importModal.error : t.contacts.importModal.importing}
           </p>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-[10px] text-[var(--color-neutral-50)]0">
             {isComplete
               ? `${progress.created + progress.updated} ${t.contacts.title}`
               : isError
@@ -224,20 +224,20 @@ export default function GoogleSheetsSyncProgress({
   // Expanded floating panel
   return (
     <div
-      className="fixed bottom-6 right-6 z-[60] w-[340px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+      className="fixed bottom-6 right-6 z-[60] w-[340px] bg-white rounded-2xl shadow-2xl border border-[var(--border-default)] overflow-hidden"
       style={{ animation: 'slideUpIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-white border border-green-200 flex items-center justify-center">
             <GoogleSheetsIcon className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-900">
+            <p className="text-sm font-bold text-[var(--color-ink)]">
               {isComplete ? t.contacts.importModal.success : isError ? t.contacts.importModal.error : t.contacts.importModal.importing}
             </p>
-            <p className="text-[10px] text-slate-500 truncate max-w-[180px]">
+            <p className="text-[10px] text-[var(--color-neutral-50)]0 truncate max-w-[180px]">
               {syncJob.spreadsheetName}
             </p>
           </div>
@@ -246,7 +246,7 @@ export default function GoogleSheetsSyncProgress({
           {isWorking && (
             <button
               onClick={() => setIsMinimized(true)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)] transition-colors"
               title="Minimize"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -257,7 +257,7 @@ export default function GoogleSheetsSyncProgress({
           {(isComplete || isError) && (
             <button
               onClick={onDismiss}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)] transition-colors"
               title="Close"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -274,14 +274,14 @@ export default function GoogleSheetsSyncProgress({
         {isWorking && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-slate-700">
+              <span className="text-xs font-semibold text-[var(--color-neutral-700)]">
                 {progress.phase === 'reading' ? 'Reading sheet...' : `${percent}% complete`}
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-[var(--color-neutral-50)]0">
                 {progress.total > 0 ? `${progress.processed.toLocaleString()} / ${progress.total.toLocaleString()}` : '...'}
               </span>
             </div>
-            <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-2.5 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${Math.max(percent, 2)}%` }}
@@ -299,8 +299,8 @@ export default function GoogleSheetsSyncProgress({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <p className="text-sm font-bold text-slate-900 mb-1">{t.contacts.importModal.success}</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-bold text-[var(--color-ink)] mb-1">{t.contacts.importModal.success}</p>
+            <p className="text-xs text-[var(--color-neutral-50)]0">
               A notification has been sent to your inbox
             </p>
           </div>
@@ -329,15 +329,15 @@ export default function GoogleSheetsSyncProgress({
             <p className="text-lg font-bold text-blue-700">{progress.updated.toLocaleString()}</p>
             <p className="text-[10px] text-blue-600 font-medium">Updated</p>
           </div>
-          <div className="bg-slate-50 rounded-xl p-2.5 text-center border border-slate-100">
-            <p className="text-lg font-bold text-slate-500">{progress.skipped.toLocaleString()}</p>
-            <p className="text-[10px] text-slate-500 font-medium">Skipped</p>
+          <div className="bg-[var(--color-neutral-50)] rounded-xl p-2.5 text-center border border-[var(--border-subtle)]">
+            <p className="text-lg font-bold text-[var(--color-neutral-50)]0">{progress.skipped.toLocaleString()}</p>
+            <p className="text-[10px] text-[var(--color-neutral-50)]0 font-medium">Skipped</p>
           </div>
         </div>
 
         {/* Working animation */}
         {isWorking && (
-          <div className="flex items-center justify-center gap-2 mt-3 text-xs text-slate-400">
+          <div className="flex items-center justify-center gap-2 mt-3 text-xs text-[var(--color-neutral-400)]">
             <div className="flex gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce [animation-delay:0ms]" />
               <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce [animation-delay:150ms]" />

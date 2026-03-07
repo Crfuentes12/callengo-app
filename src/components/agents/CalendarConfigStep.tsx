@@ -192,10 +192,10 @@ function MiniCalendarPreview({
   const monthName = firstDay.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-        <h4 className="text-sm font-bold text-slate-900">{monthName}</h4>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+    <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+      <div className="px-4 py-3 bg-[var(--color-neutral-50)] border-b border-[var(--border-default)] flex items-center justify-between">
+        <h4 className="text-sm font-bold text-[var(--color-ink)]">{monthName}</h4>
+        <div className="flex items-center gap-2 text-xs text-[var(--color-neutral-500)]">
           <span className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-[var(--color-primary)]"></div>
             Working
@@ -216,7 +216,7 @@ function MiniCalendarPreview({
       <div className="p-3">
         <div className="grid grid-cols-7 gap-1">
           {dayHeaders.map(h => (
-            <div key={h} className="text-center text-[10px] font-bold text-slate-400 uppercase py-1">
+            <div key={h} className="text-center text-[10px] font-bold text-[var(--color-neutral-400)] uppercase py-1">
               {h}
             </div>
           ))}
@@ -232,8 +232,8 @@ function MiniCalendarPreview({
                   : cell.isHoliday
                   ? 'bg-red-50 text-red-400 border border-red-100'
                   : cell.isWorking
-                  ? 'bg-[var(--color-primary)]/5 text-slate-700 font-medium'
-                  : 'text-slate-300'
+                  ? 'bg-[var(--color-primary)]/5 text-[var(--color-neutral-700)] font-medium'
+                  : 'text-[var(--color-neutral-300)]'
               }`}
               title={cell.holidayName || ''}
             >
@@ -274,7 +274,7 @@ function ToggleSwitch({
         disabled={disabled}
       />
       <div
-        className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"
+        className="w-10 h-5 bg-[var(--color-neutral-200)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-strong)] after:border after:rounded-full after:h-4 after:w-4 after:transition-all"
         style={{ backgroundColor: checked ? color : undefined }}
       ></div>
     </label>
@@ -539,21 +539,21 @@ export default function CalendarConfigStep({
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            <span className="font-bold text-slate-800">Calendar context is always on.</span>{' '}
+          <p className="text-xs text-[var(--color-neutral-600)] leading-relaxed">
+            <span className="font-bold text-[var(--color-neutral-800)]">Calendar context is always on.</span>{' '}
             Your agent can {getAgentCapability()}
           </p>
         </div>
       </div>
 
       {/* Integrations & Meetings - combined section */}
-      <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-        <h3 className="text-[11px] font-bold text-slate-900 uppercase">Integrations & Meetings</h3>
+      <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)] space-y-3">
+        <h3 className="text-[11px] font-bold text-[var(--color-ink)] uppercase">Integrations & Meetings</h3>
 
         {loadingIntegrations ? (
           <div className="flex gap-2">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-8 flex-1 bg-slate-200 rounded-lg animate-pulse"></div>
+              <div key={i} className="h-8 flex-1 bg-[var(--color-neutral-200)] rounded-lg animate-pulse"></div>
             ))}
           </div>
         ) : (
@@ -567,9 +567,9 @@ export default function CalendarConfigStep({
                   <span className="text-[11px] font-semibold text-emerald-700">Google Calendar</span>
                 </span>
               ) : (
-                <button onClick={() => handleConnect('google_calendar')} disabled={!!connectingProvider} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-all disabled:opacity-50">
+                <button onClick={() => handleConnect('google_calendar')} disabled={!!connectingProvider} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-[var(--border-default)] rounded-lg hover:border-[var(--border-strong)] transition-all disabled:opacity-50">
                   <GoogleCalendarIcon className="w-4 h-4 opacity-40" />
-                  <span className="text-[11px] font-semibold text-slate-400">{connectingProvider === 'google_calendar' ? 'Connecting...' : 'Connect Google'}</span>
+                  <span className="text-[11px] font-semibold text-[var(--color-neutral-400)]">{connectingProvider === 'google_calendar' ? 'Connecting...' : 'Connect Google'}</span>
                 </button>
               )}
 
@@ -580,9 +580,9 @@ export default function CalendarConfigStep({
                   <span className="text-[11px] font-semibold text-emerald-700">Outlook</span>
                 </span>
               ) : isPremium ? (
-                <button onClick={() => handleConnect('microsoft_outlook')} disabled={!!connectingProvider} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-all disabled:opacity-50">
+                <button onClick={() => handleConnect('microsoft_outlook')} disabled={!!connectingProvider} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-[var(--border-default)] rounded-lg hover:border-[var(--border-strong)] transition-all disabled:opacity-50">
                   <OutlookIcon className="w-4 h-4 opacity-40" />
-                  <span className="text-[11px] font-semibold text-slate-400">{connectingProvider === 'microsoft_outlook' ? 'Connecting...' : 'Connect Outlook'}</span>
+                  <span className="text-[11px] font-semibold text-[var(--color-neutral-400)]">{connectingProvider === 'microsoft_outlook' ? 'Connecting...' : 'Connect Outlook'}</span>
                 </button>
               ) : (
                 <a href="/settings?tab=billing" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 border border-[var(--color-primary)]/20 rounded-lg hover:shadow-sm transition-all">
@@ -604,9 +604,9 @@ export default function CalendarConfigStep({
                   <span className="text-[11px] font-semibold text-emerald-700">Slack</span>
                 </span>
               ) : isPremium ? (
-                <a href="/integrations" target="_blank" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-all">
+                <a href="/integrations" target="_blank" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-[var(--border-default)] rounded-lg hover:border-[var(--border-strong)] transition-all">
                   <SlackIcon className="w-4 h-4 opacity-40" />
-                  <span className="text-[11px] font-semibold text-slate-400">Connect Slack</span>
+                  <span className="text-[11px] font-semibold text-[var(--color-neutral-400)]">Connect Slack</span>
                 </a>
               ) : (
                 <a href="/settings?tab=billing" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 border border-[var(--color-primary)]/20 rounded-lg hover:shadow-sm transition-all">
@@ -619,11 +619,11 @@ export default function CalendarConfigStep({
             {/* Video Meeting Preference + Duration - inline */}
             {(isLeadQual || isAppointment) && (
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">Video meeting preference</label>
+                <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1.5">Video meeting preference</label>
                 <div className="flex items-center gap-1.5">
                   <div className="flex-1 grid grid-cols-4 gap-1.5">
                     {[
-                      { key: 'none', label: 'No Video', icon: <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>, disabled: false },
+                      { key: 'none', label: 'No Video', icon: <svg className="w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>, disabled: false },
                       { key: 'zoom', label: 'Zoom', icon: <BiLogoZoom className="w-4 h-4 text-[#2D8CFF]" />, disabled: false },
                       { key: 'google_meet', label: 'Meet', icon: <GoogleMeetIcon className="w-4 h-4" />, disabled: !integrations.google_calendar.connected },
                       { key: 'microsoft_teams', label: 'Teams', icon: <TeamsIcon className="w-4 h-4" />, disabled: !isPremium || !integrations.microsoft_outlook.connected },
@@ -635,11 +635,11 @@ export default function CalendarConfigStep({
                         className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg border-2 transition-all text-left ${
                           config.preferredVideoProvider === opt.key
                             ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
+                            : 'border-[var(--border-default)] bg-white hover:border-[var(--border-strong)]'
                         } ${opt.disabled ? 'opacity-35 cursor-not-allowed' : ''}`}
                       >
                         {opt.icon}
-                        <span className="text-[11px] font-bold text-slate-700">{opt.label}</span>
+                        <span className="text-[11px] font-bold text-[var(--color-neutral-700)]">{opt.label}</span>
                       </button>
                     ))}
                   </div>
@@ -647,7 +647,7 @@ export default function CalendarConfigStep({
                     <select
                       value={config.defaultMeetingDuration}
                       onChange={e => update({ defaultMeetingDuration: parseInt(e.target.value) })}
-                      className="w-24 px-2 py-2 bg-white border-2 border-slate-200 rounded-lg text-slate-900 text-sm font-bold focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                      className="w-24 px-2 py-2 bg-white border-2 border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm font-bold focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                     >
                       <option value={15}>15m</option>
                       <option value={30}>30m</option>
@@ -664,13 +664,13 @@ export default function CalendarConfigStep({
 
         {/* Slack notification config - inline if connected and enabled */}
         {integrations.slack.connected && (
-          <div className="border-t border-slate-200 pt-3">
+          <div className="border-t border-[var(--border-default)] pt-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <SlackIcon className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-bold text-slate-700 uppercase">Slack Notifications</span>
+                <span className="text-[11px] font-bold text-[var(--color-neutral-700)] uppercase">Slack Notifications</span>
                 {integrations.slack.team_name && (
-                  <span className="text-[10px] text-slate-400">({integrations.slack.team_name})</span>
+                  <span className="text-[10px] text-[var(--color-neutral-400)]">({integrations.slack.team_name})</span>
                 )}
               </div>
               <ToggleSwitch
@@ -683,7 +683,7 @@ export default function CalendarConfigStep({
               <div className="space-y-2">
                 {/* Channel selector */}
                 {loadingSlackChannels ? (
-                  <div className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-400 text-sm animate-pulse">Loading channels...</div>
+                  <div className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-neutral-400)] text-sm animate-pulse">Loading channels...</div>
                 ) : slackChannels.length > 0 ? (
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap gap-1.5">
@@ -718,7 +718,7 @@ export default function CalendarConfigStep({
                         const newNames = newIds.map(id => slackChannels.find(c => c.id === id)?.name || '').filter(Boolean);
                         update({ slackChannelIds: newIds, slackChannelNames: newNames, slackChannelId: newIds[0] || '', slackChannelName: newNames[0] || '' });
                       }}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                      className="w-full px-3 py-1.5 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                     >
                       <option value="">Add a channel...</option>
                       {slackChannels.filter(ch => !(config.slackChannelIds || []).includes(ch.id)).map(ch => (
@@ -727,7 +727,7 @@ export default function CalendarConfigStep({
                     </select>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-slate-500 bg-white rounded-lg px-3 py-2 border border-slate-200">
+                  <p className="text-[11px] text-[var(--color-neutral-500)] bg-white rounded-lg px-3 py-2 border border-[var(--border-default)]">
                     {integrations.slack.channel_name ? `Default: #${integrations.slack.channel_name}` : 'No channels found'}
                   </p>
                 )}
@@ -746,7 +746,7 @@ export default function CalendarConfigStep({
                       className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border ${
                         config[notif.key]
                           ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30 text-[var(--color-primary)]'
-                          : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
+                          : 'bg-white border-[var(--border-default)] text-[var(--color-neutral-400)] hover:border-[var(--border-strong)]'
                       }`}
                     >
                       {notif.label}
@@ -769,16 +769,16 @@ export default function CalendarConfigStep({
           timezone={config.timezone}
         />
 
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-          <h3 className="text-xs font-bold text-slate-900 uppercase">Work Schedule</h3>
+        <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)] space-y-3">
+          <h3 className="text-xs font-bold text-[var(--color-ink)] uppercase">Work Schedule</h3>
 
           {/* Timezone */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Timezone</label>
+            <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1">Timezone</label>
             <select
               value={config.timezone}
               onChange={e => update({ timezone: e.target.value })}
-              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+              className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
             >
               {TIMEZONE_OPTIONS.map(tz => (
                 <option key={tz.value} value={tz.value}>{tz.label}</option>
@@ -789,28 +789,28 @@ export default function CalendarConfigStep({
           {/* Working Hours */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Start</label>
+              <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1">Start</label>
               <input
                 type="time"
                 value={config.workingHoursStart}
                 onChange={e => update({ workingHoursStart: e.target.value })}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">End</label>
+              <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1">End</label>
               <input
                 type="time"
                 value={config.workingHoursEnd}
                 onChange={e => update({ workingHoursEnd: e.target.value })}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
               />
             </div>
           </div>
 
           {/* Working Days */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">Working Days</label>
+            <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1.5">Working Days</label>
             <div className="flex gap-1">
               {ALL_DAYS.map(day => (
                 <button
@@ -819,7 +819,7 @@ export default function CalendarConfigStep({
                   className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
                     config.workingDays.includes(day.key)
                       ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                      : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300'
+                      : 'bg-white border border-[var(--border-default)] text-[var(--color-neutral-400)] hover:border-[var(--border-strong)]'
                   }`}
                 >
                   {day.label}
@@ -829,8 +829,8 @@ export default function CalendarConfigStep({
           </div>
 
           {/* US Holidays */}
-          <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
-            <p className="text-xs font-medium text-slate-700">Skip US Holidays</p>
+          <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-[var(--border-default)]">
+            <p className="text-xs font-medium text-[var(--color-neutral-700)]">Skip US Holidays</p>
             <ToggleSwitch
               checked={config.excludeUSHolidays}
               onChange={val => update({ excludeUSHolidays: val })}
@@ -840,11 +840,11 @@ export default function CalendarConfigStep({
       </div>
 
       {/* Call Features - with skeleton while plan loads */}
-      <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+      <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)]">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[11px] font-bold text-slate-900 uppercase">Call Features</h3>
+          <h3 className="text-[11px] font-bold text-[var(--color-ink)] uppercase">Call Features</h3>
           {savingToSettings && (
-            <span className="text-[10px] text-slate-400 flex items-center gap-1">
+            <span className="text-[10px] text-[var(--color-neutral-400)] flex items-center gap-1">
               <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
               Syncing...
             </span>
@@ -854,12 +854,12 @@ export default function CalendarConfigStep({
         {planLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map(i => (
-              <div key={i} className="flex items-center justify-between bg-white rounded-lg px-3 py-3 border border-slate-200 animate-pulse">
+              <div key={i} className="flex items-center justify-between bg-white rounded-lg px-3 py-3 border border-[var(--border-default)] animate-pulse">
                 <div className="space-y-1.5 flex-1">
-                  <div className="h-3.5 bg-slate-200 rounded w-1/3"></div>
-                  <div className="h-2.5 bg-slate-100 rounded w-2/3"></div>
+                  <div className="h-3.5 bg-[var(--color-neutral-200)] rounded w-1/3"></div>
+                  <div className="h-2.5 bg-[var(--color-neutral-100)] rounded w-2/3"></div>
                 </div>
-                <div className="w-10 h-5 bg-slate-200 rounded-full ml-4"></div>
+                <div className="w-10 h-5 bg-[var(--color-neutral-200)] rounded-full ml-4"></div>
               </div>
             ))}
           </div>
@@ -867,10 +867,10 @@ export default function CalendarConfigStep({
           <div className="space-y-2">
             {/* Voicemail - Starter+ */}
             {hasVoicemail ? (
-              <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
+              <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-[var(--border-default)]">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-700">Voicemail detection</p>
-                  <p className="text-[11px] text-slate-400">Leave a message when voicemail is detected</p>
+                  <p className="text-sm font-semibold text-[var(--color-neutral-700)]">Voicemail detection</p>
+                  <p className="text-[11px] text-[var(--color-neutral-400)]">Leave a message when voicemail is detected</p>
                 </div>
                 <ToggleSwitch
                   checked={config.voicemailEnabled}
@@ -886,11 +886,11 @@ export default function CalendarConfigStep({
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-[var(--color-neutral-800)] flex items-center gap-1.5">
                       Voicemail detection
                       <span className="text-[9px] font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 rounded-full">STARTER</span>
                     </p>
-                    <p className="text-[11px] text-slate-500">Detect and leave voicemails automatically</p>
+                    <p className="text-[11px] text-[var(--color-neutral-500)]">Detect and leave voicemails automatically</p>
                   </div>
                   <a href="/settings?tab=billing" className="flex-shrink-0 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[11px] font-bold rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all">
                     Unlock
@@ -901,10 +901,10 @@ export default function CalendarConfigStep({
 
             {/* Follow-ups - Starter+ */}
             {hasFollowUps ? (
-              <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
+              <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-[var(--border-default)]">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-700">Automatic follow-ups</p>
-                  <p className="text-[11px] text-slate-400">Retry contacts who didn&apos;t answer</p>
+                  <p className="text-sm font-semibold text-[var(--color-neutral-700)]">Automatic follow-ups</p>
+                  <p className="text-[11px] text-[var(--color-neutral-400)]">Retry contacts who didn&apos;t answer</p>
                 </div>
                 <ToggleSwitch
                   checked={config.followUpEnabled}
@@ -920,11 +920,11 @@ export default function CalendarConfigStep({
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-[var(--color-neutral-800)] flex items-center gap-1.5">
                       Automatic follow-ups
                       <span className="text-[9px] font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 rounded-full">STARTER</span>
                     </p>
-                    <p className="text-[11px] text-slate-500">Auto-retry contacts who didn&apos;t answer</p>
+                    <p className="text-[11px] text-[var(--color-neutral-500)]">Auto-retry contacts who didn&apos;t answer</p>
                   </div>
                   <a href="/settings?tab=billing" className="flex-shrink-0 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[11px] font-bold rounded-lg shadow-sm hover:shadow-md hover:scale-105 transition-all">
                     Unlock
@@ -937,26 +937,26 @@ export default function CalendarConfigStep({
             {config.followUpEnabled && (
               <div className="grid grid-cols-2 gap-2 pl-3 border-l-2 border-[var(--color-primary)]/20">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Max Attempts</label>
+                  <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1">Max Attempts</label>
                   <input type="number" min="1" max="10" value={config.followUpMaxAttempts}
                     onChange={e => update({ followUpMaxAttempts: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
+                    className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Interval (hours)</label>
+                  <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1">Interval (hours)</label>
                   <input type="number" min="1" max="168" value={config.followUpIntervalHours}
                     onChange={e => update({ followUpIntervalHours: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
+                    className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none" />
                 </div>
               </div>
             )}
 
             {/* Smart Scheduling - Business+ with enticing CTA */}
             {isPremium ? (
-              <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-200">
+              <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-[var(--border-default)]">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-700">Smart scheduling</p>
-                  <p className="text-[11px] text-slate-400">Auto-schedule calls when contacts request a specific time</p>
+                  <p className="text-sm font-semibold text-[var(--color-neutral-700)]">Smart scheduling</p>
+                  <p className="text-[11px] text-[var(--color-neutral-400)]">Auto-schedule calls when contacts request a specific time</p>
                 </div>
                 <ToggleSwitch checked={config.smartFollowUp} onChange={val => update({ smartFollowUp: val })} />
               </div>
@@ -969,11 +969,11 @@ export default function CalendarConfigStep({
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-[var(--color-neutral-800)] flex items-center gap-1.5">
                       Smart scheduling
                       <span className="text-[9px] font-bold text-white bg-gradient-to-r from-[var(--color-deep-indigo)] to-[var(--color-electric)] px-1.5 py-0.5 rounded-full">PRO</span>
                     </p>
-                    <p className="text-[11px] text-slate-500">AI auto-schedules callbacks at the perfect time</p>
+                    <p className="text-[11px] text-[var(--color-neutral-500)]">AI auto-schedules callbacks at the perfect time</p>
                   </div>
                   <a
                     href="/settings?tab=billing"
@@ -989,7 +989,7 @@ export default function CalendarConfigStep({
       </div>
 
       {/* Footer note */}
-      <p className="text-[11px] text-slate-400 leading-relaxed px-1">
+      <p className="text-[11px] text-[var(--color-neutral-400)] leading-relaxed px-1">
         These settings apply to this campaign. Calendar events, contacts, and call history sync automatically.
       </p>
     </div>
