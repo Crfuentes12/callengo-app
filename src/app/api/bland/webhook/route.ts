@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the call
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     await supabaseAdmin.from('call_logs').insert({
       company_id: companyId,
       contact_id: contactId || null,

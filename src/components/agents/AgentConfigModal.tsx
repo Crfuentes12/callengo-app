@@ -490,7 +490,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       };
 
       // Create agent run - calendar config stored in settings JSONB
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { data: run, error } = await (supabase
         .from('agent_runs') as any)
         .insert({

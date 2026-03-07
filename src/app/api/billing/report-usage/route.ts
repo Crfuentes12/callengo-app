@@ -193,7 +193,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function processUsagePostUpdate(
   supabase: typeof supabaseAdmin,
   subscription: Record<string, any>,
