@@ -17,8 +17,7 @@ export default async function AgentsPage() {
     .eq('id', user!.id)
     .single();
 
-  // @ts-expect-error - Supabase join typing
-  const company = userData!.companies;
+  const company = (userData as Record<string, unknown>).companies as Record<string, unknown>;
 
   // Get active agents (the migration ensures only the 3 core agents are active)
   const { data: agentTemplates } = await supabase
