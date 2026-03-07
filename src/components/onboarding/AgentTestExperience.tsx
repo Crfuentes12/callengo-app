@@ -7,6 +7,19 @@ import { BLAND_VOICES } from '@/lib/voices/bland-voices';
 import { determineGender } from '@/lib/voices/voice-utils';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 
+interface AgentConfig {
+  name: string;
+  icon: string;
+  color: string;
+  demoData: Record<string, string>;
+  task: string;
+}
+
+interface CallAnalysis {
+  summary?: string;
+  key_points?: string[];
+}
+
 interface AgentTestExperienceProps {
   agentSlug: string;
   agentTitle: string;
@@ -17,7 +30,7 @@ interface AgentTestExperienceProps {
   onSkip: () => void;
 }
 
-const AGENT_CONFIG: Record<string, Record<string, unknown>> = {
+const AGENT_CONFIG: Record<string, AgentConfig> = {
   'data-validation': {
     name: 'Data Validation Agent',
     icon: '🔍',
@@ -76,7 +89,7 @@ export default function AgentTestExperience({
   const [callDuration, setCallDuration] = useState(0);
   const [callId, setCallId] = useState<string | null>(null);
   const [callData, setCallData] = useState<Record<string, unknown> | null>(null);
-  const [callAnalysis, setCallAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [callAnalysis, setCallAnalysis] = useState<CallAnalysis | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasAnalyzedRef = useRef(false);
 
@@ -185,7 +198,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
         body: JSON.stringify({
           transcript: data.concatenated_transcript || 'Call completed',
           agent_type: agentTitle,
-          call_duration: data.call_length ? Math.floor(data.call_length / 1000) : 0,
+          call_duration: data.call_length ? Math.floor(Number(data.call_length) / 1000) : 0,
         }),
       });
 
@@ -418,7 +431,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
             {/* CTA Button */}
             <button
-              onClick={() => onComplete(callData)}
+              onClick={() => onComplete(callData ?? {})}
               className={`
                 w-full px-6 py-4 bg-gradient-to-r ${agent.color} text-white rounded-lg font-bold text-lg
                 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2

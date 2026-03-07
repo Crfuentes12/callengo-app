@@ -138,7 +138,7 @@ function ConfirmationModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose
 
 export default function ContactsManager({ initialContacts, initialTotalCount, initialContactLists = [], companyId, hasSalesforceAccess, sfConnected, hasHubSpotAccess = false, hsConnected = false, hasPipedriveAccess = false, pdConnected = false, gsConnected = false, hasClioAccess = false, clioConnected = false, hasZohoAccess = false, zohoConnected = false, hasDynamicsAccess = false, dynamicsConnected = false, hasSimplyBookAccess = false, sbConnected = false }: ContactsManagerProps) {
   const { t } = useTranslation();
-  const [contacts, setContacts] = useState<ContactType[]>(initialContacts as ContactType[]);
+  const [contacts, setContacts] = useState<ContactType[]>(initialContacts as unknown as ContactType[]);
   const [total, setTotal] = useState(initialTotalCount);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -1683,7 +1683,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
         const contactName = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
 
         // Build custom_fields object from non-standard fields
-        const customFields: Record<string, unknown> = {};
+        const customFields: Record<string, string> = {};
         const standardFieldNames = ['First Name', 'Last Name', 'Company Name', 'Phone', 'Email',
                                    'first_name', 'last_name', 'company_name', 'phone', 'email',
                                    'Phone Number', 'phone_number'];

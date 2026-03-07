@@ -290,7 +290,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
         const raw = data[source.memberKey] || [];
         const mapped: IntegrationMember[] = raw.map((m: Record<string, unknown>) => ({
           id: m[source.id === 'simplybook' ? 'sb_provider_id' : `${source.id}_user_id`] || m.id || m.email,
-          name: m.name || m.full_name || m.email?.split('@')[0] || 'Unknown',
+          name: m.name || m.full_name || (m.email as string | undefined)?.split('@')[0] || 'Unknown',
           email: m.email || '',
           role: m.role || m.profile || undefined,
           already_in_callengo: !!m.already_in_callengo,

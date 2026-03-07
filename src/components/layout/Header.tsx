@@ -113,10 +113,10 @@ export default function Header({
         const plan = subscription.subscription_plans as Record<string, unknown>;
         const isFree = plan.slug === 'free';
         setPlanInfo({
-          name: isFree ? 'Trial' : (plan.name || 'Free'),
-          slug: plan.slug || 'free',
+          name: isFree ? 'Trial' : ((plan.name as string) || 'Free'),
+          slug: (plan.slug as string) || 'free',
           minutesUsed: usage?.minutes_used || 0,
-          minutesIncluded: plan.minutes_included || usage?.minutes_included || 0,
+          minutesIncluded: (plan.minutes_included as number) || usage?.minutes_included || 0,
         });
       } else {
         setPlanInfo({

@@ -99,13 +99,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
   const loadConversations = useCallback(async () => {
     try {
       // @ts-expect-error - ai_conversations table from new migration
-      const { data } = await supabase
-        .from('ai_conversations')
-        .select('id, title, created_at, updated_at')
-        .eq('user_id', userId)
-        .eq('company_id', companyId)
-        .order('updated_at', { ascending: false })
-        .limit(20);
+      const { data } = await supabase.from('ai_conversations').select('id, title, created_at, updated_at').eq('user_id', userId).eq('company_id', companyId).order('updated_at', { ascending: false }).limit(20);
 
       if (data) setConversations(data as unknown as typeof conversations);
     } catch {
@@ -117,11 +111,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
   const loadMessages = useCallback(async (conversationId: string) => {
     try {
       // @ts-expect-error - ai_messages table from new migration
-      const { data } = await supabase
-        .from('ai_messages')
-        .select('id, role, content, created_at')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+      const { data } = await supabase.from('ai_messages').select('id, role, content, created_at').eq('conversation_id', conversationId).order('created_at', { ascending: true });
 
       if (data) setMessages(data as unknown as typeof messages);
     } catch {

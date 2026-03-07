@@ -36,7 +36,7 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const [pendingAgent, setPendingAgent] = useState<AgentTemplate | null>(null);
 
-  const planSlug = companySettings?.plan_slug || 'free';
+  const planSlug = (companySettings?.plan_slug as string) || 'free';
   const isLimitedPlan = ['free', 'starter'].includes(planSlug);
   const isFreePlan = planSlug === 'free';
 
