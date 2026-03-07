@@ -261,22 +261,22 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId 
               <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
                 <defs>
                   <linearGradient id="rStroke" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#173657" /><stop offset="50%" stopColor="#2e3a76" /><stop offset="100%" stopColor="#8938b0" />
+                    <stop offset="0%" stopColor="var(--color-deep-indigo)" /><stop offset="50%" stopColor="var(--color-primary-600)" /><stop offset="100%" stopColor="var(--color-electric)" />
                   </linearGradient>
                   <linearGradient id="rFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2e3a76" stopOpacity="0.25" /><stop offset="50%" stopColor="#8938b0" stopOpacity="0.08" /><stop offset="100%" stopColor="#8938b0" stopOpacity="0.01" />
+                    <stop offset="0%" stopColor="var(--color-deep-indigo)" stopOpacity="0.25" /><stop offset="50%" stopColor="var(--color-electric)" stopOpacity="0.08" /><stop offset="100%" stopColor="var(--color-electric)" stopOpacity="0.01" />
                   </linearGradient>
                 </defs>
                 {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
                   <g key={i}>
-                    <line x1={pL} y1={tY(mx * p)} x2={pL + w} y2={tY(mx * p)} stroke="#e2e8f0" strokeWidth="1" strokeDasharray={p > 0 ? "4,4" : "0"} />
-                    <text x={pL - 4} y={tY(mx * p) + 3} textAnchor="end" fontSize="9" fill="#94a3b8">{Math.round(mx * p)}</text>
+                    <line x1={pL} y1={tY(mx * p)} x2={pL + w} y2={tY(mx * p)} stroke="var(--color-neutral-200)" strokeWidth="1" strokeDasharray={p > 0 ? "4,4" : "0"} />
+                    <text x={pL - 4} y={tY(mx * p) + 3} textAnchor="end" fontSize="9" fill="var(--color-neutral-400)">{Math.round(mx * p)}</text>
                   </g>
                 ))}
                 <path d={areaPath} fill="url(#rFill)" />
                 <path d={linePath} fill="none" stroke="url(#rStroke)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-                {sliced.map((d, i) => d.calls > 0 ? <circle key={i} cx={tX(i)} cy={tY(d.calls)} r="2.5" fill="#2e3a76" stroke="white" strokeWidth="1" /> : null)}
-                {sliced.map((d, i) => (i % 5 === 0 || i === sliced.length - 1) ? <text key={`l${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="8" fill="#94a3b8">{d.date}</text> : null)}
+                {sliced.map((d, i) => d.calls > 0 ? <circle key={i} cx={tX(i)} cy={tY(d.calls)} r="2.5" fill="var(--color-deep-indigo)" stroke="white" strokeWidth="1" /> : null)}
+                {sliced.map((d, i) => (i % 5 === 0 || i === sliced.length - 1) ? <text key={`l${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="8" fill="var(--color-neutral-400)">{d.date}</text> : null)}
               </svg>
             );
           })()}

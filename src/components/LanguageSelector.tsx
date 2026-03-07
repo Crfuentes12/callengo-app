@@ -77,8 +77,8 @@ export default function LanguageSelector({
           <div className={`
             absolute right-0 top-full mt-1 w-48 rounded-xl shadow-lg border z-50 overflow-hidden
             ${dark
-              ? 'bg-[#1a1f35] border-white/10'
-              : 'bg-white border-slate-200'
+              ? 'bg-[var(--surface-dark-card)] border-white/10'
+              : 'bg-white border-[var(--border-default)]'
             }
           `}>
             {SUPPORTED_LANGUAGES.map((lang) => (
@@ -143,7 +143,7 @@ export default function LanguageSelector({
         <div className={`
           absolute left-0 right-0 top-full mt-2 rounded-xl shadow-lg border z-50 overflow-hidden
           ${dark
-            ? 'bg-[#1a1f35] border-white/10'
+            ? 'bg-[var(--surface-dark-card)] border-white/10'
             : 'bg-white border-slate-200'
           }
         `}>
