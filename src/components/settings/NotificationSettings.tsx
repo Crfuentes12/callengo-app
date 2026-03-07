@@ -117,7 +117,7 @@ export default function NotificationSettings({ userId, initialEnabled }: Notific
     <button
       onClick={() => handleToggle(notifKey)}
       disabled={saving === notifKey}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-60 ${enabled[notifKey] ? 'bg-[var(--color-primary)]' : 'bg-slate-200'}`}
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-60 ${enabled[notifKey] ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-neutral-200)]'}`}
       role="switch"
       aria-checked={enabled[notifKey]}
     >
@@ -140,24 +140,24 @@ export default function NotificationSettings({ userId, initialEnabled }: Notific
       )}
 
       {/* App Notifications */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-[var(--border-subtle)] bg-[var(--color-neutral-50)] flex items-center gap-2">
           <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
           </svg>
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">In-app Notifications</span>
-          <span className="ml-auto text-[10px] text-slate-400">Always real-time</span>
+          <span className="text-xs font-bold text-[var(--color-neutral-700)] uppercase tracking-wide">In-app Notifications</span>
+          <span className="ml-auto text-[10px] text-[var(--color-neutral-400)]">Always real-time</span>
         </div>
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-[var(--border-subtle)]">
           {appItems.map((item) => (
             <div key={item.key} className="flex items-center justify-between gap-4 px-5 py-3.5">
               <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${enabled[item.key] ? 'bg-[var(--color-primary-50)] text-[var(--color-primary)]' : 'bg-slate-100 text-slate-400'}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${enabled[item.key] ? 'bg-[var(--color-primary-50)] text-[var(--color-primary)]' : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-400)]'}`}>
                   {item.icon}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">{item.label}</p>
-                  <p className="text-xs text-slate-500 truncate">{item.description}</p>
+                  <p className="text-sm font-medium text-[var(--color-ink)] truncate">{item.label}</p>
+                  <p className="text-xs text-[var(--color-neutral-500)] truncate">{item.description}</p>
                 </div>
               </div>
               <Toggle notifKey={item.key} />
@@ -167,24 +167,24 @@ export default function NotificationSettings({ userId, initialEnabled }: Notific
       </div>
 
       {/* Email Notifications */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-[var(--border-subtle)] bg-[var(--color-neutral-50)] flex items-center gap-2">
           <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
           </svg>
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Email</span>
-          <span className="ml-auto text-[10px] text-slate-400">Sent to {/* email */}</span>
+          <span className="text-xs font-bold text-[var(--color-neutral-700)] uppercase tracking-wide">Email</span>
+          <span className="ml-auto text-[10px] text-[var(--color-neutral-400)]">Sent to {/* email */}</span>
         </div>
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-[var(--border-subtle)]">
           {emailItems.map((item) => (
             <div key={item.key} className="flex items-center justify-between gap-4 px-5 py-3.5">
               <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${enabled[item.key] ? 'bg-amber-50 text-amber-500' : 'bg-slate-100 text-slate-400'}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${enabled[item.key] ? 'bg-amber-50 text-amber-500' : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-400)]'}`}>
                   {item.icon}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">{item.label}</p>
-                  <p className="text-xs text-slate-500 truncate">{item.description}</p>
+                  <p className="text-sm font-medium text-[var(--color-ink)] truncate">{item.label}</p>
+                  <p className="text-xs text-[var(--color-neutral-500)] truncate">{item.description}</p>
                 </div>
               </div>
               <Toggle notifKey={item.key} />

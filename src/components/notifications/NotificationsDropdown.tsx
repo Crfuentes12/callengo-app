@@ -134,16 +134,16 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
   const getNotificationStyle = (type: string) => {
     switch (type) {
       case 'campaign_completed':
-        return { icon: '✓', bgColor: 'bg-emerald-50', textColor: 'text-emerald-600', borderColor: 'border-emerald-200' };
+        return { icon: '✓', bgColor: 'bg-[var(--color-success-50)]', textColor: 'text-[var(--color-success-600)]', borderColor: 'border-[var(--color-success-200)]' };
       case 'campaign_failed':
       case 'high_failure_rate':
-        return { icon: '⚠', bgColor: 'bg-red-50', textColor: 'text-red-600', borderColor: 'border-red-200' };
+        return { icon: '⚠', bgColor: 'bg-[var(--color-error-50)]', textColor: 'text-[var(--color-error-600)]', borderColor: 'border-[var(--color-error-200)]' };
       case 'minutes_warning':
       case 'minutes_critical':
       case 'minutes_exceeded':
-        return { icon: '🕒', bgColor: 'bg-amber-50', textColor: 'text-amber-600', borderColor: 'border-amber-200' };
+        return { icon: '🕒', bgColor: 'bg-[var(--color-warning-50)]', textColor: 'text-[var(--color-warning-600)]', borderColor: 'border-[var(--color-warning-200)]' };
       default:
-        return { icon: 'ℹ', bgColor: 'bg-blue-50', textColor: 'text-blue-600', borderColor: 'border-blue-200' };
+        return { icon: 'ℹ', bgColor: 'bg-[var(--color-info-50)]', textColor: 'text-[var(--color-info-600)]', borderColor: 'border-[var(--color-info-200)]' };
     }
   };
 
@@ -217,7 +217,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="relative p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        className="relative p-2 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)] transition-colors"
       >
         <BellIcon className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -226,10 +226,10 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
       </button>
 
       {showDropdown && (
-        <div className="absolute right-0 mt-2 w-96 max-h-[600px] bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-slideDown overflow-hidden flex flex-col">
+        <div className="absolute right-0 mt-2 w-96 max-h-[600px] bg-white rounded-xl shadow-xl border border-[var(--border-default)] z-50 animate-slideDown overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-            <h3 className="font-bold text-slate-900">{t.notifications.title}</h3>
+          <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--color-neutral-50)] flex items-center justify-between">
+            <h3 className="font-bold text-[var(--color-ink)]">{t.notifications.title}</h3>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
@@ -243,25 +243,25 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
           {/* Notifications List */}
           <div className="overflow-y-auto flex-1">
             {loading ? (
-              <div className="p-8 text-center text-slate-400">
-                <div className="inline-block w-8 h-8 border-2 border-slate-300 border-t-[var(--color-primary)] rounded-full animate-spin"></div>
+              <div className="p-8 text-center text-[var(--color-neutral-400)]">
+                <div className="inline-block w-8 h-8 border-2 border-[var(--border-strong)] border-t-[var(--color-primary)] rounded-full animate-spin"></div>
               </div>
             ) : notifications.length === 0 ? (
               <div className="p-8 text-center">
-                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
-                  <BellIcon className="w-8 h-8 text-slate-400" />
+                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-[var(--color-neutral-100)] flex items-center justify-center">
+                  <BellIcon className="w-8 h-8 text-[var(--color-neutral-400)]" />
                 </div>
-                <p className="text-sm font-medium text-slate-600">{t.notifications.noNotifications}</p>
-                <p className="text-xs text-slate-400 mt-1"></p>
+                <p className="text-sm font-medium text-[var(--color-neutral-600)]">{t.notifications.noNotifications}</p>
+                <p className="text-xs text-[var(--color-neutral-400)] mt-1"></p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-[var(--border-subtle)]">
                 {notifications.map((notification) => {
                   const style = getNotificationStyle(notification.type);
                   return (
                     <div
                       key={notification.id}
-                      className={`p-4 hover:bg-slate-50 transition-colors ${!notification.read ? 'bg-[var(--color-primary)]/5' : ''}`}
+                      className={`p-4 hover:bg-[var(--color-neutral-50)] transition-colors ${!notification.read ? 'bg-[var(--color-primary)]/5' : ''}`}
                     >
                       <div className="flex gap-3">
                         <div className={`w-10 h-10 rounded-lg ${style.bgColor} ${style.textColor} flex items-center justify-center flex-shrink-0 border ${style.borderColor}`}>
@@ -269,19 +269,19 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
-                            <h4 className="font-semibold text-sm text-slate-900">{notification.title}</h4>
+                            <h4 className="font-semibold text-sm text-[var(--color-ink)]">{notification.title}</h4>
                             <button
                               onClick={() => deleteNotification(notification.id)}
-                              className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                              className="text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] transition-colors p-1"
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                               </svg>
                             </button>
                           </div>
-                          <p className="text-xs text-slate-600 mb-2">{notification.message}</p>
+                          <p className="text-xs text-[var(--color-neutral-600)] mb-2">{notification.message}</p>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-slate-400">{formatTime(notification.created_at)}</span>
+                            <span className="text-xs text-[var(--color-neutral-400)]">{formatTime(notification.created_at)}</span>
                             {!notification.read && (
                               <button
                                 onClick={() => markAsRead(notification.id)}

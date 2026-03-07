@@ -66,7 +66,7 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
       case 'no_answer': case 'no-answer': return { label: 'No Answer', color: 'bg-amber-50 text-amber-700 border-amber-200' };
       case 'voicemail': return { label: 'Voicemail', color: 'bg-violet-50 text-violet-700 border-violet-200' };
       case 'in_progress': case 'in-progress': case 'ringing': return { label: 'In Progress', color: 'bg-blue-50 text-blue-700 border-blue-200' };
-      default: return { label: status || 'Unknown', color: 'bg-slate-50 text-slate-600 border-slate-200' };
+      default: return { label: status || 'Unknown', color: 'bg-[var(--color-neutral-50)] text-[var(--color-neutral-600)] border-[var(--border-default)]' };
     }
   };
 
@@ -76,7 +76,7 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
     switch (sentiment) {
       case 'positive': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'negative': return 'bg-red-50 text-red-700 border-red-200';
-      default: return 'bg-slate-50 text-slate-600 border-slate-200';
+      default: return 'bg-[var(--color-neutral-50)] text-[var(--color-neutral-600)] border-[var(--border-default)]';
     }
   };
 
@@ -98,9 +98,9 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl border border-[var(--border-default)] shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
+        <div className="px-6 py-5 border-b border-[var(--border-default)] bg-[var(--color-neutral-50)]">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
@@ -110,14 +110,14 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">
+                  <h2 className="text-lg font-bold text-[var(--color-ink)]">
                     {call.contacts?.contact_name || call.contacts?.company_name || 'Call Detail'}
                   </h2>
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <div className="flex items-center gap-2 text-sm text-[var(--color-neutral-500)]">
                     {call.contacts?.phone_number && <span className="font-mono">{call.contacts.phone_number}</span>}
                     {call.agent_runs?.name && (
                       <>
-                        <span className="text-slate-300">·</span>
+                        <span className="text-[var(--color-neutral-300)]">·</span>
                         <span>{call.agent_runs.name}</span>
                       </>
                     )}
@@ -132,7 +132,7 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${
                     call.answered_by === 'human' ? 'bg-emerald-100 text-emerald-700' :
                     call.answered_by === 'voicemail' ? 'bg-amber-100 text-amber-700' :
-                    'bg-slate-100 text-slate-600'
+                    'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)]'
                   }`}>
                     {call.answered_by === 'human' ? 'Answered by Human' : call.answered_by === 'voicemail' ? 'Voicemail' : call.answered_by}
                   </span>
@@ -144,7 +144,7 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
                 )}
               </div>
             </div>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-200 transition-colors text-slate-500">
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--color-neutral-200)] transition-colors text-[var(--color-neutral-500)]">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -160,7 +160,7 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   activeSection === s.id
                     ? 'gradient-bg text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-200'
+                    : 'text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-200)]'
                 }`}
               >
                 {s.label}
@@ -175,24 +175,24 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
             <div className="space-y-6">
               {/* Key Metrics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                  <p className="text-xs text-slate-500 font-semibold mb-1">Duration</p>
-                  <p className="text-xl font-bold text-slate-900">{formatDuration(call.call_length)}</p>
+                <div className="p-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+                  <p className="text-xs text-[var(--color-neutral-500)] font-semibold mb-1">Duration</p>
+                  <p className="text-xl font-bold text-[var(--color-ink)]">{formatDuration(call.call_length)}</p>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                  <p className="text-xs text-slate-500 font-semibold mb-1">Status</p>
-                  <p className="text-xl font-bold text-slate-900 capitalize">{call.status || 'Unknown'}</p>
+                <div className="p-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+                  <p className="text-xs text-[var(--color-neutral-500)] font-semibold mb-1">Status</p>
+                  <p className="text-xl font-bold text-[var(--color-ink)] capitalize">{call.status || 'Unknown'}</p>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                  <p className="text-xs text-slate-500 font-semibold mb-1">Answered By</p>
-                  <p className="text-xl font-bold text-slate-900 capitalize">{call.answered_by || 'Unknown'}</p>
+                <div className="p-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+                  <p className="text-xs text-[var(--color-neutral-500)] font-semibold mb-1">Answered By</p>
+                  <p className="text-xl font-bold text-[var(--color-ink)] capitalize">{call.answered_by || 'Unknown'}</p>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                  <p className="text-xs text-slate-500 font-semibold mb-1">Date</p>
-                  <p className="text-sm font-bold text-slate-900">
+                <div className="p-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+                  <p className="text-xs text-[var(--color-neutral-500)] font-semibold mb-1">Date</p>
+                  <p className="text-sm font-bold text-[var(--color-ink)]">
                     {new Date(call.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[var(--color-neutral-500)]">
                     {new Date(call.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -214,45 +214,45 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
               {/* Analysis Quick View */}
               {hasAnalysis && (
                 <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-slate-900">Quick Analysis</h4>
+                  <h4 className="text-sm font-semibold text-[var(--color-ink)]">Quick Analysis</h4>
                   <div className="grid grid-cols-2 gap-3">
                     {analysis.callSentiment && (
-                      <div className="p-3 bg-white rounded-lg border border-slate-200">
-                        <p className="text-xs text-slate-500 mb-1">Sentiment</p>
+                      <div className="p-3 bg-white rounded-lg border border-[var(--border-default)]">
+                        <p className="text-xs text-[var(--color-neutral-500)] mb-1">Sentiment</p>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getSentimentColor(analysis.callSentiment)}`}>
                           {analysis.callSentiment}
                         </span>
                       </div>
                     )}
                     {analysis.customerInterestLevel && (
-                      <div className="p-3 bg-white rounded-lg border border-slate-200">
-                        <p className="text-xs text-slate-500 mb-1">Interest Level</p>
+                      <div className="p-3 bg-white rounded-lg border border-[var(--border-default)]">
+                        <p className="text-xs text-[var(--color-neutral-500)] mb-1">Interest Level</p>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getInterestColor(analysis.customerInterestLevel)}`}>
                           {analysis.customerInterestLevel}
                         </span>
                       </div>
                     )}
                     {analysis.callCategory && (
-                      <div className="p-3 bg-white rounded-lg border border-slate-200">
-                        <p className="text-xs text-slate-500 mb-1">Category</p>
-                        <span className="text-sm font-medium text-slate-900 capitalize">{analysis.callCategory.replace(/_/g, ' ')}</span>
+                      <div className="p-3 bg-white rounded-lg border border-[var(--border-default)]">
+                        <p className="text-xs text-[var(--color-neutral-500)] mb-1">Category</p>
+                        <span className="text-sm font-medium text-[var(--color-ink)] capitalize">{analysis.callCategory.replace(/_/g, ' ')}</span>
                       </div>
                     )}
                     {analysis.businessConfirmed !== undefined && (
-                      <div className="p-3 bg-white rounded-lg border border-slate-200">
-                        <p className="text-xs text-slate-500 mb-1">Business Confirmed</p>
-                        <span className={`text-sm font-medium ${analysis.businessConfirmed ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      <div className="p-3 bg-white rounded-lg border border-[var(--border-default)]">
+                        <p className="text-xs text-[var(--color-neutral-500)] mb-1">Business Confirmed</p>
+                        <span className={`text-sm font-medium ${analysis.businessConfirmed ? 'text-emerald-600' : 'text-[var(--color-neutral-500)]'}`}>
                           {analysis.businessConfirmed ? 'Yes' : 'No'}
                         </span>
                       </div>
                     )}
                   </div>
                   {analysis.keyPoints && analysis.keyPoints.length > 0 && (
-                    <div className="p-3 bg-white rounded-lg border border-slate-200">
-                      <p className="text-xs text-slate-500 mb-2">Key Points</p>
+                    <div className="p-3 bg-white rounded-lg border border-[var(--border-default)]">
+                      <p className="text-xs text-[var(--color-neutral-500)] mb-2">Key Points</p>
                       <ul className="space-y-1">
                         {analysis.keyPoints.map((point: string, i: number) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                          <li key={i} className="flex items-start gap-2 text-sm text-[var(--color-neutral-700)]">
                             <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] mt-1.5 flex-shrink-0"></span>
                             {point}
                           </li>
@@ -261,9 +261,9 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
                     </div>
                   )}
                   {analysis.outcomeNotes && (
-                    <div className="p-3 bg-white rounded-lg border border-slate-200">
-                      <p className="text-xs text-slate-500 mb-1">Outcome Notes</p>
-                      <p className="text-sm text-slate-700">{analysis.outcomeNotes}</p>
+                    <div className="p-3 bg-white rounded-lg border border-[var(--border-default)]">
+                      <p className="text-xs text-[var(--color-neutral-500)] mb-1">Outcome Notes</p>
+                      <p className="text-sm text-[var(--color-neutral-700)]">{analysis.outcomeNotes}</p>
                     </div>
                   )}
                 </div>
@@ -285,19 +285,19 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
               {/* No data message */}
               {!call.summary && !hasAnalysis && !call.error_message && !hasTranscript && (
                 <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <div className="w-16 h-16 rounded-2xl bg-[var(--color-neutral-100)] flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-8 h-8 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <p className="text-slate-900 font-semibold">Call not yet made</p>
-                  <p className="text-sm text-slate-500 mt-1">Data will appear once this call is completed</p>
+                  <p className="text-[var(--color-ink)] font-semibold">Call not yet made</p>
+                  <p className="text-sm text-[var(--color-neutral-500)] mt-1">Data will appear once this call is completed</p>
                 </div>
               )}
 
               {/* Call ID */}
-              <div className="pt-4 border-t border-slate-100">
-                <p className="text-xs text-slate-400 font-mono">Call ID: {call.call_id}</p>
+              <div className="pt-4 border-t border-[var(--border-subtle)]">
+                <p className="text-xs text-[var(--color-neutral-400)] font-mono">Call ID: {call.call_id}</p>
               </div>
             </div>
           )}
@@ -308,10 +308,10 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
                 <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <h3 className="text-base font-semibold text-slate-900">Full Transcript</h3>
+                <h3 className="text-base font-semibold text-[var(--color-ink)]">Full Transcript</h3>
               </div>
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 max-h-[50vh] overflow-y-auto">
-                <pre className="text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">{call.transcript}</pre>
+              <div className="p-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] max-h-[50vh] overflow-y-auto">
+                <pre className="text-sm text-[var(--color-neutral-700)] whitespace-pre-wrap font-sans leading-relaxed">{call.transcript}</pre>
               </div>
             </div>
           )}
@@ -322,7 +322,7 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
                 <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75z" />
                 </svg>
-                <h3 className="text-base font-semibold text-slate-900">Detailed Analysis</h3>
+                <h3 className="text-base font-semibold text-[var(--color-ink)]">Detailed Analysis</h3>
               </div>
 
               {/* Extracted Data */}
@@ -338,7 +338,7 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
                     <tbody>
                       {Object.entries(analysis.extractedData).map(([key, value]) => (
                         <tr key={key} className="border-b border-emerald-100 last:border-0">
-                          <td className="py-2 px-4 text-xs font-medium text-slate-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
+                          <td className="py-2 px-4 text-xs font-medium text-[var(--color-neutral-600)] capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
                           <td className="py-2 px-4 text-sm font-mono text-emerald-700">{String(value)}</td>
                         </tr>
                       ))}
@@ -360,7 +360,7 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
                     <tbody>
                       {Object.entries(analysis.validatedFields).map(([key, value]) => (
                         <tr key={key} className="border-b border-blue-100 last:border-0">
-                          <td className="py-2 px-4 text-xs font-medium text-slate-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
+                          <td className="py-2 px-4 text-xs font-medium text-[var(--color-neutral-600)] capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
                           <td className="py-2 px-4 text-sm">
                             {String(value).toLowerCase().includes('confirmed') ? (
                               <span className="text-emerald-600 font-medium flex items-center gap-1">
@@ -400,16 +400,16 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
 
               {/* Call Quality */}
               {analysis.callQuality && (
-                <div className="p-4 bg-white rounded-xl border border-slate-200">
-                  <h4 className="text-sm font-semibold text-slate-900 mb-2">Call Quality</h4>
+                <div className="p-4 bg-white rounded-xl border border-[var(--border-default)]">
+                  <h4 className="text-sm font-semibold text-[var(--color-ink)] mb-2">Call Quality</h4>
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2.5 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
                       <div className="h-full gradient-bg rounded-full transition-all" style={{ width: `${(analysis.callQuality.rating || 0) * 10}%` }}></div>
                     </div>
-                    <span className="text-sm font-bold text-slate-900">{analysis.callQuality.rating}/10</span>
+                    <span className="text-sm font-bold text-[var(--color-ink)]">{analysis.callQuality.rating}/10</span>
                   </div>
                   {analysis.callQuality.reason && (
-                    <p className="text-xs text-slate-500 mt-2 italic">{analysis.callQuality.reason}</p>
+                    <p className="text-xs text-[var(--color-neutral-500)] mt-2 italic">{analysis.callQuality.reason}</p>
                   )}
                 </div>
               )}
@@ -418,9 +418,9 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
               {!analysis.extractedData && !analysis.validatedFields && !analysis.nextActions && !analysis.callQuality && (
                 <div className="space-y-3">
                   {Object.entries(analysis).filter(([k]) => !['callSentiment', 'customerInterestLevel', 'callCategory', 'businessConfirmed', 'keyPoints', 'outcomeNotes', 'followUpRequired', 'followUpReason'].includes(k)).map(([key, value]) => (
-                    <div key={key} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                      <p className="text-xs text-slate-500 font-medium mb-1 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                      <p className="text-sm text-slate-700">{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}</p>
+                    <div key={key} className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+                      <p className="text-xs text-[var(--color-neutral-500)] font-medium mb-1 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                      <p className="text-sm text-[var(--color-neutral-700)]">{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}</p>
                     </div>
                   ))}
                 </div>
@@ -434,11 +434,11 @@ export default function CallDetailModal({ call, onClose }: CallDetailModalProps)
                 <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
                 </svg>
-                <h3 className="text-base font-semibold text-slate-900">Call Recording</h3>
+                <h3 className="text-base font-semibold text-[var(--color-ink)]">Call Recording</h3>
               </div>
               {call.recording_url && (
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                  <p className="text-xs text-slate-500 font-medium mb-3">Call Recording</p>
+                <div className="p-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+                  <p className="text-xs text-[var(--color-neutral-500)] font-medium mb-3">Call Recording</p>
                   <audio controls className="w-full" src={call.recording_url}>
                     Your browser does not support the audio element.
                   </audio>

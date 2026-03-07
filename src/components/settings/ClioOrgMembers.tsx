@@ -96,11 +96,11 @@ export default function ClioOrgMembers({
             <ClioLogo className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Clio Firm Members</h3>
-            <p className="text-xs text-slate-500">Preview and invite Clio members to Callengo</p>
+            <h3 className="text-sm font-semibold text-[var(--color-ink)]">Clio Firm Members</h3>
+            <p className="text-xs text-[var(--color-neutral-500)]">Preview and invite Clio members to Callengo</p>
           </div>
         </div>
-        <p className="text-sm text-slate-600 mb-4">
+        <p className="text-sm text-[var(--color-neutral-600)] mb-4">
           Connect Clio on Business plan or higher to preview your firm&apos;s members and invite them directly to Callengo.
         </p>
         <Link
@@ -116,17 +116,17 @@ export default function ClioOrgMembers({
   // Not connected
   if (!clioConnected) {
     return (
-      <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+      <div className="bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] p-6">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-xl bg-[#1B2B5B]/5 flex items-center justify-center">
             <ClioLogo className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Clio Firm Members</h3>
-            <p className="text-xs text-slate-500">Connect Clio to see your firm members</p>
+            <h3 className="text-sm font-semibold text-[var(--color-ink)]">Clio Firm Members</h3>
+            <p className="text-xs text-[var(--color-neutral-500)]">Connect Clio to see your firm members</p>
           </div>
         </div>
-        <p className="text-sm text-slate-600 mb-4">
+        <p className="text-sm text-[var(--color-neutral-600)] mb-4">
           Connect your Clio account to preview firm members and invite them to your Callengo team.
         </p>
         <Link
@@ -142,17 +142,17 @@ export default function ClioOrgMembers({
 
   // Connected - show members
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+      <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-[#1B2B5B]/5 flex items-center justify-center">
             <ClioLogo className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">
+            <h3 className="text-sm font-semibold text-[var(--color-ink)]">
               Clio Firm Members ({members.length})
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--color-neutral-400)]">
               {members.filter((m) => m.already_in_callengo).length} already in Callengo
             </p>
           </div>
@@ -193,7 +193,7 @@ export default function ClioOrgMembers({
 
       {/* Member List */}
       {!loading && members.length > 0 && (
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-[var(--border-subtle)]">
           {members.map((member) => (
             <div key={member.clio_user_id} className="px-5 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -202,7 +202,7 @@ export default function ClioOrgMembers({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-slate-900">{member.name}</p>
+                    <p className="text-sm font-medium text-[var(--color-ink)]">{member.name}</p>
                     {member.already_in_callengo && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <span className="w-1 h-1 rounded-full bg-emerald-500" />
@@ -215,15 +215,15 @@ export default function ClioOrgMembers({
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500">{member.email}</p>
+                  <p className="text-xs text-[var(--color-neutral-500)]">{member.email}</p>
                   {member.subscription_type && (
-                    <p className="text-xs text-slate-400">{member.subscription_type}</p>
+                    <p className="text-xs text-[var(--color-neutral-400)]">{member.subscription_type}</p>
                   )}
                 </div>
               </div>
               <div>
                 {member.already_in_callengo ? (
-                  <span className="text-xs text-slate-400 font-medium">Already a member</span>
+                  <span className="text-xs text-[var(--color-neutral-400)] font-medium">Already a member</span>
                 ) : (
                   <button
                     onClick={() => handleInvite(member.email)}
@@ -240,7 +240,7 @@ export default function ClioOrgMembers({
       )}
 
       {!loading && members.length === 0 && !error && (
-        <div className="px-5 py-8 text-center text-sm text-slate-400">
+        <div className="px-5 py-8 text-center text-sm text-[var(--color-neutral-400)]">
           No active members found in your Clio firm
         </div>
       )}

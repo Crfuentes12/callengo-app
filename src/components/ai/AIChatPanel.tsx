@@ -223,14 +223,14 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
     return (
       <button
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 px-4 py-3 bg-white rounded-2xl shadow-xl border border-slate-200 hover:shadow-2xl hover:scale-[1.02] transition-all group"
+        className="fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 px-4 py-3 bg-white rounded-2xl shadow-xl border border-[var(--border-default)] hover:shadow-2xl hover:scale-[1.02] transition-all group"
       >
         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-purple-600 flex items-center justify-center shadow-sm">
           <svg className="w-4.5 h-4.5 text-white" viewBox="0 0 24 24" fill="currentColor">
             <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>
         </div>
-        <span className="text-sm font-semibold text-slate-700 group-hover:text-[var(--color-primary)] transition-colors">Cali</span>
+        <span className="text-sm font-semibold text-[var(--color-neutral-700)] group-hover:text-[var(--color-primary)] transition-colors">Cali</span>
         {messages.length > 0 && (
           <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
         )}
@@ -240,11 +240,11 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
 
   return (
     <div
-      className="fixed top-0 right-0 bottom-0 z-[60] w-[400px] max-w-[calc(100vw-48px)] flex flex-col bg-white border-l border-slate-200 shadow-2xl"
+      className="fixed top-0 right-0 bottom-0 z-[60] w-[400px] max-w-[calc(100vw-48px)] flex flex-col bg-white border-l border-[var(--border-default)] shadow-2xl"
       style={{ animation: 'slideInFromRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-[var(--color-primary-50)] via-white to-purple-50/30 shrink-0">
+      <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-gradient-to-r from-[var(--color-primary-50)] via-white to-purple-50/30 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -256,14 +256,14 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Cali</h3>
-              <p className="text-[10px] text-slate-400 font-medium">{t.aiChat.title}</p>
+              <h3 className="text-sm font-bold text-[var(--color-ink)]">Cali</h3>
+              <p className="text-[10px] text-[var(--color-neutral-400)] font-medium">{t.aiChat.title}</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className={`p-1.5 rounded-lg transition-colors ${showHistory ? 'text-[var(--color-primary)] bg-[var(--color-primary-50)]' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+              className={`p-1.5 rounded-lg transition-colors ${showHistory ? 'text-[var(--color-primary)] bg-[var(--color-primary-50)]' : 'text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)]'}`}
               title={t.aiChat.history}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -272,7 +272,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             </button>
             <button
               onClick={startNewConversation}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)] transition-colors"
               title={t.aiChat.newConversation}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -281,7 +281,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             </button>
             <button
               onClick={() => setIsMinimized(true)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)] transition-colors"
               title="Minimize"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -290,7 +290,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+              className="p-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-red-500 hover:bg-red-50 transition-colors"
               title="Close"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -303,11 +303,11 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
 
       {/* History panel */}
       {showHistory && (
-        <div className="border-b border-slate-100 max-h-52 overflow-y-auto bg-slate-50/80 animate-slideDown shrink-0">
+        <div className="border-b border-[var(--border-subtle)] max-h-52 overflow-y-auto bg-[var(--color-neutral-50)]/80 animate-slideDown shrink-0">
           <div className="p-3">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">{t.aiChat.history}</p>
+            <p className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider mb-2 px-1">{t.aiChat.history}</p>
             {conversations.length === 0 ? (
-              <p className="text-xs text-slate-400 px-1 py-2">{t.aiChat.noHistory}</p>
+              <p className="text-xs text-[var(--color-neutral-400)] px-1 py-2">{t.aiChat.noHistory}</p>
             ) : (
               <div className="space-y-0.5">
                 {conversations.map(conv => (
@@ -320,11 +320,11 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
                     className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
                       activeConversationId === conv.id
                         ? 'bg-[var(--color-primary-50)] text-[var(--color-primary)] font-semibold'
-                        : 'text-slate-600 hover:bg-white'
+                        : 'text-[var(--color-neutral-600)] hover:bg-white'
                     }`}
                   >
                     <p className="truncate font-medium">{conv.title || t.aiChat.newConversation}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{formatDate(conv.updated_at)}</p>
+                    <p className="text-[10px] text-[var(--color-neutral-400)] mt-0.5">{formatDate(conv.updated_at)}</p>
                   </button>
                 ))}
               </div>
@@ -342,11 +342,11 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
                 <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
               </svg>
             </div>
-            <h4 className="text-base font-bold text-slate-900 mb-1">Hey {userName.split(' ')[0] || 'there'}!</h4>
-            <p className="text-xs text-slate-500 max-w-[280px] leading-relaxed mb-1">
+            <h4 className="text-base font-bold text-[var(--color-ink)] mb-1">Hey {userName.split(' ')[0] || 'there'}!</h4>
+            <p className="text-xs text-[var(--color-neutral-500)] max-w-[280px] leading-relaxed mb-1">
               I&apos;m <span className="font-semibold text-[var(--color-primary)]">Cali</span>, your AI assistant.
             </p>
-            <p className="text-xs text-slate-400 max-w-[280px] leading-relaxed">
+            <p className="text-xs text-[var(--color-neutral-400)] max-w-[280px] leading-relaxed">
               Ask me anything about your campaigns, calls, contacts, or how to use any feature.
             </p>
             <div className="grid grid-cols-2 gap-2 mt-5 w-full max-w-[320px]">
@@ -362,9 +362,9 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
                     setInput(suggestion.text);
                     setTimeout(() => handleSend(), 0);
                   }}
-                  className="flex items-center gap-2.5 text-left px-3 py-2.5 text-[11px] text-slate-600 bg-slate-50 hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary)] border border-slate-200 hover:border-[var(--color-primary-200)] rounded-xl transition-all leading-snug group"
+                  className="flex items-center gap-2.5 text-left px-3 py-2.5 text-[11px] text-[var(--color-neutral-600)] bg-[var(--color-neutral-50)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary)] border border-[var(--border-default)] hover:border-[var(--color-primary-200)] rounded-xl transition-all leading-snug group"
                 >
-                  <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-[var(--color-primary)] transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <svg className="w-3.5 h-3.5 text-[var(--color-neutral-400)] group-hover:text-[var(--color-primary)] transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                     <path strokeLinecap="round" strokeLinejoin="round" d={suggestion.icon} />
                   </svg>
                   {suggestion.text}
@@ -384,16 +384,16 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
                       <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                     </svg>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-medium">Cali</span>
+                  <span className="text-[10px] text-[var(--color-neutral-400)] font-medium">Cali</span>
                 </div>
               )}
               <div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
                 msg.role === 'user'
                   ? 'bg-gradient-to-br from-[var(--color-primary)] to-purple-600 text-white rounded-tr-md shadow-sm'
-                  : 'bg-slate-100 text-slate-800 rounded-tl-md'
+                  : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-800)] rounded-tl-md'
               }`}>
                 {msg.role === 'assistant' ? (
-                  <div className="cali-markdown prose prose-sm prose-slate max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_pre]:bg-slate-200 [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:text-xs [&_code]:bg-slate-200 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:text-slate-700 [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-1 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_strong]:font-semibold [&_a]:text-[var(--color-primary)] [&_a]:underline [&_a]:cursor-pointer [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_blockquote]:text-slate-600 [&_hr]:my-2">
+                  <div className="cali-markdown prose prose-sm prose-slate max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_pre]:bg-[var(--color-neutral-200)] [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:text-xs [&_code]:bg-[var(--color-neutral-200)] [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:text-[var(--color-neutral-700)] [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-1 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_strong]:font-semibold [&_a]:text-[var(--color-primary)] [&_a]:underline [&_a]:cursor-pointer [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--border-strong)] [&_blockquote]:pl-3 [&_blockquote]:text-[var(--color-neutral-600)] [&_hr]:my-2">
                     <ReactMarkdown
                       components={{
                         a: ({ href, children }) => {
@@ -423,7 +423,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
                   <div className="whitespace-pre-wrap">{msg.content}</div>
                 )}
               </div>
-              <p className={`text-[10px] text-slate-400 mt-1 ${msg.role === 'user' ? 'text-right' : ''}`}>
+              <p className={`text-[10px] text-[var(--color-neutral-400)] mt-1 ${msg.role === 'user' ? 'text-right' : ''}`}>
                 {formatTime(msg.created_at)}
               </p>
             </div>
@@ -439,13 +439,13 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
                     <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium">{t.aiChat.thinking}</span>
+                <span className="text-[10px] text-[var(--color-neutral-400)] font-medium">{t.aiChat.thinking}</span>
               </div>
-              <div className="bg-slate-100 rounded-2xl rounded-tl-md px-4 py-3">
+              <div className="bg-[var(--color-neutral-100)] rounded-2xl rounded-tl-md px-4 py-3">
                 <div className="flex gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]"></div>
-                  <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]"></div>
-                  <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-[var(--color-neutral-400)] animate-bounce [animation-delay:0ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-[var(--color-neutral-400)] animate-bounce [animation-delay:150ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-[var(--color-neutral-400)] animate-bounce [animation-delay:300ms]"></div>
                 </div>
               </div>
             </div>
@@ -456,7 +456,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t border-slate-100 bg-white shrink-0">
+      <div className="p-3 border-t border-[var(--border-subtle)] bg-white shrink-0">
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
@@ -465,7 +465,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             onKeyDown={handleKeyDown}
             placeholder={t.aiChat.placeholder}
             rows={1}
-            className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all max-h-24 overflow-y-auto"
+            className="flex-1 px-3.5 py-2.5 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl text-sm resize-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all max-h-24 overflow-y-auto"
             style={{ minHeight: '40px' }}
             disabled={isLoading}
           />
@@ -479,7 +479,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             </svg>
           </button>
         </div>
-        <p className="text-[10px] text-slate-400 mt-1.5 text-center">
+        <p className="text-[10px] text-[var(--color-neutral-400)] mt-1.5 text-center">
           Powered by AI &middot; Knows your Callengo data
         </p>
       </div>

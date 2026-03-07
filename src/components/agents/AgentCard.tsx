@@ -47,7 +47,7 @@ export default function AgentCard({ agent, onSelect }: AgentCardProps) {
       onClick={onSelect}
     >
       {/* Main card container */}
-      <div className="relative aspect-square rounded-2xl overflow-hidden shadow-md border border-slate-200 group-hover:shadow-lg group-hover:border-[var(--color-primary-300)] transition-all duration-300">
+      <div className="relative aspect-square rounded-2xl overflow-hidden shadow-md border border-[var(--border-default)] group-hover:shadow-lg group-hover:border-[var(--color-primary-300)] transition-all duration-300">
         {/* Character Image Background */}
         <div className="absolute inset-0">
           <Image
@@ -71,7 +71,7 @@ export default function AgentCard({ agent, onSelect }: AgentCardProps) {
               <div className="h-0.5 w-0 group-hover:w-full gradient-bg rounded-full transition-all duration-500 mt-1"></div>
             </div>
 
-            <p className="text-xs text-slate-200 line-clamp-2 leading-relaxed drop-shadow-md mt-1.5">
+            <p className="text-xs text-[var(--color-neutral-200)] line-clamp-2 leading-relaxed drop-shadow-md mt-1.5">
               {agent.description || t.agents.subtitle}
             </p>
           </div>

@@ -61,7 +61,7 @@ export default function LanguageSelector({
             flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-all
             ${dark
               ? 'text-white/60 hover:text-white/80 hover:bg-white/10'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)] hover:bg-[var(--surface-hover)]'
             }
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}
@@ -91,10 +91,10 @@ export default function LanguageSelector({
                   ${lang.code === currentLang
                     ? dark
                       ? 'bg-white/10 text-white'
-                      : 'bg-slate-50 text-slate-900 font-medium'
+                      : 'bg-[var(--color-neutral-50)] text-[var(--color-ink)] font-medium'
                     : dark
                       ? 'text-white/70 hover:bg-white/5 hover:text-white'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      : 'text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)] hover:text-[var(--color-ink)]'
                   }
                 `}
               >
@@ -124,7 +124,7 @@ export default function LanguageSelector({
           w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all
           ${dark
             ? 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-            : 'bg-white border-slate-200 text-slate-900 hover:border-slate-300'
+            : 'bg-white border-[var(--border-default)] text-[var(--color-ink)] hover:border-[var(--border-strong)]'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
@@ -132,9 +132,9 @@ export default function LanguageSelector({
         <span className="text-xl">{currentLangInfo.flag}</span>
         <div className="flex-1 text-left">
           <div className="text-sm font-medium">{currentLangInfo.nativeName}</div>
-          <div className={`text-xs ${dark ? 'text-white/40' : 'text-slate-500'}`}>{currentLangInfo.name}</div>
+          <div className={`text-xs ${dark ? 'text-white/40' : 'text-[var(--color-neutral-500)]'}`}>{currentLangInfo.name}</div>
         </div>
-        <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${dark ? 'text-white/40' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${dark ? 'text-white/40' : 'text-[var(--color-neutral-400)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
@@ -144,7 +144,7 @@ export default function LanguageSelector({
           absolute left-0 right-0 top-full mt-2 rounded-xl shadow-lg border z-50 overflow-hidden
           ${dark
             ? 'bg-[var(--surface-dark-card)] border-white/10'
-            : 'bg-white border-slate-200'
+            : 'bg-white border-[var(--border-default)]'
           }
         `}>
           {SUPPORTED_LANGUAGES.map((lang) => (
@@ -160,14 +160,14 @@ export default function LanguageSelector({
                     : 'bg-[var(--color-primary-50)] text-[var(--color-primary)]'
                   : dark
                     ? 'text-white/70 hover:bg-white/5 hover:text-white'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    : 'text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)] hover:text-[var(--color-ink)]'
                 }
               `}
             >
               <span className="text-xl">{lang.flag}</span>
               <div className="flex-1 text-left">
                 <div className="font-medium">{lang.nativeName}</div>
-                <div className={`text-xs ${dark ? 'text-white/40' : 'text-slate-400'}`}>{lang.name}</div>
+                <div className={`text-xs ${dark ? 'text-white/40' : 'text-[var(--color-neutral-400)]'}`}>{lang.name}</div>
               </div>
               {lang.code === currentLang && (
                 <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">

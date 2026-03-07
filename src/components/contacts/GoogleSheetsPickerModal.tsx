@@ -308,23 +308,23 @@ export default function GoogleSheetsPickerModal({
 
   return (
     <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200/50 overflow-hidden max-h-[85vh] flex flex-col">
+      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-[var(--border-default)]/50 overflow-hidden max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex-shrink-0">
+        <div className="p-5 border-b border-[var(--border-subtle)] flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-white border border-[var(--border-default)] flex items-center justify-center">
                 <GoogleSheetsIcon className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-slate-900">
+                <h2 className="text-lg font-bold text-[var(--color-ink)]">
                   {step === 'home' && 'Google Sheets'}
                   {step === 'spreadsheets' && 'Select a Spreadsheet'}
                   {step === 'tabs' && (selectedSpreadsheet?.name || 'Select a Sheet')}
                   {step === 'action' && 'Choose Action'}
                   {(step === 'loading-data' || step === 'linking' || step === 'syncing') && 'Processing...'}
                 </h2>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[var(--color-neutral-50)]0">
                   {step === 'home' && t.contacts.importContacts}
                   {step === 'spreadsheets' && t.contacts.importContacts}
                   {step === 'tabs' && t.contacts.importContacts}
@@ -336,7 +336,7 @@ export default function GoogleSheetsPickerModal({
             </div>
             <button
               onClick={onClose}
-              className="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
+              className="w-9 h-9 rounded-lg bg-white border border-[var(--border-default)] text-[var(--color-neutral-600)] hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
             >
               <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -359,7 +359,7 @@ export default function GoogleSheetsPickerModal({
                   {/* Linked Sheets */}
                   {linkedSheets.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                      <p className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-3">
                         Linked Sheets ({linkedSheets.length})
                       </p>
                       <div className="space-y-2">
@@ -372,22 +372,22 @@ export default function GoogleSheetsPickerModal({
                               <GoogleSheetsIcon className="w-5 h-5" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-900 truncate">
+                              <p className="text-sm font-semibold text-[var(--color-ink)] truncate">
                                 {ls.spreadsheet_name}
                               </p>
-                              <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                              <p className="text-xs text-[var(--color-neutral-50)]0 flex items-center gap-1.5">
                                 <span>{ls.sheet_tab_title}</span>
-                                <span className="text-slate-300">·</span>
+                                <span className="text-[var(--color-neutral-300)]">·</span>
                                 <span>Import</span>
                                 {ls.last_synced_at && (
                                   <>
-                                    <span className="text-slate-300">·</span>
+                                    <span className="text-[var(--color-neutral-300)]">·</span>
                                     <span>{formatDate(ls.last_synced_at)}</span>
                                   </>
                                 )}
                                 {ls.last_sync_row_count > 0 && (
                                   <>
-                                    <span className="text-slate-300">·</span>
+                                    <span className="text-[var(--color-neutral-300)]">·</span>
                                     <span>{ls.last_sync_row_count} rows</span>
                                   </>
                                 )}
@@ -410,7 +410,7 @@ export default function GoogleSheetsPickerModal({
                               </button>
                               <button
                                 onClick={() => handleUnlinkSheet(ls.id)}
-                                className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--color-neutral-50)]0 hover:text-red-600 hover:bg-red-50 transition-colors"
                               >
                                 {t.common.delete}
                               </button>
@@ -424,18 +424,18 @@ export default function GoogleSheetsPickerModal({
                   {/* Browse / Link New Sheet */}
                   <button
                     onClick={handleBrowseSheets}
-                    className="w-full px-4 py-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5 transition-all flex items-center gap-3 group"
+                    className="w-full px-4 py-4 rounded-xl border-2 border-dashed border-[var(--border-default)] hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5 transition-all flex items-center gap-3 group"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 group-hover:bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0 transition-colors">
-                      <svg className="w-5 h-5 text-slate-400 group-hover:text-[var(--color-primary)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-10 h-10 rounded-lg bg-[var(--color-neutral-100)] group-hover:bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0 transition-colors">
+                      <svg className="w-5 h-5 text-[var(--color-neutral-400)] group-hover:text-[var(--color-primary)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold text-[var(--color-ink)]">
                         {linkedSheets.length > 0 ? 'Link Another Sheet' : 'Browse Google Sheets'}
                       </p>
-                      <p className="text-xs text-slate-500">Import once or link for continuous sync</p>
+                      <p className="text-xs text-[var(--color-neutral-50)]0">Import once or link for continuous sync</p>
                     </div>
                   </button>
                 </>
@@ -449,7 +449,7 @@ export default function GoogleSheetsPickerModal({
               <div className="p-4 pb-2 sticky top-0 bg-white z-10">
                 <button
                   onClick={() => { setStep('home'); setSearchTerm(''); }}
-                  className="mb-3 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                  className="mb-3 flex items-center gap-1.5 text-sm text-[var(--color-neutral-50)]0 hover:text-[var(--color-ink)] transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -457,7 +457,7 @@ export default function GoogleSheetsPickerModal({
                   {t.common.back}
                 </button>
                 <div className="relative">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <input
@@ -465,7 +465,7 @@ export default function GoogleSheetsPickerModal({
                     placeholder={t.contacts.searchPlaceholder}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 border border-[var(--border-default)] rounded-xl text-sm focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all"
                     autoFocus
                   />
                 </div>
@@ -475,18 +475,18 @@ export default function GoogleSheetsPickerModal({
                 <div className="flex items-center justify-center py-16">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-                    <p className="text-sm text-slate-500">Loading your spreadsheets...</p>
+                    <p className="text-sm text-[var(--color-neutral-50)]0">Loading your spreadsheets...</p>
                   </div>
                 </div>
               ) : filteredSpreadsheets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 px-4">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                  <div className="w-14 h-14 rounded-2xl bg-[var(--color-neutral-100)] flex items-center justify-center mb-3">
                     <GoogleSheetsIcon className="w-7 h-7 opacity-50" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-700 mb-1">
+                  <p className="text-sm font-semibold text-[var(--color-neutral-700)] mb-1">
                     {searchTerm ? 'No matching spreadsheets' : 'No spreadsheets found'}
                   </p>
-                  <p className="text-xs text-slate-500 text-center">
+                  <p className="text-xs text-[var(--color-neutral-50)]0 text-center">
                     {searchTerm ? 'Try a different search term' : 'Create a spreadsheet in Google Sheets first'}
                   </p>
                 </div>
@@ -497,24 +497,24 @@ export default function GoogleSheetsPickerModal({
                       <button
                         key={sheet.id}
                         onClick={() => handleSelectSpreadsheet(sheet)}
-                        className="w-full px-3 py-3 text-left rounded-xl hover:bg-slate-50 transition-all flex items-center gap-3 group"
+                        className="w-full px-3 py-3 text-left rounded-xl hover:bg-[var(--color-neutral-50)] transition-all flex items-center gap-3 group"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:border-green-300 group-hover:bg-green-50 transition-colors">
+                        <div className="w-10 h-10 rounded-lg bg-white border border-[var(--border-default)] flex items-center justify-center flex-shrink-0 group-hover:border-green-300 group-hover:bg-green-50 transition-colors">
                           <GoogleSheetsIcon className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">{sheet.name}</p>
-                          <p className="text-xs text-slate-500 flex items-center gap-2">
+                          <p className="text-sm font-semibold text-[var(--color-ink)] truncate">{sheet.name}</p>
+                          <p className="text-xs text-[var(--color-neutral-50)]0 flex items-center gap-2">
                             <span>{formatDate(sheet.modifiedTime)}</span>
                             {sheet.owners && sheet.owners.length > 0 && (
                               <>
-                                <span className="text-slate-300">·</span>
+                                <span className="text-[var(--color-neutral-300)]">·</span>
                                 <span className="truncate">{sheet.owners[0]}</span>
                               </>
                             )}
                           </p>
                         </div>
-                        <svg className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4 text-[var(--color-neutral-300)] group-hover:text-[var(--color-neutral-50)]0 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </button>
@@ -524,11 +524,11 @@ export default function GoogleSheetsPickerModal({
                     <button
                       onClick={() => fetchSpreadsheets(nextPageToken)}
                       disabled={loadingMore}
-                      className="w-full mt-3 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full mt-3 px-4 py-2.5 border border-[var(--border-default)] text-[var(--color-neutral-600)] rounded-xl hover:bg-[var(--color-neutral-50)] transition-all text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {loadingMore ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                          <div className="w-4 h-4 border-2 border-[var(--color-neutral-400)] border-t-transparent rounded-full animate-spin" />
                           Loading...
                         </>
                       ) : t.common.showMore}
@@ -544,7 +544,7 @@ export default function GoogleSheetsPickerModal({
             <div className="p-4">
               <button
                 onClick={() => { setStep('spreadsheets'); setSelectedSpreadsheet(null); setTabs([]); }}
-                className="mb-4 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                className="mb-4 flex items-center gap-1.5 text-sm text-[var(--color-neutral-50)]0 hover:text-[var(--color-ink)] transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -556,32 +556,32 @@ export default function GoogleSheetsPickerModal({
                 <div className="flex items-center justify-center py-12">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-                    <p className="text-sm text-slate-500">Loading sheet tabs...</p>
+                    <p className="text-sm text-[var(--color-neutral-50)]0">Loading sheet tabs...</p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                  <p className="text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-3">
                     {tabs.length} {tabs.length === 1 ? 'Sheet' : 'Sheets'} found
                   </p>
                   {tabs.map((tab) => (
                     <button
                       key={tab.sheetId}
                       onClick={() => handleSelectTab(tab)}
-                      className="w-full px-4 py-3.5 text-left rounded-xl border border-slate-200 hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5 transition-all flex items-center gap-3 group"
+                      className="w-full px-4 py-3.5 text-left rounded-xl border border-[var(--border-default)] hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5 transition-all flex items-center gap-3 group"
                     >
-                      <div className="w-9 h-9 rounded-lg bg-slate-100 group-hover:bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0 transition-colors">
-                        <svg className="w-4 h-4 text-slate-500 group-hover:text-[var(--color-primary)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-9 h-9 rounded-lg bg-[var(--color-neutral-100)] group-hover:bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0 transition-colors">
+                        <svg className="w-4 h-4 text-[var(--color-neutral-50)]0 group-hover:text-[var(--color-primary)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900">{tab.title}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-sm font-semibold text-[var(--color-ink)]">{tab.title}</p>
+                        <p className="text-xs text-[var(--color-neutral-50)]0">
                           {tab.rowCount > 0 ? `~${tab.rowCount.toLocaleString()} rows` : 'Empty'} · {tab.columnCount} columns
                         </p>
                       </div>
-                      <svg className="w-4 h-4 text-slate-300 group-hover:text-[var(--color-primary)] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4 text-[var(--color-neutral-300)] group-hover:text-[var(--color-primary)] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
@@ -596,7 +596,7 @@ export default function GoogleSheetsPickerModal({
             <div className="p-4">
               <button
                 onClick={() => { setStep('tabs'); setSelectedTab(null); }}
-                className="mb-4 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                className="mb-4 flex items-center gap-1.5 text-sm text-[var(--color-neutral-50)]0 hover:text-[var(--color-ink)] transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -608,7 +608,7 @@ export default function GoogleSheetsPickerModal({
                 {/* Import Once */}
                 <button
                   onClick={handleImportOnce}
-                  className="w-full px-4 py-4 text-left rounded-xl border border-slate-200 hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5 transition-all flex items-center gap-4 group"
+                  className="w-full px-4 py-4 text-left rounded-xl border border-[var(--border-default)] hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5 transition-all flex items-center gap-4 group"
                 >
                   <div className="w-11 h-11 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition-colors">
                     <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -616,8 +616,8 @@ export default function GoogleSheetsPickerModal({
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-900">{t.contacts.importContacts}</p>
-                    <p className="text-xs text-slate-500">Load data from this sheet now and map columns to contact fields</p>
+                    <p className="text-sm font-semibold text-[var(--color-ink)]">{t.contacts.importContacts}</p>
+                    <p className="text-xs text-[var(--color-neutral-50)]0">Load data from this sheet now and map columns to contact fields</p>
                   </div>
                 </button>
 
@@ -632,8 +632,8 @@ export default function GoogleSheetsPickerModal({
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-900">Link for Sync</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm font-semibold text-[var(--color-ink)]">Link for Sync</p>
+                    <p className="text-xs text-[var(--color-neutral-50)]0">
                       Bidirectional sync — contacts, call results, and updates stay in sync automatically
                     </p>
                   </div>
@@ -651,12 +651,12 @@ export default function GoogleSheetsPickerModal({
               <div className="flex flex-col items-center gap-4">
                 <div className="w-10 h-10 border-3 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
                 <div className="text-center">
-                  <p className="text-sm font-semibold text-slate-700">
+                  <p className="text-sm font-semibold text-[var(--color-neutral-700)]">
                     {step === 'loading-data' && 'Reading spreadsheet data...'}
                     {step === 'linking' && 'Linking & running initial sync...'}
                     {step === 'syncing' && 'Syncing data...'}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">This may take a moment for large sheets</p>
+                  <p className="text-xs text-[var(--color-neutral-50)]0 mt-1">This may take a moment for large sheets</p>
                 </div>
               </div>
             </div>

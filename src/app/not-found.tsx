@@ -13,11 +13,11 @@ export default function NotFound() {
         </div>
 
         {/* Error Code */}
-        <h1 className="text-7xl font-bold text-slate-900 tracking-tight">404</h1>
+        <h1 className="text-7xl font-bold text-[var(--color-ink)] tracking-tight">404</h1>
 
         {/* Message */}
-        <p className="mt-4 text-lg font-semibold text-slate-700">Page not found</p>
-        <p className="mt-2 text-sm text-slate-500 leading-relaxed">
+        <p className="mt-4 text-lg font-semibold text-[var(--color-neutral-700)]">Page not found</p>
+        <p className="mt-2 text-sm text-[var(--color-neutral-500)] leading-relaxed">
           The page you are looking for does not exist or has been moved. Let&apos;s get you back on track.
         </p>
 

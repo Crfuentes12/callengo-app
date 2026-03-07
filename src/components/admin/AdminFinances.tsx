@@ -34,7 +34,7 @@ export default function AdminFinances() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="w-8 h-8 border border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-sm text-slate-500">{t.common.loading}</p>
+          <p className="text-sm text-[var(--color-neutral-500)]">{t.common.loading}</p>
         </div>
       </div>
     );
@@ -45,13 +45,13 @@ export default function AdminFinances() {
   if (!currentFinance) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-600">{t.common.noData}</p>
+        <p className="text-[var(--color-neutral-600)]">{t.common.noData}</p>
       </div>
     );
   }
 
   const marginColor = (percent: number | null) => {
-    if (!percent) return 'text-slate-600';
+    if (!percent) return 'text-[var(--color-neutral-600)]';
     if (percent >= 50) return 'text-emerald-600';
     if (percent >= 35) return 'text-amber-600';
     return 'text-red-600';
@@ -73,13 +73,13 @@ export default function AdminFinances() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">{t.admin.finances.title}</h2>
-          <p className="text-sm text-slate-600 mt-1">V4 Pricing Model — Sub-accounts + Add-ons</p>
+          <h2 className="text-2xl font-bold text-[var(--color-ink)]">{t.admin.finances.title}</h2>
+          <p className="text-sm text-[var(--color-neutral-600)] mt-1">V4 Pricing Model — Sub-accounts + Add-ons</p>
         </div>
         <select
           value={selectedPeriod}
           onChange={(e) => setSelectedPeriod(e.target.value)}
-          className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          className="px-4 py-2 border border-[var(--border-strong)] rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
         >
           <option value="current">Current Period</option>
           <option value="last_30">Last 30 Days</option>
@@ -155,13 +155,13 @@ export default function AdminFinances() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </div>
-          <p className="text-3xl font-bold text-slate-900">
+          <p className="text-3xl font-bold text-[var(--color-ink)]">
             ${currentFinance.gross_margin?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
           </p>
           <p className={`mt-3 text-2xl font-bold ${marginColor(currentFinance.gross_margin_percent)}`}>
             {currentFinance.gross_margin_percent?.toFixed(1) || '0.0'}%
           </p>
-          <p className="text-xs text-slate-500 mt-1">Target: 55–67% on included min</p>
+          <p className="text-xs text-[var(--color-neutral-500)] mt-1">Target: 55–67% on included min</p>
         </div>
 
         {/* Active Companies + Sub-accounts */}
@@ -172,14 +172,14 @@ export default function AdminFinances() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <p className="text-3xl font-bold text-slate-900">
+          <p className="text-3xl font-bold text-[var(--color-ink)]">
             {currentFinance.total_companies_active || 0}
           </p>
           <p className="mt-2 text-sm text-[var(--color-primary)]">
             ${currentFinance.avg_revenue_per_company?.toFixed(2) || '0.00'} ARPC
           </p>
           {activeSubaccounts > 0 && (
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-[var(--color-neutral-500)] mt-1">
               {activeSubaccounts} Bland sub-accounts
             </p>
           )}
@@ -188,8 +188,8 @@ export default function AdminFinances() {
 
       {/* Add-on Revenue Breakdown */}
       {addonRevenue > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+          <h3 className="text-lg font-bold text-[var(--color-ink)] mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
             </svg>
@@ -198,26 +198,26 @@ export default function AdminFinances() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
               <p className="text-xs font-semibold text-blue-600 uppercase mb-1">Dedicated Number</p>
-              <p className="text-2xl font-bold text-slate-900">${dedicatedNumberRevenue.toLocaleString()}</p>
-              <p className="text-xs text-slate-500 mt-1">$15/mo per number</p>
+              <p className="text-2xl font-bold text-[var(--color-ink)]">${dedicatedNumberRevenue.toLocaleString()}</p>
+              <p className="text-xs text-[var(--color-neutral-500)] mt-1">$15/mo per number</p>
             </div>
             <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
               <p className="text-xs font-semibold text-purple-600 uppercase mb-1">Recording Vault</p>
-              <p className="text-2xl font-bold text-slate-900">${recordingVaultRevenue.toLocaleString()}</p>
-              <p className="text-xs text-slate-500 mt-1">$12/mo per company</p>
+              <p className="text-2xl font-bold text-[var(--color-ink)]">${recordingVaultRevenue.toLocaleString()}</p>
+              <p className="text-xs text-[var(--color-neutral-500)] mt-1">$12/mo per company</p>
             </div>
             <div className="p-4 bg-orange-50 rounded-lg border border-orange-100">
               <p className="text-xs font-semibold text-orange-600 uppercase mb-1">Calls Booster</p>
-              <p className="text-2xl font-bold text-slate-900">${callsBoosterRevenue.toLocaleString()}</p>
-              <p className="text-xs text-slate-500 mt-1">$35/mo per booster</p>
+              <p className="text-2xl font-bold text-[var(--color-ink)]">${callsBoosterRevenue.toLocaleString()}</p>
+              <p className="text-xs text-[var(--color-neutral-500)] mt-1">$35/mo per booster</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Bland AI Sub-account Infrastructure */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+      <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+        <h3 className="text-lg font-bold text-[var(--color-ink)] mb-4 flex items-center gap-2">
           <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
           </svg>
@@ -225,81 +225,81 @@ export default function AdminFinances() {
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Parent Plan</p>
-            <p className="text-xl font-bold text-slate-900">{currentFinance.bland_plan || 'Scale'}</p>
-            <p className="text-sm text-slate-600 mt-1">${currentFinance.bland_plan_cost || 0}/mo</p>
+          <div className="p-4 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+            <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Parent Plan</p>
+            <p className="text-xl font-bold text-[var(--color-ink)]">{currentFinance.bland_plan || 'Scale'}</p>
+            <p className="text-sm text-[var(--color-neutral-600)] mt-1">${currentFinance.bland_plan_cost || 0}/mo</p>
           </div>
 
-          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Per-Min Rate</p>
-            <p className="text-xl font-bold text-slate-900">${currentFinance.bland_talk_rate?.toFixed(4) || '0.1100'}/min</p>
-            <p className="text-sm text-slate-600 mt-1">Transfer: ${currentFinance.bland_transfer_rate?.toFixed(4) || '0.0000'}/min</p>
+          <div className="p-4 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+            <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Per-Min Rate</p>
+            <p className="text-xl font-bold text-[var(--color-ink)]">${currentFinance.bland_talk_rate?.toFixed(4) || '0.1100'}/min</p>
+            <p className="text-sm text-[var(--color-neutral-600)] mt-1">Transfer: ${currentFinance.bland_transfer_rate?.toFixed(4) || '0.0000'}/min</p>
           </div>
 
-          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Sub-accounts</p>
-            <p className="text-xl font-bold text-slate-900">{activeSubaccounts}</p>
-            <p className="text-sm text-slate-600 mt-1">Isolated per company</p>
+          <div className="p-4 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+            <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Sub-accounts</p>
+            <p className="text-xl font-bold text-[var(--color-ink)]">{activeSubaccounts}</p>
+            <p className="text-sm text-[var(--color-neutral-600)] mt-1">Isolated per company</p>
           </div>
 
-          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Parent Limits</p>
-            <p className="text-sm text-slate-700"><strong>{currentFinance.bland_concurrent_limit || '∞'}</strong> concurrent</p>
-            <p className="text-sm text-slate-700"><strong>{currentFinance.bland_daily_limit || '∞'}</strong> per day</p>
+          <div className="p-4 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+            <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Parent Limits</p>
+            <p className="text-sm text-[var(--color-neutral-700)]"><strong>{currentFinance.bland_concurrent_limit || '∞'}</strong> concurrent</p>
+            <p className="text-sm text-[var(--color-neutral-700)]"><strong>{currentFinance.bland_daily_limit || '∞'}</strong> per day</p>
           </div>
         </div>
       </div>
 
       {/* Usage Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <h4 className="text-sm font-bold text-slate-500 uppercase mb-3">Total Calls</h4>
-          <p className="text-4xl font-bold text-slate-900 mb-2">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+          <h4 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Total Calls</h4>
+          <p className="text-4xl font-bold text-[var(--color-ink)] mb-2">
             {currentFinance.total_calls_made?.toLocaleString() || 0}
           </p>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-[var(--color-neutral-600)]">
             {currentFinance.total_minutes_used?.toLocaleString() || 0} minutes used
           </p>
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-[var(--color-neutral-500)] mt-2">
             Avg: {currentFinance.avg_minutes_per_call?.toFixed(2) || '0.00'} min/call
             {' '}(target: ~1.5)
           </p>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <h4 className="text-sm font-bold text-slate-500 uppercase mb-3">Overage Revenue</h4>
-          <p className="text-4xl font-bold text-slate-900 mb-2">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+          <h4 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Overage Revenue</h4>
+          <p className="text-4xl font-bold text-[var(--color-ink)] mb-2">
             ${currentFinance.revenue_overages?.toLocaleString() || '0'}
           </p>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-[var(--color-neutral-600)]">
             {currentFinance.overage_revenue_percent?.toFixed(1) || '0.0'}% of subscription revenue
           </p>
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-[var(--color-neutral-500)] mt-2">
             Margin on overage: ~55–164% above Bland cost
           </p>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <h4 className="text-sm font-bold text-slate-500 uppercase mb-3">Active Users</h4>
-          <p className="text-4xl font-bold text-slate-900 mb-2">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+          <h4 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Active Users</h4>
+          <p className="text-4xl font-bold text-[var(--color-ink)] mb-2">
             {currentFinance.total_users_active || 0}
           </p>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-[var(--color-neutral-600)]">
             across {currentFinance.total_companies_active || 0} companies
           </p>
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-[var(--color-neutral-500)] mt-2">
             ${currentFinance.avg_revenue_per_company?.toFixed(2) || '0.00'} avg revenue/company
           </p>
         </div>
       </div>
 
       {/* Plan Distribution */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">Plan Distribution (V4 Pricing)</h3>
+      <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+        <h3 className="text-lg font-bold text-[var(--color-ink)] mb-4">Plan Distribution (V4 Pricing)</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
-            { slug: 'free', label: 'Free', price: '$0', color: 'bg-slate-100 text-slate-700 border-slate-200' },
+            { slug: 'free', label: 'Free', price: '$0', color: 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-700)] border-[var(--border-default)]' },
             { slug: 'starter', label: 'Starter', price: '$99/mo', color: 'bg-blue-50 text-blue-700 border-blue-200' },
             { slug: 'growth', label: 'Growth', price: '$179/mo', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
             { slug: 'business', label: 'Business', price: '$299/mo', color: 'bg-violet-50 text-violet-700 border-violet-200' },
@@ -319,42 +319,42 @@ export default function AdminFinances() {
       </div>
 
       {/* Cost Breakdown */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">Cost Breakdown</h3>
+      <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+        <h3 className="text-lg font-bold text-[var(--color-ink)] mb-4">Cost Breakdown</h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-[var(--color-neutral-50)] rounded-lg">
             <div>
-              <span className="font-semibold text-slate-700">Bland AI (per-minute)</span>
-              <p className="text-xs text-slate-500">$0.11/min × total minutes</p>
+              <span className="font-semibold text-[var(--color-neutral-700)]">Bland AI (per-minute)</span>
+              <p className="text-xs text-[var(--color-neutral-500)]">$0.11/min × total minutes</p>
             </div>
-            <span className="text-lg font-bold text-slate-900">
+            <span className="text-lg font-bold text-[var(--color-ink)]">
               ${currentFinance.cost_bland?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
             </span>
           </div>
           {blandInfrastructureCost > 0 && (
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-[var(--color-neutral-50)] rounded-lg">
               <div>
-                <span className="font-semibold text-slate-700">Bland AI (Scale plan)</span>
-                <p className="text-xs text-slate-500">Monthly infrastructure flat fee</p>
+                <span className="font-semibold text-[var(--color-neutral-700)]">Bland AI (Scale plan)</span>
+                <p className="text-xs text-[var(--color-neutral-500)]">Monthly infrastructure flat fee</p>
               </div>
-              <span className="text-lg font-bold text-slate-900">
+              <span className="text-lg font-bold text-[var(--color-ink)]">
                 ${blandInfrastructureCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
           )}
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-            <span className="font-semibold text-slate-700">OpenAI</span>
-            <span className="text-lg font-bold text-slate-900">
+          <div className="flex items-center justify-between p-3 bg-[var(--color-neutral-50)] rounded-lg">
+            <span className="font-semibold text-[var(--color-neutral-700)]">OpenAI</span>
+            <span className="text-lg font-bold text-[var(--color-ink)]">
               ${currentFinance.cost_openai?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
             </span>
           </div>
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-            <span className="font-semibold text-slate-700">Supabase</span>
-            <span className="text-lg font-bold text-slate-900">
+          <div className="flex items-center justify-between p-3 bg-[var(--color-neutral-50)] rounded-lg">
+            <span className="font-semibold text-[var(--color-neutral-700)]">Supabase</span>
+            <span className="text-lg font-bold text-[var(--color-ink)]">
               ${currentFinance.cost_supabase?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
             </span>
           </div>
-          <div className="flex items-center justify-between p-4 bg-slate-900 rounded-lg border border-slate-700">
+          <div className="flex items-center justify-between p-4 bg-[var(--color-neutral-900)] rounded-lg border border-[var(--color-neutral-700)]">
             <span className="font-bold text-white uppercase">Total Costs</span>
             <span className="text-2xl font-bold text-white">
               ${currentFinance.cost_total?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
@@ -364,19 +364,19 @@ export default function AdminFinances() {
       </div>
 
       {/* Unit Economics Reference */}
-      <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">Unit Economics Reference (V4)</h3>
+      <div className="bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] p-6">
+        <h3 className="text-lg font-bold text-[var(--color-ink)] mb-4">Unit Economics Reference (V4)</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse">
             <thead>
-              <tr className="border-b-2 border-slate-200">
-                <th className="text-left py-2 pr-4 text-slate-500 font-semibold">Plan</th>
-                <th className="text-center py-2 px-3 text-slate-500 font-semibold">Price</th>
-                <th className="text-center py-2 px-3 text-slate-500 font-semibold">Calls</th>
-                <th className="text-center py-2 px-3 text-slate-500 font-semibold">Min</th>
-                <th className="text-center py-2 px-3 text-slate-500 font-semibold">Bland Cost</th>
-                <th className="text-center py-2 px-3 text-slate-500 font-semibold">Gross Margin</th>
-                <th className="text-center py-2 px-3 text-slate-500 font-semibold">Overage</th>
+              <tr className="border-b-2 border-[var(--border-default)]">
+                <th className="text-left py-2 pr-4 text-[var(--color-neutral-500)] font-semibold">Plan</th>
+                <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Price</th>
+                <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Calls</th>
+                <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Min</th>
+                <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Bland Cost</th>
+                <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Gross Margin</th>
+                <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Overage</th>
               </tr>
             </thead>
             <tbody>
@@ -388,7 +388,7 @@ export default function AdminFinances() {
                 { plan: 'Enterprise', price: 1499, calls: 4000, min: 6000, blandCost: 660, margin: 56.0, overage: 0.17 },
               ].map((row, i) => (
                 <tr key={i} className={i % 2 === 0 ? 'bg-white' : ''}>
-                  <td className="py-2 pr-4 font-semibold text-slate-800">{row.plan}</td>
+                  <td className="py-2 pr-4 font-semibold text-[var(--color-neutral-800)]">{row.plan}</td>
                   <td className="text-center py-2 px-3">${row.price}/mo</td>
                   <td className="text-center py-2 px-3">~{row.calls}</td>
                   <td className="text-center py-2 px-3">{row.min}</td>
@@ -400,7 +400,7 @@ export default function AdminFinances() {
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-slate-500 mt-3">* Bland cost @ $0.11/min (Scale plan). Effective avg: 1.5 min/call attempt.</p>
+        <p className="text-xs text-[var(--color-neutral-500)] mt-3">* Bland cost @ $0.11/min (Scale plan). Effective avg: 1.5 min/call attempt.</p>
       </div>
 
       {/* Notes */}

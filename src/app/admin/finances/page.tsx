@@ -38,8 +38,8 @@ export default function AdminFinancesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center">
-        <div className="text-slate-600">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-50)] via-white to-[var(--color-neutral-100)] flex items-center justify-center">
+        <div className="text-[var(--color-neutral-600)]">Loading...</div>
       </div>
     );
   }
@@ -49,7 +49,7 @@ export default function AdminFinancesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-50)] via-white to-[var(--color-neutral-100)]">
       <AdminFinances />
     </div>
   );

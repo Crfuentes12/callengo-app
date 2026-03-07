@@ -102,5 +102,5 @@ export const getCategoryColor = (category: string | null) => {
   };
 
   const cat = category?.toLowerCase() || 'default';
-  return colors[cat] || 'from-slate-400 via-slate-500 to-slate-600';
+  return colors[cat] || 'from-[var(--color-neutral-400)] via-[var(--color-neutral-500)] to-[var(--color-neutral-600)]';
 };

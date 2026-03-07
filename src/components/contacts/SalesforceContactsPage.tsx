@@ -13,18 +13,18 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 function TableSkeleton() {
   return (
-    <div className="divide-y divide-slate-100">
+    <div className="divide-y divide-[var(--border-subtle)]">
       {Array.from({ length: 8 }, (_, i) => (
         <div key={i} className="px-4 py-3.5 flex items-center gap-4 animate-pulse" style={{ animationDelay: `${i * 50}ms` }}>
-          <div className="w-5 h-5 rounded bg-slate-100 shrink-0" />
-          <div className="w-4 h-4 rounded bg-slate-100 shrink-0" />
-          <div className="h-4 w-28 rounded bg-slate-100" />
-          <div className="h-4 w-40 rounded bg-slate-100" />
-          <div className="h-4 w-24 rounded bg-slate-100" />
-          <div className="h-4 w-28 rounded bg-slate-100" />
-          <div className="h-4 w-20 rounded bg-slate-100" />
-          <div className="h-5 w-14 rounded-full bg-slate-100" />
-          <div className="h-3 w-20 rounded bg-slate-100" />
+          <div className="w-5 h-5 rounded bg-[var(--color-neutral-100)] shrink-0" />
+          <div className="w-4 h-4 rounded bg-[var(--color-neutral-100)] shrink-0" />
+          <div className="h-4 w-28 rounded bg-[var(--color-neutral-100)]" />
+          <div className="h-4 w-40 rounded bg-[var(--color-neutral-100)]" />
+          <div className="h-4 w-24 rounded bg-[var(--color-neutral-100)]" />
+          <div className="h-4 w-28 rounded bg-[var(--color-neutral-100)]" />
+          <div className="h-4 w-20 rounded bg-[var(--color-neutral-100)]" />
+          <div className="h-5 w-14 rounded-full bg-[var(--color-neutral-100)]" />
+          <div className="h-3 w-20 rounded bg-[var(--color-neutral-100)]" />
         </div>
       ))}
     </div>
@@ -291,12 +291,12 @@ export default function SalesforceContactsPage({
           { label: 'Salesforce' },
         ]} />
 
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-12 text-center">
           <div className="w-16 h-16 rounded-2xl bg-blue-50 text-[#00A1E0] flex items-center justify-center mx-auto mb-4">
             <FaSalesforce className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Connect Salesforce</h2>
-          <p className="text-slate-600 mb-6 max-w-md mx-auto">
+          <h2 className="text-xl font-bold text-[var(--color-ink)] mb-2">Connect Salesforce</h2>
+          <p className="text-[var(--color-neutral-600)] mb-6 max-w-md mx-auto">
             Connect your Salesforce account to import contacts, leads, and sync your CRM data with Callengo.
           </p>
           <Link
@@ -306,7 +306,7 @@ export default function SalesforceContactsPage({
             <FaSalesforce className="w-4 h-4" />
             Connect Salesforce
           </Link>
-          <p className="text-xs text-slate-400 mt-4">
+          <p className="text-xs text-[var(--color-neutral-400)] mt-4">
             Requires Business plan or higher.{' '}
             <Link href="/settings?tab=billing" className="text-[var(--color-primary)] hover:underline">
               Upgrade plan
@@ -345,8 +345,8 @@ export default function SalesforceContactsPage({
             <FaSalesforce className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Salesforce Contacts</h1>
-            <p className="text-sm text-slate-500">
+            <h1 className="text-xl font-bold text-[var(--color-ink)]">Salesforce Contacts</h1>
+            <p className="text-sm text-[var(--color-neutral-500)]">
               {sfIntegration?.displayName || sfIntegration?.username}
               {sfIntegration?.lastSynced && (
                 <> · Last synced {formatLastSynced(sfIntegration.lastSynced)}</>
@@ -382,11 +382,11 @@ export default function SalesforceContactsPage({
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             Connected
           </span>
-          <span className="text-sm text-slate-600">
+          <span className="text-sm text-[var(--color-neutral-600)]">
             {contacts.length} contacts · {leads.length} leads from Salesforce
           </span>
         </div>
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-[var(--color-neutral-500)]">
           {mappings.length} synced to Callengo
         </div>
       </div>
@@ -399,7 +399,7 @@ export default function SalesforceContactsPage({
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'contacts'
                 ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-200)]'
             }`}
           >
             Contacts ({filteredContacts.length})
@@ -409,14 +409,14 @@ export default function SalesforceContactsPage({
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'leads'
                 ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-200)]'
             }`}
           >
             Leads ({filteredLeads.length})
           </button>
         </div>
         <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
           <input
@@ -424,7 +424,7 @@ export default function SalesforceContactsPage({
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none w-64"
+            className="pl-10 pr-4 py-2 border border-[var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none w-64"
           />
         </div>
       </div>
@@ -433,14 +433,14 @@ export default function SalesforceContactsPage({
       {!loading && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-[var(--color-neutral-500)]">
               {currentItems.length} total
             </span>
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {syncedCount} synced
             </span>
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 whitespace-nowrap">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] border border-[var(--border-default)] whitespace-nowrap">
               {notSyncedCount} not synced
             </span>
           </div>
@@ -468,17 +468,17 @@ export default function SalesforceContactsPage({
 
       {/* Loading State - clean inline skeleton */}
       {loading && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-4">
-            <div className="w-5 h-5 rounded bg-slate-100" />
-            <div className="w-5 h-5 bg-slate-100 rounded" />
-            <div className="h-4 w-24 bg-slate-100 rounded" />
-            <div className="h-4 w-32 bg-slate-100 rounded" />
-            <div className="h-4 w-24 bg-slate-100 rounded" />
-            <div className="h-4 w-28 bg-slate-100 rounded" />
-            <div className="h-4 w-20 bg-slate-100 rounded" />
-            <div className="h-4 w-16 bg-slate-100 rounded" />
-            <div className="h-4 w-20 bg-slate-100 rounded" />
+        <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+          <div className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)] px-4 py-3 flex items-center gap-4">
+            <div className="w-5 h-5 rounded bg-[var(--color-neutral-100)]" />
+            <div className="w-5 h-5 bg-[var(--color-neutral-100)] rounded" />
+            <div className="h-4 w-24 bg-[var(--color-neutral-100)] rounded" />
+            <div className="h-4 w-32 bg-[var(--color-neutral-100)] rounded" />
+            <div className="h-4 w-24 bg-[var(--color-neutral-100)] rounded" />
+            <div className="h-4 w-28 bg-[var(--color-neutral-100)] rounded" />
+            <div className="h-4 w-20 bg-[var(--color-neutral-100)] rounded" />
+            <div className="h-4 w-16 bg-[var(--color-neutral-100)] rounded" />
+            <div className="h-4 w-20 bg-[var(--color-neutral-100)] rounded" />
           </div>
           <TableSkeleton />
         </div>
@@ -486,33 +486,33 @@ export default function SalesforceContactsPage({
 
       {/* Contacts Tab */}
       {!loading && activeTab === 'contacts' && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
+                <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
                   <th className="px-4 py-3 w-10">
                     <input
                       type="checkbox"
                       checked={allCurrentSelected}
                       onChange={() => toggleSelectAll(filteredContacts.map((c) => c.Id))}
-                      className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+                      className="rounded border-[var(--border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
                     />
                   </th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 w-8" />
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Email</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Phone</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Account</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Title</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Synced</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Modified</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)] w-8" />
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Name</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Email</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Phone</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Account</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Title</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Synced</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Modified</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border-subtle)]">
                 {filteredContacts.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
+                    <td colSpan={9} className="px-4 py-12 text-center text-[var(--color-neutral-400)]">
                       {searchQuery ? 'No contacts match your search' : 'No contacts found in Salesforce'}
                     </td>
                   </tr>
@@ -520,7 +520,7 @@ export default function SalesforceContactsPage({
                   filteredContacts.map((contact) => (
                     <React.Fragment key={contact.Id}>
                       <tr
-                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                        className="hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
                         onClick={() => setExpandedId(expandedId === contact.Id ? null : contact.Id)}
                       >
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -528,10 +528,10 @@ export default function SalesforceContactsPage({
                             type="checkbox"
                             checked={selectedIds.includes(contact.Id)}
                             onChange={() => toggleSelect(contact.Id)}
-                            className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+                            className="rounded border-[var(--border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
                           />
                         </td>
-                        <td className="px-4 py-3 text-slate-400">
+                        <td className="px-4 py-3 text-[var(--color-neutral-400)]">
                           <svg
                             className={`w-4 h-4 transition-transform duration-200 ${expandedId === contact.Id ? 'rotate-90' : ''}`}
                             fill="none"
@@ -542,11 +542,11 @@ export default function SalesforceContactsPage({
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                           </svg>
                         </td>
-                        <td className="px-4 py-3 font-medium text-slate-900">{contact.Name}</td>
-                        <td className="px-4 py-3 text-slate-600">{contact.Email || '\u2014'}</td>
-                        <td className="px-4 py-3 text-slate-600">{contact.Phone || '\u2014'}</td>
-                        <td className="px-4 py-3 text-slate-600">{contact.Account?.Name || '\u2014'}</td>
-                        <td className="px-4 py-3 text-slate-600">{contact.Title || '\u2014'}</td>
+                        <td className="px-4 py-3 font-medium text-[var(--color-ink)]">{contact.Name}</td>
+                        <td className="px-4 py-3 text-[var(--color-neutral-600)]">{contact.Email || '\u2014'}</td>
+                        <td className="px-4 py-3 text-[var(--color-neutral-600)]">{contact.Phone || '\u2014'}</td>
+                        <td className="px-4 py-3 text-[var(--color-neutral-600)]">{contact.Account?.Name || '\u2014'}</td>
+                        <td className="px-4 py-3 text-[var(--color-neutral-600)]">{contact.Title || '\u2014'}</td>
                         <td className="px-4 py-3">
                           {isSynced(contact.Id, 'contact') ? (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
@@ -554,12 +554,12 @@ export default function SalesforceContactsPage({
                               Synced
                             </span>
                           ) : (
-                            <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                            <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] border border-[var(--border-default)]">
                               Not synced
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(contact.LastModifiedDate)}</td>
+                        <td className="px-4 py-3 text-[var(--color-neutral-500)] text-xs">{formatDate(contact.LastModifiedDate)}</td>
                       </tr>
                       {expandedId === contact.Id && (
                         <tr>
@@ -567,36 +567,36 @@ export default function SalesforceContactsPage({
                             <div className="pl-14 py-4">
                               <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Title</span>
-                                  <p className="text-slate-700">{contact.Title || '\u2014'}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Title</span>
+                                  <p className="text-[var(--color-neutral-700)]">{contact.Title || '\u2014'}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Department</span>
-                                  <p className="text-slate-700">{contact.Department || '\u2014'}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Department</span>
+                                  <p className="text-[var(--color-neutral-700)]">{contact.Department || '\u2014'}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Account Name</span>
-                                  <p className="text-slate-700">{contact.Account?.Name || '\u2014'}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Account Name</span>
+                                  <p className="text-[var(--color-neutral-700)]">{contact.Account?.Name || '\u2014'}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Mailing Address</span>
-                                  <p className="text-slate-700">
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Mailing Address</span>
+                                  <p className="text-[var(--color-neutral-700)]">
                                     {[contact.MailingCity, contact.MailingState, contact.MailingCountry]
                                       .filter(Boolean)
                                       .join(', ') || '\u2014'}
                                   </p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Description</span>
-                                  <p className="text-slate-700 line-clamp-2">{contact.Description || '\u2014'}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Description</span>
+                                  <p className="text-[var(--color-neutral-700)] line-clamp-2">{contact.Description || '\u2014'}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Owner ID</span>
-                                  <p className="text-slate-700 font-mono text-xs">{contact.OwnerId || '\u2014'}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Owner ID</span>
+                                  <p className="text-[var(--color-neutral-700)] font-mono text-xs">{contact.OwnerId || '\u2014'}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Created Date</span>
-                                  <p className="text-slate-700">{formatDate(contact.CreatedDate)}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Created Date</span>
+                                  <p className="text-[var(--color-neutral-700)]">{formatDate(contact.CreatedDate)}</p>
                                 </div>
                               </div>
                             </div>
@@ -614,33 +614,33 @@ export default function SalesforceContactsPage({
 
       {/* Leads Tab */}
       {!loading && activeTab === 'leads' && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
+                <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
                   <th className="px-4 py-3 w-10">
                     <input
                       type="checkbox"
                       checked={allCurrentSelected}
                       onChange={() => toggleSelectAll(filteredLeads.map((l) => l.Id))}
-                      className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+                      className="rounded border-[var(--border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
                     />
                   </th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 w-8" />
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Email</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Phone</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Company</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Status</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Synced</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Modified</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)] w-8" />
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Name</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Email</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Phone</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Company</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Synced</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--color-neutral-600)]">Modified</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border-subtle)]">
                 {filteredLeads.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
+                    <td colSpan={9} className="px-4 py-12 text-center text-[var(--color-neutral-400)]">
                       {searchQuery ? 'No leads match your search' : 'No leads found in Salesforce'}
                     </td>
                   </tr>
@@ -648,7 +648,7 @@ export default function SalesforceContactsPage({
                   filteredLeads.map((lead) => (
                     <React.Fragment key={lead.Id}>
                       <tr
-                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                        className="hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
                         onClick={() => setExpandedId(expandedId === lead.Id ? null : lead.Id)}
                       >
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -656,10 +656,10 @@ export default function SalesforceContactsPage({
                             type="checkbox"
                             checked={selectedIds.includes(lead.Id)}
                             onChange={() => toggleSelect(lead.Id)}
-                            className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+                            className="rounded border-[var(--border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
                           />
                         </td>
-                        <td className="px-4 py-3 text-slate-400">
+                        <td className="px-4 py-3 text-[var(--color-neutral-400)]">
                           <svg
                             className={`w-4 h-4 transition-transform duration-200 ${expandedId === lead.Id ? 'rotate-90' : ''}`}
                             fill="none"
@@ -670,10 +670,10 @@ export default function SalesforceContactsPage({
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                           </svg>
                         </td>
-                        <td className="px-4 py-3 font-medium text-slate-900">{lead.Name}</td>
-                        <td className="px-4 py-3 text-slate-600">{lead.Email || '\u2014'}</td>
-                        <td className="px-4 py-3 text-slate-600">{lead.Phone || '\u2014'}</td>
-                        <td className="px-4 py-3 text-slate-600">{lead.Company || '\u2014'}</td>
+                        <td className="px-4 py-3 font-medium text-[var(--color-ink)]">{lead.Name}</td>
+                        <td className="px-4 py-3 text-[var(--color-neutral-600)]">{lead.Email || '\u2014'}</td>
+                        <td className="px-4 py-3 text-[var(--color-neutral-600)]">{lead.Phone || '\u2014'}</td>
+                        <td className="px-4 py-3 text-[var(--color-neutral-600)]">{lead.Company || '\u2014'}</td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
                             {lead.Status}
@@ -686,12 +686,12 @@ export default function SalesforceContactsPage({
                               Synced
                             </span>
                           ) : (
-                            <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                            <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] border border-[var(--border-default)]">
                               Not synced
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(lead.LastModifiedDate)}</td>
+                        <td className="px-4 py-3 text-[var(--color-neutral-500)] text-xs">{formatDate(lead.LastModifiedDate)}</td>
                       </tr>
                       {expandedId === lead.Id && (
                         <tr>
@@ -699,32 +699,32 @@ export default function SalesforceContactsPage({
                             <div className="pl-14 py-4">
                               <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Title</span>
-                                  <p className="text-slate-700">{lead.Title || '\u2014'}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Title</span>
+                                  <p className="text-[var(--color-neutral-700)]">{lead.Title || '\u2014'}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Company</span>
-                                  <p className="text-slate-700">{lead.Company || '\u2014'}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Company</span>
+                                  <p className="text-[var(--color-neutral-700)]">{lead.Company || '\u2014'}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Lead Status</span>
-                                  <p className="text-slate-700">{lead.Status}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Lead Status</span>
+                                  <p className="text-[var(--color-neutral-700)]">{lead.Status}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Lead Source</span>
-                                  <p className="text-slate-700">{lead.LeadSource || '\u2014'}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Lead Source</span>
+                                  <p className="text-[var(--color-neutral-700)]">{lead.LeadSource || '\u2014'}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Description</span>
-                                  <p className="text-slate-700 line-clamp-2">{lead.Description || '\u2014'}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Description</span>
+                                  <p className="text-[var(--color-neutral-700)] line-clamp-2">{lead.Description || '\u2014'}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Owner ID</span>
-                                  <p className="text-slate-700 font-mono text-xs">{lead.OwnerId || '\u2014'}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Owner ID</span>
+                                  <p className="text-[var(--color-neutral-700)] font-mono text-xs">{lead.OwnerId || '\u2014'}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 text-xs font-medium">Created Date</span>
-                                  <p className="text-slate-700">{formatDate(lead.CreatedDate)}</p>
+                                  <span className="text-[var(--color-neutral-400)] text-xs font-medium">Created Date</span>
+                                  <p className="text-[var(--color-neutral-700)]">{formatDate(lead.CreatedDate)}</p>
                                 </div>
                               </div>
                             </div>

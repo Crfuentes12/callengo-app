@@ -313,20 +313,20 @@ export default function AnalyticsDashboard({
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      'Fully Verified': 'from-emerald-400 to-teal-600',
-      'Pending': 'from-slate-400 to-slate-600',
-      'Calling': 'from-blue-400 to-cyan-600',
-      'No Answer': 'from-amber-400 to-orange-600',
-      'Voicemail Left': 'from-purple-400 to-violet-600',
-      'For Callback': 'from-violet-400 to-purple-600',
+      'Fully Verified': 'from-[var(--color-success-400)] to-[var(--color-success-600)]',
+      'Pending': 'from-[var(--color-neutral-400)] to-[var(--color-neutral-600)]',
+      'Calling': 'from-[var(--color-info-400)] to-[var(--color-info-600)]',
+      'No Answer': 'from-[var(--color-warning-400)] to-[var(--color-warning-600)]',
+      'Voicemail Left': 'from-[var(--color-primary-400)] to-[var(--color-primary-600)]',
+      'For Callback': 'from-[var(--color-primary-400)] to-[var(--color-primary-600)]',
     };
-    return colors[status] || 'from-slate-400 to-slate-600';
+    return colors[status] || 'from-[var(--color-neutral-400)] to-[var(--color-neutral-600)]';
   };
 
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div className="gradient-bg-subtle rounded-2xl p-10 shadow-md border border-slate-200">
+      <div className="gradient-bg-subtle rounded-2xl p-10 shadow-md border border-[var(--border-default)]">
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-6">
             <div className="relative">
@@ -337,10 +337,10 @@ export default function AnalyticsDashboard({
               </div>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">
+              <h2 className="text-2xl font-bold text-[var(--color-ink)]">
                 {t.analytics.title}
               </h2>
-              <p className="text-lg text-slate-500 font-medium">
+              <p className="text-lg text-[var(--color-neutral-500)] font-medium">
                 {t.analytics.overview}
               </p>
             </div>
@@ -348,15 +348,15 @@ export default function AnalyticsDashboard({
 
           {/* Period Selector & Export */}
           <div className="flex items-center justify-between mt-4">
-            <div className="flex bg-white/60 backdrop-blur-sm rounded-lg p-1 border border-slate-200">
+            <div className="flex bg-white/60 backdrop-blur-sm rounded-lg p-1 border border-[var(--border-default)]">
               {(['7d', '30d', '90d', 'all'] as const).map(period => (
                 <button
                   key={period}
                   onClick={() => setSelectedPeriod(period)}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
                     selectedPeriod === period
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white text-[var(--color-ink)] shadow-sm'
+                      : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'
                   }`}
                 >
                   {period === 'all' ? t.analytics.timeRange : period === '7d' ? t.analytics.last7Days : period === '30d' ? t.analytics.last30Days : t.analytics.last90Days}
@@ -367,7 +367,7 @@ export default function AnalyticsDashboard({
               <select
                 value={exportFormat}
                 onChange={(e) => setExportFormat(e.target.value as 'csv' | 'json')}
-                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white/60 backdrop-blur-sm text-slate-700 font-medium"
+                className="px-3 py-1.5 text-sm border border-[var(--border-default)] rounded-lg bg-white/60 backdrop-blur-sm text-[var(--color-neutral-700)] font-medium"
               >
                 <option value="csv">CSV</option>
                 <option value="json">JSON</option>
@@ -386,14 +386,14 @@ export default function AnalyticsDashboard({
                   </svg>
                 </button>
                 {showExportMenu && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50">
-                    <button onClick={() => { handleExportCalls(); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-[var(--border-default)] py-1 z-50">
+                    <button onClick={() => { handleExportCalls(); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] transition-colors">
                       {t.analytics.exportCalls}
                     </button>
-                    <button onClick={() => { handleExportCampaigns(); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                    <button onClick={() => { handleExportCampaigns(); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] transition-colors">
                       {t.analytics.exportCampaigns}
                     </button>
-                    <button onClick={() => { handleExportContacts(); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                    <button onClick={() => { handleExportContacts(); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left text-sm text-[var(--color-neutral-700)] hover:bg-[var(--surface-hover)] transition-colors">
                       {t.analytics.exportContacts}
                     </button>
                   </div>
@@ -403,62 +403,62 @@ export default function AnalyticsDashboard({
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-[var(--border-default)]">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
-                <span className="text-xs text-slate-500 font-semibold">{t.analytics.callVolume}</span>
+                <span className="text-xs text-[var(--color-neutral-500)] font-semibold">{t.analytics.callVolume}</span>
               </div>
-              <span className="text-3xl text-slate-900 font-bold">{kpis.totalCalls.toLocaleString()}</span>
-              <p className="text-xs text-slate-500 mt-1">{kpis.successfulCalls} successful</p>
+              <span className="text-3xl text-[var(--color-ink)] font-bold">{kpis.totalCalls.toLocaleString()}</span>
+              <p className="text-xs text-[var(--color-neutral-500)] mt-1">{kpis.successfulCalls} successful</p>
             </div>
-            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-[var(--border-default)]">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                <span className="text-xs text-slate-500 font-semibold">{t.analytics.successRate}</span>
+                <div className="w-2 h-2 bg-[var(--color-success-50)]0 rounded-full"></div>
+                <span className="text-xs text-[var(--color-neutral-500)] font-semibold">{t.analytics.successRate}</span>
               </div>
-              <span className="text-3xl text-slate-900 font-bold">{kpis.successRate.toFixed(0)}%</span>
-              <p className="text-xs text-slate-500 mt-1">{kpis.failedCalls} failed</p>
+              <span className="text-3xl text-[var(--color-ink)] font-bold">{kpis.successRate.toFixed(0)}%</span>
+              <p className="text-xs text-[var(--color-neutral-500)] mt-1">{kpis.failedCalls} failed</p>
             </div>
-            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-[var(--border-default)]">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
-                <span className="text-xs text-slate-500 font-semibold">Total Contacts</span>
+                <span className="text-xs text-[var(--color-neutral-500)] font-semibold">Total Contacts</span>
               </div>
-              <span className="text-3xl text-slate-900 font-bold">{kpis.totalContacts.toLocaleString()}</span>
-              <p className="text-xs text-slate-500 mt-1">{kpis.verifiedContacts} verified</p>
+              <span className="text-3xl text-[var(--color-ink)] font-bold">{kpis.totalContacts.toLocaleString()}</span>
+              <p className="text-xs text-[var(--color-neutral-500)] mt-1">{kpis.verifiedContacts} verified</p>
             </div>
-            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200">
+            <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-[var(--border-default)]">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                <span className="text-xs text-slate-500 font-semibold">{t.analytics.avgDuration}</span>
+                <div className="w-2 h-2 bg-[var(--color-warning-500)] rounded-full"></div>
+                <span className="text-xs text-[var(--color-neutral-500)] font-semibold">{t.analytics.avgDuration}</span>
               </div>
-              <span className="text-3xl text-slate-900 font-bold">{formatDuration(kpis.avgDuration)}</span>
-              <p className="text-xs text-slate-500 mt-1">{formatDuration(kpis.totalDuration)} total</p>
+              <span className="text-3xl text-[var(--color-ink)] font-bold">{formatDuration(kpis.avgDuration)}</span>
+              <p className="text-xs text-[var(--color-neutral-500)] mt-1">{formatDuration(kpis.totalDuration)} total</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Call Trends - Last 30 Days (Area Chart) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <h3 className="text-lg font-bold text-[var(--color-ink)] flex items-center gap-2">
               <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
               </svg>
               {t.analytics.callsOverTime}
             </h3>
-            <p className="text-sm text-slate-500 mt-1">Last 30 days performance</p>
+            <p className="text-sm text-[var(--color-neutral-500)] mt-1">Last 30 days performance</p>
           </div>
           <div className="flex items-center gap-4 text-xs font-semibold">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full gradient-bg"></div>
-              <span className="text-slate-600">Successful</span>
+              <span className="text-[var(--color-neutral-600)]">Successful</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-400"></div>
-              <span className="text-slate-600">Failed</span>
+              <div className="w-3 h-3 rounded-full bg-[var(--color-error-400)]"></div>
+              <span className="text-[var(--color-neutral-600)]">Failed</span>
             </div>
           </div>
         </div>
@@ -567,8 +567,8 @@ export default function AnalyticsDashboard({
       {/* Agent Performance & Contact Status */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Agent Performance */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-slate-100 bg-white">
+        <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-[var(--border-subtle)] bg-white">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -576,46 +576,46 @@ export default function AnalyticsDashboard({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">{t.analytics.topAgents}</h3>
-                <p className="text-sm text-slate-500">{t.analytics.byAgent}</p>
+                <h3 className="text-lg font-bold text-[var(--color-ink)]">{t.analytics.topAgents}</h3>
+                <p className="text-sm text-[var(--color-neutral-500)]">{t.analytics.byAgent}</p>
               </div>
             </div>
           </div>
           <div className="p-6">
             {agentPerformance.length === 0 ? (
               <div className="text-center py-12">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-neutral-100)] to-[var(--color-neutral-200)] flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
-                <p className="text-slate-900 font-semibold">{t.analytics.noData}</p>
-                <p className="text-sm text-slate-500 mt-1">{t.analytics.noData}</p>
+                <p className="text-[var(--color-ink)] font-semibold">{t.analytics.noData}</p>
+                <p className="text-sm text-[var(--color-neutral-500)] mt-1">{t.analytics.noData}</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {agentPerformance.map(agent => {
                   const successRate = agent.totalCalls > 0 ? (agent.successfulCalls / agent.totalCalls) * 100 : 0;
                   return (
-                    <div key={agent.id} className="group p-4 bg-slate-50 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all duration-300">
+                    <div key={agent.id} className="group p-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] hover:border-[var(--color-neutral-300)] hover:shadow-sm transition-all duration-300">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h4 className="font-semibold text-slate-900 group-hover:text-[var(--color-primary)] transition-colors">{agent.name}</h4>
-                          <p className="text-xs text-slate-500 mt-1">{agent.totalCalls} calls made</p>
+                          <h4 className="font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-primary)] transition-colors">{agent.name}</h4>
+                          <p className="text-xs text-[var(--color-neutral-500)] mt-1">{agent.totalCalls} calls made</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-emerald-600">{successRate.toFixed(0)}%</p>
-                          <p className="text-xs text-slate-500 font-semibold">success</p>
+                          <p className="text-2xl font-bold text-[var(--color-success-600)]">{successRate.toFixed(0)}%</p>
+                          <p className="text-xs text-[var(--color-neutral-500)] font-semibold">success</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-white/80 rounded-lg p-3 border border-slate-200">
-                          <p className="text-xs text-slate-500 font-semibold">Avg Duration</p>
-                          <p className="text-sm font-bold text-slate-900 mt-1">{formatDuration(agent.avgDuration)}</p>
+                        <div className="bg-white/80 rounded-lg p-3 border border-[var(--border-default)]">
+                          <p className="text-xs text-[var(--color-neutral-500)] font-semibold">Avg Duration</p>
+                          <p className="text-sm font-bold text-[var(--color-ink)] mt-1">{formatDuration(agent.avgDuration)}</p>
                         </div>
-                        <div className="bg-white/80 rounded-lg p-3 border border-slate-200">
-                          <p className="text-xs text-slate-500 font-semibold">Successful</p>
-                          <p className="text-sm font-bold text-emerald-600 mt-1">{agent.successfulCalls}</p>
+                        <div className="bg-white/80 rounded-lg p-3 border border-[var(--border-default)]">
+                          <p className="text-xs text-[var(--color-neutral-500)] font-semibold">Successful</p>
+                          <p className="text-sm font-bold text-[var(--color-success-600)] mt-1">{agent.successfulCalls}</p>
                         </div>
                       </div>
                     </div>
@@ -627,8 +627,8 @@ export default function AnalyticsDashboard({
         </div>
 
         {/* Contact Status Distribution */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-slate-100 bg-white">
+        <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-[var(--border-subtle)] bg-white">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -636,21 +636,21 @@ export default function AnalyticsDashboard({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">{t.analytics.outcomeDistribution}</h3>
-                <p className="text-sm text-slate-500">{t.analytics.byOutcome}</p>
+                <h3 className="text-lg font-bold text-[var(--color-ink)]">{t.analytics.outcomeDistribution}</h3>
+                <p className="text-sm text-[var(--color-neutral-500)]">{t.analytics.byOutcome}</p>
               </div>
             </div>
           </div>
           <div className="p-6">
             {contactStatusBreakdown.length === 0 ? (
               <div className="text-center py-12">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-neutral-100)] to-[var(--color-neutral-200)] flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                   </svg>
                 </div>
-                <p className="text-slate-900 font-semibold">{t.analytics.noData}</p>
-                <p className="text-sm text-slate-500 mt-1">{t.analytics.noData}</p>
+                <p className="text-[var(--color-ink)] font-semibold">{t.analytics.noData}</p>
+                <p className="text-sm text-[var(--color-neutral-500)] mt-1">{t.analytics.noData}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -661,13 +661,13 @@ export default function AnalyticsDashboard({
                   return (
                     <div key={idx} className="group">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold text-slate-700">{item.status}</span>
+                        <span className="text-sm font-semibold text-[var(--color-neutral-700)]">{item.status}</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-slate-900">{item.count}</span>
-                          <span className="text-xs text-slate-500 font-semibold">({percentage.toFixed(1)}%)</span>
+                          <span className="text-sm font-bold text-[var(--color-ink)]">{item.count}</span>
+                          <span className="text-xs text-[var(--color-neutral-500)] font-semibold">({percentage.toFixed(1)}%)</span>
                         </div>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                      <div className="w-full bg-[var(--color-neutral-100)] rounded-full h-3 overflow-hidden">
                         <div
                           className={`h-full bg-gradient-to-r ${getStatusColor(item.status)} transition-all duration-700 group-hover:opacity-90`}
                           style={{ width: `${(item.count / maxCount) * 100}%` }}
@@ -683,16 +683,16 @@ export default function AnalyticsDashboard({
       </div>
 
       {/* Hourly Distribution (Area Chart) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-warning-500)] to-[var(--color-warning-600)] flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Call Activity by Hour</h3>
-            <p className="text-sm text-slate-500">24-hour distribution pattern</p>
+            <h3 className="text-lg font-bold text-[var(--color-ink)]">Call Activity by Hour</h3>
+            <p className="text-sm text-[var(--color-neutral-500)]">24-hour distribution pattern</p>
           </div>
         </div>
         {(() => {
@@ -751,7 +751,7 @@ export default function AnalyticsDashboard({
               {data.map((d, i) => (
                 <rect key={`hit${i}`} x={tX(i) - xS / 2} y={pT} width={xS} height={h} fill="transparent" onMouseEnter={() => setHoveredPoint({ index: i, chart: 'hourly' })} />
               ))}
-              {hhp !== null && <line x1={tX(hhp)} y1={pT} x2={tX(hhp)} y2={pT + h} stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />}
+              {hhp !== null && <line x1={tX(hhp)} y1={pT} x2={tX(hhp)} y2={pT + h} stroke="var(--color-warning-500)" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />}
               {data.map((d, i) => d.count > 0 || hhp === i ? <circle key={i} cx={tX(i)} cy={tY(d.count)} r={hhp === i ? 5 : 3} fill="var(--color-warning-500)" stroke="white" strokeWidth={hhp === i ? 2.5 : 1.5} className="transition-all duration-150" /> : null)}
               {hhp !== null && (() => {
                 const d = data[hhp];
@@ -777,8 +777,8 @@ export default function AnalyticsDashboard({
 
       {/* Campaign Summary Table (from Reports) */}
       {(campaigns.length > 0 || agentRuns.length > 0) && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-slate-100 bg-white flex items-center justify-between">
+        <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-[var(--border-subtle)] bg-white flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -786,8 +786,8 @@ export default function AnalyticsDashboard({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">{t.analytics.campaignPerformance}</h3>
-                <p className="text-sm text-slate-500">{t.analytics.byCampaign}</p>
+                <h3 className="text-lg font-bold text-[var(--color-ink)]">{t.analytics.campaignPerformance}</h3>
+                <p className="text-sm text-[var(--color-neutral-500)]">{t.analytics.byCampaign}</p>
               </div>
             </div>
             <button onClick={handleExportCampaigns} className="btn-secondary text-sm flex items-center gap-2">
@@ -800,13 +800,13 @@ export default function AnalyticsDashboard({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Campaign</th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Status</th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Calls</th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Success</th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Progress</th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-600 uppercase">Date</th>
+                <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">Campaign</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">Status</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">Calls</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">Success</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">Progress</th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-[var(--color-neutral-600)] uppercase">Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -818,42 +818,42 @@ export default function AnalyticsDashboard({
                     ? (campaign.completed_calls / campaign.total_contacts) * 100
                     : 0;
                   return (
-                    <tr key={campaign.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <tr key={campaign.id} className="border-b border-[var(--border-subtle)] hover:bg-[var(--surface-hover)] transition-colors">
                       <td className="py-3 px-6">
-                        <span className="text-sm font-medium text-slate-900">{campaign.name}</span>
+                        <span className="text-sm font-medium text-[var(--color-ink)]">{campaign.name}</span>
                       </td>
                       <td className="py-3 px-6">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
                           campaign.status === 'running' || campaign.status === 'active'
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            ? 'bg-[var(--color-success-50)] border-[var(--color-success-200)] text-[var(--color-success-700)]'
                             : campaign.status === 'completed'
-                            ? 'bg-blue-50 border-blue-200 text-blue-700'
-                            : 'bg-slate-50 border-slate-200 text-slate-700'
+                            ? 'bg-[var(--color-info-50)] border-[var(--color-info-200)] text-[var(--color-info-700)]'
+                            : 'bg-[var(--color-neutral-50)] border-[var(--border-default)] text-[var(--color-neutral-700)]'
                         }`}>
                           {campaign.status}
                         </span>
                       </td>
                       <td className="py-3 px-6">
-                        <span className="text-sm text-slate-900">{campaign.completed_calls}/{campaign.total_contacts}</span>
+                        <span className="text-sm text-[var(--color-ink)]">{campaign.completed_calls}/{campaign.total_contacts}</span>
                       </td>
                       <td className="py-3 px-6">
-                        <span className={`text-sm font-medium ${rate >= 70 ? 'text-emerald-600' : rate >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                        <span className={`text-sm font-medium ${rate >= 70 ? 'text-[var(--color-success-600)]' : rate >= 40 ? 'text-[var(--color-warning-600)]' : 'text-[var(--color-error-600)]'}`}>
                           {rate.toFixed(1)}%
                         </span>
                       </td>
                       <td className="py-3 px-6">
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden max-w-[100px]">
+                          <div className="flex-1 h-2 bg-[var(--color-neutral-100)] rounded-full overflow-hidden max-w-[100px]">
                             <div
                               className="h-full gradient-bg rounded-full transition-all"
                               style={{ width: `${progress}%` }}
                             ></div>
                           </div>
-                          <span className="text-xs text-slate-500 font-medium">{progress.toFixed(0)}%</span>
+                          <span className="text-xs text-[var(--color-neutral-500)] font-medium">{progress.toFixed(0)}%</span>
                         </div>
                       </td>
                       <td className="py-3 px-6">
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-[var(--color-neutral-500)]">
                           {new Date(campaign.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       </td>
@@ -868,17 +868,17 @@ export default function AnalyticsDashboard({
 
       {/* Active Campaigns */}
       {agentRuns.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-slate-100 bg-white">
+        <div className="bg-white rounded-2xl border border-[var(--border-default)]/80 overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-[var(--border-subtle)] bg-white">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-success-500)] to-[var(--color-success-600)] flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">{t.analytics.campaignPerformance}</h3>
-                <p className="text-sm text-slate-500">{kpis.activeCampaigns} active, {kpis.completedCampaigns} completed</p>
+                <h3 className="text-lg font-bold text-[var(--color-ink)]">{t.analytics.campaignPerformance}</h3>
+                <p className="text-sm text-[var(--color-neutral-500)]">{kpis.activeCampaigns} active, {kpis.completedCampaigns} completed</p>
               </div>
             </div>
           </div>
@@ -889,43 +889,43 @@ export default function AnalyticsDashboard({
                 const successRate = run.completed_calls > 0 ? (run.successful_calls / run.completed_calls) * 100 : 0;
 
                 return (
-                  <div key={run.id} className="p-5 bg-slate-50 rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-sm transition-all duration-300">
+                  <div key={run.id} className="p-5 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] hover:border-[var(--color-success-300)] hover:shadow-sm transition-all duration-300">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-bold text-slate-900 text-lg">{run.name}</h4>
+                      <h4 className="font-bold text-[var(--color-ink)] text-lg">{run.name}</h4>
                       <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                        run.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                        run.status === 'running' || run.status === 'active' ? 'bg-blue-100 text-blue-700' :
-                        'bg-slate-100 text-slate-700'
+                        run.status === 'completed' ? 'bg-[var(--color-success-100)] text-[var(--color-success-700)]' :
+                        run.status === 'running' || run.status === 'active' ? 'bg-[var(--color-info-100)] text-[var(--color-info-700)]' :
+                        'bg-[var(--color-neutral-100)] text-[var(--color-neutral-700)]'
                       }`}>
                         {run.status.toUpperCase()}
                       </span>
                     </div>
                     <div className="grid grid-cols-4 gap-3 mb-3">
-                      <div className="text-center p-2 bg-white/80 rounded-lg border border-slate-200">
-                        <p className="text-xs text-slate-500 font-semibold">Total</p>
-                        <p className="text-xl font-bold text-slate-900">{run.total_contacts}</p>
+                      <div className="text-center p-2 bg-white/80 rounded-lg border border-[var(--border-default)]">
+                        <p className="text-xs text-[var(--color-neutral-500)] font-semibold">Total</p>
+                        <p className="text-xl font-bold text-[var(--color-ink)]">{run.total_contacts}</p>
                       </div>
-                      <div className="text-center p-2 bg-white/80 rounded-lg border border-slate-200">
-                        <p className="text-xs text-slate-500 font-semibold">Completed</p>
-                        <p className="text-xl font-bold text-blue-600">{run.completed_calls}</p>
+                      <div className="text-center p-2 bg-white/80 rounded-lg border border-[var(--border-default)]">
+                        <p className="text-xs text-[var(--color-neutral-500)] font-semibold">Completed</p>
+                        <p className="text-xl font-bold text-[var(--color-info-600)]">{run.completed_calls}</p>
                       </div>
-                      <div className="text-center p-2 bg-white/80 rounded-lg border border-slate-200">
-                        <p className="text-xs text-slate-500 font-semibold">Successful</p>
-                        <p className="text-xl font-bold text-emerald-600">{run.successful_calls}</p>
+                      <div className="text-center p-2 bg-white/80 rounded-lg border border-[var(--border-default)]">
+                        <p className="text-xs text-[var(--color-neutral-500)] font-semibold">Successful</p>
+                        <p className="text-xl font-bold text-[var(--color-success-600)]">{run.successful_calls}</p>
                       </div>
-                      <div className="text-center p-2 bg-white/80 rounded-lg border border-slate-200">
-                        <p className="text-xs text-slate-500 font-semibold">Success Rate</p>
-                        <p className="text-xl font-bold text-purple-600">{successRate.toFixed(0)}%</p>
+                      <div className="text-center p-2 bg-white/80 rounded-lg border border-[var(--border-default)]">
+                        <p className="text-xs text-[var(--color-neutral-500)] font-semibold">Success Rate</p>
+                        <p className="text-xl font-bold text-[var(--color-primary-600)]">{successRate.toFixed(0)}%</p>
                       </div>
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-slate-600">Progress</span>
-                        <span className="text-xs font-bold text-slate-900">{progress.toFixed(1)}%</span>
+                        <span className="text-xs font-semibold text-[var(--color-neutral-600)]">Progress</span>
+                        <span className="text-xs font-bold text-[var(--color-ink)]">{progress.toFixed(1)}%</span>
                       </div>
-                      <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-3 bg-[var(--color-neutral-200)] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 rounded-full transition-all duration-500"
+                          className="h-full bg-gradient-to-r from-[var(--color-success-500)] via-[var(--color-success-500)] to-[var(--color-success-600)] rounded-full transition-all duration-500"
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>

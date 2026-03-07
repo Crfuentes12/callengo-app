@@ -210,7 +210,7 @@ export default function Sidebar({
       {/* Tooltip rendered at sidebar level — escapes overflow containers */}
       {isCollapsed && tooltip && (
         <div
-          className="hidden lg:flex fixed items-center px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-lg whitespace-nowrap z-[100] pointer-events-none"
+          className="hidden lg:flex fixed items-center px-3 py-1.5 rounded-lg bg-[var(--color-neutral-900)] text-white text-xs font-medium shadow-lg whitespace-nowrap z-[100] pointer-events-none"
           style={{
             left: `${sidebarWidth + 12}px`,
             top: `${tooltip.top}px`,
@@ -346,7 +346,7 @@ export default function Sidebar({
           onMouseLeave={hideTooltip}
           className="
             w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium
-            text-white/70 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200
+            text-white/70 hover:text-[var(--color-error-300)] hover:bg-[var(--color-error-500)]/10 transition-all duration-200
           "
         >
           <LogoutIcon className="w-5 h-5 shrink-0" />

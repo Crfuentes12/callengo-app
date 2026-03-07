@@ -25,14 +25,14 @@ export default function PipedriveContactsBanner({
   // Connected: show link to Pipedrive contacts sub-page
   if (hasPipedriveAccess && pdConnected) {
     return (
-      <div className="mb-4 bg-gradient-to-r from-slate-50 to-[var(--color-primary-50)] rounded-xl border border-slate-200 p-4 flex items-center justify-between">
+      <div className="mb-4 bg-gradient-to-r from-[var(--color-neutral-50)] to-[var(--color-primary-50)] rounded-xl border border-[var(--border-default)] p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-slate-100 text-black flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-[var(--color-neutral-100)] text-black flex items-center justify-center">
             <PipedriveIcon className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">Pipedrive Connected</p>
-            <p className="text-xs text-slate-500">View and sync your Pipedrive contacts</p>
+            <p className="text-sm font-semibold text-[var(--color-ink)]">Pipedrive Connected</p>
+            <p className="text-xs text-[var(--color-neutral-50)]0">View and sync your Pipedrive contacts</p>
           </div>
         </div>
         <Link
@@ -52,14 +52,14 @@ export default function PipedriveContactsBanner({
   // Has access but not connected: prompt to connect
   if (hasPipedriveAccess && !pdConnected) {
     return (
-      <div className="mb-4 bg-slate-50 rounded-xl border border-slate-200 p-4 flex items-center justify-between">
+      <div className="mb-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-slate-100 text-black flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-[var(--color-neutral-100)] text-black flex items-center justify-center">
             <PipedriveIcon className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">Sync with Pipedrive</p>
-            <p className="text-xs text-slate-500">Connect your Pipedrive account to sync contacts</p>
+            <p className="text-sm font-semibold text-[var(--color-ink)]">Sync with Pipedrive</p>
+            <p className="text-xs text-[var(--color-neutral-50)]0">Connect your Pipedrive account to sync contacts</p>
           </div>
         </div>
         <Link
@@ -81,8 +81,8 @@ export default function PipedriveContactsBanner({
           <PipedriveIcon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-900">Pipedrive CRM Integration</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-sm font-semibold text-[var(--color-ink)]">Pipedrive CRM Integration</p>
+          <p className="text-xs text-[var(--color-neutral-50)]0">
             Sync contacts with Pipedrive. Available on Business plan and above.
           </p>
         </div>

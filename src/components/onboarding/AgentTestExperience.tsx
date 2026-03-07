@@ -225,7 +225,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
       case 'ringing': return 'from-blue-500 to-blue-700';
       case 'connected': return 'from-emerald-500 to-green-500';
       case 'ended': return 'from-[var(--color-deep-indigo)] to-[var(--color-electric)]';
-      default: return 'from-slate-500 to-slate-600';
+      default: return 'from-[var(--color-neutral-500)] to-[var(--color-neutral-600)]';
     }
   };
 
@@ -240,20 +240,20 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-950)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4">
       {/* Background */}
 
       <div className="relative z-10 max-w-2xl w-full">
         {/* Setup Step */}
         {step === 'setup' && (
-          <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-slate-800">
+          <div className="bg-gradient-to-br from-[var(--color-neutral-900)]/90 to-[var(--color-neutral-800)]/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-[var(--color-neutral-800)]">
             {/* Header */}
             <div className="text-center mb-8">
               <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${agent.color} mb-4 shadow-lg`}>
                 <span className="text-3xl">{agent.icon}</span>
               </div>
               <h2 className="text-3xl font-bold text-white mb-2">{t.onboarding.agentTest.testYourAgent.replace('{agentTitle}', agentTitle)}</h2>
-              <p className="text-slate-400">
+              <p className="text-[var(--color-neutral-400)]">
                 {t.onboarding.agentTest.experienceAgent.replace('{agentName}', agentName)}
               </p>
             </div>
@@ -262,38 +262,38 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
             <div className="space-y-6">
               {/* Agent Name */}
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-[var(--color-neutral-300)] mb-2">
                   {t.onboarding.agentTest.agentName}
                 </label>
                 <input
                   type="text"
                   value={agentName}
                   onChange={(e) => setAgentName(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                  className="w-full px-4 py-3 bg-[var(--color-neutral-800)]/50 border border-[var(--color-neutral-700)] rounded-lg text-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                   placeholder={t.onboarding.agentTest.agentNamePlaceholder}
                 />
               </div>
 
               {/* Phone Number */}
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-[var(--color-neutral-300)] mb-2">
                   {t.onboarding.agentTest.yourPhoneNumber}
                 </label>
                 <input
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                  className="w-full px-4 py-3 bg-[var(--color-neutral-800)]/50 border border-[var(--color-neutral-700)] rounded-lg text-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                   placeholder="+1 (555) 123-4567"
                 />
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-[var(--color-neutral-500)] mt-2">
                   {t.onboarding.agentTest.phoneHint}
                 </p>
               </div>
 
               {/* Voice Selector */}
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-[var(--color-neutral-300)] mb-2">
                   {t.onboarding.agentTest.selectVoice}
                 </label>
                 <VoiceSelector
@@ -304,13 +304,13 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
               </div>
 
               {/* Demo Data Info */}
-              <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+              <div className="bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-4">
                 <h3 className="text-sm font-bold text-white mb-2">{t.onboarding.agentTest.demoData}</h3>
                 <div className="space-y-1">
                   {Object.entries(agent.demoData).map(([key, value]) => (
                     <div key={key} className="flex justify-between text-sm">
-                      <span className="text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                      <span className="text-slate-300 font-medium">{value as string}</span>
+                      <span className="text-[var(--color-neutral-400)] capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                      <span className="text-[var(--color-neutral-300)] font-medium">{value as string}</span>
                     </div>
                   ))}
                 </div>
@@ -334,7 +334,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                 </button>
                 <button
                   onClick={onSkip}
-                  className="px-6 py-4 bg-slate-800 text-slate-300 rounded-lg font-medium hover:bg-slate-700 transition-colors"
+                  className="px-6 py-4 bg-[var(--color-neutral-800)] text-[var(--color-neutral-300)] rounded-lg font-medium hover:bg-[var(--color-neutral-700)] transition-colors"
                 >
                   {t.onboarding.agentTest.skip}
                 </button>
@@ -345,7 +345,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
         {/* Calling Step */}
         {step === 'calling' && (
-          <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-3xl p-12 shadow-2xl border border-slate-800 text-center">
+          <div className="bg-gradient-to-br from-[var(--color-neutral-900)]/90 to-[var(--color-neutral-800)]/90 backdrop-blur-sm rounded-3xl p-12 shadow-2xl border border-[var(--color-neutral-800)] text-center">
             {/* Status Indicator */}
             <div className={`inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br ${getStatusColor()} mb-6 shadow-2xl animate-pulse`}>
               <svg className="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -354,7 +354,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
             </div>
 
             <h2 className="text-4xl font-bold text-white mb-2">{getStatusText()}</h2>
-            <p className="text-xl text-slate-400 mb-6">{t.onboarding.agentTest.callingYou.replace('{agentName}', agentName)}</p>
+            <p className="text-xl text-[var(--color-neutral-400)] mb-6">{t.onboarding.agentTest.callingYou.replace('{agentName}', agentName)}</p>
 
             {callStatus === 'connected' && (
               <div className="text-6xl font-bold text-white tabular-nums">
@@ -362,14 +362,14 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
               </div>
             )}
 
-            <div className="mt-8 bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+            <div className="mt-8 bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">{t.onboarding.agentTest.phone}</span>
+                  <span className="text-[var(--color-neutral-400)]">{t.onboarding.agentTest.phone}</span>
                   <span className="text-white font-mono">{phoneNumber}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">{t.onboarding.agentTest.agent}</span>
+                  <span className="text-[var(--color-neutral-400)]">{t.onboarding.agentTest.agent}</span>
                   <span className="text-white">{agentName}</span>
                 </div>
               </div>
@@ -379,7 +379,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
         {/* Analysis Step */}
         {step === 'analysis' && (
-          <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-slate-800">
+          <div className="bg-gradient-to-br from-[var(--color-neutral-900)]/90 to-[var(--color-neutral-800)]/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-[var(--color-neutral-800)]">
             {/* Header */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 mb-4 shadow-lg">
@@ -388,36 +388,36 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                 </svg>
               </div>
               <h2 className="text-3xl font-bold text-white mb-2">{t.onboarding.agentTest.callComplete}</h2>
-              <p className="text-slate-400">
+              <p className="text-[var(--color-neutral-400)]">
                 {t.onboarding.agentTest.agentPerformance.replace('{agentName}', agentName)}
               </p>
             </div>
 
             {/* Call Stats */}
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 text-center">
+              <div className="bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-white mb-1">{formatDuration(callDuration)}</div>
-                <div className="text-xs text-slate-400">{t.onboarding.agentTest.duration}</div>
+                <div className="text-xs text-[var(--color-neutral-400)]">{t.onboarding.agentTest.duration}</div>
               </div>
-              <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 text-center">
+              <div className="bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-emerald-400 mb-1">{t.onboarding.agentTest.demo}</div>
-                <div className="text-xs text-slate-400">{t.onboarding.agentTest.callType}</div>
+                <div className="text-xs text-[var(--color-neutral-400)]">{t.onboarding.agentTest.callType}</div>
               </div>
-              <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 text-center">
+              <div className="bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-white mb-1">✓</div>
-                <div className="text-xs text-slate-400">{t.onboarding.agentTest.completed}</div>
+                <div className="text-xs text-[var(--color-neutral-400)]">{t.onboarding.agentTest.completed}</div>
               </div>
             </div>
 
             {/* Analysis */}
             {callAnalysis && (
-              <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-6 mb-6">
+              <div className="bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-6 mb-6">
                 <h3 className="text-lg font-bold text-white mb-4">{t.onboarding.agentTest.callAnalysis}</h3>
-                <div className="space-y-3 text-slate-300">
+                <div className="space-y-3 text-[var(--color-neutral-300)]">
                   <p>{callAnalysis.summary || t.onboarding.agentTest.callCompletedSuccess}</p>
                   {callAnalysis.key_points && callAnalysis.key_points.length > 0 && (
                     <div>
-                      <p className="text-sm font-bold text-slate-400 mb-2">{t.onboarding.agentTest.keyPoints}</p>
+                      <p className="text-sm font-bold text-[var(--color-neutral-400)] mb-2">{t.onboarding.agentTest.keyPoints}</p>
                       <ul className="list-disc list-inside space-y-1">
                         {callAnalysis.key_points.map((point: string, idx: number) => (
                           <li key={idx} className="text-sm">{point}</li>
@@ -445,7 +445,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
             <button
               onClick={onSkip}
-              className="w-full mt-3 px-6 py-3 text-slate-400 hover:text-slate-300 text-sm font-medium transition-colors"
+              className="w-full mt-3 px-6 py-3 text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-300)] text-sm font-medium transition-colors"
             >
               {t.onboarding.agentTest.skipToDashboard}
             </button>

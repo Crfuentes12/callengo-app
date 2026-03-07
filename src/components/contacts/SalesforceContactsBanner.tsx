@@ -24,8 +24,8 @@ export default function SalesforceContactsBanner({
             <FaSalesforce className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">Salesforce Connected</p>
-            <p className="text-xs text-slate-500">View and sync your Salesforce contacts and leads</p>
+            <p className="text-sm font-semibold text-[var(--color-ink)]">Salesforce Connected</p>
+            <p className="text-xs text-[var(--color-neutral-500)]">View and sync your Salesforce contacts and leads</p>
           </div>
         </div>
         <Link
@@ -45,14 +45,14 @@ export default function SalesforceContactsBanner({
   // Has access but not connected: prompt to connect
   if (hasSalesforceAccess && !sfConnected) {
     return (
-      <div className="mb-4 bg-slate-50 rounded-xl border border-slate-200 p-4 flex items-center justify-between">
+      <div className="mb-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-blue-50 text-[#00A1E0] flex items-center justify-center">
             <FaSalesforce className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">Import from Salesforce</p>
-            <p className="text-xs text-slate-500">Connect your Salesforce account to import contacts and leads</p>
+            <p className="text-sm font-semibold text-[var(--color-ink)]">Import from Salesforce</p>
+            <p className="text-xs text-[var(--color-neutral-500)]">Connect your Salesforce account to import contacts and leads</p>
           </div>
         </div>
         <Link
@@ -74,8 +74,8 @@ export default function SalesforceContactsBanner({
           <FaSalesforce className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-900">Salesforce CRM Integration</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-sm font-semibold text-[var(--color-ink)]">Salesforce CRM Integration</p>
+          <p className="text-xs text-[var(--color-neutral-500)]">
             Import contacts and leads from Salesforce. Available on Business plan and above.
           </p>
         </div>

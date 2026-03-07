@@ -261,7 +261,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
     switch (role) {
       case 'owner': return 'bg-[var(--color-primary-50)] text-[var(--color-primary)] border-[var(--color-primary-200)]';
       case 'admin': return 'bg-amber-50 text-amber-700 border-amber-200';
-      default: return 'bg-slate-50 text-slate-600 border-slate-200';
+      default: return 'bg-[var(--color-neutral-50)] text-[var(--color-neutral-600)] border-[var(--border-default)]';
     }
   };
 
@@ -442,22 +442,22 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900">Team Management</h2>
-        <p className="text-sm text-slate-500 mt-1">Manage your team members, roles, and invitations</p>
+        <h2 className="text-xl font-bold text-[var(--color-ink)]">Team Management</h2>
+        <p className="text-sm text-[var(--color-neutral-500)] mt-1">Manage your team members, roles, and invitations</p>
       </div>
 
       {/* Seat capacity banner */}
-      <div className={`rounded-xl p-4 border flex items-center justify-between gap-4 ${!canInvite ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+      <div className={`rounded-xl p-4 border flex items-center justify-between gap-4 ${!canInvite ? 'bg-amber-50 border-amber-200' : 'bg-[var(--color-neutral-50)] border-[var(--border-default)]'}`}>
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${!canInvite ? 'bg-amber-100' : 'bg-slate-200'}`}>
-            <svg className={`w-4 h-4 ${!canInvite ? 'text-amber-700' : 'text-slate-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${!canInvite ? 'bg-amber-100' : 'bg-[var(--color-neutral-200)]'}`}>
+            <svg className={`w-4 h-4 ${!canInvite ? 'text-amber-700' : 'text-[var(--color-neutral-500)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold text-[var(--color-ink)]">
               {maxSeats === -1 ? 'Unlimited seats' : `${currentSeats} / ${maxSeats} seats used`}
-              {planConfig.extraCost && maxSeats !== -1 && <span className="text-slate-500 font-normal ml-1">· ${planConfig.extraCost}/mo per extra seat</span>}
+              {planConfig.extraCost && maxSeats !== -1 && <span className="text-[var(--color-neutral-500)] font-normal ml-1">· ${planConfig.extraCost}/mo per extra seat</span>}
             </p>
-            <p className="text-xs text-slate-500">{planConfig.label} plan</p>
+            <p className="text-xs text-[var(--color-neutral-500)]">{planConfig.label} plan</p>
           </div>
         </div>
         {!canInvite && canBuyExtraSeats ? (
@@ -485,7 +485,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
           <button
             onClick={handleBuyExtraSeat}
             disabled={buyingSeat}
-            className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-900 transition-colors whitespace-nowrap disabled:opacity-50"
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-[var(--color-neutral-800)] text-white text-xs font-semibold hover:bg-[var(--color-neutral-900)] transition-colors whitespace-nowrap disabled:opacity-50"
           >
             {buyingSeat ? 'Loading...' : 'Add seat'}
           </button>
@@ -511,16 +511,16 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       )}
 
       {/* Plan Seat Info */}
-      <div className="bg-gradient-to-r from-slate-50 to-[var(--color-primary-50)] rounded-xl border border-slate-200 p-5">
+      <div className="bg-gradient-to-r from-[var(--color-neutral-50)] to-[var(--color-primary-50)] rounded-xl border border-[var(--border-default)] p-5">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-sm font-semibold text-slate-900">Team Seats</h3>
+              <h3 className="text-sm font-semibold text-[var(--color-ink)]">Team Seats</h3>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-200)]">
                 {planConfig.label} Plan
               </span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[var(--color-neutral-500)]">
               {maxSeats === -1
                 ? 'Unlimited team seats available'
                 : `${currentSeats} of ${maxSeats} seats used`}
@@ -529,8 +529,8 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
           </div>
           {maxSeats !== -1 && (
             <div className="text-right">
-              <p className="text-2xl font-bold text-slate-900">{currentSeats}/{maxSeats}</p>
-              <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden mt-1">
+              <p className="text-2xl font-bold text-[var(--color-ink)]">{currentSeats}/{maxSeats}</p>
+              <div className="w-24 h-2 bg-[var(--color-neutral-200)] rounded-full overflow-hidden mt-1">
                 <div className="h-full gradient-bg rounded-full transition-all" style={{ width: `${Math.min((currentSeats / maxSeats) * 100, 100)}%` }}></div>
               </div>
             </div>
@@ -558,9 +558,9 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                       <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                       </svg>
-                      <p className="text-sm font-bold text-slate-900">Need more seats?</p>
+                      <p className="text-sm font-bold text-[var(--color-ink)]">Need more seats?</p>
                     </div>
-                    <p className="text-xs text-slate-600">
+                    <p className="text-xs text-[var(--color-neutral-600)]">
                       Add extra seats at <span className="font-semibold">$49/mo each</span> — or upgrade to Teams for <span className="font-semibold">5 seats included</span>.
                     </p>
                   </div>
@@ -580,7 +580,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                   </button>
                   <a
                     href="/settings?tab=billing&upgrade=teams"
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-[var(--color-neutral-700)] bg-white border border-[var(--border-default)] hover:bg-[var(--color-neutral-50)] transition-colors shadow-sm"
                   >
                     Upgrade to Teams
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -599,9 +599,9 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                       <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
                       </svg>
-                      <p className="text-sm font-bold text-slate-900">Upgrade to Enterprise</p>
+                      <p className="text-sm font-bold text-[var(--color-ink)]">Upgrade to Enterprise</p>
                     </div>
-                    <p className="text-xs text-slate-600">
+                    <p className="text-xs text-[var(--color-neutral-600)]">
                       Get <span className="font-semibold">unlimited seats</span>, dedicated support, custom integrations, and advanced security features for your organization.
                     </p>
                   </div>
@@ -623,11 +623,11 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
 
       {/* Invite Section */}
       {isOwnerOrAdmin && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-sm">
           {/* Invite Header with Tabs */}
-          <div className="border-b border-slate-100">
+          <div className="border-b border-[var(--border-subtle)]">
             <div className="px-5 pt-4 pb-0">
-              <h3 className="text-sm font-bold text-slate-900 mb-3">Invite Team Members</h3>
+              <h3 className="text-sm font-bold text-[var(--color-ink)] mb-3">Invite Team Members</h3>
               <div className="flex gap-1">
                 {([
                   { id: 'email' as const, label: 'Email', icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg> },
@@ -640,7 +640,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                     className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold rounded-t-lg border-b-2 transition-all ${
                       inviteMode === tab.id
                         ? 'text-[var(--color-primary)] border-[var(--color-primary)] bg-[var(--color-primary-50)]/50'
-                        : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
+                        : 'text-[var(--color-neutral-500)] border-transparent hover:text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-50)]'
                     }`}
                   >
                     {tab.icon}
@@ -659,7 +659,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
             <div className="p-5">
               <form onSubmit={handleInvite} className="flex gap-3">
                 <div className="flex-1 relative">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                   </svg>
                   <input
@@ -667,7 +667,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                     placeholder="colleague@company.com"
                     value={inviteEmail}
                     onChange={e => setInviteEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 border border-[var(--border-default)] rounded-xl text-sm focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none transition-all"
                     required
                     disabled={!canInvite}
                   />
@@ -675,7 +675,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                 <select
                   value={inviteRole}
                   onChange={e => setInviteRole(e.target.value as 'member' | 'admin')}
-                  className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none"
+                  className="px-3 py-2.5 border border-[var(--border-default)] rounded-xl text-sm text-[var(--color-neutral-700)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none"
                   disabled={!canInvite}
                 >
                   <option value="member">Member</option>
@@ -704,11 +704,11 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
             <div className="p-5">
               {connectedSources.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-9.86a4.5 4.5 0 00-6.364 0l-4.5 4.5a4.5 4.5 0 006.364 6.364l1.757-1.757" /></svg>
+                  <div className="w-12 h-12 rounded-xl bg-[var(--color-neutral-100)] flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-[var(--color-neutral-300)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-9.86a4.5 4.5 0 00-6.364 0l-4.5 4.5a4.5 4.5 0 006.364 6.364l1.757-1.757" /></svg>
                   </div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">No integrations connected</p>
-                  <p className="text-xs text-slate-400 mb-3">Connect a CRM or booking platform to import team members</p>
+                  <p className="text-sm font-medium text-[var(--color-neutral-500)] mb-1">No integrations connected</p>
+                  <p className="text-xs text-[var(--color-neutral-400)] mb-3">Connect a CRM or booking platform to import team members</p>
                   <a href="/integrations" className="text-xs font-semibold text-[var(--color-primary)] hover:underline">Go to Integrations</a>
                 </div>
               ) : (
@@ -722,7 +722,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                         className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
                           selectedIntegration === source.id
                             ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)]'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                            : 'border-[var(--border-default)] text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-50)] hover:border-[var(--border-strong)]'
                         }`}
                       >
                         {source.icon}
@@ -739,12 +739,12 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                           <div className="w-6 h-6 border border-[var(--color-primary-200)] border-t-[var(--color-primary)] rounded-full animate-spin" />
                         </div>
                       ) : integrationMembers.length === 0 ? (
-                        <div className="text-center py-6 text-sm text-slate-400">No members found in this integration</div>
+                        <div className="text-center py-6 text-sm text-[var(--color-neutral-400)]">No members found in this integration</div>
                       ) : (
                         <>
                           {/* Select all header */}
                           <div className="flex items-center justify-between mb-2 px-1">
-                            <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
+                            <label className="flex items-center gap-2 text-xs text-[var(--color-neutral-500)] cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={integrationMembers.filter(m => !m.already_in_callengo).every(m => selectedMemberIds.has(m.id))}
@@ -755,7 +755,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                                     setSelectedMemberIds(new Set());
                                   }
                                 }}
-                                className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+                                className="rounded border-[var(--border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
                               />
                               Select all available ({integrationMembers.filter(m => !m.already_in_callengo).length})
                             </label>
@@ -776,12 +776,12 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                           </div>
 
                           {/* Members grid */}
-                          <div className="max-h-64 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
+                          <div className="max-h-64 overflow-y-auto rounded-xl border border-[var(--border-default)] divide-y divide-[var(--border-subtle)]">
                             {integrationMembers.map(member => (
                               <label
                                 key={member.id}
                                 className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
-                                  member.already_in_callengo ? 'opacity-50 cursor-default' : 'hover:bg-slate-50'
+                                  member.already_in_callengo ? 'opacity-50 cursor-default' : 'hover:bg-[var(--color-neutral-50)]'
                                 }`}
                               >
                                 <input
@@ -793,11 +793,11 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                                     e.target.checked ? newSet.add(member.id) : newSet.delete(member.id);
                                     setSelectedMemberIds(newSet);
                                   }}
-                                  className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+                                  className="rounded border-[var(--border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-slate-900 truncate">{member.name}</p>
-                                  <p className="text-[11px] text-slate-500 truncate">{member.email}</p>
+                                  <p className="text-sm font-medium text-[var(--color-ink)] truncate">{member.name}</p>
+                                  <p className="text-[11px] text-[var(--color-neutral-500)] truncate">{member.email}</p>
                                 </div>
                                 {member.already_in_callengo && (
                                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
@@ -806,7 +806,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                                   </span>
                                 )}
                                 {member.role && !member.already_in_callengo && (
-                                  <span className="text-[10px] text-slate-400 shrink-0">{member.role}</span>
+                                  <span className="text-[10px] text-[var(--color-neutral-400)] shrink-0">{member.role}</span>
                                 )}
                               </label>
                             ))}
@@ -832,7 +832,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                     className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer ${
                       dragOver
                         ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)]/50'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
+                        : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--color-neutral-50)]/50'
                     }`}
                     onClick={() => document.getElementById('bulk-file-input')?.click()}
                   >
@@ -844,30 +844,30 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                       onChange={(e) => e.target.files?.[0] && handleBulkFile(e.target.files[0])}
                     />
                     <div className={`w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center transition-colors ${
-                      dragOver ? 'bg-[var(--color-primary-50)]' : 'bg-slate-100'
+                      dragOver ? 'bg-[var(--color-primary-50)]' : 'bg-[var(--color-neutral-100)]'
                     }`}>
-                      <svg className={`w-7 h-7 ${dragOver ? 'text-[var(--color-primary)]' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <svg className={`w-7 h-7 ${dragOver ? 'text-[var(--color-primary)]' : 'text-[var(--color-neutral-400)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                       </svg>
                     </div>
-                    <p className="text-sm font-semibold text-slate-700 mb-1">
+                    <p className="text-sm font-semibold text-[var(--color-neutral-700)] mb-1">
                       {dragOver ? 'Drop your file here' : 'Drag & drop a file here'}
                     </p>
-                    <p className="text-xs text-slate-400 mb-3">or click to browse</p>
+                    <p className="text-xs text-[var(--color-neutral-400)] mb-3">or click to browse</p>
                     <div className="flex items-center justify-center gap-2">
                       {['CSV', 'XLSX', 'XLS', 'TXT'].map(ext => (
-                        <span key={ext} className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">.{ext.toLowerCase()}</span>
+                        <span key={ext} className="text-[10px] font-semibold text-[var(--color-neutral-400)] bg-[var(--color-neutral-100)] px-2 py-0.5 rounded-md">.{ext.toLowerCase()}</span>
                       ))}
                     </div>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-3 text-center">
+                  <p className="text-[11px] text-[var(--color-neutral-400)] mt-3 text-center">
                     Upload a file containing email addresses. We&apos;ll automatically detect and extract them.
                   </p>
                 </>
               ) : (
                 <div>
                   {/* File info */}
-                  <div className="flex items-center justify-between mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex items-center justify-between mb-4 p-3 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center">
                         <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -875,28 +875,28 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                         </svg>
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-slate-700">{bulkFileName}</p>
-                        <p className="text-[11px] text-slate-500">{bulkEmails.length} email{bulkEmails.length !== 1 ? 's' : ''} detected</p>
+                        <p className="text-xs font-semibold text-[var(--color-neutral-700)]">{bulkFileName}</p>
+                        <p className="text-[11px] text-[var(--color-neutral-500)]">{bulkEmails.length} email{bulkEmails.length !== 1 ? 's' : ''} detected</p>
                       </div>
                     </div>
                     <button
                       onClick={() => { setBulkEmails([]); setBulkFileName(''); }}
-                      className="text-xs text-slate-400 hover:text-red-600 transition-colors"
+                      className="text-xs text-[var(--color-neutral-400)] hover:text-red-600 transition-colors"
                     >
                       Remove
                     </button>
                   </div>
 
                   {/* Email preview */}
-                  <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100 mb-4">
+                  <div className="max-h-40 overflow-y-auto rounded-xl border border-[var(--border-default)] divide-y divide-[var(--border-subtle)] mb-4">
                     {bulkEmails.slice(0, 20).map((email, i) => (
-                      <div key={i} className="px-4 py-2 flex items-center gap-2 text-sm text-slate-700">
-                        <span className="w-5 h-5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-400 flex items-center justify-center shrink-0">{i + 1}</span>
+                      <div key={i} className="px-4 py-2 flex items-center gap-2 text-sm text-[var(--color-neutral-700)]">
+                        <span className="w-5 h-5 rounded-full bg-[var(--color-neutral-100)] text-[10px] font-bold text-[var(--color-neutral-400)] flex items-center justify-center shrink-0">{i + 1}</span>
                         {email}
                       </div>
                     ))}
                     {bulkEmails.length > 20 && (
-                      <div className="px-4 py-2 text-xs text-slate-400">... and {bulkEmails.length - 20} more</div>
+                      <div className="px-4 py-2 text-xs text-[var(--color-neutral-400)]">... and {bulkEmails.length - 20} more</div>
                     )}
                   </div>
 
@@ -905,7 +905,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                     <select
                       value={bulkRole}
                       onChange={e => setBulkRole(e.target.value as 'member' | 'admin')}
-                      className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                      className="px-3 py-2.5 border border-[var(--border-default)] rounded-xl text-sm text-[var(--color-neutral-700)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
                     >
                       <option value="member">Invite as Member</option>
                       <option value="admin">Invite as Admin</option>
@@ -938,11 +938,11 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       )}
 
       {/* Team Members */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-900">Team Members ({members.length})</h3>
+      <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[var(--border-subtle)]">
+          <h3 className="text-sm font-semibold text-[var(--color-ink)]">Team Members ({members.length})</h3>
         </div>
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-[var(--border-subtle)]">
           {members.map(member => (
             <div key={member.id} className="px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -951,21 +951,21 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-[var(--color-ink)]">
                       {member.full_name || member.email.split('@')[0]}
                     </p>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase ${getRoleBadge(member.role)}`}>
                       {member.role}
                     </span>
                     {member.id === currentUser.id && (
-                      <span className="text-[10px] text-slate-400 font-medium">(You)</span>
+                      <span className="text-[10px] text-[var(--color-neutral-400)] font-medium">(You)</span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500">{member.email}</p>
+                  <p className="text-xs text-[var(--color-neutral-500)]">{member.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[var(--color-neutral-400)]">
                   {member.last_sign_in_at
                     ? `Active ${new Date(member.last_sign_in_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
                     : 'Never signed in'}
@@ -973,7 +973,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                 {isOwnerOrAdmin && member.id !== currentUser.id && member.role !== 'owner' && (
                   <button
                     onClick={() => handleRemoveMember(member.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-red-600 hover:bg-red-50 transition-colors"
                     title="Remove member"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -989,16 +989,16 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
 
       {/* Pending Invitations */}
       {invites.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100">
-            <h3 className="text-sm font-semibold text-slate-900">Pending Invitations ({invites.length})</h3>
+        <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[var(--border-subtle)]">
+            <h3 className="text-sm font-semibold text-[var(--color-ink)]">Pending Invitations ({invites.length})</h3>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[var(--border-subtle)]">
             {invites.map(invite => (
               <div key={invite.id} className="px-5 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="relative w-10 h-10 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <div className="relative w-10 h-10 rounded-full bg-[var(--color-neutral-100)] border-2 border-dashed border-[var(--border-strong)] flex items-center justify-center">
+                    <svg className="w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                     </svg>
                     <span className="absolute -top-0.5 -right-0.5">
@@ -1007,7 +1007,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-slate-900">{invite.email}</p>
+                      <p className="text-sm font-semibold text-[var(--color-ink)]">{invite.email}</p>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase ${getRoleBadge(invite.role)}`}>
                         {invite.role}
                       </span>
@@ -1019,7 +1019,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                         </svg>
                         Invitation Sent
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-[var(--color-neutral-400)]">
                         Sent {getDaysAgo(invite.created_at)}
                       </span>
                     </div>
@@ -1056,14 +1056,14 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       )}
 
       {/* Permissions Info */}
-      <div className="bg-slate-50 rounded-xl border border-slate-200 p-5">
-        <h3 className="text-sm font-semibold text-slate-900 mb-3">Role Permissions</h3>
+      <div className="bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] p-5">
+        <h3 className="text-sm font-semibold text-[var(--color-ink)] mb-3">Role Permissions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-3 bg-white rounded-lg border border-slate-200">
+          <div className="p-3 bg-white rounded-lg border border-[var(--border-default)]">
             <div className="flex items-center gap-2 mb-2">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase ${getRoleBadge('owner')}`}>Owner</span>
             </div>
-            <ul className="space-y-1 text-xs text-slate-600">
+            <ul className="space-y-1 text-xs text-[var(--color-neutral-600)]">
               <li className="flex items-center gap-1.5">
                 <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 Full account access
@@ -1078,11 +1078,11 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
               </li>
             </ul>
           </div>
-          <div className="p-3 bg-white rounded-lg border border-slate-200">
+          <div className="p-3 bg-white rounded-lg border border-[var(--border-default)]">
             <div className="flex items-center gap-2 mb-2">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase ${getRoleBadge('admin')}`}>Admin</span>
             </div>
-            <ul className="space-y-1 text-xs text-slate-600">
+            <ul className="space-y-1 text-xs text-[var(--color-neutral-600)]">
               <li className="flex items-center gap-1.5">
                 <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 Create & manage campaigns
@@ -1097,11 +1097,11 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
               </li>
             </ul>
           </div>
-          <div className="p-3 bg-white rounded-lg border border-slate-200">
+          <div className="p-3 bg-white rounded-lg border border-[var(--border-default)]">
             <div className="flex items-center gap-2 mb-2">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border uppercase ${getRoleBadge('member')}`}>Member</span>
             </div>
-            <ul className="space-y-1 text-xs text-slate-600">
+            <ul className="space-y-1 text-xs text-[var(--color-neutral-600)]">
               <li className="flex items-center gap-1.5">
                 <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 View dashboard & analytics
@@ -1111,8 +1111,8 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                 View calls & campaigns
               </li>
               <li className="flex items-center gap-1.5">
-                <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                <span className="text-slate-400">Cannot change settings</span>
+                <svg className="w-3 h-3 text-[var(--color-neutral-300)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <span className="text-[var(--color-neutral-400)]">Cannot change settings</span>
               </li>
             </ul>
           </div>

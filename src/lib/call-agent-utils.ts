@@ -514,7 +514,7 @@ export function formatDateTime(dateString: string | null | undefined): string {
 
 export function getStatusColor(status: ContactStatus): string {
   const colors: Record<ContactStatus, string> = {
-    'Pending': 'bg-slate-100 text-slate-700 border-slate-200',
+    'Pending': 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-700)] border-[var(--border-default)]',
     'Calling': 'bg-blue-100 text-blue-700 border-blue-200',
     'Fully Verified': 'bg-emerald-100 text-emerald-700 border-emerald-300',
     'Research Needed': 'bg-amber-100 text-amber-700 border-amber-200',
@@ -525,7 +525,7 @@ export function getStatusColor(status: ContactStatus): string {
     'Withheld & Hung Up': 'bg-rose-100 text-rose-700 border-rose-200',
     'Voicemail Left': 'bg-violet-100 text-violet-700 border-violet-200',
   };
-  return colors[status] || 'bg-slate-100 text-slate-700 border-slate-200';
+  return colors[status] || 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-700)] border-[var(--border-default)]';
 }
 
 export function getSentimentColor(sentiment: string | undefined): string {
@@ -535,7 +535,7 @@ export function getSentimentColor(sentiment: string | undefined): string {
     case 'negative':
       return 'text-red-600 bg-red-50';
     default:
-      return 'text-slate-600 bg-slate-50';
+      return 'text-[var(--color-neutral-600)] bg-[var(--color-neutral-50)]';
   }
 }
 
@@ -550,6 +550,6 @@ export function getInterestLevelColor(level: string | undefined): string {
     case 'none':
       return 'text-red-600 bg-red-50';
     default:
-      return 'text-slate-600 bg-slate-50';
+      return 'text-[var(--color-neutral-600)] bg-[var(--color-neutral-50)]';
   }
 }

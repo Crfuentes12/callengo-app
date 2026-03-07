@@ -44,12 +44,12 @@ export default function VoiceSelector({ selectedVoiceId, onVoiceSelect, classNam
   const display = getVoiceDisplay();
 
   const buttonStyles = variant === 'dark'
-    ? 'border-slate-700 bg-slate-900/50 hover:border-[var(--color-primary)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20'
-    : 'border-slate-200 bg-white hover:border-[var(--color-primary)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20';
+    ? 'border-[var(--color-neutral-700)] bg-[var(--color-neutral-900)]/50 hover:border-[var(--color-primary)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20'
+    : 'border-[var(--border-default)] bg-white hover:border-[var(--color-primary)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20';
 
   const textStyles = variant === 'dark'
-    ? { primary: selectedVoice ? 'text-white' : 'text-slate-400', secondary: selectedVoice ? 'text-slate-400' : 'text-slate-500' }
-    : { primary: selectedVoice ? 'text-slate-900' : 'text-slate-500', secondary: selectedVoice ? 'text-slate-600' : 'text-slate-400' };
+    ? { primary: selectedVoice ? 'text-white' : 'text-[var(--color-neutral-400)]', secondary: selectedVoice ? 'text-[var(--color-neutral-400)]' : 'text-[var(--color-neutral-500)]' }
+    : { primary: selectedVoice ? 'text-[var(--color-ink)]' : 'text-[var(--color-neutral-500)]', secondary: selectedVoice ? 'text-[var(--color-neutral-600)]' : 'text-[var(--color-neutral-400)]' };
 
   const genderBadgeStyles = variant === 'dark'
     ? { female: 'bg-pink-600/30 text-pink-400 border border-pink-500/50', male: 'bg-blue-600/30 text-blue-400 border border-blue-500/50' }
@@ -85,7 +85,7 @@ export default function VoiceSelector({ selectedVoiceId, onVoiceSelect, classNam
             </p>
           </div>
           <svg
-            className="w-5 h-5 text-slate-400"
+            className="w-5 h-5 text-[var(--color-neutral-400)]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

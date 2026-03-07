@@ -53,11 +53,11 @@ function LoginForm() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-bg mb-6 shadow-md">
             <img src="/callengo-logo-white.svg" alt="Callengo" className="w-10 h-10" />
           </div>
-          <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">Welcome back</h1>
-          <p className="text-slate-500 text-lg">Sign in to continue to Callengo</p>
+          <h1 className="text-4xl font-bold text-[var(--color-ink)] mb-3 tracking-tight">Welcome back</h1>
+          <p className="text-[var(--color-neutral-500)] text-lg">Sign in to continue to Callengo</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-md p-8 border border-slate-200">
+        <div className="bg-white rounded-3xl shadow-md p-8 border border-[var(--border-default)]">
           {(error || searchParams.get('error')) && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start gap-3">
               <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -69,12 +69,12 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[var(--color-neutral-700)] mb-2">
                 Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                   </svg>
                 </div>
@@ -82,7 +82,7 @@ function LoginForm() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
+                  className="w-full pl-12 pr-4 py-3.5 border border-[var(--border-strong)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-[var(--color-ink)] placeholder-[var(--color-neutral-400)]"
                   placeholder="you@example.com"
                   required
                 />
@@ -91,7 +91,7 @@ function LoginForm() {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-semibold text-slate-700">
+                <label className="block text-sm font-semibold text-[var(--color-neutral-700)]">
                   Password
                 </label>
                 <Link
@@ -103,7 +103,7 @@ function LoginForm() {
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
@@ -111,14 +111,14 @@ function LoginForm() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
+                  className="w-full pl-12 pr-12 py-3.5 border border-[var(--border-strong)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-[var(--color-ink)] placeholder-[var(--color-neutral-400)]"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] transition-colors"
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -153,8 +153,8 @@ function LoginForm() {
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-slate-200">
-            <p className="text-center text-sm text-slate-600">
+          <div className="mt-8 pt-6 border-t border-[var(--border-default)]">
+            <p className="text-center text-sm text-[var(--color-neutral-600)]">
               Don&apos;t have an account?{' '}
               <Link href="/signup" className="text-[var(--color-primary)] font-semibold hover:opacity-80 transition-colors">
                 Sign up for free
@@ -163,7 +163,7 @@ function LoginForm() {
           </div>
         </div>
 
-        <p className="text-center text-slate-500 text-sm mt-8">
+        <p className="text-center text-[var(--color-neutral-500)] text-sm mt-8">
           Protected by enterprise-grade security
         </p>
       </div>

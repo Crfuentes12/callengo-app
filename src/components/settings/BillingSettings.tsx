@@ -345,7 +345,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-sm text-slate-500">{t.common.loading}</p>
+          <p className="text-sm text-[var(--color-neutral-500)]">{t.common.loading}</p>
         </div>
       </div>
     );
@@ -396,42 +396,42 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {/* ── Your Subscription Card ── */}
         <div>
-          <h3 className="text-lg font-bold text-slate-900 mb-4">{t.billing.currentPlan}</h3>
-          <div className="gradient-bg-subtle border border-slate-200 rounded-xl p-6">
+          <h3 className="text-lg font-bold text-[var(--color-ink)] mb-4">{t.billing.currentPlan}</h3>
+          <div className="gradient-bg-subtle border border-[var(--border-default)] rounded-xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="text-2xl font-bold text-slate-900">{currentPlan.name}</h4>
+                  <h4 className="text-2xl font-bold text-[var(--color-ink)]">{currentPlan.name}</h4>
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">
                     {subscription.status === 'trial' ? t.billing.free : t.billing.paid}
                   </span>
                 </div>
-                <p className="text-sm text-slate-600">{currentPlan.description}</p>
+                <p className="text-sm text-[var(--color-neutral-600)]">{currentPlan.description}</p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-slate-900">
+                <div className="text-3xl font-bold text-[var(--color-ink)]">
                   {formatPrice(subscription.billing_cycle === 'monthly' ? currentPlan.price_monthly : currentPlan.price_annual)}
                 </div>
-                <div className="text-sm text-slate-500">{subscription.billing_cycle === 'monthly' ? t.billing.perMonth : t.billing.perYear}</div>
+                <div className="text-sm text-[var(--color-neutral-500)]">{subscription.billing_cycle === 'monthly' ? t.billing.perMonth : t.billing.perYear}</div>
               </div>
             </div>
 
             {usage && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-slate-700">{t.billing.minutesUsed}</span>
-                  <span className="font-bold text-slate-900">{usage.minutes_used.toLocaleString()} / {usage.minutes_included.toLocaleString()} min</span>
+                  <span className="font-medium text-[var(--color-neutral-700)]">{t.billing.minutesUsed}</span>
+                  <span className="font-bold text-[var(--color-ink)]">{usage.minutes_used.toLocaleString()} / {usage.minutes_included.toLocaleString()} min</span>
                 </div>
                 <div className="h-2 bg-white/80 rounded-full overflow-hidden">
                   <div className="h-full gradient-bg transition-all duration-500" style={{ width: `${usagePercent}%` }} />
                 </div>
-                <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} calls used · ~{getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining</p>
+                <p className="text-xs text-[var(--color-neutral-600)]">~{getApproxCalls(usage.minutes_used)} calls used · ~{getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining</p>
               </div>
             )}
 
             {subscription.current_period_end && (
-              <div className="mt-4 pt-4 border-t border-slate-200">
-                <p className="text-xs text-slate-600">{t.billing.renewsOn} <span className="font-semibold text-slate-900">{formatDate(subscription.current_period_end)}</span></p>
+              <div className="mt-4 pt-4 border-t border-[var(--border-default)]">
+                <p className="text-xs text-[var(--color-neutral-600)]">{t.billing.renewsOn} <span className="font-semibold text-[var(--color-ink)]">{formatDate(subscription.current_period_end)}</span></p>
               </div>
             )}
           </div>
@@ -439,26 +439,26 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {/* ── Overage Controls (right after subscription) ── */}
         <div>
-          <h3 className="text-lg font-bold text-slate-900 mb-4">{t.billing.overageCost}</h3>
-          <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <h3 className="text-lg font-bold text-[var(--color-ink)] mb-4">{t.billing.overageCost}</h3>
+          <div className="bg-white border border-[var(--border-default)] rounded-xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h4 className="font-semibold text-slate-900 mb-1">{t.billing.overageCost}</h4>
-                <p className="text-sm text-slate-600">{t.billing.overageMinutes}</p>
+                <h4 className="font-semibold text-[var(--color-ink)] mb-1">{t.billing.overageCost}</h4>
+                <p className="text-sm text-[var(--color-neutral-600)]">{t.billing.overageMinutes}</p>
               </div>
-              <button onClick={() => setShowOverageModal(true)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${subscription.overage_enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+              <button onClick={() => setShowOverageModal(true)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${subscription.overage_enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-200)]'}`}>
                 {subscription.overage_enabled ? t.common.enabled : t.common.disabled}
               </button>
             </div>
             {subscription.overage_enabled && (
-              <div className="space-y-3 pt-4 border-t border-slate-100">
-                <div className="flex justify-between items-center"><span className="text-sm text-slate-600">{t.billing.overageCost}</span><span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_budget)}</span></div>
-                <div className="flex justify-between items-center"><span className="text-sm text-slate-600">{t.billing.overageCost}</span><span className="text-sm font-semibold text-slate-900">{formatPrice(subscription.overage_spent)}</span></div>
+              <div className="space-y-3 pt-4 border-t border-[var(--border-subtle)]">
+                <div className="flex justify-between items-center"><span className="text-sm text-[var(--color-neutral-600)]">{t.billing.overageCost}</span><span className="text-sm font-semibold text-[var(--color-ink)]">{formatPrice(subscription.overage_budget)}</span></div>
+                <div className="flex justify-between items-center"><span className="text-sm text-[var(--color-neutral-600)]">{t.billing.overageCost}</span><span className="text-sm font-semibold text-[var(--color-ink)]">{formatPrice(subscription.overage_spent)}</span></div>
                 <div className="space-y-1">
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
                     <div className={`h-full transition-all duration-500 ${subscription.overage_spent >= subscription.overage_budget ? 'bg-red-500' : subscription.overage_spent >= subscription.overage_budget * 0.85 ? 'bg-orange-500' : 'bg-green-500'}`} style={{ width: `${Math.min((subscription.overage_spent / subscription.overage_budget) * 100, 100)}%` }} />
                   </div>
-                  <p className="text-xs text-slate-500">{formatPrice(subscription.overage_budget - subscription.overage_spent)} {t.billing.remaining}</p>
+                  <p className="text-xs text-[var(--color-neutral-500)]">{formatPrice(subscription.overage_budget - subscription.overage_spent)} {t.billing.remaining}</p>
                 </div>
               </div>
             )}
@@ -470,8 +470,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-0.5">Add-ons</h3>
-                <p className="text-sm text-slate-500">Supercharge your plan with powerful extras. Cancel anytime.</p>
+                <h3 className="text-lg font-bold text-[var(--color-ink)] mb-0.5">Add-ons</h3>
+                <p className="text-sm text-[var(--color-neutral-500)]">Supercharge your plan with powerful extras. Cancel anytime.</p>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -538,7 +538,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     className={`relative rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 ${
                       isActive
                         ? 'border-emerald-300 shadow-md shadow-emerald-100'
-                        : `${addon.highlightBorder} hover:shadow-lg hover:shadow-slate-200/60 hover:-translate-y-0.5`
+                        : `${addon.highlightBorder} hover:shadow-lg hover:shadow-[var(--color-neutral-200)]/60 hover:-translate-y-0.5`
                     }`}
                   >
                     {/* Card gradient header */}
@@ -556,19 +556,19 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                           <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${badgeClasses[addon.badgeColor]}`}>{addon.badge}</span>
                         )}
                       </div>
-                      <h4 className="text-sm font-bold text-slate-900 mb-1">{addon.title}</h4>
-                      <p className="text-xs text-slate-500 leading-relaxed">{addon.desc}</p>
+                      <h4 className="text-sm font-bold text-[var(--color-ink)] mb-1">{addon.title}</h4>
+                      <p className="text-xs text-[var(--color-neutral-500)] leading-relaxed">{addon.desc}</p>
                     </div>
                     {/* Card footer */}
-                    <div className="bg-white px-5 py-4 mt-auto border-t border-slate-100 flex items-center justify-between gap-3">
+                    <div className="bg-white px-5 py-4 mt-auto border-t border-[var(--border-subtle)] flex items-center justify-between gap-3">
                       <div>
-                        <span className="text-2xl font-bold text-slate-900">{formatPrice(addon.price)}</span>
-                        <span className="text-xs text-slate-400 ml-1">/mo</span>
+                        <span className="text-2xl font-bold text-[var(--color-ink)]">{formatPrice(addon.price)}</span>
+                        <span className="text-xs text-[var(--color-neutral-400)] ml-1">/mo</span>
                       </div>
                       {isActive ? (
                         <button
                           onClick={() => openBillingPortal()}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-200)] transition-colors"
                         >
                           Manage
                         </button>
@@ -605,12 +605,12 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-bold text-slate-900 mb-1">{t.billing.changePlan}</h3>
-              <p className="text-sm text-slate-500">{higherPlans.length > 0 ? t.billing.upgradePlan : t.billing.currentPlan}</p>
+              <h3 className="text-lg font-bold text-[var(--color-ink)] mb-1">{t.billing.changePlan}</h3>
+              <p className="text-sm text-[var(--color-neutral-500)]">{higherPlans.length > 0 ? t.billing.upgradePlan : t.billing.currentPlan}</p>
             </div>
-            <div className="inline-flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
-              <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>{t.billing.monthly}</button>
-              <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+            <div className="inline-flex items-center gap-2 p-1 bg-[var(--color-neutral-100)] rounded-lg">
+              <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>{t.billing.monthly}</button>
+              <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>
                 {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">{t.billing.saveUpTo}</span>
               </button>
             </div>
@@ -630,7 +630,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <div key={plan.id} className="relative flex pt-6">
                   {isCurrent && (
                     <div className="absolute -top-0 left-1/2 -translate-x-1/2 z-10">
-                      <div className="bg-slate-800 text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">{t.billing.current}</div>
+                      <div className="bg-[var(--color-neutral-800)] text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">{t.billing.current}</div>
                     </div>
                   )}
                   {isRecommended && (
@@ -638,18 +638,18 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       <div className="gradient-bg text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">{t.billing.popular}</div>
                     </div>
                   )}
-                  <div className={`rounded-xl p-5 transition-all flex flex-col h-full w-full ${isCurrent ? 'border-2 border-slate-800 bg-white shadow-lg' : isRecommended ? 'border-2 border-[var(--color-primary)] bg-white shadow-xl shadow-[var(--color-primary)]/10' : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'}`}>
+                  <div className={`rounded-xl p-5 transition-all flex flex-col h-full w-full ${isCurrent ? 'border-2 border-[var(--color-neutral-800)] bg-white shadow-lg' : isRecommended ? 'border-2 border-[var(--color-primary)] bg-white shadow-xl shadow-[var(--color-primary)]/10' : 'border border-[var(--border-default)] bg-white hover:border-[var(--border-strong)] hover:shadow-md'}`}>
                     {/* Plan name + description */}
                     <div className="mb-3">
-                      <h4 className="text-lg font-bold text-slate-900 mb-1">{plan.name}</h4>
-                      <p className="text-xs text-slate-600 min-h-[2rem]">{plan.description}</p>
+                      <h4 className="text-lg font-bold text-[var(--color-ink)] mb-1">{plan.name}</h4>
+                      <p className="text-xs text-[var(--color-neutral-600)] min-h-[2rem]">{plan.description}</p>
                     </div>
                     {/* Price — same height for all */}
-                    <div className="mb-4 pb-4 border-b border-slate-100 min-h-[4.5rem]">
+                    <div className="mb-4 pb-4 border-b border-[var(--border-subtle)] min-h-[4.5rem]">
                       <div className="flex items-baseline gap-1">
-                        {isEnterprise && <span className="text-sm text-slate-400 font-normal">from</span>}
-                        <span className="text-3xl font-bold text-slate-900">{formatPrice(monthlyPrice)}</span>
-                        <span className="text-sm text-slate-500">{t.billing.mo}</span>
+                        {isEnterprise && <span className="text-sm text-[var(--color-neutral-400)] font-normal">from</span>}
+                        <span className="text-3xl font-bold text-[var(--color-ink)]">{formatPrice(monthlyPrice)}</span>
+                        <span className="text-sm text-[var(--color-neutral-500)]">{t.billing.mo}</span>
                       </div>
                       {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
                         <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">{t.billing.save} {discountPercent}%</div>
@@ -657,24 +657,24 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     </div>
                     {/* Metrics — same rows for all plans */}
                     <div className="mb-4 space-y-2.5 text-xs">
-                      <div className="flex items-center justify-between"><span className="text-slate-500">Calls/month</span><span className="font-semibold text-slate-900">~{getApproxCalls(plan.minutes_included).toLocaleString()}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.minutesIncludedLabel}</span><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.usersLabel}</span><span className="font-semibold text-slate-900">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}{EXTRA_SEAT_PRICE[plan.slug] ? ` (${formatPrice(EXTRA_SEAT_PRICE[plan.slug]!)}${t.billing.perSeat})` : ''}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-slate-900">{plan.max_concurrent_calls === 999 ? '∞' : plan.max_concurrent_calls}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.overageRateLabel}</span><span className="font-semibold text-slate-900">{plan.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(plan.price_per_extra_minute)}${t.billing.min}` : '—'}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-[var(--color-neutral-500)]">Calls/month</span><span className="font-semibold text-[var(--color-ink)]">~{getApproxCalls(plan.minutes_included).toLocaleString()}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-[var(--color-neutral-500)]">{t.billing.minutesIncludedLabel}</span><span className="font-semibold text-[var(--color-ink)]">{plan.minutes_included.toLocaleString()}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-[var(--color-neutral-500)]">{t.billing.usersLabel}</span><span className="font-semibold text-[var(--color-ink)]">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}{EXTRA_SEAT_PRICE[plan.slug] ? ` (${formatPrice(EXTRA_SEAT_PRICE[plan.slug]!)}${t.billing.perSeat})` : ''}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-[var(--color-neutral-500)]">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-[var(--color-ink)]">{plan.max_concurrent_calls === 999 ? '∞' : plan.max_concurrent_calls}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-[var(--color-neutral-500)]">{t.billing.overageRateLabel}</span><span className="font-semibold text-[var(--color-ink)]">{plan.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(plan.price_per_extra_minute)}${t.billing.min}` : '—'}</span></div>
                     </div>
                     {/* Key features — 3 highlights */}
-                    <div className="flex-grow mb-4 pt-3 border-t border-slate-100">
-                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{t.billing.keyFeatures}</p>
+                    <div className="flex-grow mb-4 pt-3 border-t border-[var(--border-subtle)]">
+                      <p className="text-[10px] font-semibold text-[var(--color-neutral-400)] uppercase tracking-wider mb-2">{t.billing.keyFeatures}</p>
                       <div className="space-y-1.5 text-xs">
                         {getTranslatedFeatures(plan.slug).slice(0, 3).map((feature, idx) => (
-                          <div key={idx} className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700">{feature}</span></div>
+                          <div key={idx} className="flex items-start gap-2"><svg className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-[var(--color-neutral-700)]">{feature}</span></div>
                         ))}
                       </div>
                     </div>
                     {/* CTA */}
                     {isCurrent ? (
-                      <div className="w-full py-2.5 rounded-lg text-sm font-semibold text-center text-slate-500 bg-slate-100 mt-auto">
+                      <div className="w-full py-2.5 rounded-lg text-sm font-semibold text-center text-[var(--color-neutral-500)] bg-[var(--color-neutral-100)] mt-auto">
                         {t.billing.currentPlan}
                       </div>
                     ) : isEnterprise ? (
@@ -688,7 +688,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       <button
                         onClick={() => handleChangePlan(plan.id)}
                         disabled={changing}
-                        className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto ${isRecommended ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-slate-800 text-white hover:bg-slate-900'}`}
+                        className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto ${isRecommended ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-[var(--color-neutral-800)] text-white hover:bg-[var(--color-neutral-900)]'}`}
                       >
                         {changing ? t.common.loading : `${t.billing.upgradePlan} ${plan.name}`}
                       </button>
@@ -702,10 +702,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {/* ── Detailed Comparison (expandable) ── */}
         {comparisonPlans.length > 1 && (
-          <div className="border-t border-slate-100 pt-6">
+          <div className="border-t border-[var(--border-subtle)] pt-6">
             <button
               onClick={() => setShowComparison(!showComparison)}
-              className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+              className="flex items-center gap-2 text-sm text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)] transition-colors"
             >
               <svg className={`w-4 h-4 transition-transform ${showComparison ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -717,10 +717,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <div className="mt-4 animate-in slide-in-from-top-2 overflow-x-auto">
                 <table className="w-full text-xs border-collapse">
                   <thead>
-                    <tr className="border-b-2 border-slate-200">
-                      <th className="text-left py-3 pr-4 text-slate-500 font-semibold min-w-[160px]">{t.billing.compareFeature}</th>
+                    <tr className="border-b-2 border-[var(--border-default)]">
+                      <th className="text-left py-3 pr-4 text-[var(--color-neutral-500)] font-semibold min-w-[160px]">{t.billing.compareFeature}</th>
                       {comparisonPlans.map(plan => (
-                        <th key={plan.id} className={`text-center py-3 px-3 font-bold text-slate-900 ${plan.slug === currentPlan.slug ? 'bg-slate-50 rounded-t-lg' : ''}`}>
+                        <th key={plan.id} className={`text-center py-3 px-3 font-bold text-[var(--color-ink)] ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)] rounded-t-lg' : ''}`}>
                           {plan.name}
                         </th>
                       ))}
@@ -728,7 +728,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   </thead>
                   <tbody>
                     {/* ── Pricing & Limits ── */}
-                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-4 pb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pricing & Limits</span></td></tr>
+                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-4 pb-1"><span className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider">Pricing & Limits</span></td></tr>
                     {[
                       { label: t.billing.plan, render: (p: Plan) => { const mp = p.slug === 'enterprise' ? p.price_monthly : (billingCycle === 'monthly' ? p.price_monthly : Math.round(p.price_annual / 12)); return <span className="font-semibold">{formatPrice(mp)}{t.billing.mo}</span>; }},
                       { label: t.billing.minutesIncludedLabel, render: (p: Plan) => <span className="font-semibold">{p.minutes_included.toLocaleString()}</span> },
@@ -740,16 +740,16 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       { label: t.billing.callsPerHourLabel, render: (p: Plan) => <>{p.max_calls_per_hour ?? t.billing.unlimited}</> },
                       { label: t.billing.callsPerDayLabel, render: (p: Plan) => <>{p.max_calls_per_day ?? t.billing.unlimited}</> },
                     ].map((row, i) => (
-                      <tr key={`limit-${i}`} className={i % 2 === 0 ? 'bg-slate-50/50' : ''}>
-                        <td className="py-2.5 pr-4 text-slate-600 font-medium">{row.label}</td>
+                      <tr key={`limit-${i}`} className={i % 2 === 0 ? 'bg-[var(--color-neutral-50)]/50' : ''}>
+                        <td className="py-2.5 pr-4 text-[var(--color-neutral-600)] font-medium">{row.label}</td>
                         {comparisonPlans.map(plan => (
-                          <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>{row.render(plan)}</td>
+                          <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)]' : ''}`}>{row.render(plan)}</td>
                         ))}
                       </tr>
                     ))}
 
                     {/* ── Calling Features ── */}
-                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-5 pb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.billing.features}</span></td></tr>
+                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-5 pb-1"><span className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider">{t.billing.features}</span></td></tr>
                     {[
                       { label: t.billing.voicemailDetection, key: 'voicemailDetection' as const },
                       { label: t.billing.followUps, key: 'maxFollowUpAttempts' as const },
@@ -760,21 +760,21 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       { label: 'Microsoft Teams', key: 'microsoftTeams' as const },
                       { label: t.billing.userPermissions, key: 'dataExport' as const },
                     ].map((row, i) => (
-                      <tr key={`feat-${i}`} className={i % 2 === 0 ? 'bg-slate-50/50' : ''}>
-                        <td className="py-2.5 pr-4 text-slate-600 font-medium">{row.label}</td>
+                      <tr key={`feat-${i}`} className={i % 2 === 0 ? 'bg-[var(--color-neutral-50)]/50' : ''}>
+                        <td className="py-2.5 pr-4 text-[var(--color-neutral-600)] font-medium">{row.label}</td>
                         {comparisonPlans.map(plan => {
                           const access = getCampaignFeatureAccess(plan.slug);
                           const val = access[row.key];
                           return (
-                            <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
+                            <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)]' : ''}`}>
                               {typeof val === 'boolean' ? (
                                 val ? <svg className="w-4 h-4 text-green-600 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                                    : <span className="text-slate-300">—</span>
+                                    : <span className="text-[var(--color-neutral-300)]">—</span>
                               ) : typeof val === 'number' ? (
                                 val === -1 ? <span className="font-semibold">{t.billing.unlimited}</span>
-                                : val === 0 ? <span className="text-slate-300">—</span>
+                                : val === 0 ? <span className="text-[var(--color-neutral-300)]">—</span>
                                 : <span className="font-semibold">{val} {t.billing.attempts}</span>
-                              ) : <span className="text-slate-300">—</span>}
+                              ) : <span className="text-[var(--color-neutral-300)]">—</span>}
                             </td>
                           );
                         })}
@@ -782,14 +782,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     ))}
 
                     {/* ── Phone & Integrations ── */}
-                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-5 pb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.billing.integrationsLabel}</span></td></tr>
+                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-5 pb-1"><span className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider">{t.billing.integrationsLabel}</span></td></tr>
                     {/* Phone numbers */}
-                    <tr className="bg-slate-50/50">
-                      <td className="py-2.5 pr-4 text-slate-600 font-medium">{t.billing.phoneNumbers}</td>
+                    <tr className="bg-[var(--color-neutral-50)]/50">
+                      <td className="py-2.5 pr-4 text-[var(--color-neutral-600)] font-medium">{t.billing.phoneNumbers}</td>
                       {comparisonPlans.map(plan => {
                         const phone = getPhoneNumberFeatures(plan.slug);
                         return (
-                          <td key={plan.id} className={`text-center py-2.5 px-3 text-slate-700 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
+                          <td key={plan.id} className={`text-center py-2.5 px-3 text-[var(--color-neutral-700)] ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)]' : ''}`}>
                             {phone.dedicatedNumberAddon ? t.billing.autoRotatedByop : t.billing.autoRotated}
                           </td>
                         );
@@ -806,14 +806,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         enterprise: ['Google Calendar & Meet', 'SimplyBook.me', 'HubSpot CRM', 'Pipedrive CRM', 'Zoho CRM', 'Clio', 'Salesforce CRM', 'Microsoft Dynamics 365'],
                       };
                       return (
-                        <tr key={`int-${i}`} className={i % 2 !== 0 ? 'bg-slate-50/50' : ''}>
-                          <td className="py-2 pr-4 text-slate-600">{integration}</td>
+                        <tr key={`int-${i}`} className={i % 2 !== 0 ? 'bg-[var(--color-neutral-50)]/50' : ''}>
+                          <td className="py-2 pr-4 text-[var(--color-neutral-600)]">{integration}</td>
                           {comparisonPlans.map(plan => (
-                            <td key={plan.id} className={`text-center py-2 px-3 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
+                            <td key={plan.id} className={`text-center py-2 px-3 ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)]' : ''}`}>
                               {(integrationsByPlan[plan.slug] || []).includes(integration) ? (
                                 <svg className="w-4 h-4 text-green-600 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                               ) : (
-                                <span className="text-slate-300">—</span>
+                                <span className="text-[var(--color-neutral-300)]">—</span>
                               )}
                             </td>
                           ))}
@@ -821,21 +821,21 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       );
                     })}
                     {/* Webhooks */}
-                    <tr className="bg-slate-50/50">
-                      <td className="py-2 pr-4 text-slate-600">Webhooks (Zapier, Make, n8n)</td>
+                    <tr className="bg-[var(--color-neutral-50)]/50">
+                      <td className="py-2 pr-4 text-[var(--color-neutral-600)]">Webhooks (Zapier, Make, n8n)</td>
                       {comparisonPlans.map(plan => (
-                        <td key={plan.id} className={`text-center py-2 px-3 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
+                        <td key={plan.id} className={`text-center py-2 px-3 ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)]' : ''}`}>
                           {plan.slug !== 'free' ? (
                             <svg className="w-4 h-4 text-green-600 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                           ) : (
-                            <span className="text-slate-300">—</span>
+                            <span className="text-[var(--color-neutral-300)]">—</span>
                           )}
                         </td>
                       ))}
                     </tr>
 
                     {/* ── Support ── */}
-                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-5 pb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.billing.supportLabel}</span></td></tr>
+                    <tr><td colSpan={comparisonPlans.length + 1} className="pt-5 pb-1"><span className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider">{t.billing.supportLabel}</span></td></tr>
                     {[
                       { label: t.billing.supportLabel, render: (slug: string) => {
                         const supportByPlan: Record<string, string> = { free: '—', starter: 'Email', growth: 'Priority email', business: 'Priority email', teams: 'Priority', enterprise: 'Dedicated manager' };
@@ -844,15 +844,15 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       { label: t.billing.slaGuarantee, render: (slug: string) => slug === 'enterprise' },
                       { label: t.billing.dedicatedManager, render: (slug: string) => slug === 'enterprise' },
                     ].map((row, i) => (
-                      <tr key={`support-${i}`} className={i % 2 === 0 ? 'bg-slate-50/50' : ''}>
-                        <td className="py-2.5 pr-4 text-slate-600 font-medium">{row.label}</td>
+                      <tr key={`support-${i}`} className={i % 2 === 0 ? 'bg-[var(--color-neutral-50)]/50' : ''}>
+                        <td className="py-2.5 pr-4 text-[var(--color-neutral-600)] font-medium">{row.label}</td>
                         {comparisonPlans.map(plan => (
-                          <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-slate-50' : ''}`}>
+                          <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)]' : ''}`}>
                             {typeof row.render(plan.slug) === 'boolean' ? (
                               row.render(plan.slug) ? <svg className="w-4 h-4 text-green-600 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                                : <span className="text-slate-300">—</span>
+                                : <span className="text-[var(--color-neutral-300)]">—</span>
                             ) : (
-                              <span className="text-slate-700">{row.render(plan.slug)}</span>
+                              <span className="text-[var(--color-neutral-700)]">{row.render(plan.slug)}</span>
                             )}
                           </td>
                         ))}
@@ -866,10 +866,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         )}
 
         {/* ── Billing & Account Details (expandable, deeply buried) ── */}
-        <div className="border-t border-slate-100 pt-6">
+        <div className="border-t border-[var(--border-subtle)] pt-6">
           <button
             onClick={() => setShowBillingDetails(!showBillingDetails)}
-            className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+            className="flex items-center gap-2 text-sm text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)] transition-colors"
           >
             <svg className={`w-4 h-4 transition-transform ${showBillingDetails ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -880,136 +880,136 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           {showBillingDetails && (
             <div className="mt-4 space-y-6 animate-in slide-in-from-top-2">
               {/* Payment Information (no Stripe portal button) */}
-              <div className="bg-white border border-slate-200 rounded-xl p-6">
-                <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+              <div className="bg-white border border-[var(--border-default)] rounded-xl p-6">
+                <h4 className="text-sm font-semibold text-[var(--color-ink)] mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                   {t.billing.paymentMethod}
                 </h4>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.paymentMethod}</span>
-                    <span className="text-sm text-slate-900 font-medium">{t.billing.managedViaStripe}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.paymentMethod}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium">{t.billing.managedViaStripe}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.monthly}</span>
-                    <span className="text-sm text-slate-900 font-medium capitalize">{subscription.billing_cycle}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.monthly}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium capitalize">{subscription.billing_cycle}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.currentPlan}</span>
-                    <span className="text-sm text-slate-900 font-medium">{currentPlan.name}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.currentPlan}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium">{currentPlan.name}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.amount}</span>
-                    <span className="text-sm text-slate-900 font-medium">
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.amount}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium">
                       {formatPrice(subscription.billing_cycle === 'monthly' ? currentPlan.price_monthly : currentPlan.price_annual)}/{subscription.billing_cycle === 'monthly' ? t.billing.mo : t.billing.yr}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.nextBilling}</span>
-                    <span className="text-sm text-slate-900 font-medium">{subscription.current_period_end ? formatDate(subscription.current_period_end) : t.billing.na}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.nextBilling}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium">{subscription.current_period_end ? formatDate(subscription.current_period_end) : t.billing.na}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.status}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.status}</span>
                     <span className="text-xs font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">{t.billing.paid}</span>
                   </div>
                 </div>
               </div>
 
               {/* Account Details */}
-              <div className="bg-white border border-slate-200 rounded-xl p-6">
-                <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <div className="bg-white border border-[var(--border-default)] rounded-xl p-6">
+                <h4 className="text-sm font-semibold text-[var(--color-ink)] mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                   {t.billing.accountDetails}
                 </h4>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.currentPlan}</span>
-                    <span className="text-sm text-slate-900 font-medium">{currentPlan.name} {t.billing.plan}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.currentPlan}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium">{currentPlan.name} {t.billing.plan}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.features}</span>
-                    <span className="text-sm text-slate-900 font-medium">{currentPlan.max_users === -1 ? t.billing.unlimited : currentPlan.max_users}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.features}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium">{currentPlan.max_users === -1 ? t.billing.unlimited : currentPlan.max_users}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.minutesIncluded}</span>
-                    <span className="text-sm text-slate-900 font-medium">{currentPlan.minutes_included.toLocaleString()}/{t.billing.mo}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.minutesIncluded}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium">{currentPlan.minutes_included.toLocaleString()}/{t.billing.mo}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.features}</span>
-                    <span className="text-sm text-slate-900 font-medium">{currentPlan.max_call_duration} {t.billing.min}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.features}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium">{currentPlan.max_call_duration} {t.billing.min}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.features}</span>
-                    <span className="text-sm text-slate-900 font-medium">{currentPlan.max_concurrent_calls}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.features}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium">{currentPlan.max_concurrent_calls}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span className="text-sm text-slate-600">{t.billing.overageCost}</span>
-                    <span className="text-sm text-slate-900 font-medium">{formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/{t.billing.perMin}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                    <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.overageCost}</span>
+                    <span className="text-sm text-[var(--color-ink)] font-medium">{formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/{t.billing.perMin}</span>
                   </div>
                   {currentPlan.max_calls_per_hour && (
-                    <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">{t.billing.features}</span>
-                      <span className="text-sm text-slate-900 font-medium">{currentPlan.max_calls_per_hour} {t.billing.callsPerHr}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                      <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.features}</span>
+                      <span className="text-sm text-[var(--color-ink)] font-medium">{currentPlan.max_calls_per_hour} {t.billing.callsPerHr}</span>
                     </div>
                   )}
                   {currentPlan.max_calls_per_day && (
-                    <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">{t.billing.features}</span>
-                      <span className="text-sm text-slate-900 font-medium">{currentPlan.max_calls_per_day} {t.billing.callsPerDay}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                      <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.features}</span>
+                      <span className="text-sm text-[var(--color-ink)] font-medium">{currentPlan.max_calls_per_day} {t.billing.callsPerDay}</span>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Usage Summary */}
-              <div className="bg-white border border-slate-200 rounded-xl p-6">
-                <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+              <div className="bg-white border border-[var(--border-default)] rounded-xl p-6">
+                <h4 className="text-sm font-semibold text-[var(--color-ink)] mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
                   {t.billing.usage}
                 </h4>
                 {usage ? (
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">{t.billing.minutesUsed}</span>
-                      <span className="text-sm text-slate-900 font-medium">{usage.minutes_used.toLocaleString()}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                      <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.minutesUsed}</span>
+                      <span className="text-sm text-[var(--color-ink)] font-medium">{usage.minutes_used.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">{t.billing.minutesIncluded}</span>
-                      <span className="text-sm text-slate-900 font-medium">{usage.minutes_included.toLocaleString()}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                      <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.minutesIncluded}</span>
+                      <span className="text-sm text-[var(--color-ink)] font-medium">{usage.minutes_included.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">{t.billing.overageMinutes}</span>
-                      <span className="text-sm text-slate-900 font-medium">{usage.overage_minutes.toLocaleString()}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                      <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.overageMinutes}</span>
+                      <span className="text-sm text-[var(--color-ink)] font-medium">{usage.overage_minutes.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">{t.billing.minutesIncluded}</span>
-                      <span className="text-sm text-slate-900 font-medium">{Math.max(0, usage.minutes_included - usage.minutes_used).toLocaleString()}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                      <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.minutesIncluded}</span>
+                      <span className="text-sm text-[var(--color-ink)] font-medium">{Math.max(0, usage.minutes_included - usage.minutes_used).toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">{t.billing.usage}</span>
-                      <span className="text-sm text-slate-900 font-medium">{usagePercent.toFixed(1)}%</span>
+                    <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                      <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.usage}</span>
+                      <span className="text-sm text-[var(--color-ink)] font-medium">{usagePercent.toFixed(1)}%</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                      <span className="text-sm text-slate-600">{t.billing.usage}</span>
-                      <span className="text-sm text-slate-900 font-medium">~{getApproxCalls(usage.minutes_used)}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-[var(--color-neutral-50)]">
+                      <span className="text-sm text-[var(--color-neutral-600)]">{t.billing.usage}</span>
+                      <span className="text-sm text-[var(--color-ink)] font-medium">~{getApproxCalls(usage.minutes_used)}</span>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500">{t.common.noData}</p>
+                  <p className="text-sm text-[var(--color-neutral-500)]">{t.common.noData}</p>
                 )}
               </div>
 
               {/* Terms and Legal */}
-              <div className="bg-white border border-slate-200 rounded-xl p-6">
-                <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+              <div className="bg-white border border-[var(--border-default)] rounded-xl p-6">
+                <h4 className="text-sm font-semibold text-[var(--color-ink)] mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
                   {t.billing.termsAndPolicies}
                 </h4>
-                <div className="space-y-2 text-sm text-slate-600">
+                <div className="space-y-2 text-sm text-[var(--color-neutral-600)]">
                   <p>{t.billing.termsAutoRenew}</p>
                   <p>Overage charges are calculated at {formatPriceWithDecimals(currentPlan.price_per_extra_minute)} per minute beyond your included {currentPlan.minutes_included.toLocaleString()} minutes, up to your set budget limit.</p>
                   <p>{t.billing.termsChanges}</p>
-                  <p className="text-xs text-slate-400 mt-4">{t.billing.termsAgreement}</p>
+                  <p className="text-xs text-[var(--color-neutral-400)] mt-4">{t.billing.termsAgreement}</p>
                 </div>
               </div>
 
@@ -1025,10 +1025,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               </div>
 
               {/* Cancel subscription — buried at the very bottom */}
-              <div className="pt-8 border-t border-slate-100">
+              <div className="pt-8 border-t border-[var(--border-subtle)]">
                 <button
                   onClick={handleStartCancel}
-                  className="text-xs text-slate-400 hover:text-red-500 transition-colors underline underline-offset-2"
+                  className="text-xs text-[var(--color-neutral-400)] hover:text-red-500 transition-colors underline underline-offset-2"
                 >
                   {t.billing.cancelPlan}
                 </button>
@@ -1043,7 +1043,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {/* Step 1: Are you sure? */}
         {cancelStep === 'confirm' && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-[var(--color-neutral-900)]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
               <div className="text-center mb-6">
                 <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
@@ -1051,8 +1051,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{t.billing.cancelConfirmTitle}</h3>
-                <p className="text-sm text-slate-600">
+                <h3 className="text-xl font-bold text-[var(--color-ink)] mb-2">{t.billing.cancelConfirmTitle}</h3>
+                <p className="text-sm text-[var(--color-neutral-600)]">
                   {t.billing.cancelCurrentPlan} <strong>{currentPlan.name}</strong> {t.billing.cancelPlanWith} <strong>{currentPlan.minutes_included.toLocaleString()}</strong> {t.billing.cancelMinutesMonth} {t.billing.cancelConsequence}
                 </p>
               </div>
@@ -1081,7 +1081,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 </button>
                 <button
                   onClick={handleConfirmCancel}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-[var(--color-neutral-600)] bg-[var(--color-neutral-100)] hover:bg-[var(--color-neutral-200)] transition-colors"
                 >
                   {t.billing.yesCancelPlan}
                 </button>
@@ -1092,11 +1092,11 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {/* Step 2: Feedback form */}
         {cancelStep === 'feedback' && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-[var(--color-neutral-900)]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="mb-6">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{t.billing.feedbackTitle}</h3>
-                <p className="text-sm text-slate-600">
+                <h3 className="text-xl font-bold text-[var(--color-ink)] mb-2">{t.billing.feedbackTitle}</h3>
+                <p className="text-sm text-[var(--color-neutral-600)]">
                   {t.billing.feedbackDesc}
                 </p>
               </div>
@@ -1108,7 +1108,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
                       cancelReason === reason.id
                         ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                        : 'border-[var(--border-default)] hover:border-[var(--border-strong)] bg-white'
                     }`}
                   >
                     <input
@@ -1117,22 +1117,22 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       value={reason.id}
                       checked={cancelReason === reason.id}
                       onChange={() => setCancelReason(reason.id)}
-                      className="w-4 h-4 text-[var(--color-primary)] border-slate-300 focus:ring-[var(--color-primary)]"
+                      className="w-4 h-4 text-[var(--color-primary)] border-[var(--border-strong)] focus:ring-[var(--color-primary)]"
                     />
-                    <span className="text-sm text-slate-700">{reason.label}</span>
+                    <span className="text-sm text-[var(--color-neutral-700)]">{reason.label}</span>
                   </label>
                 ))}
               </div>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-[var(--color-neutral-700)] mb-2">
                   {t.billing.feedbackAdditional}
                 </label>
                 <textarea
                   value={cancelDetails}
                   onChange={(e) => setCancelDetails(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none"
+                  className="w-full px-3 py-2 border border-[var(--border-strong)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none"
                   placeholder={t.billing.feedbackPlaceholder}
                 />
               </div>
@@ -1147,7 +1147,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                 <button
                   onClick={handleSubmitFeedback}
                   disabled={!cancelReason || cancelLoading}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-[var(--color-neutral-600)] bg-[var(--color-neutral-100)] hover:bg-[var(--color-neutral-200)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {cancelLoading ? t.common.loading : t.common.confirm}
                 </button>
@@ -1158,7 +1158,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {/* Step 3: Retention offer (only for "too expensive" + eligible) */}
         {cancelStep === 'retention' && retentionEligible && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-[var(--color-neutral-900)]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
               {!retentionApplied ? (
                 <>
@@ -1168,8 +1168,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                       </svg>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">{t.billing.retentionTitle}</h3>
-                    <p className="text-sm text-slate-600">
+                    <h3 className="text-xl font-bold text-[var(--color-ink)] mb-2">{t.billing.retentionTitle}</h3>
+                    <p className="text-sm text-[var(--color-neutral-600)]">
                       {t.billing.retentionDesc}
                     </p>
                   </div>
@@ -1198,7 +1198,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     </button>
                     <button
                       onClick={handleDeclineRetention}
-                      className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                      className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-[var(--color-neutral-600)] bg-[var(--color-neutral-100)] hover:bg-[var(--color-neutral-200)] transition-colors"
                     >
                       {t.billing.declineOffer}
                     </button>
@@ -1212,8 +1212,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">{t.billing.retentionAppliedTitle}</h3>
-                    <p className="text-sm text-slate-600">
+                    <h3 className="text-xl font-bold text-[var(--color-ink)] mb-2">{t.billing.retentionAppliedTitle}</h3>
+                    <p className="text-sm text-[var(--color-neutral-600)]">
                       {t.billing.retentionAppliedDesc}
                     </p>
                   </div>
@@ -1231,22 +1231,22 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {/* Step 4: Final confirmation before redirect to Stripe */}
         {cancelStep === 'final' && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-[var(--color-neutral-900)]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
               <div className="text-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="w-16 h-16 rounded-full bg-[var(--color-neutral-100)] flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{t.billing.finalCancelTitle}</h3>
-                <p className="text-sm text-slate-600">
+                <h3 className="text-xl font-bold text-[var(--color-ink)] mb-2">{t.billing.finalCancelTitle}</h3>
+                <p className="text-sm text-[var(--color-neutral-600)]">
                   {t.billing.finalCancelDesc}
                 </p>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-6">
-                <div className="text-xs text-slate-600 space-y-1">
+              <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-lg p-3 mb-6">
+                <div className="text-xs text-[var(--color-neutral-600)] space-y-1">
                   <p>{currentPlan.name} {t.billing.planActiveUntil} <strong>{subscription.current_period_end ? formatDate(subscription.current_period_end) : t.billing.endOfPeriod}</strong>.</p>
                   <p>{t.billing.resubscribeAnytime}</p>
                 </div>
@@ -1273,22 +1273,22 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
         {/* Overage Modal (Paid) */}
         {showOverageModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 min-h-screen">
+          <div className="fixed inset-0 bg-[var(--color-neutral-900)]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 min-h-screen">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative z-10">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">{subscription.overage_enabled ? t.common.disabled : t.common.enabled} {t.billing.overageCost}</h3>
-              <p className="text-sm text-slate-600 mb-6">{t.billing.overageMinutes}</p>
+              <h3 className="text-xl font-bold text-[var(--color-ink)] mb-2">{subscription.overage_enabled ? t.common.disabled : t.common.enabled} {t.billing.overageCost}</h3>
+              <p className="text-sm text-[var(--color-neutral-600)] mb-6">{t.billing.overageMinutes}</p>
               {!subscription.overage_enabled && (
                 <div className="mb-6">
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">{t.billing.overageCost}</label>
+                  <label className="block text-sm font-semibold text-[var(--color-ink)] mb-2">{t.billing.overageCost}</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                    <input type="number" min="0" step="50" value={overageBudget} onChange={(e) => setOverageBudget(Number(e.target.value))} className="w-full pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" placeholder="100" />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-neutral-500)]">$</span>
+                    <input type="number" min="0" step="50" value={overageBudget} onChange={(e) => setOverageBudget(Number(e.target.value))} className="w-full pl-8 pr-4 py-2.5 border border-[var(--border-strong)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" placeholder="100" />
                   </div>
                 </div>
               )}
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6"><p className="text-xs text-blue-900"><span className="font-semibold">{t.billing.overageRate}</span> {formatPriceWithDecimals(currentPlan.price_per_extra_minute)}/{t.billing.perMinute}</p></div>
               <div className="flex gap-3">
-                <button onClick={() => setShowOverageModal(false)} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">{t.common.cancel}</button>
+                <button onClick={() => setShowOverageModal(false)} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-[var(--color-neutral-700)] bg-[var(--color-neutral-100)] hover:bg-[var(--color-neutral-200)] transition-colors">{t.common.cancel}</button>
                 <button onClick={() => handleToggleOverage(!subscription.overage_enabled)} className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors ${subscription.overage_enabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}>{subscription.overage_enabled ? `${t.common.disabled} ${t.billing.overageCost}` : `${t.common.enabled} ${t.billing.overageCost}`}</button>
               </div>
             </div>
@@ -1346,32 +1346,32 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       {/* Current Free Trial Plan */}
       {currentPlan && usage && (
         <div>
-          <h3 className="text-lg font-bold text-slate-900 mb-4">{t.billing.free}</h3>
-          <div className="gradient-bg-subtle border border-slate-200 rounded-xl p-6">
+          <h3 className="text-lg font-bold text-[var(--color-ink)] mb-4">{t.billing.free}</h3>
+          <div className="gradient-bg-subtle border border-[var(--border-default)] rounded-xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="text-2xl font-bold text-slate-900">{t.billing.free}</h4>
+                  <h4 className="text-2xl font-bold text-[var(--color-ink)]">{t.billing.free}</h4>
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${usage.minutes_used >= usage.minutes_included ? 'bg-red-100 text-red-700 border-red-200' : 'bg-green-100 text-green-700 border-green-200'}`}>
                     {usage.minutes_used >= usage.minutes_included ? t.billing.failed : t.billing.paid}
                   </span>
                 </div>
-                <p className="text-sm text-slate-600">{t.billing.experienceFullPower}</p>
+                <p className="text-sm text-[var(--color-neutral-600)]">{t.billing.experienceFullPower}</p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-slate-900">$0</div>
-                <div className="text-sm text-slate-500">{t.billing.oneTime}</div>
+                <div className="text-3xl font-bold text-[var(--color-ink)]">$0</div>
+                <div className="text-sm text-[var(--color-neutral-500)]">{t.billing.oneTime}</div>
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-700">{t.billing.minutesUsed}</span>
-                <span className="font-bold text-slate-900">{usage.minutes_used.toLocaleString()} / {usage.minutes_included.toLocaleString()} min</span>
+                <span className="font-medium text-[var(--color-neutral-700)]">{t.billing.minutesUsed}</span>
+                <span className="font-bold text-[var(--color-ink)]">{usage.minutes_used.toLocaleString()} / {usage.minutes_included.toLocaleString()} min</span>
               </div>
               <div className="h-2 bg-white/80 rounded-full overflow-hidden">
                 <div className={`h-full transition-all duration-500 ${usagePercent >= 100 ? 'bg-red-500' : 'bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)]'}`} style={{ width: `${usagePercent}%` }} />
               </div>
-              <p className="text-xs text-slate-600">~{getApproxCalls(usage.minutes_used)} calls used · {usage.minutes_used >= usage.minutes_included ? 'No minutes remaining' : `~${getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining`}</p>
+              <p className="text-xs text-[var(--color-neutral-600)]">~{getApproxCalls(usage.minutes_used)} calls used · {usage.minutes_used >= usage.minutes_included ? 'No minutes remaining' : `~${getApproxCalls(usage.minutes_included - usage.minutes_used)} remaining`}</p>
             </div>
             <div className="mt-4 pt-4 border-t border-amber-200 bg-amber-50/50 -m-6 p-4 rounded-b-xl">
               <div className="flex items-start gap-2">
@@ -1390,13 +1390,13 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       <div id="plans-section">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-xl font-bold text-slate-900 mb-1">{t.billing.upgradePlan}</h3>
-            <p className="text-sm text-slate-600">{t.billing.changePlan}</p>
+            <h3 className="text-xl font-bold text-[var(--color-ink)] mb-1">{t.billing.upgradePlan}</h3>
+            <p className="text-sm text-[var(--color-neutral-600)]">{t.billing.changePlan}</p>
           </div>
           {plans.length > 0 && (
-            <div className="inline-flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
-              <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>{t.billing.monthly}</button>
-              <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+            <div className="inline-flex items-center gap-2 p-1 bg-[var(--color-neutral-100)] rounded-lg">
+              <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>{t.billing.monthly}</button>
+              <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>
                 {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">{t.billing.saveUpTo}</span>
               </button>
             </div>
@@ -1404,9 +1404,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         </div>
 
         {plans.length === 0 ? (
-          <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200">
-            <h4 className="text-sm font-semibold text-slate-700 mb-1">{t.billing.title}</h4>
-            <p className="text-xs text-slate-500">{t.common.noData}</p>
+          <div className="text-center py-12 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+            <h4 className="text-sm font-semibold text-[var(--color-neutral-700)] mb-1">{t.billing.title}</h4>
+            <p className="text-xs text-[var(--color-neutral-500)]">{t.common.noData}</p>
           </div>
         ) : (
           <div className={`grid gap-4 ${higherPlans.length === 1 ? 'grid-cols-1 max-w-md' : higherPlans.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : higherPlans.length === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
@@ -1425,33 +1425,33 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       <div className="gradient-bg text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">{t.billing.popular}</div>
                     </div>
                   )}
-                  <div className={`rounded-xl p-4 transition-all flex flex-col h-full w-full ${isPopular ? 'border-2 border-[var(--color-primary)] bg-white shadow-xl shadow-[var(--color-primary)]/10 scale-105' : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'}`}>
+                  <div className={`rounded-xl p-4 transition-all flex flex-col h-full w-full ${isPopular ? 'border-2 border-[var(--color-primary)] bg-white shadow-xl shadow-[var(--color-primary)]/10 scale-105' : 'border border-[var(--border-default)] bg-white hover:border-[var(--border-strong)] hover:shadow-md'}`}>
                     <div className="mb-3">
-                      <h4 className="text-base font-bold text-slate-900 mb-2">{plan.name}</h4>
-                      <p className="text-[11px] text-slate-600 leading-tight min-h-[2rem]">{plan.description}</p>
+                      <h4 className="text-base font-bold text-[var(--color-ink)] mb-2">{plan.name}</h4>
+                      <p className="text-[11px] text-[var(--color-neutral-600)] leading-tight min-h-[2rem]">{plan.description}</p>
                     </div>
-                    <div className="mb-3 pb-3 border-b border-slate-100 min-h-[4rem]">
+                    <div className="mb-3 pb-3 border-b border-[var(--border-subtle)] min-h-[4rem]">
                       <div className="flex items-baseline gap-1">
-                        {isEnterprise && <span className="text-xs text-slate-400 font-normal">from</span>}
-                        <span className="text-2xl font-bold text-slate-900">{formatPrice(monthlyPrice)}</span>
-                        <span className="text-xs text-slate-500">{t.billing.mo}</span>
+                        {isEnterprise && <span className="text-xs text-[var(--color-neutral-400)] font-normal">from</span>}
+                        <span className="text-2xl font-bold text-[var(--color-ink)]">{formatPrice(monthlyPrice)}</span>
+                        <span className="text-xs text-[var(--color-neutral-500)]">{t.billing.mo}</span>
                       </div>
                       {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
                         <div className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">{t.billing.save} {discountPercent}%</div>
                       )}
                     </div>
                     <div className="mb-3 space-y-2 text-[11px]">
-                      <div className="flex items-center justify-between"><span className="text-slate-500">Calls/month</span><span className="font-semibold text-slate-900">~{getApproxCalls(plan.minutes_included).toLocaleString()}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.minutesIncludedLabel}</span><span className="font-semibold text-slate-900">{plan.minutes_included.toLocaleString()}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.usersLabel}</span><span className="font-semibold text-slate-900">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}{EXTRA_SEAT_PRICE[plan.slug] ? ` (${formatPrice(EXTRA_SEAT_PRICE[plan.slug]!)}${t.billing.perSeat})` : ''}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-slate-900">{plan.max_concurrent_calls === 999 ? '∞' : plan.max_concurrent_calls}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-slate-500">{t.billing.overageRateLabel}</span><span className="font-semibold text-slate-900">{plan.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(plan.price_per_extra_minute)}${t.billing.min}` : '—'}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-[var(--color-neutral-500)]">Calls/month</span><span className="font-semibold text-[var(--color-ink)]">~{getApproxCalls(plan.minutes_included).toLocaleString()}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-[var(--color-neutral-500)]">{t.billing.minutesIncludedLabel}</span><span className="font-semibold text-[var(--color-ink)]">{plan.minutes_included.toLocaleString()}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-[var(--color-neutral-500)]">{t.billing.usersLabel}</span><span className="font-semibold text-[var(--color-ink)]">{plan.max_users === -1 ? t.billing.unlimited : plan.max_users}{EXTRA_SEAT_PRICE[plan.slug] ? ` (${formatPrice(EXTRA_SEAT_PRICE[plan.slug]!)}${t.billing.perSeat})` : ''}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-[var(--color-neutral-500)]">{t.billing.concurrentCallsLabel}</span><span className="font-semibold text-[var(--color-ink)]">{plan.max_concurrent_calls === 999 ? '∞' : plan.max_concurrent_calls}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-[var(--color-neutral-500)]">{t.billing.overageRateLabel}</span><span className="font-semibold text-[var(--color-ink)]">{plan.price_per_extra_minute > 0 ? `${formatPriceWithDecimals(plan.price_per_extra_minute)}${t.billing.min}` : '—'}</span></div>
                     </div>
-                    <div className="flex-grow mb-3 pt-3 border-t border-slate-100">
-                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{t.billing.keyFeatures}</p>
+                    <div className="flex-grow mb-3 pt-3 border-t border-[var(--border-subtle)]">
+                      <p className="text-[10px] font-semibold text-[var(--color-neutral-400)] uppercase tracking-wider mb-1.5">{t.billing.keyFeatures}</p>
                       <div className="space-y-1.5 text-[11px]">
                         {getTranslatedFeatures(plan.slug).slice(0, 3).map((feature, idx) => (
-                          <div key={idx} className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-slate-700 leading-tight">{feature}</span></div>
+                          <div key={idx} className="flex items-start gap-1.5"><svg className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg><span className="text-[var(--color-neutral-700)] leading-tight">{feature}</span></div>
                         ))}
                       </div>
                     </div>
@@ -1463,7 +1463,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         Contact Sales
                       </a>
                     ) : (
-                      <button onClick={() => handleChangePlan(plan.id)} disabled={changing} className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto ${isPopular ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-slate-800 text-white hover:bg-slate-900'}`}>
+                      <button onClick={() => handleChangePlan(plan.id)} disabled={changing} className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto ${isPopular ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-[var(--color-neutral-800)] text-white hover:bg-[var(--color-neutral-900)]'}`}>
                         {changing ? t.common.loading : t.billing.upgradePlan}
                       </button>
                     )}

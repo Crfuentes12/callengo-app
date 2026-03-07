@@ -122,18 +122,18 @@ function SimplyBookSetupModal({
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="p-6 border-b border-slate-100">
+        <div className="p-6 border-b border-[var(--border-subtle)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-sky-50 flex items-center justify-center">
                 <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-7 h-7 rounded" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Connect SimplyBook.me</h3>
-                <p className="text-sm text-slate-500">Enter your credentials to connect</p>
+                <h3 className="text-lg font-bold text-[var(--color-ink)]">Connect SimplyBook.me</h3>
+                <p className="text-sm text-[var(--color-neutral-50)]0">Enter your credentials to connect</p>
               </div>
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-colors">
+            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 hover:text-[var(--color-ink)] flex items-center justify-center transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -158,38 +158,38 @@ function SimplyBookSetupModal({
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Company Login</label>
+            <label className="block text-sm font-bold text-[var(--color-neutral-700)] mb-2">Company Login</label>
             <div className="relative">
               <input
                 type="text" value={companyLogin} onChange={e => setCompanyLogin(e.target.value)}
                 placeholder="your-company"
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all text-sm"
+                className="w-full px-4 py-3 border border-[var(--border-default)] rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all text-sm"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">.simplybook.me</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--color-neutral-400)]">.simplybook.me</span>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">User Login (Email)</label>
+            <label className="block text-sm font-bold text-[var(--color-neutral-700)] mb-2">User Login (Email)</label>
             <input
               type="email" value={userLogin} onChange={e => setUserLogin(e.target.value)}
               placeholder="admin@example.com"
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all text-sm"
+              className="w-full px-4 py-3 border border-[var(--border-default)] rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Password</label>
+            <label className="block text-sm font-bold text-[var(--color-neutral-700)] mb-2">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'} value={userPassword} onChange={e => setUserPassword(e.target.value)}
                 placeholder="Your SimplyBook.me password"
-                className="w-full px-4 py-3 pr-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all text-sm"
+                className="w-full px-4 py-3 pr-10 border border-[var(--border-default)] rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all text-sm"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)]"
               >
                 {showPassword ? (
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
@@ -200,15 +200,15 @@ function SimplyBookSetupModal({
             </div>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-start gap-2">
-            <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
-            <p className="text-[11px] text-slate-500">Your credentials are encrypted and stored securely. We never share your password with third parties.</p>
+          <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-lg p-3 flex items-start gap-2">
+            <svg className="w-3.5 h-3.5 text-[var(--color-neutral-400)] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+            <p className="text-[11px] text-[var(--color-neutral-50)]0">Your credentials are encrypted and stored securely. We never share your password with third parties.</p>
           </div>
         </div>
 
         {/* Footer */}
         <div className="p-6 pt-0 flex gap-2">
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all">
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-[var(--color-neutral-600)] bg-[var(--color-neutral-100)] hover:bg-[var(--color-neutral-200)] transition-all">
             Cancel
           </button>
           <button
@@ -361,18 +361,18 @@ function SlackConfigureModal({
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="p-6 border-b border-slate-100">
+        <div className="p-6 border-b border-[var(--border-subtle)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center">
                 <SlackIcon className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Slack Notifications</h3>
-                {slackTeamName && <p className="text-sm text-slate-500">{slackTeamName}</p>}
+                <h3 className="text-lg font-bold text-[var(--color-ink)]">Slack Notifications</h3>
+                {slackTeamName && <p className="text-sm text-[var(--color-neutral-50)]0">{slackTeamName}</p>}
               </div>
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-colors">
+            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 hover:text-[var(--color-ink)] flex items-center justify-center transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -382,7 +382,7 @@ function SlackConfigureModal({
         <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
           {/* Channels */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Notification Channels</label>
+            <label className="block text-xs font-bold text-[var(--color-neutral-700)] uppercase mb-2">Notification Channels</label>
             {config.channelIds.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {config.channelIds.map((chId, idx) => (
@@ -396,12 +396,12 @@ function SlackConfigureModal({
               </div>
             )}
             {loadingChannels ? (
-              <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-400 text-sm animate-pulse">Loading channels...</div>
+              <div className="w-full px-3 py-2 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-lg text-[var(--color-neutral-400)] text-sm animate-pulse">Loading channels...</div>
             ) : (
               <select
                 value=""
                 onChange={e => { if (e.target.value) addChannel(e.target.value); }}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 outline-none"
+                className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 outline-none"
               >
                 <option value="">Add a channel...</option>
                 {channels.filter(ch => !config.channelIds.includes(ch.id)).map(ch => (
@@ -410,19 +410,19 @@ function SlackConfigureModal({
               </select>
             )}
             {config.channelIds.length === 0 && slackChannelName && (
-              <p className="text-[11px] text-slate-400 mt-1">Default: #{slackChannelName}</p>
+              <p className="text-[11px] text-[var(--color-neutral-400)] mt-1">Default: #{slackChannelName}</p>
             )}
           </div>
 
           {/* Notification Types */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Notification Types</label>
+            <label className="block text-xs font-bold text-[var(--color-neutral-700)] uppercase mb-2">Notification Types</label>
             <div className="space-y-2">
               {notificationTypes.map(notif => (
-                <div key={notif.key} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-200">
+                <div key={notif.key} className="flex items-center justify-between bg-[var(--color-neutral-50)] rounded-lg px-3 py-2.5 border border-[var(--border-default)]">
                   <div>
-                    <p className="text-sm font-semibold text-slate-700">{notif.label}</p>
-                    <p className="text-[11px] text-slate-400">{notif.description}</p>
+                    <p className="text-sm font-semibold text-[var(--color-neutral-700)]">{notif.label}</p>
+                    <p className="text-[11px] text-[var(--color-neutral-400)]">{notif.description}</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -431,7 +431,7 @@ function SlackConfigureModal({
                       onChange={e => setConfig(prev => ({ ...prev, [notif.key]: e.target.checked }))}
                       className="sr-only peer"
                     />
-                    <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    <div className="w-10 h-5 bg-[var(--color-neutral-200)] rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-strong)] after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
                   </label>
                 </div>
               ))}
@@ -460,7 +460,7 @@ function SlackConfigureModal({
         <div className="p-6 pt-0 flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all"
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-[var(--color-neutral-600)] bg-[var(--color-neutral-100)] hover:bg-[var(--color-neutral-200)] transition-all"
           >
             Cancel
           </button>
@@ -613,13 +613,13 @@ function WebhooksSetupModal({
                   <WebhookIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Webhooks</h3>
-                  <p className="text-xs text-slate-500">
+                  <h3 className="text-lg font-bold text-[var(--color-ink)]">Webhooks</h3>
+                  <p className="text-xs text-[var(--color-neutral-50)]0">
                     {endpoints.length === 0 ? 'Set up your first endpoint' : `${endpoints.length} endpoint${endpoints.length !== 1 ? 's' : ''} configured`}
                   </p>
                 </div>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all">
+              <button onClick={onClose} className="w-8 h-8 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)] flex items-center justify-center transition-all">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -643,18 +643,18 @@ function WebhooksSetupModal({
 
           {/* Existing endpoints */}
           {!loading && endpoints.map(ep => (
-            <div key={ep.id} className={`rounded-xl border p-4 space-y-3 transition-all ${ep.is_active ? 'border-[var(--color-primary-100)] bg-[var(--color-primary-50)]/30' : 'border-slate-200 bg-slate-50/50 opacity-70'}`}>
+            <div key={ep.id} className={`rounded-xl border p-4 space-y-3 transition-all ${ep.is_active ? 'border-[var(--color-primary-100)] bg-[var(--color-primary-50)]/30' : 'border-[var(--border-default)] bg-[var(--color-neutral-50)]/50 opacity-70'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${ep.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                    <p className="text-sm font-semibold text-slate-900 truncate">{ep.url}</p>
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${ep.is_active ? 'bg-emerald-500' : 'bg-[var(--color-neutral-300)]'}`} />
+                    <p className="text-sm font-semibold text-[var(--color-ink)] truncate">{ep.url}</p>
                   </div>
-                  {ep.description && <p className="text-xs text-slate-500 ml-4">{ep.description}</p>}
+                  {ep.description && <p className="text-xs text-[var(--color-neutral-50)]0 ml-4">{ep.description}</p>}
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
                   <input type="checkbox" checked={ep.is_active} onChange={() => handleToggleActive(ep)} className="sr-only peer" />
-                  <div className="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:bg-[var(--color-primary)] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" />
+                  <div className="w-9 h-5 bg-[var(--color-neutral-200)] rounded-full peer peer-checked:bg-[var(--color-primary)] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-strong)] after:border after:rounded-full after:h-4 after:w-4 after:transition-all" />
                 </label>
               </div>
 
@@ -665,11 +665,11 @@ function WebhooksSetupModal({
               </div>
 
               <div className="ml-4 flex items-center gap-2">
-                <span className="text-[11px] text-slate-400 shrink-0">Secret:</span>
-                <code className="text-[11px] font-mono text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200 truncate max-w-[240px]">
+                <span className="text-[11px] text-[var(--color-neutral-400)] shrink-0">Secret:</span>
+                <code className="text-[11px] font-mono text-[var(--color-neutral-600)] bg-white px-2 py-0.5 rounded-md border border-[var(--border-default)] truncate max-w-[240px]">
                   {revealedSecrets.has(ep.id) ? ep.secret : `${ep.secret.slice(0, 10)}${'*'.repeat(16)}`}
                 </code>
-                <button onClick={() => toggleRevealSecret(ep.id)} className="text-slate-400 hover:text-[var(--color-primary)] transition-colors" title={revealedSecrets.has(ep.id) ? 'Hide' : 'Reveal'}>
+                <button onClick={() => toggleRevealSecret(ep.id)} className="text-[var(--color-neutral-400)] hover:text-[var(--color-primary)] transition-colors" title={revealedSecrets.has(ep.id) ? 'Hide' : 'Reveal'}>
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     {revealedSecrets.has(ep.id) ? (
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
@@ -678,7 +678,7 @@ function WebhooksSetupModal({
                     )}
                   </svg>
                 </button>
-                <button onClick={() => copySecret(ep.id, ep.secret)} className="text-slate-400 hover:text-[var(--color-primary)] transition-colors" title="Copy">
+                <button onClick={() => copySecret(ep.id, ep.secret)} className="text-[var(--color-neutral-400)] hover:text-[var(--color-primary)] transition-colors" title="Copy">
                   {copiedSecret === ep.id ? (
                     <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                   ) : (
@@ -719,20 +719,20 @@ function WebhooksSetupModal({
           {/* Add endpoint form */}
           {!loading && showAddForm && (
             <div className="rounded-xl border-2 border-dashed border-[var(--color-primary-200)] bg-[var(--color-primary-50)]/20 p-5 space-y-4">
-              <p className="text-sm font-bold text-slate-800">New Endpoint</p>
+              <p className="text-sm font-bold text-[var(--color-neutral-800)]">New Endpoint</p>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Endpoint URL</label>
+                <label className="block text-xs font-semibold text-[var(--color-neutral-600)] mb-1.5">Endpoint URL</label>
                 <input type="url" value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://your-server.com/webhooks/callengo"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm font-mono bg-white" />
+                  className="w-full px-3 py-2.5 border border-[var(--border-default)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm font-mono bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Description <span className="text-slate-400 font-normal">(optional)</span></label>
+                <label className="block text-xs font-semibold text-[var(--color-neutral-600)] mb-1.5">Description <span className="text-[var(--color-neutral-400)] font-normal">(optional)</span></label>
                 <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="e.g. Zapier automation, internal CRM sync"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm bg-white" />
+                  className="w-full px-3 py-2.5 border border-[var(--border-default)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm bg-white" />
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-semibold text-slate-600">Events</label>
+                  <label className="block text-xs font-semibold text-[var(--color-neutral-600)]">Events</label>
                   <button onClick={selectAllEvents} className="text-[11px] font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors">
                     {newEvents.length === availableEvents.length ? 'Deselect all' : 'Select all'}
                   </button>
@@ -740,13 +740,13 @@ function WebhooksSetupModal({
                 <div className="space-y-3">
                   {Object.entries(eventsByCategory).map(([category, events]) => (
                     <div key={category}>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{category}</p>
+                      <p className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider mb-1.5">{category}</p>
                       <div className="grid grid-cols-2 gap-1.5">
                         {events.map(ev => (
                           <label key={ev.type} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all text-xs ${
                             newEvents.includes(ev.type)
                               ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white shadow-sm'
-                              : 'bg-white border-slate-200 text-slate-700 hover:border-[var(--color-primary-200)]'
+                              : 'bg-white border-[var(--border-default)] text-[var(--color-neutral-700)] hover:border-[var(--color-primary-200)]'
                           }`}>
                             <input type="checkbox" checked={newEvents.includes(ev.type)} onChange={() => toggleEvent(ev.type)} className="sr-only" />
                             <span className="font-medium">{ev.label}</span>
@@ -769,7 +769,7 @@ function WebhooksSetupModal({
         </div>
 
         {/* Footer */}
-        <div className="p-6 pt-4 border-t border-slate-100 flex gap-2">
+        <div className="p-6 pt-4 border-t border-[var(--border-subtle)] flex gap-2">
           {showAddForm ? (
             <>
               {endpoints.length > 0 && (
@@ -818,14 +818,14 @@ function ConfigureModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 border-b border-slate-100">
+        <div className="p-6 border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-xl ${item.iconBg} ${item.iconColor || ''} flex items-center justify-center`}>
               {item.icon}
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900">{item.name}</h3>
-              <p className="text-sm text-slate-500">{item.description}</p>
+              <h3 className="text-lg font-bold text-[var(--color-ink)]">{item.name}</h3>
+              <p className="text-sm text-[var(--color-neutral-50)]0">{item.description}</p>
             </div>
           </div>
         </div>
@@ -833,15 +833,15 @@ function ConfigureModal({
         {/* Body */}
         <div className="p-6 space-y-4">
           {/* Status */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
-            <span className="text-sm text-slate-600">Status</span>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-neutral-50)]">
+            <span className="text-sm text-[var(--color-neutral-600)]">Status</span>
             {isConnected || isAutoEnabled ? (
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 {isAutoEnabled ? 'Auto-enabled' : 'Connected'}
               </span>
             ) : (
-              <span className="text-xs font-medium text-slate-400">Not connected</span>
+              <span className="text-xs font-medium text-[var(--color-neutral-400)]">Not connected</span>
             )}
           </div>
 
@@ -849,9 +849,9 @@ function ConfigureModal({
           {(isConnected || isAutoEnabled) && item.connectedInfo && item.connectedInfo.length > 0 && (
             <div className="space-y-2">
               {item.connectedInfo.map((info, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
-                  <span className="text-sm text-slate-600">{info.label}</span>
-                  <span className="text-sm font-medium text-slate-900 truncate ml-4 max-w-[200px]">{info.value}</span>
+                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-neutral-50)]">
+                  <span className="text-sm text-[var(--color-neutral-600)]">{info.label}</span>
+                  <span className="text-sm font-medium text-[var(--color-ink)] truncate ml-4 max-w-[200px]">{info.value}</span>
                 </div>
               ))}
             </div>
@@ -916,7 +916,7 @@ function ConfigureModal({
           )}
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all"
+            className="px-4 py-2.5 rounded-lg text-sm font-medium text-[var(--color-neutral-600)] bg-[var(--color-neutral-100)] hover:bg-[var(--color-neutral-200)] transition-all"
           >
             Close
           </button>
@@ -982,7 +982,7 @@ function FeedbackSection() {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+    <div className="rounded-2xl border border-[var(--border-default)] bg-white overflow-hidden">
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary-50)] to-[var(--color-accent)]/5" />
         <div className="relative px-6 py-5 flex items-center gap-3">
@@ -992,18 +992,18 @@ function FeedbackSection() {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-900">Help us build better integrations</p>
-            <p className="text-xs text-slate-500">Your feedback goes directly to our development team. We read every single suggestion.</p>
+            <p className="text-sm font-bold text-[var(--color-ink)]">Help us build better integrations</p>
+            <p className="text-xs text-[var(--color-neutral-50)]0">Your feedback goes directly to our development team. We read every single suggestion.</p>
           </div>
         </div>
       </div>
 
       {alreadySubmitted && !error ? (
-        <div className="px-6 py-5 border-t border-slate-100 text-center">
-          <p className="text-xs text-slate-500">You already submitted feedback today. Thanks! Come back tomorrow if you have more ideas.</p>
+        <div className="px-6 py-5 border-t border-[var(--border-subtle)] text-center">
+          <p className="text-xs text-[var(--color-neutral-50)]0">You already submitted feedback today. Thanks! Come back tomorrow if you have more ideas.</p>
         </div>
       ) : (
-        <div className="px-6 py-5 border-t border-slate-100 space-y-3">
+        <div className="px-6 py-5 border-t border-[var(--border-subtle)] space-y-3">
           {error && (
             <div className="text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
           )}
@@ -1013,7 +1013,7 @@ function FeedbackSection() {
                 className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
                   feedbackType === ft.value
                     ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 hover:bg-[var(--color-neutral-200)]'
                 }`}>
                 {ft.label}
               </button>
@@ -1023,10 +1023,10 @@ function FeedbackSection() {
             value={message} onChange={e => setMessage(e.target.value)}
             placeholder={feedbackType === 'new_integration' ? 'Which integration would you like to see? Tell us about your use case...' : 'Share your thoughts, ideas, or suggestions...'}
             rows={3}
-            className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm resize-none bg-slate-50/50"
+            className="w-full px-3 py-2.5 border border-[var(--border-default)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none transition-all text-sm resize-none bg-[var(--color-neutral-50)]/50"
           />
           <div className="flex items-center justify-between">
-            <p className="text-[10px] text-slate-400">1 submission per day. No obligation, totally voluntary.</p>
+            <p className="text-[10px] text-[var(--color-neutral-400)]">1 submission per day. No obligation, totally voluntary.</p>
             <button onClick={handleSubmit} disabled={submitting || !message.trim()}
               className="btn-primary text-xs px-4 py-2 disabled:opacity-50 inline-flex items-center gap-1.5">
               {submitting ? <Spinner className="w-3 h-3" /> : (
@@ -1264,7 +1264,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     {
       id: 'pipedrive', provider: 'pipedrive', name: 'Pipedrive',
       description: 'Bidirectional sync: import contacts and push call results back to your CRM',
-      icon: <PipedriveIcon className="w-7 h-7" />, iconColor: 'text-black', iconBg: 'bg-slate-50',
+      icon: <PipedriveIcon className="w-7 h-7" />, iconColor: 'text-black', iconBg: 'bg-[var(--color-neutral-50)]',
       category: 'crm', requiredPlan: 'business',
       status: integrations.pipedrive?.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/pipedrive/connect?return_to=/integrations',
@@ -1331,7 +1331,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     {
       id: 'webhooks', provider: 'webhooks', name: 'Webhooks',
       description: 'Receive real-time events via HTTP. Connect with Zapier, Make, n8n, or your own systems',
-      icon: <WebhookIcon className="w-6 h-6" />, iconColor: 'text-slate-700', iconBg: 'bg-slate-100',
+      icon: <WebhookIcon className="w-6 h-6" />, iconColor: 'text-[var(--color-neutral-700)]', iconBg: 'bg-[var(--color-neutral-100)]',
       category: 'communication', requiredPlan: 'starter',
       status: 'available',
       connectUrl: '#webhooks-setup',
@@ -1484,7 +1484,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             ? 'border-[var(--color-primary-100)] bg-white shadow-sm hover:shadow-md'
             : isLocked
             ? 'border-[var(--color-accent)]/15 bg-gradient-to-br from-white to-[var(--color-accent)]/[0.03] hover:shadow-md hover:border-[var(--color-accent)]/25'
-            : 'border-slate-200 bg-white hover:shadow-md hover:border-[var(--color-primary-200)]'
+            : 'border-[var(--border-default)] bg-white hover:shadow-md hover:border-[var(--color-primary-200)]'
         }`}
       >
         {/* Status indicator line at top */}
@@ -1507,7 +1507,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
             {item.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-bold text-slate-900 leading-tight">{item.name}</h3>
+            <h3 className="text-sm font-bold text-[var(--color-ink)] leading-tight">{item.name}</h3>
             {isActive && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -1530,7 +1530,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         </div>
 
         {/* Description */}
-        <p className="text-[11px] text-slate-500 leading-relaxed mb-4 flex-1">{item.description}</p>
+        <p className="text-[11px] text-[var(--color-neutral-50)]0 leading-relaxed mb-4 flex-1">{item.description}</p>
 
         {/* Action button */}
         <div>
@@ -1722,9 +1722,9 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-800">{upgradeInfo.headline}</p>
+              <p className="text-xs font-bold text-[var(--color-neutral-800)]">{upgradeInfo.headline}</p>
               {upgradeInfo.unlocksCount > 0 && (
-                <p className="text-[11px] text-slate-500">{upgradeInfo.unlocksCount} more integration{upgradeInfo.unlocksCount !== 1 ? 's' : ''} available on {upgradeInfo.nextTier}</p>
+                <p className="text-[11px] text-[var(--color-neutral-50)]0">{upgradeInfo.unlocksCount} more integration{upgradeInfo.unlocksCount !== 1 ? 's' : ''} available on {upgradeInfo.nextTier}</p>
               )}
             </div>
           </div>
@@ -1739,7 +1739,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       {/* ================================================================== */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Category filters */}
-        <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl">
+        <div className="flex items-center gap-1 p-1 bg-[var(--color-neutral-100)]/80 rounded-xl">
           {categoryBadges.map((badge) => (
             <button
               key={badge.id}
@@ -1747,7 +1747,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
               className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all ${
                 activeFilter === badge.id
                   ? 'bg-white text-[var(--color-primary)] shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                  : 'text-[var(--color-neutral-50)]0 hover:text-[var(--color-ink)] hover:bg-white/50'
               }`}
             >
               {categoryIcons[badge.id]}
@@ -1757,8 +1757,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         </div>
 
         {/* Plan filter */}
-        <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl">
-          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-2">Plan</span>
+        <div className="flex items-center gap-1 p-1 bg-[var(--color-neutral-100)]/80 rounded-xl">
+          <span className="text-[10px] font-semibold text-[var(--color-neutral-400)] uppercase tracking-wider px-2">Plan</span>
           {planBadges.map((badge) => (
             <button
               key={badge.id}
@@ -1766,7 +1766,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
               className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
                 planFilter === badge.id
                   ? 'bg-white text-[var(--color-primary)] shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                  : 'text-[var(--color-neutral-50)]0 hover:text-[var(--color-ink)] hover:bg-white/50'
               }`}
             >
               {badge.label}
@@ -1784,10 +1784,10 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
 
       {filteredItems.length === 0 && (
         <div className="text-center py-16">
-          <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-            <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+          <div className="w-12 h-12 rounded-xl bg-[var(--color-neutral-100)] flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-[var(--color-neutral-300)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
           </div>
-          <p className="text-slate-400 text-sm font-medium">No integrations match your filters</p>
+          <p className="text-[var(--color-neutral-400)] text-sm font-medium">No integrations match your filters</p>
           <button onClick={() => { setActiveFilter('all'); setPlanFilter('all_plans'); }} className="text-xs text-[var(--color-primary)] font-semibold mt-2 hover:underline">Clear filters</button>
         </div>
       )}
@@ -1795,7 +1795,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       {/* ================================================================== */}
       {/* HELP BANNER                                                        */}
       {/* ================================================================== */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200">
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--border-default)]">
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary-50)] via-white to-[var(--color-accent)]/5" />
         <div className="relative p-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -1805,8 +1805,8 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
               </svg>
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-900">Need help setting up?</p>
-              <p className="text-xs text-slate-500 mt-0.5">Step-by-step guides for every integration</p>
+              <p className="text-sm font-bold text-[var(--color-ink)]">Need help setting up?</p>
+              <p className="text-xs text-[var(--color-neutral-50)]0 mt-0.5">Step-by-step guides for every integration</p>
             </div>
           </div>
           <a href="https://callengo.com/integrations" target="_blank" rel="noopener noreferrer"
@@ -1823,18 +1823,18 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       {comingSoonItems.length > 0 && (
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <h2 className="text-base font-bold text-slate-900">{t.integrations.comingSoon}</h2>
-            <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{comingSoonItems.length} planned</span>
+            <h2 className="text-base font-bold text-[var(--color-ink)]">{t.integrations.comingSoon}</h2>
+            <span className="text-[10px] font-semibold text-[var(--color-neutral-400)] bg-[var(--color-neutral-100)] px-2 py-0.5 rounded-full">{comingSoonItems.length} planned</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {comingSoonItems.map(item => (
-              <div key={item.id} className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
+              <div key={item.id} className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--color-neutral-50)]/50">
                 <div className={`w-9 h-9 rounded-lg ${item.iconBg} ${item.iconColor || ''} flex items-center justify-center shrink-0 opacity-60`}>
                   {item.icon}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-700">{item.name}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{item.description}</p>
+                  <p className="text-xs font-bold text-[var(--color-neutral-700)]">{item.name}</p>
+                  <p className="text-[10px] text-[var(--color-neutral-400)] truncate">{item.description}</p>
                 </div>
               </div>
             ))}

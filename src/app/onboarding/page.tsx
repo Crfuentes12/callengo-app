@@ -338,7 +338,7 @@ export default function OnboardingPage() {
     const detectedLangName = detectedLanguage ? t.languages[detectedLanguage as keyof typeof t.languages] || detectedLanguage : language;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
         <div className="w-full max-w-md relative z-10">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-bg mb-6 shadow-md">
@@ -348,19 +348,19 @@ export default function OnboardingPage() {
             </div>
             <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">{t.onboarding.languageDetection.title}</h1>
             {isAutoDetected && detectedCountry && (
-              <p className="text-slate-300 text-lg">
+              <p className="text-[var(--color-neutral-300)] text-lg">
                 {t.onboarding.languageDetection.detected} <span className="font-semibold text-white">{detectedCountry}</span>.
                 <br />
                 {t.onboarding.languageDetection.defaultLanguage} <span className="font-semibold text-white">{detectedLangName}</span>.
               </p>
             )}
             {!isAutoDetected && (
-              <p className="text-slate-300 text-lg">{t.onboarding.languageDetection.selectLanguage}</p>
+              <p className="text-[var(--color-neutral-300)] text-lg">{t.onboarding.languageDetection.selectLanguage}</p>
             )}
           </div>
 
           <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
-            <p className="text-sm text-slate-600 mb-4">{t.onboarding.languageDetection.changePrompt}</p>
+            <p className="text-sm text-[var(--color-neutral-600)] mb-4">{t.onboarding.languageDetection.changePrompt}</p>
             <LanguageSelector value={language} onChange={(lang) => setLanguage(lang)} />
             <div className="mt-6 flex gap-3">
               <button
@@ -378,7 +378,7 @@ export default function OnboardingPage() {
 
   if (step === 'form') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
         <div className="w-full max-w-md relative z-10">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-bg mb-6 shadow-md">
@@ -387,7 +387,7 @@ export default function OnboardingPage() {
               </svg>
             </div>
             <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">{t.onboarding.form.title}</h1>
-            <p className="text-slate-300 text-lg">{t.onboarding.form.companyNamePlaceholder}</p>
+            <p className="text-[var(--color-neutral-300)] text-lg">{t.onboarding.form.companyNamePlaceholder}</p>
           </div>
 
           <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
@@ -402,12 +402,12 @@ export default function OnboardingPage() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-semibold text-[var(--color-neutral-700)] mb-2">
                   {t.onboarding.form.companyNameLabel} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-5 h-5 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   </div>
@@ -415,7 +415,7 @@ export default function OnboardingPage() {
                     type="text"
                     value={formData.companyName}
                     onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
+                    className="w-full pl-12 pr-4 py-3.5 border border-[var(--border-strong)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-[var(--color-ink)] placeholder-[var(--color-neutral-400)]"
                     placeholder={t.onboarding.form.companyNamePlaceholder}
                     required
                   />
@@ -423,12 +423,12 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  {t.onboarding.form.websiteLabel} <span className="text-slate-400">({t.common.optional})</span>
+                <label className="block text-sm font-semibold text-[var(--color-neutral-700)] mb-2">
+                  {t.onboarding.form.websiteLabel} <span className="text-[var(--color-neutral-400)]">({t.common.optional})</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-5 h-5 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                     </svg>
                   </div>
@@ -436,11 +436,11 @@ export default function OnboardingPage() {
                     type="text"
                     value={formData.companyWebsite}
                     onChange={(e) => setFormData({ ...formData, companyWebsite: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-slate-900 placeholder-slate-400"
+                    className="w-full pl-12 pr-4 py-3.5 border border-[var(--border-strong)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all bg-white text-[var(--color-ink)] placeholder-[var(--color-neutral-400)]"
                     placeholder={t.onboarding.form.websitePlaceholder}
                   />
                 </div>
-                <p className="text-xs text-slate-500 mt-2 flex items-start gap-1.5">
+                <p className="text-xs text-[var(--color-neutral-500)] mt-2 flex items-start gap-1.5">
                   <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
@@ -457,7 +457,7 @@ export default function OnboardingPage() {
             </form>
           </div>
 
-          <p className="text-center text-slate-300 text-sm mt-8">
+          <p className="text-center text-[var(--color-neutral-300)] text-sm mt-8">
             {t.settings.language.description}
           </p>
         </div>
@@ -492,7 +492,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
 
       <div className="w-full max-w-md relative z-10">
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-12 border border-white/20">
@@ -503,24 +503,24 @@ export default function OnboardingPage() {
             </div>
 
             {/* Message */}
-            <h2 className="text-2xl font-bold text-slate-900 mb-3">
+            <h2 className="text-2xl font-bold text-[var(--color-ink)] mb-3">
               {step === 'error' ? t.onboarding.steps.error : t.onboarding.steps.settingUpAccount}
             </h2>
 
-            <p className="text-slate-600 mb-8">
+            <p className="text-[var(--color-neutral-600)] mb-8">
               {getStepMessage()}
             </p>
 
             {/* Progress bar */}
             {isProcessing && (
               <div className="mb-8">
-                <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                <div className="w-full bg-[var(--color-neutral-200)] rounded-full h-3 overflow-hidden">
                   <div
                     className="h-full gradient-bg transition-all duration-500 ease-out"
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
-                <p className="text-sm text-slate-500 mt-2">{progress}%</p>
+                <p className="text-sm text-[var(--color-neutral-500)] mt-2">{progress}%</p>
               </div>
             )}
 
@@ -533,7 +533,7 @@ export default function OnboardingPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => router.push('/auth/login')}
-                    className="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
+                    className="flex-1 px-4 py-3 border border-[var(--border-strong)] text-[var(--color-neutral-700)] rounded-lg hover:bg-[var(--surface-hover)] font-medium"
                   >
                     {t.auth.forgotPassword.backToSignIn}
                   </button>
@@ -567,11 +567,11 @@ export default function OnboardingPage() {
                       />
                     )}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-lg text-slate-900 mb-1">
+                      <h3 className="font-bold text-lg text-[var(--color-ink)] mb-1">
                         {scrapedData.data.title || formData.companyName}
                       </h3>
                       {scrapedData.data.description && (
-                        <p className="text-sm text-slate-600 line-clamp-2">
+                        <p className="text-sm text-[var(--color-neutral-600)] line-clamp-2">
                           {scrapedData.data.description}
                         </p>
                       )}
@@ -594,13 +594,13 @@ export default function OnboardingPage() {
                 )}
 
                 {scrapedData.data.headings && scrapedData.data.headings.length > 0 && (
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Key Topics</p>
+                  <div className="p-4 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl">
+                    <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wide mb-2">Key Topics</p>
                     <div className="flex flex-wrap gap-2">
                       {scrapedData.data.headings.slice(0, 4).map((heading, index) => (
                         <span
                           key={index}
-                          className="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-700"
+                          className="px-3 py-1 bg-white border border-[var(--border-default)] rounded-full text-xs font-medium text-[var(--color-neutral-700)]"
                         >
                           {heading.length > 30 ? heading.substring(0, 30) + '...' : heading}
                         </span>
@@ -617,12 +617,12 @@ export default function OnboardingPage() {
                 <div className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
                   ['creating_company', 'setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                     ? 'bg-emerald-50 border border-emerald-200'
-                    : 'bg-slate-50 border border-slate-200'
+                    : 'bg-[var(--color-neutral-50)] border border-[var(--border-default)]'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
                     ['creating_company', 'setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                       ? 'bg-emerald-500'
-                      : 'bg-slate-300'
+                      : 'bg-[var(--color-neutral-300)]'
                   }`}>
                     <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -631,7 +631,7 @@ export default function OnboardingPage() {
                   <span className={`text-sm font-medium ${
                     ['creating_company', 'setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                       ? 'text-emerald-900'
-                      : 'text-slate-600'
+                      : 'text-[var(--color-neutral-600)]'
                   }`}>
                     {t.onboarding.steps.creatingCompany}
                   </span>
@@ -640,12 +640,12 @@ export default function OnboardingPage() {
                 <div className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
                   ['setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                     ? 'bg-emerald-50 border border-emerald-200'
-                    : 'bg-slate-50 border border-slate-200'
+                    : 'bg-[var(--color-neutral-50)] border border-[var(--border-default)]'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
                     ['setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                       ? 'bg-emerald-500'
-                      : 'bg-slate-300'
+                      : 'bg-[var(--color-neutral-300)]'
                   }`}>
                     <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -654,7 +654,7 @@ export default function OnboardingPage() {
                   <span className={`text-sm font-medium ${
                     ['setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
                       ? 'text-emerald-900'
-                      : 'text-slate-600'
+                      : 'text-[var(--color-neutral-600)]'
                   }`}>
                     {t.onboarding.steps.settingUpAccount}
                   </span>
@@ -664,12 +664,12 @@ export default function OnboardingPage() {
                   <div className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
                     ['analyzing_website', 'showing_results', 'complete'].includes(step)
                       ? 'bg-emerald-50 border border-emerald-200'
-                      : 'bg-slate-50 border border-slate-200'
+                      : 'bg-[var(--color-neutral-50)] border border-[var(--border-default)]'
                   }`}>
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
                       ['analyzing_website', 'showing_results', 'complete'].includes(step)
                         ? 'bg-emerald-500'
-                        : 'bg-slate-300'
+                        : 'bg-[var(--color-neutral-300)]'
                     }`}>
                       <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -678,7 +678,7 @@ export default function OnboardingPage() {
                     <span className={`text-sm font-medium ${
                       ['analyzing_website', 'showing_results', 'complete'].includes(step)
                         ? 'text-emerald-900'
-                        : 'text-slate-600'
+                        : 'text-[var(--color-neutral-600)]'
                     }`}>
                       {t.onboarding.steps.analyzingWebsite}
                     </span>
@@ -690,7 +690,7 @@ export default function OnboardingPage() {
         </div>
 
         {isProcessing && (
-          <p className="text-center text-slate-300 text-sm mt-8">
+          <p className="text-center text-[var(--color-neutral-300)] text-sm mt-8">
             {t.common.loading}
           </p>
         )}

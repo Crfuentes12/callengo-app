@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <div className="space-y-8">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--color-neutral-700)] via-[var(--color-neutral-800)] to-[var(--color-neutral-900)]">
         <div className="px-8 py-10">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
             <div className="max-w-xl">
@@ -37,7 +37,7 @@ export default function Loading() {
       </div>
 
       {/* Upgrade CTA */}
-      <div className="flex items-center justify-between gap-4 px-5 py-3.5 rounded-xl bg-slate-50 border border-slate-200 animate-skeleton-slide [animation-delay:600ms]">
+      <div className="flex items-center justify-between gap-4 px-5 py-3.5 rounded-xl bg-[var(--color-neutral-50)] border border-[var(--border-default)] animate-skeleton-slide [animation-delay:600ms]">
         <div className="flex items-center gap-3">
           <Skeleton className="w-8 h-8 rounded-lg" />
           <div>
@@ -50,12 +50,12 @@ export default function Loading() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-skeleton-slide [animation-delay:700ms]">
-        <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl">
+        <div className="flex items-center gap-1 p-1 bg-[var(--color-neutral-100)]/80 rounded-xl">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} className="h-9 w-24 rounded-lg" />
           ))}
         </div>
-        <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl">
+        <div className="flex items-center gap-1 p-1 bg-[var(--color-neutral-100)]/80 rounded-xl">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-7 w-16 rounded-lg" />
           ))}
@@ -65,7 +65,7 @@ export default function Loading() {
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => (
-          <div key={i} className={`flex flex-col p-5 rounded-2xl border border-slate-200 bg-white animate-skeleton-slide [animation-delay:${800 + i * 40}ms]`}>
+          <div key={i} className={`flex flex-col p-5 rounded-2xl border border-[var(--border-default)] bg-white animate-skeleton-slide [animation-delay:${800 + i * 40}ms]`}>
             <div className="flex items-start gap-3 mb-3">
               <Skeleton className="w-11 h-11 rounded-xl shrink-0" />
               <div className="flex-1 min-w-0">

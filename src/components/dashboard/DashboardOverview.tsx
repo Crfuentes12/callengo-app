@@ -170,14 +170,14 @@ export default function DashboardOverview({
       case 'no_answer':
         return 'bg-amber-50 text-amber-700 border-amber-200';
       default:
-        return 'bg-slate-50 text-slate-600 border-slate-200';
+        return 'bg-[var(--color-neutral-50)] text-[var(--color-neutral-600)] border-[var(--border-default)]';
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="gradient-bg-subtle rounded-2xl p-8 border border-slate-200">
+      <div className="gradient-bg-subtle rounded-2xl p-8 border border-[var(--border-default)]">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl gradient-bg flex items-center justify-center shadow-md">
             <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -185,10 +185,10 @@ export default function DashboardOverview({
             </svg>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">
+            <h2 className="text-2xl font-bold text-[var(--color-ink)]">
               {t.dashboard.title}
             </h2>
-            <p className="text-slate-600 mt-0.5">
+            <p className="text-[var(--color-neutral-600)] mt-0.5">
               {t.dashboard.overview}
             </p>
           </div>
@@ -196,33 +196,33 @@ export default function DashboardOverview({
 
         {/* Stats bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 bg-white rounded-xl border border-[var(--border-default)] shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-              <span className="text-xs text-slate-500 font-medium">{t.agents.active} {t.nav.agents}</span>
+              <span className="text-xs text-[var(--color-neutral-500)] font-medium">{t.agents.active} {t.nav.agents}</span>
             </div>
-            <span className="text-2xl text-slate-900 font-bold">{companyAgents.length}</span>
+            <span className="text-2xl text-[var(--color-ink)] font-bold">{companyAgents.length}</span>
           </div>
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 bg-white rounded-xl border border-[var(--border-default)] shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
-              <span className="text-xs text-slate-500 font-medium">{t.nav.campaigns}</span>
+              <span className="text-xs text-[var(--color-neutral-500)] font-medium">{t.nav.campaigns}</span>
             </div>
-            <span className="text-2xl text-slate-900 font-bold">{stats.activeCampaigns}</span>
+            <span className="text-2xl text-[var(--color-ink)] font-bold">{stats.activeCampaigns}</span>
           </div>
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 bg-white rounded-xl border border-[var(--border-default)] shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full"></div>
-              <span className="text-xs text-slate-500 font-medium">{t.dashboard.totalCalls}</span>
+              <span className="text-xs text-[var(--color-neutral-500)] font-medium">{t.dashboard.totalCalls}</span>
             </div>
-            <span className="text-2xl text-slate-900 font-bold">{recentCalls.length}</span>
+            <span className="text-2xl text-[var(--color-ink)] font-bold">{recentCalls.length}</span>
           </div>
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 bg-white rounded-xl border border-[var(--border-default)] shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-xs text-slate-500 font-medium">{t.dashboard.successRate}</span>
+              <span className="text-xs text-[var(--color-neutral-500)] font-medium">{t.dashboard.successRate}</span>
             </div>
-            <span className="text-2xl text-slate-900 font-bold">{stats.successRate.toFixed(0)}%</span>
+            <span className="text-2xl text-[var(--color-ink)] font-bold">{stats.successRate.toFixed(0)}%</span>
           </div>
         </div>
       </div>
@@ -265,10 +265,10 @@ export default function DashboardOverview({
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-semibold text-slate-900 mb-1">
+              <h3 className="text-base font-semibold text-[var(--color-ink)] mb-1">
                 {t.billing.free} — {usageTracking ? Math.max(0, (subscription.subscription_plans?.minutes_included || 0) - usageTracking.minutes_used) : (subscription.subscription_plans?.minutes_included || 0)} {t.dashboard.minutesRemaining.toLowerCase()}
               </h3>
-              <p className="text-sm text-slate-700 mb-3">
+              <p className="text-sm text-[var(--color-neutral-700)] mb-3">
                 {t.billing.minutesIncluded}: {subscription.subscription_plans?.minutes_included || 15} {t.common.minutes}
               </p>
               <a
@@ -288,14 +288,14 @@ export default function DashboardOverview({
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Contacts */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-6 hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">{t.campaigns.totalContacts}</p>
-              <p className="text-3xl font-bold text-slate-900 mt-2">{stats.total.toLocaleString()}</p>
+              <p className="text-sm font-medium text-[var(--color-neutral-500)]">{t.campaigns.totalContacts}</p>
+              <p className="text-3xl font-bold text-[var(--color-ink)] mt-2">{stats.total.toLocaleString()}</p>
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-slate-400">{stats.pending} {t.contacts.pending.toLowerCase()}</span>
-                <span className="text-xs text-slate-300">·</span>
+                <span className="text-xs text-[var(--color-neutral-400)]">{stats.pending} {t.contacts.pending.toLowerCase()}</span>
+                <span className="text-xs text-[var(--color-neutral-300)]">·</span>
                 <span className="text-xs text-emerald-600 font-medium">{stats.verified} {t.common.success.toLowerCase()}</span>
               </div>
             </div>
@@ -308,11 +308,11 @@ export default function DashboardOverview({
         </div>
 
         {/* Verified */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-6 hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">{t.campaigns.successfulCalls}</p>
-              <p className="text-3xl font-bold text-slate-900 mt-2">{stats.verified.toLocaleString()}</p>
+              <p className="text-sm font-medium text-[var(--color-neutral-500)]">{t.campaigns.successfulCalls}</p>
+              <p className="text-3xl font-bold text-[var(--color-ink)] mt-2">{stats.verified.toLocaleString()}</p>
               <p className="text-sm text-emerald-600 mt-2 font-medium">{stats.successRate.toFixed(1)}% {t.dashboard.successRate.toLowerCase()}</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center shadow-sm">
@@ -324,12 +324,12 @@ export default function DashboardOverview({
         </div>
 
         {/* Avg Duration */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-6 hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">{t.calls.duration}</p>
-              <p className="text-3xl font-bold text-slate-900 mt-2">{formatDuration(stats.avgCallDuration)}</p>
-              <p className="text-sm text-slate-400 mt-2">{t.campaigns.successfulCalls.toLowerCase()}</p>
+              <p className="text-sm font-medium text-[var(--color-neutral-500)]">{t.calls.duration}</p>
+              <p className="text-3xl font-bold text-[var(--color-ink)] mt-2">{formatDuration(stats.avgCallDuration)}</p>
+              <p className="text-sm text-[var(--color-neutral-400)] mt-2">{t.campaigns.successfulCalls.toLowerCase()}</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-sm">
               <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -340,16 +340,16 @@ export default function DashboardOverview({
         </div>
 
         {/* Minutes Remaining */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl border border-[var(--border-default)] p-6 hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">{t.dashboard.minutesRemaining}</p>
-              <p className="text-3xl font-bold text-slate-900 mt-2">
+              <p className="text-sm font-medium text-[var(--color-neutral-500)]">{t.dashboard.minutesRemaining}</p>
+              <p className="text-3xl font-bold text-[var(--color-ink)] mt-2">
                 {usageTracking && subscription?.subscription_plans
                   ? (subscription.subscription_plans.minutes_included - (usageTracking.minutes_used || 0)).toLocaleString()
                   : subscription?.subscription_plans?.minutes_included?.toLocaleString() || '0'}
               </p>
-              <p className="text-sm text-slate-400 mt-2">
+              <p className="text-sm text-[var(--color-neutral-400)] mt-2">
                 {t.dashboard.of} {subscription?.subscription_plans?.minutes_included?.toLocaleString() || '0'} {t.billing.minutesIncluded.toLowerCase()}
               </p>
             </div>
@@ -364,8 +364,8 @@ export default function DashboardOverview({
 
       {/* Active Agents Section */}
       {companyAgents.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="flex items-center justify-between p-6 border-b border-slate-100">
+        <div className="bg-white rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-sm">
+          <div className="flex items-center justify-between p-6 border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -373,8 +373,8 @@ export default function DashboardOverview({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">{t.agents.active} {t.agents.title}</h3>
-                <p className="text-sm text-slate-500">{t.agents.subtitle}</p>
+                <h3 className="text-lg font-semibold text-[var(--color-ink)]">{t.agents.active} {t.agents.title}</h3>
+                <p className="text-sm text-[var(--color-neutral-500)]">{t.agents.subtitle}</p>
               </div>
             </div>
             <a
@@ -392,7 +392,7 @@ export default function DashboardOverview({
               {companyAgents.slice(0, 6).map((agent) => (
                 <div
                   key={agent.id}
-                  className="p-4 bg-slate-50 rounded-xl border border-slate-200 hover:border-[var(--color-primary-200)] hover:shadow-sm transition-all"
+                  className="p-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] hover:border-[var(--color-primary-200)] hover:shadow-sm transition-all"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -401,10 +401,10 @@ export default function DashboardOverview({
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-slate-900 truncate">
+                      <h4 className="font-semibold text-[var(--color-ink)] truncate">
                         {agent.name}
                       </h4>
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                      <p className="text-xs text-[var(--color-neutral-500)] mt-1 line-clamp-2">
                         {agent.agent_templates?.description || t.agents.title}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
@@ -422,8 +422,8 @@ export default function DashboardOverview({
 
       {/* Active Campaigns */}
       {agentRuns.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="flex items-center justify-between p-6 border-b border-slate-100">
+        <div className="bg-white rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-sm">
+          <div className="flex items-center justify-between p-6 border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)] flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -431,8 +431,8 @@ export default function DashboardOverview({
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">{t.dashboard.recentActivity}</h3>
-                <p className="text-sm text-slate-500">{stats.activeCampaigns} {t.agents.active.toLowerCase()}, {stats.completedCampaigns} {t.calls.completed.toLowerCase()}</p>
+                <h3 className="text-lg font-semibold text-[var(--color-ink)]">{t.dashboard.recentActivity}</h3>
+                <p className="text-sm text-[var(--color-neutral-500)]">{stats.activeCampaigns} {t.agents.active.toLowerCase()}, {stats.completedCampaigns} {t.calls.completed.toLowerCase()}</p>
               </div>
             </div>
           </div>
@@ -446,27 +446,27 @@ export default function DashboardOverview({
                   <a
                     key={run.id}
                     href={`/campaigns/${run.id}`}
-                    className="block p-5 bg-slate-50 rounded-xl border border-slate-200 hover:shadow-sm hover:border-[var(--color-primary-200)] transition-all"
+                    className="block p-5 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)] hover:shadow-sm hover:border-[var(--color-primary-200)] transition-all"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-semibold text-slate-900 text-lg">{run.name}</h4>
+                          <h4 className="font-semibold text-[var(--color-ink)] text-lg">{run.name}</h4>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusStyles(run.status)}`}>
                             {run.status.charAt(0).toUpperCase() + run.status.slice(1)}
                           </span>
                         </div>
                         <div className="grid grid-cols-3 gap-4 mt-3">
                           <div>
-                            <p className="text-xs text-slate-500 font-medium mb-1">{t.campaigns.totalContacts}</p>
-                            <p className="text-xl font-bold text-slate-900">{run.total_contacts}</p>
+                            <p className="text-xs text-[var(--color-neutral-500)] font-medium mb-1">{t.campaigns.totalContacts}</p>
+                            <p className="text-xl font-bold text-[var(--color-ink)]">{run.total_contacts}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500 font-medium mb-1">{t.campaigns.completedCalls}</p>
+                            <p className="text-xs text-[var(--color-neutral-500)] font-medium mb-1">{t.campaigns.completedCalls}</p>
                             <p className="text-xl font-bold text-blue-600">{run.completed_calls}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500 font-medium mb-1">{t.campaigns.successfulCalls}</p>
+                            <p className="text-xs text-[var(--color-neutral-500)] font-medium mb-1">{t.campaigns.successfulCalls}</p>
                             <p className="text-xl font-bold text-emerald-600">{run.successful_calls}</p>
                           </div>
                         </div>
@@ -476,10 +476,10 @@ export default function DashboardOverview({
                     {/* Progress Bar */}
                     <div className="mt-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-slate-600">{t.campaigns.overview}</span>
-                        <span className="text-xs font-semibold text-slate-900">{progress.toFixed(1)}%</span>
+                        <span className="text-xs font-medium text-[var(--color-neutral-600)]">{t.campaigns.overview}</span>
+                        <span className="text-xs font-semibold text-[var(--color-ink)]">{progress.toFixed(1)}%</span>
                       </div>
-                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-2 bg-[var(--color-neutral-200)] rounded-full overflow-hidden">
                         <div
                           className="h-full gradient-bg rounded-full transition-all duration-500"
                           style={{ width: `${progress}%` }}
@@ -500,17 +500,17 @@ export default function DashboardOverview({
       )}
 
       {/* Contact Status Distribution */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-900 mb-5 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-[var(--border-default)] p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-[var(--color-ink)] mb-5 flex items-center gap-2">
           <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
           {t.contacts.allStatuses}
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <p className="text-2xl font-bold text-slate-900">{stats.pending}</p>
-            <p className="text-xs text-slate-500 font-medium mt-1.5">{t.contacts.pending}</p>
+          <div className="text-center p-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+            <p className="text-2xl font-bold text-[var(--color-ink)]">{stats.pending}</p>
+            <p className="text-xs text-[var(--color-neutral-500)] font-medium mt-1.5">{t.contacts.pending}</p>
           </div>
           <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
             <p className="text-2xl font-bold text-blue-900">{stats.calling}</p>
@@ -532,8 +532,8 @@ export default function DashboardOverview({
       </div>
 
       {/* Recent Calls Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+      <div className="bg-white rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between p-6 border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -541,8 +541,8 @@ export default function DashboardOverview({
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-900">{t.dashboard.recentActivity}</h3>
-              <p className="text-sm text-slate-500">{recentCalls.length} {t.dashboard.totalCalls.toLowerCase()}</p>
+              <h3 className="text-lg font-semibold text-[var(--color-ink)]">{t.dashboard.recentActivity}</h3>
+              <p className="text-sm text-[var(--color-neutral-500)]">{recentCalls.length} {t.dashboard.totalCalls.toLowerCase()}</p>
             </div>
           </div>
           <a
@@ -558,13 +558,13 @@ export default function DashboardOverview({
 
         {recentCalls.length === 0 ? (
           <div className="text-center py-20 px-6">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="w-16 h-16 rounded-2xl bg-[var(--color-neutral-100)] flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
               </svg>
             </div>
-            <p className="text-slate-900 font-semibold text-lg mb-2">{t.calls.noCalls}</p>
-            <p className="text-sm text-slate-500 mb-6">{t.calls.noCallsDesc}</p>
+            <p className="text-[var(--color-ink)] font-semibold text-lg mb-2">{t.calls.noCalls}</p>
+            <p className="text-sm text-[var(--color-neutral-500)] mb-6">{t.calls.noCallsDesc}</p>
             <button
               onClick={() => setShowAgentSelection(true)}
               className="btn-primary"
@@ -579,29 +579,29 @@ export default function DashboardOverview({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50">
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <tr className="bg-[var(--color-neutral-50)]">
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                     {t.campaigns.callLog}
                   </th>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                     {t.common.status}
                   </th>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                     {t.calls.duration}
                   </th>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                     {t.calls.contact}
                   </th>
-                  <th className="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="text-left py-4 px-6 text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                     {t.common.date}
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border-subtle)]">
                 {recentCalls.slice(0, 8).map((call) => (
-                  <tr key={call.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setSelectedCall(call)}>
+                  <tr key={call.id} className="hover:bg-[var(--surface-hover)] transition-colors cursor-pointer" onClick={() => setSelectedCall(call)}>
                     <td className="py-4 px-6">
-                      <p className="text-sm font-medium text-slate-900 font-mono">
+                      <p className="text-sm font-medium text-[var(--color-ink)] font-mono">
                         {call.call_id.substring(0, 12)}...
                       </p>
                     </td>
@@ -611,7 +611,7 @@ export default function DashboardOverview({
                       </span>
                     </td>
                     <td className="py-4 px-6">
-                      <p className="text-sm text-slate-700">
+                      <p className="text-sm text-[var(--color-neutral-700)]">
                         {formatDuration(call.call_length)}
                       </p>
                     </td>
@@ -621,13 +621,13 @@ export default function DashboardOverview({
                           ? 'bg-emerald-50 text-emerald-700'
                           : call.answered_by === 'voicemail'
                           ? 'bg-amber-50 text-amber-700'
-                          : 'bg-slate-50 text-slate-600'
+                          : 'bg-[var(--color-neutral-50)] text-[var(--color-neutral-600)]'
                       }`}>
                         {call.answered_by || t.common.noData}
                       </span>
                     </td>
                     <td className="py-4 px-6">
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-[var(--color-neutral-500)]">
                         {new Date(call.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -648,7 +648,7 @@ export default function DashboardOverview({
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <a
           href="/contacts"
-          className="group bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-md hover:border-[var(--color-primary-200)] transition-all"
+          className="group bg-white rounded-2xl border border-[var(--border-default)] p-6 hover:shadow-md hover:border-[var(--color-primary-200)] transition-all"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center shadow-sm">
@@ -657,17 +657,17 @@ export default function DashboardOverview({
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-slate-900 group-hover:text-[var(--color-primary)] transition-colors">
+              <h4 className="font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-primary)] transition-colors">
                 {t.contacts.importContacts}
               </h4>
-              <p className="text-sm text-slate-500 mt-0.5">{t.dashboard.addContacts}</p>
+              <p className="text-sm text-[var(--color-neutral-500)] mt-0.5">{t.dashboard.addContacts}</p>
             </div>
           </div>
         </a>
 
         <button
           onClick={() => setShowAgentSelection(true)}
-          className="group bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-md hover:border-emerald-200 transition-all text-left w-full"
+          className="group bg-white rounded-2xl border border-[var(--border-default)] p-6 hover:shadow-md hover:border-emerald-200 transition-all text-left w-full"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center shadow-sm">
@@ -676,17 +676,17 @@ export default function DashboardOverview({
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-slate-900 group-hover:text-emerald-600 transition-colors">
+              <h4 className="font-semibold text-[var(--color-ink)] group-hover:text-emerald-600 transition-colors">
                 {t.dashboard.newCampaign}
               </h4>
-              <p className="text-sm text-slate-500 mt-0.5">{t.agents.subtitle}</p>
+              <p className="text-sm text-[var(--color-neutral-500)] mt-0.5">{t.agents.subtitle}</p>
             </div>
           </div>
         </button>
 
         <a
           href="/settings"
-          className="group bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-md hover:border-violet-200 transition-all"
+          className="group bg-white rounded-2xl border border-[var(--border-default)] p-6 hover:shadow-md hover:border-violet-200 transition-all"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-violet-500 flex items-center justify-center shadow-sm">
@@ -696,10 +696,10 @@ export default function DashboardOverview({
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-slate-900 group-hover:text-violet-600 transition-colors">
+              <h4 className="font-semibold text-[var(--color-ink)] group-hover:text-violet-600 transition-colors">
                 {t.nav.settings}
               </h4>
-              <p className="text-sm text-slate-500 mt-0.5">{t.settings.title}</p>
+              <p className="text-sm text-[var(--color-neutral-500)] mt-0.5">{t.settings.title}</p>
             </div>
           </div>
         </a>
@@ -708,7 +708,7 @@ export default function DashboardOverview({
           href="https://calengo.com/resources/help-center"
           target="_blank"
           rel="noopener noreferrer"
-          className="group bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-md hover:border-amber-200 transition-all"
+          className="group bg-white rounded-2xl border border-[var(--border-default)] p-6 hover:shadow-md hover:border-amber-200 transition-all"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-sm">
@@ -717,10 +717,10 @@ export default function DashboardOverview({
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-slate-900 group-hover:text-amber-600 transition-colors">
+              <h4 className="font-semibold text-[var(--color-ink)] group-hover:text-amber-600 transition-colors">
                 {t.agents.support}
               </h4>
-              <p className="text-sm text-slate-500 mt-0.5">{t.common.info}</p>
+              <p className="text-sm text-[var(--color-neutral-500)] mt-0.5">{t.common.info}</p>
             </div>
           </div>
         </a>
