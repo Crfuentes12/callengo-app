@@ -78,8 +78,8 @@ export default function VoiceSelectionModal({
           return;
         }
 
-        if (data && (data as any).fav_voices) {
-          setFavorites(new Set((data as any).fav_voices));
+        if (data && (data as unknown as Record<string, unknown>).fav_voices) {
+          setFavorites(new Set((data as unknown as Record<string, string[]>).fav_voices));
         }
         setFavoritesLoaded(true);
       } catch (err) {
@@ -118,7 +118,7 @@ export default function VoiceSelectionModal({
         // Persist to database (silently fail if column doesn't exist yet)
         supabase
           .from('users')
-          .update({ fav_voices: [...newFavorites] } as any)
+          .update({ fav_voices: [...newFavorites] } as unknown as Record<string, unknown>)
           .eq('id', user.id)
           .then(({ error }) => {
             if (error) {

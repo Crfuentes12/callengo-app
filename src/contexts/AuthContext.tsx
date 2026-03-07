@@ -75,8 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return { error };
 
       return { error: null };
-    } catch (error: any) {
-      return { error };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     }
   };
 
@@ -90,8 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return { error };
 
       return { error: null };
-    } catch (error: any) {
-      return { error };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     }
   };
 
@@ -107,8 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return { error };
 
       return { error: null };
-    } catch (error: any) {
-      return { error };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     }
   };
 
@@ -126,8 +126,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return { error };
 
       return { error: null };
-    } catch (error: any) {
-      return { error };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     }
   };
 
@@ -140,8 +140,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return { error };
 
       return { error: null };
-    } catch (error: any) {
-      return { error };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     }
   };
 
@@ -158,8 +158,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return { error };
 
       return { error: null };
-    } catch (error: any) {
-      return { error };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     }
   };
 

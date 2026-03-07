@@ -20,9 +20,9 @@ interface CallLogWithContact {
   recording_url: string | null;
   transcript: string | null;
   summary: string | null;
-  analysis: any;
+  analysis: Record<string, unknown>;
   error_message: string | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
   contacts: {
     company_name: string;

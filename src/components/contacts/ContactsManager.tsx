@@ -16,7 +16,7 @@ import { FaSalesforce, FaHubspot } from 'react-icons/fa';
 import Link from 'next/link';
 
 interface ContactsManagerProps {
-  initialContacts: any[];
+  initialContacts: Record<string, unknown>[];
   initialTotalCount: number;
   initialContactLists?: ContactList[];
   companyId: string;
@@ -1683,7 +1683,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
         const contactName = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
 
         // Build custom_fields object from non-standard fields
-        const customFields: Record<string, any> = {};
+        const customFields: Record<string, unknown> = {};
         const standardFieldNames = ['First Name', 'Last Name', 'Company Name', 'Phone', 'Email',
                                    'first_name', 'last_name', 'company_name', 'phone', 'email',
                                    'Phone Number', 'phone_number'];
@@ -1782,7 +1782,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
                   />
                   <select
                     value={newFieldType}
-                    onChange={(e) => setNewFieldType(e.target.value as any)}
+                    onChange={(e) => setNewFieldType(e.target.value as 'text' | 'email' | 'phone' | 'number' | 'date')}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary)] outline-none"
                   >
                     <option value="text">Text</option>

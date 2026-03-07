@@ -14,9 +14,9 @@ interface CallDetailData {
   recording_url: string | null;
   transcript: string | null;
   summary: string | null;
-  analysis: any;
+  analysis: Record<string, unknown>;
   error_message: string | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
   voicemail_detected?: boolean;
   voicemail_left?: boolean;

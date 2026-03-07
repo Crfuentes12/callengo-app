@@ -25,9 +25,9 @@ interface CallLog {
   recording_url: string | null;
   transcript: string | null;
   summary: string | null;
-  analysis: any;
+  analysis: Record<string, unknown> | null;
   error_message: string | null;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -81,7 +81,7 @@ interface ContactStatsFromServer {
 }
 
 interface DashboardOverviewProps {
-  contacts: any[];
+  contacts: Record<string, unknown>[];
   recentCalls: CallLog[];
   company: Company;
   agentTemplates: AgentTemplate[];

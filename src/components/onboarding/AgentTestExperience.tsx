@@ -13,11 +13,11 @@ interface AgentTestExperienceProps {
   agentDescription: string;
   companyId: string;
   companyName: string;
-  onComplete: (callData: any) => void;
+  onComplete: (callData: Record<string, unknown>) => void;
   onSkip: () => void;
 }
 
-const AGENT_CONFIG: Record<string, any> = {
+const AGENT_CONFIG: Record<string, Record<string, unknown>> = {
   'data-validation': {
     name: 'Data Validation Agent',
     icon: '🔍',
@@ -75,8 +75,8 @@ export default function AgentTestExperience({
   const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
   const [callDuration, setCallDuration] = useState(0);
   const [callId, setCallId] = useState<string | null>(null);
-  const [callData, setCallData] = useState<any>(null);
-  const [callAnalysis, setCallAnalysis] = useState<any>(null);
+  const [callData, setCallData] = useState<Record<string, unknown> | null>(null);
+  const [callAnalysis, setCallAnalysis] = useState<Record<string, unknown> | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasAnalyzedRef = useRef(false);
 
@@ -177,7 +177,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
     }
   };
 
-  const analyzeCall = async (data: any) => {
+  const analyzeCall = async (data: Record<string, unknown>) => {
     try {
       const response = await fetch('/api/openai/analyze-call', {
         method: 'POST',

@@ -24,7 +24,7 @@ interface CallSettingsProps {
     followup_interval_hours?: number;
     smart_followup_enabled?: boolean;
   };
-  onSettingsChange: (settings: any) => void;
+  onSettingsChange: (settings: Record<string, unknown>) => void;
   onSubmit: (e: React.FormEvent) => void;
   loading: boolean;
   success: string;
@@ -111,7 +111,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
         .eq('status', 'active')
         .single();
 
-      const planData = subscription?.subscription_plans as any;
+      const planData = subscription?.subscription_plans as Record<string, unknown>;
       if (planData) setPlan(planData);
 
       const now = new Date();
@@ -162,7 +162,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
         .eq('company_id', companyId)
         .single();
 
-      const settingsData = companySettings?.settings as any;
+      const settingsData = companySettings?.settings as Record<string, unknown> | undefined;
       if (settingsData?.phone_numbers) {
         setPhoneNumbers(settingsData.phone_numbers);
       }
@@ -178,7 +178,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
       if (recentCalls && recentCalls.length > 0) {
         const uniqueNumbers = new Map<string, string>();
         recentCalls.forEach(call => {
-          const meta = call.metadata as any;
+          const meta = call.metadata as Record<string, unknown> | undefined;
           const fromNumber = meta?.from_number || meta?.from;
           if (fromNumber && !uniqueNumbers.has(fromNumber)) {
             uniqueNumbers.set(fromNumber, call.created_at);
@@ -214,7 +214,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
         .eq('company_id', companyId)
         .single();
 
-      const existingSettings = (currentSettings?.settings as any) || {};
+      const existingSettings = (currentSettings?.settings as Record<string, unknown>) || {};
 
       await supabase
         .from('company_settings')
