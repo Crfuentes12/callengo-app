@@ -502,24 +502,24 @@ export default function AnalyticsDashboard({
             <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet" onMouseLeave={() => setHoveredPoint(null)}>
               <defs>
                 <linearGradient id="aSuccStr" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#173657" /><stop offset="50%" stopColor="#2e3a76" /><stop offset="100%" stopColor="#8938b0" />
+                  <stop offset="0%" stopColor="var(--color-deep-indigo)" /><stop offset="50%" stopColor="var(--color-primary-600)" /><stop offset="100%" stopColor="var(--color-electric)" />
                 </linearGradient>
                 <linearGradient id="aSuccFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#2e3a76" stopOpacity="0.25" /><stop offset="50%" stopColor="#8938b0" stopOpacity="0.08" /><stop offset="100%" stopColor="#8938b0" stopOpacity="0.01" />
+                  <stop offset="0%" stopColor="var(--color-deep-indigo)" stopOpacity="0.25" /><stop offset="50%" stopColor="var(--color-electric)" stopOpacity="0.08" /><stop offset="100%" stopColor="var(--color-electric)" stopOpacity="0.01" />
                 </linearGradient>
                 <linearGradient id="aFailFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ef4444" stopOpacity="0.12" /><stop offset="100%" stopColor="#ef4444" stopOpacity="0.01" />
+                  <stop offset="0%" stopColor="var(--color-error-500)" stopOpacity="0.12" /><stop offset="100%" stopColor="var(--color-error-500)" stopOpacity="0.01" />
                 </linearGradient>
               </defs>
               {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
                 <g key={i}>
-                  <line x1={pL} y1={tY(mx * p)} x2={pL + w} y2={tY(mx * p)} stroke="#e2e8f0" strokeWidth="1" strokeDasharray={p > 0 ? "4,4" : "0"} />
-                  <text x={pL - 6} y={tY(mx * p) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(mx * p)}</text>
+                  <line x1={pL} y1={tY(mx * p)} x2={pL + w} y2={tY(mx * p)} stroke="var(--color-neutral-200)" strokeWidth="1" strokeDasharray={p > 0 ? "4,4" : "0"} />
+                  <text x={pL - 6} y={tY(mx * p) + 4} textAnchor="end" fontSize="10" fill="var(--color-neutral-400)">{Math.round(mx * p)}</text>
                 </g>
               ))}
               {/* Failed calls area and line */}
               <path d={fA} fill="url(#aFailFill)" />
-              <path d={fL} fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinejoin="round" opacity="0.6" />
+              <path d={fL} fill="none" stroke="var(--color-error-500)" strokeWidth="1.5" strokeLinejoin="round" opacity="0.6" />
               {/* Successful calls area and line */}
               <path d={sA} fill="url(#aSuccFill)" />
               <path d={sL} fill="none" stroke="url(#aSuccStr)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
@@ -529,15 +529,15 @@ export default function AnalyticsDashboard({
               ))}
               {/* Hover guide line */}
               {hp !== null && (
-                <line x1={tX(hp)} y1={pT} x2={tX(hp)} y2={pT + h} stroke="#2e3a76" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />
+                <line x1={tX(hp)} y1={pT} x2={tX(hp)} y2={pT + h} stroke="var(--color-deep-indigo)" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />
               )}
               {/* Successful data points */}
               {data.map((d, i) => d.successful > 0 || hp === i ? (
-                <circle key={`s${i}`} cx={tX(i)} cy={tY(d.successful)} r={hp === i ? 5 : 3} fill="#2e3a76" stroke="white" strokeWidth={hp === i ? 2.5 : 1.5} opacity={hp === i ? 1 : 0.9} className="transition-all duration-150" />
+                <circle key={`s${i}`} cx={tX(i)} cy={tY(d.successful)} r={hp === i ? 5 : 3} fill="var(--color-deep-indigo)" stroke="white" strokeWidth={hp === i ? 2.5 : 1.5} opacity={hp === i ? 1 : 0.9} className="transition-all duration-150" />
               ) : null)}
               {/* Failed data points */}
               {data.map((d, i) => d.failed > 0 || hp === i ? (
-                <circle key={`f${i}`} cx={tX(i)} cy={tY(d.failed)} r={hp === i ? 5 : 3} fill="#ef4444" stroke="white" strokeWidth={hp === i ? 2.5 : 1.5} opacity={hp === i ? 1 : 0.7} className="transition-all duration-150" />
+                <circle key={`f${i}`} cx={tX(i)} cy={tY(d.failed)} r={hp === i ? 5 : 3} fill="var(--color-error-500)" stroke="white" strokeWidth={hp === i ? 2.5 : 1.5} opacity={hp === i ? 1 : 0.7} className="transition-all duration-150" />
               ) : null)}
               {/* Tooltip */}
               {hp !== null && (() => {
@@ -550,15 +550,15 @@ export default function AnalyticsDashboard({
                 const by = Math.max(ty - boxH, pT - 5);
                 return (
                   <g>
-                    <rect x={bx} y={by} width={boxW} height={boxH} rx="8" fill="white" stroke="#e2e8f0" strokeWidth="1" filter="url(#shadow)" />
-                    <text x={bx + boxW / 2} y={by + 16} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">{dateLabel}</text>
-                    <text x={bx + 10} y={by + 32} fontSize="9" fill="#64748b">Successful: <tspan fontWeight="700" fill="#2e3a76">{d.successful}</tspan></text>
-                    <text x={bx + 10} y={by + 47} fontSize="9" fill="#64748b">Failed: <tspan fontWeight="700" fill="#ef4444">{d.failed}</tspan></text>
+                    <rect x={bx} y={by} width={boxW} height={boxH} rx="8" fill="white" stroke="var(--color-neutral-200)" strokeWidth="1" filter="url(#shadow)" />
+                    <text x={bx + boxW / 2} y={by + 16} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--color-ink)">{dateLabel}</text>
+                    <text x={bx + 10} y={by + 32} fontSize="9" fill="var(--color-neutral-500)">Successful: <tspan fontWeight="700" fill="var(--color-deep-indigo)">{d.successful}</tspan></text>
+                    <text x={bx + 10} y={by + 47} fontSize="9" fill="var(--color-neutral-500)">Failed: <tspan fontWeight="700" fill="var(--color-error-500)">{d.failed}</tspan></text>
                   </g>
                 );
               })()}
               {/* X-axis labels */}
-              {data.map((d, i) => (i % 5 === 0 || i === data.length - 1) ? <text key={`l${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">{new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</text> : null)}
+              {data.map((d, i) => (i % 5 === 0 || i === data.length - 1) ? <text key={`l${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="9" fill="var(--color-neutral-400)">{new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</text> : null)}
             </svg>
           );
         })()}
@@ -741,8 +741,8 @@ export default function AnalyticsDashboard({
               </defs>
               {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
                 <g key={i}>
-                  <line x1={pL} y1={tY(mx * p)} x2={pL + w} y2={tY(mx * p)} stroke="#e2e8f0" strokeWidth="1" strokeDasharray={p > 0 ? "4,4" : "0"} />
-                  <text x={pL - 6} y={tY(mx * p) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(mx * p)}</text>
+                  <line x1={pL} y1={tY(mx * p)} x2={pL + w} y2={tY(mx * p)} stroke="var(--color-neutral-200)" strokeWidth="1" strokeDasharray={p > 0 ? "4,4" : "0"} />
+                  <text x={pL - 6} y={tY(mx * p) + 4} textAnchor="end" fontSize="10" fill="var(--color-neutral-400)">{Math.round(mx * p)}</text>
                 </g>
               ))}
               <path d={areaPath} fill="url(#hourFill)" />
@@ -752,7 +752,7 @@ export default function AnalyticsDashboard({
                 <rect key={`hit${i}`} x={tX(i) - xS / 2} y={pT} width={xS} height={h} fill="transparent" onMouseEnter={() => setHoveredPoint({ index: i, chart: 'hourly' })} />
               ))}
               {hhp !== null && <line x1={tX(hhp)} y1={pT} x2={tX(hhp)} y2={pT + h} stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />}
-              {data.map((d, i) => d.count > 0 || hhp === i ? <circle key={i} cx={tX(i)} cy={tY(d.count)} r={hhp === i ? 5 : 3} fill="#f59e0b" stroke="white" strokeWidth={hhp === i ? 2.5 : 1.5} className="transition-all duration-150" /> : null)}
+              {data.map((d, i) => d.count > 0 || hhp === i ? <circle key={i} cx={tX(i)} cy={tY(d.count)} r={hhp === i ? 5 : 3} fill="var(--color-warning-500)" stroke="white" strokeWidth={hhp === i ? 2.5 : 1.5} className="transition-all duration-150" /> : null)}
               {hhp !== null && (() => {
                 const d = data[hhp];
                 const tx = tX(hhp);
@@ -761,14 +761,14 @@ export default function AnalyticsDashboard({
                 const by = Math.max(tY(d.count) - boxH - 14, pT - 5);
                 return (
                   <g>
-                    <rect x={bx} y={by} width={boxW} height={boxH} rx="8" fill="white" stroke="#e2e8f0" strokeWidth="1" />
-                    <text x={bx + boxW / 2} y={by + 16} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">{d.label}</text>
-                    <text x={bx + boxW / 2} y={by + 32} textAnchor="middle" fontSize="10" fill="#64748b">Calls: <tspan fontWeight="700" fill="#f59e0b">{d.count}</tspan></text>
+                    <rect x={bx} y={by} width={boxW} height={boxH} rx="8" fill="white" stroke="var(--color-neutral-200)" strokeWidth="1" />
+                    <text x={bx + boxW / 2} y={by + 16} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--color-ink)">{d.label}</text>
+                    <text x={bx + boxW / 2} y={by + 32} textAnchor="middle" fontSize="10" fill="var(--color-neutral-500)">Calls: <tspan fontWeight="700" fill="var(--color-warning-500)">{d.count}</tspan></text>
                   </g>
                 );
               })()}
               {data.map((d, i) => (
-                <text key={`h${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">{d.hour}</text>
+                <text key={`h${i}`} x={tX(i)} y={cH - 4} textAnchor="middle" fontSize="9" fill="var(--color-neutral-400)">{d.hour}</text>
               ))}
             </svg>
           );

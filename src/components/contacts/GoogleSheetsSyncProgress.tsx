@@ -205,7 +205,7 @@ export default function GoogleSheetsSyncProgress({
         {isWorking && (
           <div className="w-8 h-8 flex items-center justify-center">
             <svg className="w-5 h-5 text-green-600" viewBox="0 0 36 36">
-              <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+              <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--color-neutral-200)" strokeWidth="3" />
               <circle
                 cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" strokeWidth="3"
                 strokeDasharray={`${percent * 0.974} 97.4`}
