@@ -4,7 +4,6 @@
    Typography: Inter (cv02, cv03) + Poppins display + JetBrains Mono
    Updated: March 2026
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 /* ============================================================
@@ -237,7 +236,7 @@
      ---------------------------------------------------------- */
   --font-display: var(--font-poppins), 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-sans:    var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono:    'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --font-mono:    var(--font-jetbrains), 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
 
   --text-xs:    0.6875rem;
   --text-sm:    0.75rem;
