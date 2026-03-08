@@ -226,11 +226,9 @@ export default function Sidebar({
         header content sit on the same optical baseline.
         The collapse toggle has been removed from here and moved into the Header.
       */}
-      <div className="h-12 flex items-center px-3 overflow-hidden shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-sm flex items-center justify-center shrink-0">
-            <img src="/callengo-logo.svg" alt="Callengo" className="w-5 h-5" />
-          </div>
+      <div className="h-12 flex items-center px-4 overflow-hidden shrink-0">
+        <div className="flex items-center gap-2">
+          <img src="/callengo-logo-white.svg" alt="Callengo" className="w-8 h-8 shrink-0" />
           <span
             className={`
               font-semibold text-[18px] text-white whitespace-nowrap
