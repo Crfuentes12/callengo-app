@@ -1,0 +1,323 @@
+{
+  "name": "Callengo - CRM Bidirectional Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 15 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/get_active_crm_integrations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        }
+      },
+      "id": "get-integrations",
+      "name": "Get Active CRM Integrations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "notes": "Calls a Supabase RPC function. Alternative: query each integration table directly."
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-companies",
+      "name": "Loop Each Integration",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.crm_type }}",
+                    "rightValue": "salesforce",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Salesforce"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.crm_type }}",
+                    "rightValue": "hubspot",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "HubSpot"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.crm_type }}",
+                    "rightValue": "pipedrive",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Pipedrive"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.crm_type }}",
+                    "rightValue": "zoho",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Zoho"
+            }
+          ]
+        }
+      },
+      "id": "route-crm",
+      "name": "Route by CRM Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Salesforce: Fetch recently modified contacts\n// Uses the OAuth token from the integration record\nconst integration = $input.first().json;\nconst accessToken = integration.access_token;\nconst instanceUrl = integration.instance_url;\nconst lastSync = integration.last_synced_at || new Date(Date.now() - 15 * 60 * 1000).toISOString();\n\nreturn [{\n  json: {\n    ...integration,\n    fetch_url: `${instanceUrl}/services/data/v59.0/query?q=SELECT+Id,FirstName,LastName,Email,Phone,MobilePhone,MailingStreet,MailingCity,MailingState,MailingPostalCode,Title,Company+FROM+Contact+WHERE+LastModifiedDate+>+${lastSync}`,\n    auth_header: `Bearer ${accessToken}`,\n    crm_type: 'salesforce'\n  }\n}];"
+      },
+      "id": "salesforce-fetch",
+      "name": "Salesforce Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// HubSpot: Fetch recently modified contacts\nconst integration = $input.first().json;\nconst accessToken = integration.access_token;\nconst lastSync = integration.last_synced_at \n  ? new Date(integration.last_synced_at).getTime() \n  : Date.now() - 15 * 60 * 1000;\n\nreturn [{\n  json: {\n    ...integration,\n    fetch_url: `https://api.hubapi.com/crm/v3/objects/contacts/search`,\n    auth_header: `Bearer ${accessToken}`,\n    request_body: {\n      filterGroups: [{\n        filters: [{\n          propertyName: 'lastmodifieddate',\n          operator: 'GTE',\n          value: lastSync.toString()\n        }]\n      }],\n      properties: ['firstname', 'lastname', 'email', 'phone', 'mobilephone', 'address', 'city', 'state', 'zip', 'jobtitle', 'company'],\n      limit: 100\n    },\n    crm_type: 'hubspot'\n  }\n}];"
+      },
+      "id": "hubspot-fetch",
+      "name": "HubSpot Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pipedrive: Fetch recently modified persons\nconst integration = $input.first().json;\nconst accessToken = integration.access_token;\nconst domain = integration.company_domain || 'api';\nconst lastSync = integration.last_synced_at || new Date(Date.now() - 15 * 60 * 1000).toISOString();\n\nreturn [{\n  json: {\n    ...integration,\n    fetch_url: `https://${domain}.pipedrive.com/api/v1/persons?sort=update_time DESC&limit=100&since_timestamp=${lastSync}`,\n    auth_header: `Bearer ${accessToken}`,\n    crm_type: 'pipedrive'\n  }\n}];"
+      },
+      "id": "pipedrive-fetch",
+      "name": "Pipedrive Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 460]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Zoho: Fetch recently modified contacts\nconst integration = $input.first().json;\nconst accessToken = integration.access_token;\nconst lastSync = integration.last_synced_at || new Date(Date.now() - 15 * 60 * 1000).toISOString();\n\nreturn [{\n  json: {\n    ...integration,\n    fetch_url: `https://www.zohoapis.com/crm/v5/Contacts/search?criteria=(Modified_Time:greater_than:${lastSync})&per_page=100`,\n    auth_header: `Zoho-oauthtoken ${accessToken}`,\n    crm_type: 'zoho'\n  }\n}];"
+      },
+      "id": "zoho-fetch",
+      "name": "Zoho Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 640]
+    },
+    {
+      "parameters": {
+        "method": "={{ $json.request_body ? 'POST' : 'GET' }}",
+        "url": "={{ $json.fetch_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $json.auth_header }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.request_body ? JSON.stringify($json.request_body) : '{}' }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "fetch-crm-data",
+      "name": "Fetch CRM Contacts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize CRM contacts to Callengo format\nconst item = $input.first().json;\nconst crmType = $('Route by CRM Type').first().json.crm_type;\nconst companyId = $('Route by CRM Type').first().json.company_id;\nlet contacts = [];\n\nswitch (crmType) {\n  case 'salesforce':\n    contacts = (item.records || []).map(r => ({\n      external_id: r.Id,\n      full_name: `${r.FirstName || ''} ${r.LastName || ''}`.trim(),\n      email: r.Email,\n      phone: r.Phone || r.MobilePhone,\n      address: [r.MailingStreet, r.MailingCity, r.MailingState, r.MailingPostalCode].filter(Boolean).join(', '),\n      job_title: r.Title,\n      company_name: r.Company,\n      source: 'salesforce'\n    }));\n    break;\n  case 'hubspot':\n    contacts = (item.results || []).map(r => ({\n      external_id: r.id,\n      full_name: `${r.properties?.firstname || ''} ${r.properties?.lastname || ''}`.trim(),\n      email: r.properties?.email,\n      phone: r.properties?.phone || r.properties?.mobilephone,\n      address: [r.properties?.address, r.properties?.city, r.properties?.state, r.properties?.zip].filter(Boolean).join(', '),\n      job_title: r.properties?.jobtitle,\n      company_name: r.properties?.company,\n      source: 'hubspot'\n    }));\n    break;\n  case 'pipedrive':\n    contacts = (item.data || []).map(r => ({\n      external_id: r.id?.toString(),\n      full_name: r.name,\n      email: r.email?.[0]?.value,\n      phone: r.phone?.[0]?.value,\n      address: r.postal_address,\n      job_title: r.job_title,\n      company_name: r.org_name,\n      source: 'pipedrive'\n    }));\n    break;\n  case 'zoho':\n    contacts = (item.data || []).map(r => ({\n      external_id: r.id,\n      full_name: `${r.First_Name || ''} ${r.Last_Name || ''}`.trim(),\n      email: r.Email,\n      phone: r.Phone || r.Mobile,\n      address: [r.Mailing_Street, r.Mailing_City, r.Mailing_State, r.Mailing_Zip].filter(Boolean).join(', '),\n      job_title: r.Title,\n      company_name: r.Account_Name?.name,\n      source: 'zoho'\n    }));\n    break;\n}\n\nreturn contacts.map(c => ({\n  json: {\n    ...c,\n    company_id: companyId\n  }\n}));"
+      },
+      "id": "normalize-contacts",
+      "name": "Normalize to Callengo Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1600, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/contacts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"company_id\": \"{{ $json.company_id }}\",\n  \"full_name\": {{ JSON.stringify($json.full_name) }},\n  \"email\": {{ JSON.stringify($json.email || null) }},\n  \"phone\": {{ JSON.stringify($json.phone || null) }},\n  \"address\": {{ JSON.stringify($json.address || null) }},\n  \"job_title\": {{ JSON.stringify($json.job_title || null) }},\n  \"company_name\": {{ JSON.stringify($json.company_name || null) }},\n  \"source\": {{ JSON.stringify($json.source) }},\n  \"external_id\": {{ JSON.stringify($json.external_id) }}\n}"
+      },
+      "id": "upsert-contact",
+      "name": "Upsert to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1820, 300]
+    }
+  ],
+  "connections": {
+    "Every 15 Minutes": {
+      "main": [
+        [
+          { "node": "Get Active CRM Integrations", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Active CRM Integrations": {
+      "main": [
+        [
+          { "node": "Loop Each Integration", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Loop Each Integration": {
+      "main": [
+        [
+          { "node": "Route by CRM Type", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Route by CRM Type": {
+      "main": [
+        [
+          { "node": "Salesforce Query", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "HubSpot Query", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Pipedrive Query", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Zoho Query", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Salesforce Query": {
+      "main": [
+        [
+          { "node": "Fetch CRM Contacts", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "HubSpot Query": {
+      "main": [
+        [
+          { "node": "Fetch CRM Contacts", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Pipedrive Query": {
+      "main": [
+        [
+          { "node": "Fetch CRM Contacts", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Zoho Query": {
+      "main": [
+        [
+          { "node": "Fetch CRM Contacts", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch CRM Contacts": {
+      "main": [
+        [
+          { "node": "Normalize to Callengo Format", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Normalize to Callengo Format": {
+      "main": [
+        [
+          { "node": "Upsert to Supabase", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": [
+    { "name": "Callengo", "id": "callengo" },
+    { "name": "CRM", "id": "crm" }
+  ]
+}

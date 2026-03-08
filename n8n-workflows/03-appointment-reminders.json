@@ -1,0 +1,228 @@
+{
+  "name": "Callengo - Appointment Reminders",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Daily 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calendar_events?select=*,contacts(id,full_name,phone,email),companies(id,name)&start_time=gte.{{ new Date(Date.now() + 24*60*60*1000).toISOString() }}&start_time=lte.{{ new Date(Date.now() + 48*60*60*1000).toISOString() }}&status=eq.scheduled&reminder_sent=eq.false",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        }
+      },
+      "id": "get-appointments",
+      "name": "Get Upcoming Appointments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "has-results",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "has-appointments",
+      "name": "Any Appointments?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "loop-appointments",
+      "name": "Loop Each Appointment",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [900, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare Bland AI call for appointment reminder\nconst appt = $input.first().json;\nconst contact = appt.contacts;\nconst company = appt.companies;\n\nconst startTime = new Date(appt.start_time);\nconst formattedDate = startTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });\nconst formattedTime = startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });\n\nconst task = `You are calling ${contact?.full_name || 'the client'} to confirm their appointment scheduled for ${formattedDate} at ${formattedTime}. ` +\n  `Ask them to confirm they will attend. If they need to reschedule, get their preferred new date and time. ` +\n  `Be polite and professional. Keep the call under 2 minutes.`;\n\nreturn [{\n  json: {\n    appointment_id: appt.id,\n    contact_id: contact?.id,\n    company_id: company?.id,\n    phone: contact?.phone,\n    contact_name: contact?.full_name,\n    bland_payload: {\n      phone_number: contact?.phone,\n      task: task,\n      model: 'enhanced',\n      voice: 'nat',\n      max_duration: 120,\n      wait_for_greeting: true,\n      webhook: `${$env.N8N_WEBHOOK_BASE_URL || 'https://your-n8n.app.n8n.cloud/webhook'}/bland-call-complete`,\n      metadata: {\n        company_id: company?.id,\n        contact_id: contact?.id,\n        contact_name: contact?.full_name,\n        agent_type: 'appointment-confirmation',\n        appointment_id: appt.id,\n        appointment_time: appt.start_time\n      }\n    }\n  }\n}];"
+      },
+      "id": "prepare-call",
+      "name": "Prepare Bland AI Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.bland.ai/v1/calls",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $env.BLAND_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.bland_payload) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "send-call",
+      "name": "Send Bland AI Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 240]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calendar_events?id=eq.{{ $('Prepare Bland AI Call').first().json.appointment_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"reminder_sent\": true, \"reminder_sent_at\": \"{{ new Date().toISOString() }}\" }"
+      },
+      "id": "mark-sent",
+      "name": "Mark Reminder Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Summary of all reminders sent\nconst items = $('Prepare Bland AI Call').all();\nconst count = items.length;\nconst names = items.map(i => i.json.contact_name).filter(Boolean).join(', ');\n\nreturn [{\n  json: {\n    summary: `Sent ${count} appointment reminder calls today.`,\n    contacts: names,\n    count: count,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "build-summary",
+      "name": "Build Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 460]
+    }
+  ],
+  "connections": {
+    "Daily 8 AM": {
+      "main": [
+        [
+          { "node": "Get Upcoming Appointments", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Upcoming Appointments": {
+      "main": [
+        [
+          { "node": "Any Appointments?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Any Appointments?": {
+      "main": [
+        [
+          { "node": "Loop Each Appointment", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "Loop Each Appointment": {
+      "main": [
+        [
+          { "node": "Prepare Bland AI Call", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Build Summary", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare Bland AI Call": {
+      "main": [
+        [
+          { "node": "Send Bland AI Call", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Send Bland AI Call": {
+      "main": [
+        [
+          { "node": "Mark Reminder Sent", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Mark Reminder Sent": {
+      "main": [
+        [
+          { "node": "Loop Each Appointment", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": [
+    { "name": "Callengo", "id": "callengo" },
+    { "name": "Appointments", "id": "appointments" }
+  ]
+}

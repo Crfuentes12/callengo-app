@@ -1,0 +1,400 @@
+{
+  "name": "Callengo - Call Post-Processing Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bland-call-complete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Bland AI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "bland-call-complete"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verify Bland AI webhook signature\nconst crypto = require('crypto');\n\nconst headers = $input.first().json.headers;\nconst body = $input.first().json.body;\nconst signature = headers['x-bland-signature'];\n\n// Get secret from n8n environment variable\nconst secret = $env.BLAND_WEBHOOK_SECRET;\n\nif (secret && signature) {\n  const expectedSignature = crypto\n    .createHmac('sha256', secret)\n    .update(JSON.stringify(body))\n    .digest('hex');\n\n  if (signature !== expectedSignature) {\n    throw new Error('Invalid Bland AI webhook signature');\n  }\n}\n\n// Extract and flatten the data\nconst data = body;\nreturn [{\n  json: {\n    call_id: data.call_id,\n    status: data.status || (data.completed ? 'completed' : 'failed'),\n    completed: data.completed,\n    call_length: data.call_length,\n    to: data.to,\n    from: data.from,\n    answered_by: data.answered_by,\n    recording_url: data.recording_url,\n    transcript: data.concatenated_transcript,\n    summary: data.summary,\n    error_message: data.error_message,\n    price: data.price,\n    metadata: data.metadata || {},\n    company_id: data.metadata?.company_id,\n    contact_id: data.metadata?.contact_id,\n    agent_type: data.metadata?.agent_type || 'general',\n    agent_run_id: data.metadata?.agent_run_id,\n    agent_name: data.metadata?.agent_name,\n    raw: data\n  }\n}];"
+      },
+      "id": "verify-signature",
+      "name": "Verify Signature & Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ {\"success\": true, \"call_id\": $json.call_id} }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ok",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [460, 520]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "answered-check",
+              "leftValue": "={{ $json.completed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-answered",
+      "name": "Call Answered?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare OpenAI prompt based on agent type\nconst item = $input.first().json;\nconst agentType = item.agent_type;\nconst transcript = item.transcript || '';\nconst contactName = item.metadata?.contact_name || 'the contact';\n\nconst systemPrompts = {\n  'appointment-confirmation': `You analyze phone call transcripts where an AI agent confirmed an appointment with ${contactName}. Return JSON with: confirmed (boolean), needs_reschedule (boolean), new_datetime (ISO string or null), no_show_risk (low/medium/high), sentiment (positive/neutral/negative), key_notes (string).`,\n  'lead-qualification': `You analyze phone call transcripts where an AI agent qualified ${contactName} as a sales lead. Return JSON with BANT scores: budget (1-10), authority (1-10), need (1-10), timeline (1-10), overall_score (1-100), qualification (hot/warm/cold), interested_products (array), next_action (string), key_notes (string).`,\n  'data-validation': `You analyze phone call transcripts where an AI agent verified contact information for ${contactName}. Return JSON with: verified_fields (object with email/phone/address/job_title each having value and verified boolean), corrections (array of {field, old_value, new_value}), confidence (high/medium/low), key_notes (string).`\n};\n\nconst systemPrompt = systemPrompts[agentType] || systemPrompts['lead-qualification'];\n\nreturn [{\n  json: {\n    ...item,\n    system_prompt: systemPrompt,\n    user_message: `Analyze this call transcript and respond with valid JSON only:\\n\\n${transcript}`\n  }\n}];"
+      },
+      "id": "prepare-ai-prompt",
+      "name": "Prepare AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.system_prompt }}",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json.user_message }}",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 1000,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "openai-analyze",
+      "name": "OpenAI Analyze Call",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [1120, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge AI analysis back with call data\nconst callData = $('Prepare AI Prompt').first().json;\nlet aiAnalysis = {};\n\ntry {\n  const aiResponse = $input.first().json.message?.content || $input.first().json.text || '{}';\n  aiAnalysis = typeof aiResponse === 'string' ? JSON.parse(aiResponse) : aiResponse;\n} catch (e) {\n  aiAnalysis = { error: 'Failed to parse AI response', raw: $input.first().json };\n}\n\nreturn [{\n  json: {\n    ...callData,\n    ai_analysis: aiAnalysis,\n    analyzed_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "merge-ai-result",
+      "name": "Merge AI Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/call_logs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"company_id\": \"{{ $json.company_id }}\",\n  \"contact_id\": \"{{ $json.contact_id }}\",\n  \"agent_run_id\": \"{{ $json.agent_run_id }}\",\n  \"bland_call_id\": \"{{ $json.call_id }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"duration_seconds\": {{ $json.call_length || 0 }},\n  \"transcript\": {{ JSON.stringify($json.transcript || '') }},\n  \"summary\": {{ JSON.stringify($json.summary || '') }},\n  \"recording_url\": {{ JSON.stringify($json.recording_url || '') }},\n  \"metadata\": {{ JSON.stringify({ ai_intent_analysis: $json.ai_analysis, agent_type: $json.agent_type, price: $json.price }) }}\n}"
+      },
+      "id": "log-to-supabase",
+      "name": "Log Call to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/contacts?id=eq.{{ $json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"last_called_at\": \"{{ new Date().toISOString() }}\",\n  \"status\": \"{{ $json.ai_analysis?.qualification || $json.ai_analysis?.confirmed ? 'confirmed' : 'called' }}\"\n}"
+      },
+      "id": "update-contact",
+      "name": "Update Contact Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 420]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.agent_type }}",
+                    "rightValue": "appointment-confirmation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Appointment"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.agent_type }}",
+                    "rightValue": "lead-qualification",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Lead"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.agent_type }}",
+                    "rightValue": "data-validation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Validation"
+            }
+          ]
+        }
+      },
+      "id": "route-by-agent",
+      "name": "Route by Agent Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle appointment confirmation results\nconst item = $input.first().json;\nconst analysis = item.ai_analysis || {};\n\nconst result = {\n  action: 'none',\n  event_type: 'call.completed',\n  ...item\n};\n\nif (analysis.confirmed) {\n  result.action = 'confirm';\n  result.event_type = 'appointment.confirmed';\n} else if (analysis.needs_reschedule && analysis.new_datetime) {\n  result.action = 'reschedule';\n  result.event_type = 'appointment.rescheduled';\n  result.new_datetime = analysis.new_datetime;\n} else if (analysis.no_show_risk === 'high') {\n  result.action = 'flag_no_show';\n  result.event_type = 'appointment.no_show';\n}\n\nresult.slack_message = `*Appointment ${result.action}* for ${item.metadata?.contact_name || 'contact'}\\n` +\n  `Sentiment: ${analysis.sentiment || 'unknown'}\\n` +\n  `Notes: ${analysis.key_notes || 'none'}`;\n\nreturn [{ json: result }];"
+      },
+      "id": "handle-appointment",
+      "name": "Handle Appointment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2020, 80]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle lead qualification results\nconst item = $input.first().json;\nconst analysis = item.ai_analysis || {};\n\nconst result = {\n  action: 'scored',\n  qualification: analysis.qualification || 'cold',\n  overall_score: analysis.overall_score || 0,\n  event_type: 'call.completed',\n  ...item\n};\n\nif (analysis.qualification === 'hot' && analysis.overall_score >= 80) {\n  result.action = 'schedule_meeting';\n  result.event_type = 'appointment.scheduled';\n}\n\nresult.slack_message = `*Lead Scored: ${analysis.qualification?.toUpperCase() || 'UNKNOWN'}* (${analysis.overall_score || 0}/100)\\n` +\n  `Contact: ${item.metadata?.contact_name || 'unknown'}\\n` +\n  `BANT: B:${analysis.budget || 0} A:${analysis.authority || 0} N:${analysis.need || 0} T:${analysis.timeline || 0}\\n` +\n  `Next: ${analysis.next_action || 'none'}`;\n\nreturn [{ json: result }];"
+      },
+      "id": "handle-lead",
+      "name": "Handle Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2020, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle data validation results\nconst item = $input.first().json;\nconst analysis = item.ai_analysis || {};\n\nconst result = {\n  action: 'validated',\n  event_type: 'contact.updated',\n  ...item\n};\n\nconst verifiedCount = Object.values(analysis.verified_fields || {}).filter(f => f.verified).length;\nconst totalFields = Object.keys(analysis.verified_fields || {}).length;\n\nresult.slack_message = `*Data Validated* for ${item.metadata?.contact_name || 'contact'}\\n` +\n  `Verified: ${verifiedCount}/${totalFields} fields\\n` +\n  `Confidence: ${analysis.confidence || 'unknown'}\\n` +\n  `Corrections: ${(analysis.corrections || []).length}`;\n\nreturn [{ json: result }];"
+      },
+      "id": "handle-validation",
+      "name": "Handle Validation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2020, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dispatch to user-configured webhook endpoints\nconst item = $input.first().json;\nconst crypto = require('crypto');\n\n// This will be replaced with actual webhook endpoint queries\n// For now, prepare the webhook payload\nconst timestamp = Math.floor(Date.now() / 1000);\nconst payload = {\n  event: item.event_type || 'call.completed',\n  timestamp: timestamp,\n  data: {\n    call_id: item.call_id,\n    contact_id: item.contact_id,\n    company_id: item.company_id,\n    agent_type: item.agent_type,\n    status: item.status,\n    duration: item.call_length,\n    ai_analysis: item.ai_analysis,\n    recording_url: item.recording_url\n  }\n};\n\nreturn [{\n  json: {\n    ...item,\n    webhook_payload: payload\n  }\n}];"
+      },
+      "id": "prepare-webhooks",
+      "name": "Prepare User Webhooks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2260, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log missed call and schedule retry\nconst item = $input.first().json;\n\nreturn [{\n  json: {\n    ...item,\n    status: item.answered_by === 'voicemail' ? 'voicemail' : 'no_answer',\n    event_type: item.answered_by === 'voicemail' ? 'call.voicemail' : 'call.no_answer',\n    should_retry: true,\n    slack_message: `*Missed Call* to ${item.metadata?.contact_name || item.to}\\n` +\n      `Result: ${item.answered_by || 'no answer'}\\n` +\n      `Will retry automatically.`\n  }\n}];"
+      },
+      "id": "handle-missed",
+      "name": "Handle Missed Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 420]
+    }
+  ],
+  "connections": {
+    "Bland AI Webhook": {
+      "main": [
+        [
+          { "node": "Verify Signature & Parse", "type": "main", "index": 0 },
+          { "node": "Respond 200 OK", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Verify Signature & Parse": {
+      "main": [
+        [
+          { "node": "Call Answered?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Call Answered?": {
+      "main": [
+        [
+          { "node": "Prepare AI Prompt", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Handle Missed Call", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare AI Prompt": {
+      "main": [
+        [
+          { "node": "OpenAI Analyze Call", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "OpenAI Analyze Call": {
+      "main": [
+        [
+          { "node": "Merge AI Analysis", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Merge AI Analysis": {
+      "main": [
+        [
+          { "node": "Log Call to Supabase", "type": "main", "index": 0 },
+          { "node": "Update Contact Status", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Log Call to Supabase": {
+      "main": [
+        [
+          { "node": "Route by Agent Type", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Route by Agent Type": {
+      "main": [
+        [
+          { "node": "Handle Appointment", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Handle Lead", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Handle Validation", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Handle Appointment": {
+      "main": [
+        [
+          { "node": "Prepare User Webhooks", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Handle Lead": {
+      "main": [
+        [
+          { "node": "Prepare User Webhooks", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Handle Validation": {
+      "main": [
+        [
+          { "node": "Prepare User Webhooks", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": [
+    {
+      "name": "Callengo",
+      "id": "callengo"
+    },
+    {
+      "name": "Core",
+      "id": "core"
+    }
+  ]
+}

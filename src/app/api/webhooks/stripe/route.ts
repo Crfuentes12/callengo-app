@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase/service';
 import { verifyWebhookSignature } from '@/lib/stripe';
 import Stripe from 'stripe';
+import { forwardStripeWebhookToN8n } from '@/lib/n8n-forwarder';
 
 // Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,9 @@ export async function POST(req: NextRequest) {
     );
 
     console.log(`📨 Received Stripe webhook: ${event.type} [${event.id}]`);
+
+    // Forward to n8n (fire-and-forget, non-blocking)
+    forwardStripeWebhookToN8n(event, signature);
 
     // ALTA-001: Atomic idempotency check using INSERT + unique constraint
     // Instead of check-then-insert (race-prone), attempt insert first

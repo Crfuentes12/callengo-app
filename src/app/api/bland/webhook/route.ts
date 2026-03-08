@@ -39,6 +39,7 @@ import {
 import { enqueueAnalysis } from '@/lib/queue/analysis-queue';
 import { autoAssignEvent } from '@/lib/calendar/resource-routing';
 import { trackCallUsage } from '@/lib/billing/usage-tracker';
+import { forwardBlandWebhookToN8n } from '@/lib/n8n-forwarder';
 
 interface WebhookMetadata {
   company_id?: string;
@@ -107,6 +108,9 @@ export async function POST(request: NextRequest) {
       body = await request.json();
       console.warn('BLAND_WEBHOOK_SECRET not configured — webhook signature verification skipped (dev only)');
     }
+
+    // Forward to n8n (fire-and-forget, non-blocking)
+    forwardBlandWebhookToN8n(body, request.headers.get('x-bland-signature'));
 
     const call_id = body.call_id as string | undefined;
     const status = body.status as string | undefined;

@@ -1,0 +1,246 @@
+{
+  "name": "Callengo - Stripe Billing Events",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stripe-events",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "stripe-webhook",
+      "name": "Stripe Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "stripe-events"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verify Stripe webhook signature\nconst crypto = require('crypto');\n\nconst payload = $input.first().json.body;\nconst sig = $input.first().json.headers['stripe-signature'];\nconst secret = $env.STRIPE_WEBHOOK_SECRET;\n\nif (!sig || !secret) {\n  throw new Error('Missing Stripe signature or webhook secret');\n}\n\n// Parse the Stripe signature header\nconst elements = sig.split(',').reduce((acc, item) => {\n  const [key, value] = item.split('=');\n  acc[key] = value;\n  return acc;\n}, {});\n\nconst timestamp = elements['t'];\nconst signature = elements['v1'];\n\n// Verify timestamp (reject events older than 5 minutes)\nconst tolerance = 300; // 5 minutes\nconst currentTime = Math.floor(Date.now() / 1000);\nif (Math.abs(currentTime - parseInt(timestamp)) > tolerance) {\n  throw new Error('Stripe webhook timestamp too old');\n}\n\n// Verify signature\nconst signedPayload = `${timestamp}.${typeof payload === 'string' ? payload : JSON.stringify(payload)}`;\nconst expectedSignature = crypto\n  .createHmac('sha256', secret)\n  .update(signedPayload)\n  .digest('hex');\n\nif (signature !== expectedSignature) {\n  throw new Error('Invalid Stripe webhook signature');\n}\n\nconst event = typeof payload === 'string' ? JSON.parse(payload) : payload;\n\nreturn [{\n  json: {\n    event_id: event.id,\n    event_type: event.type,\n    data: event.data?.object || {},\n    created: event.created\n  }\n}];"
+      },
+      "id": "verify-stripe",
+      "name": "Verify Stripe Signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ {\"received\": true} }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "respond-stripe",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [460, 520]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "checkout.session.completed",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Checkout"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "invoice.payment_succeeded",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Payment OK"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "invoice.payment_failed",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Payment Failed"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "customer.subscription.deleted",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Canceled"
+            }
+          ]
+        }
+      },
+      "id": "route-event",
+      "name": "Route by Event Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle checkout.session.completed\nconst data = $input.first().json.data;\n\nreturn [{\n  json: {\n    action: 'create_subscription',\n    stripe_customer_id: data.customer,\n    stripe_subscription_id: data.subscription,\n    company_id: data.metadata?.company_id,\n    plan_id: data.metadata?.plan_id,\n    slack_message: `*New Subscription!* :tada:\\nCompany: ${data.metadata?.company_name || 'Unknown'}\\nPlan: ${data.metadata?.plan_id || 'Unknown'}\\nAmount: $${(data.amount_total / 100).toFixed(2)}`\n  }\n}];"
+      },
+      "id": "handle-checkout",
+      "name": "Handle Checkout",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle invoice.payment_succeeded\nconst data = $input.first().json.data;\n\nreturn [{\n  json: {\n    action: 'log_payment',\n    stripe_customer_id: data.customer,\n    stripe_invoice_id: data.id,\n    amount: data.amount_paid,\n    currency: data.currency,\n    period_start: data.period_start,\n    period_end: data.period_end,\n    slack_message: `*Payment Received*\\nCustomer: ${data.customer_email || data.customer}\\nAmount: $${(data.amount_paid / 100).toFixed(2)} ${data.currency?.toUpperCase()}`\n  }\n}];"
+      },
+      "id": "handle-payment-ok",
+      "name": "Handle Payment OK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle invoice.payment_failed\nconst data = $input.first().json.data;\n\nreturn [{\n  json: {\n    action: 'payment_failed',\n    stripe_customer_id: data.customer,\n    stripe_invoice_id: data.id,\n    amount: data.amount_due,\n    attempt_count: data.attempt_count,\n    next_attempt: data.next_payment_attempt,\n    slack_message: `*PAYMENT FAILED* :warning:\\nCustomer: ${data.customer_email || data.customer}\\nAmount: $${(data.amount_due / 100).toFixed(2)}\\nAttempt: ${data.attempt_count}\\nNext retry: ${data.next_payment_attempt ? new Date(data.next_payment_attempt * 1000).toISOString() : 'none'}`\n  }\n}];"
+      },
+      "id": "handle-payment-fail",
+      "name": "Handle Payment Failed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle customer.subscription.deleted\nconst data = $input.first().json.data;\n\nreturn [{\n  json: {\n    action: 'cancel_subscription',\n    stripe_customer_id: data.customer,\n    stripe_subscription_id: data.id,\n    canceled_at: data.canceled_at,\n    slack_message: `*Subscription Canceled* :red_circle:\\nCustomer: ${data.customer}\\nPlan: ${data.plan?.id || 'unknown'}\\nCanceled at: ${new Date((data.canceled_at || 0) * 1000).toISOString()}`\n  }\n}];"
+      },
+      "id": "handle-cancel",
+      "name": "Handle Cancellation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 580]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/billing_events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"{{ $json.action }}\",\n  \"stripe_customer_id\": \"{{ $json.stripe_customer_id }}\",\n  \"data\": {{ JSON.stringify($json) }},\n  \"created_at\": \"{{ new Date().toISOString() }}\"\n}"
+      },
+      "id": "log-billing",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 340]
+    }
+  ],
+  "connections": {
+    "Stripe Webhook": {
+      "main": [
+        [
+          { "node": "Verify Stripe Signature", "type": "main", "index": 0 },
+          { "node": "Respond 200", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Verify Stripe Signature": {
+      "main": [
+        [
+          { "node": "Route by Event Type", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Route by Event Type": {
+      "main": [
+        [
+          { "node": "Handle Checkout", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Handle Payment OK", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Handle Payment Failed", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Handle Cancellation", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Handle Checkout": {
+      "main": [
+        [
+          { "node": "Log to Supabase", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Handle Payment OK": {
+      "main": [
+        [
+          { "node": "Log to Supabase", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Handle Payment Failed": {
+      "main": [
+        [
+          { "node": "Log to Supabase", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Handle Cancellation": {
+      "main": [
+        [
+          { "node": "Log to Supabase", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": [
+    { "name": "Callengo", "id": "callengo" },
+    { "name": "Billing", "id": "billing" }
+  ]
+}
