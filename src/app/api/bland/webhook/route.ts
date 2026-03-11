@@ -40,6 +40,7 @@ import { enqueueAnalysis } from '@/lib/queue/analysis-queue';
 import { autoAssignEvent } from '@/lib/calendar/resource-routing';
 import { trackCallUsage } from '@/lib/billing/usage-tracker';
 import { trackServerEvent } from '@/lib/analytics';
+import { captureServerEvent } from '@/lib/posthog';
 
 interface WebhookMetadata {
   company_id?: string;
@@ -165,6 +166,13 @@ export async function POST(request: NextRequest) {
         completed: completed || false,
       }
     );
+    await captureServerEvent(companyId, 'server_call_completed', {
+      agent_type: metadata?.agent_template_slug || 'unknown',
+      call_status: status || 'unknown',
+      duration_seconds: call_length || 0,
+      answered_by: answered_by || 'unknown',
+      completed: completed || false,
+    }, { company: companyId });
 
     // Lock the contact during processing to prevent user edits
     if (contactId) {

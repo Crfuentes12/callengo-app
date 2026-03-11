@@ -15,6 +15,7 @@ import { GoogleSheetsIcon } from '@/components/icons/BrandIcons';
 import { FaSalesforce, FaHubspot } from 'react-icons/fa';
 import Link from 'next/link';
 import { contactEvents } from '@/lib/analytics';
+import { phContactEvents } from '@/lib/posthog';
 
 interface ContactsManagerProps {
   initialContacts: Record<string, unknown>[];
@@ -229,6 +230,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
         setTotalPages(data.totalPages);
         if (debouncedSearch) {
           contactEvents.searched(debouncedSearch.length, data.total);
+          phContactEvents.searched(debouncedSearch.length, data.total);
         }
       }
     } catch {
@@ -305,6 +307,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     }
     setPage(1);
     contactEvents.sorted(field, newDirection);
+    phContactEvents.sorted(field, newDirection);
   };
 
   const handleAIAnalysis = async (action: 'suggest-lists' | 'analyze-quality') => {
@@ -346,6 +349,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       await loadContactLists();
       await refreshContacts();
       contactEvents.aiSegmentationUsed(data.assignedCount ?? 0);
+      phContactEvents.aiSegmentationUsed(data.assignedCount ?? 0);
       showToast(`List "${segment.name}" created with ${data.assignedCount} contacts`, 'success');
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Failed to create list', 'error');
@@ -371,12 +375,14 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     setShowAddContactsDropdown(false);
     if (type === 'csv') {
       contactEvents.csvImportStarted();
+      phContactEvents.csvImportStarted();
     }
   };
 
   const handleGoogleSheetsClick = () => {
     setShowAddContactsDropdown(false);
     contactEvents.googleSheetsImportStarted();
+    phContactEvents.googleSheetsImportStarted();
     if (gsConnected) {
       // Connected: open picker to browse sheets
       setShowGSheetsPicker(true);
@@ -501,6 +507,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
           setSelectedContactIds([]);
           setShowBatchActions(false);
           contactEvents.bulkDeleted(count);
+          phContactEvents.bulkDeleted(count);
           showToast(`Deleted ${count} contact${count > 1 ? 's' : ''} successfully`, 'success');
         } catch (error) {
           showToast('Failed to delete contacts', 'error');
@@ -523,6 +530,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     setPage(1);
     if (value !== 'all') {
       contactEvents.filtered('status');
+      phContactEvents.filtered('status');
     }
   };
 
@@ -531,6 +539,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     setPage(1);
     if (value !== 'all') {
       contactEvents.filtered('list');
+      phContactEvents.filtered('list');
     }
   };
 
@@ -1005,7 +1014,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
         onSelectionChange={setSelectedContactIds}
         contactLists={contactLists}
         onListClick={handleQuickFilterClick}
-        onContactClick={(contact) => { setSelectedContact(contact); contactEvents.detailViewed(); }}
+        onContactClick={(contact) => { setSelectedContact(contact); contactEvents.detailViewed(); phContactEvents.detailViewed(); }}
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSort={handleSort}
@@ -1083,6 +1092,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
             refreshContacts();
             setSelectedContact(null);
             contactEvents.edited(1);
+            phContactEvents.edited(1);
           }}
           onShowToast={showToast}
           sfConnected={sfConnected}
@@ -1333,6 +1343,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
       setShowCreateForm(false);
       onUpdate();
       contactEvents.listCreated();
+      phContactEvents.listCreated();
       onShowToast('List created successfully', 'success');
     } catch (error) {
       console.error('Error creating list:', error);
@@ -1386,6 +1397,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
 
           onUpdate();
           contactEvents.listDeleted();
+          phContactEvents.listDeleted();
           onShowToast('List deleted successfully', 'success');
         } catch (error) {
           onShowToast('Failed to delete list', 'error');
@@ -1736,6 +1748,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
       if (error) throw error;
 
       contactEvents.created('manual');
+      phContactEvents.created('manual');
       onComplete();
       onClose();
     } catch (error) {

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/i18n';
 import { authEvents } from '@/lib/analytics';
+import { phAuthEvents } from '@/lib/posthog';
 
 function VerifyEmailForm() {
   const searchParams = useSearchParams();
@@ -23,7 +24,7 @@ function VerifyEmailForm() {
     setResent(false);
     const { error: resendError } = await resendVerification(email);
     if (resendError) { setError(resendError.message || t.auth.verifyEmail.errorResend); }
-    else { authEvents.verificationEmailResent(); setResent(true); }
+    else { authEvents.verificationEmailResent(); phAuthEvents.verificationEmailResent(); setResent(true); }
     setResending(false);
   };
 

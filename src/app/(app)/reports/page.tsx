@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import ReportsPage from '@/components/reports/ReportsPage';
 import { PageTracker } from '@/components/analytics/PageTracker';
+import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
 
 export default async function Reports() {
   const supabase = await createServerClient();
@@ -40,6 +41,7 @@ export default async function Reports() {
   return (
     <>
     <PageTracker page="reports" />
+    <PostHogPageTracker page="reports" />
     <ReportsPage
       campaigns={campaigns || []}
       callStats={callStats || []}

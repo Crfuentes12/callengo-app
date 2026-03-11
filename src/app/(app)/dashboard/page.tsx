@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 import DashboardOverview from '@/components/dashboard/DashboardOverview';
 import { PageTracker } from '@/components/analytics/PageTracker';
+import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
 
 export default async function DashboardPage() {
   const supabase = await createServerClient();
@@ -169,6 +170,7 @@ export default async function DashboardPage() {
   return (
     <>
     <PageTracker page="dashboard" />
+    <PostHogPageTracker page="dashboard" />
     <DashboardOverview
       contacts={contacts || []}
       recentCalls={(recentCalls || []) as Parameters<typeof DashboardOverview>[0]['recentCalls']}

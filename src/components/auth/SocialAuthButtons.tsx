@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/i18n';
 import { authEvents } from '@/lib/analytics';
+import { phAuthEvents } from '@/lib/posthog';
 
 type OAuthProvider = 'google' | 'azure' | 'slack_oidc';
 
@@ -57,6 +58,7 @@ export default function SocialAuthButtons({ mode }: { mode: 'signin' | 'signup' 
     setLoadingProvider(provider);
     const providerName = provider === 'slack_oidc' ? 'slack' : provider;
     authEvents.socialAuthClicked(providerName as 'google' | 'azure' | 'slack');
+    phAuthEvents.socialAuthClicked(providerName as 'google' | 'azure' | 'slack');
     const { error: authError } = await signInWithProvider(provider);
     if (authError) {
       setError(authError.message || t.common.error);

@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import { useTranslation } from '@/i18n';
 import { authEvents } from '@/lib/analytics';
+import { phAuthEvents } from '@/lib/posthog';
 
 function LoginForm() {
   const { signIn } = useAuth();
@@ -29,6 +30,7 @@ function LoginForm() {
       return;
     }
     authEvents.login('email');
+    phAuthEvents.login('email');
     window.location.href = '/dashboard';
   };
 

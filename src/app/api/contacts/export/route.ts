@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { contactsToCSV } from '@/lib/call-agent-utils';
 import type { Contact } from '@/types/call-agent';
 import { trackServerEvent } from '@/lib/analytics';
+import { captureServerEvent } from '@/lib/posthog';
 
 const EXPORT_FIELDS = [
   'company_name', 'contact_name', 'email', 'phone_number',
@@ -96,6 +97,12 @@ export async function GET(request: NextRequest) {
       has_list_filter: !!listId && listId !== 'all',
       has_status_filter: !!status && status !== 'all',
     });
+    await captureServerEvent(user.id, 'contact_export_completed', {
+      format,
+      contact_count: allContacts.length,
+      has_list_filter: !!listId && listId !== 'all',
+      has_status_filter: !!status && status !== 'all',
+    }, { company: userData.company_id });
 
     const today = new Date().toISOString().split('T')[0];
 

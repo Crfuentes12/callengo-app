@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import ContactsManager from '@/components/contacts/ContactsManager';
 import { PageTracker } from '@/components/analytics/PageTracker';
+import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
 
 export default async function ContactsPage() {
   const supabase = await createServerClient();
@@ -86,6 +87,7 @@ export default async function ContactsPage() {
   return (
     <>
     <PageTracker page="contacts" />
+    <PostHogPageTracker page="contacts" />
     <ContactsManager
       initialContacts={initialContacts || []}
       initialTotalCount={totalCount || 0}

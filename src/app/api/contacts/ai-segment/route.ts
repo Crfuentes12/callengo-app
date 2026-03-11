@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { trackServerEvent } from '@/lib/analytics';
+import { captureServerEvent } from '@/lib/posthog';
 
 interface ListFilters {
   status?: string[];
@@ -140,6 +141,12 @@ export async function POST(request: NextRequest) {
       total_matched: allContactIds.length,
       filter_count: Object.keys(filters || {}).length,
     });
+    await captureServerEvent(user.id, 'contact_ai_segment_created', {
+      list_name: name,
+      assigned_count: assignedCount,
+      total_matched: allContactIds.length,
+      filter_count: Object.keys(filters || {}).length,
+    }, { company: userData.company_id });
 
     return NextResponse.json({
       listId,

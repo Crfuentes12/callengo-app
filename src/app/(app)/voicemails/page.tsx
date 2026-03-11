@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import VoicemailsPage from '@/components/voicemails/VoicemailsPage';
 import { PageTracker } from '@/components/analytics/PageTracker';
+import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
 
 export default async function Voicemails() {
   const supabase = await createServerClient();
@@ -33,6 +34,7 @@ export default async function Voicemails() {
   return (
     <>
     <PageTracker page="voicemails" />
+    <PostHogPageTracker page="voicemails" />
     <VoicemailsPage voicemails={voicemails || []} />
     </>
   );

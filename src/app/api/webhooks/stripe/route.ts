@@ -3,6 +3,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabase/service';
 import { verifyWebhookSignature } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { trackServerEvent } from '@/lib/analytics';
+import { captureServerEvent } from '@/lib/posthog';
 
 // Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';
@@ -238,6 +239,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     value: billingCycle === 'annual' ? Number(plan.price_annual) : Number(plan.price_monthly),
     currency: 'USD',
   });
+  await captureServerEvent(companyId, 'server_subscription_started', {
+    plan: plan.slug,
+    billing_cycle: billingCycle,
+    value: billingCycle === 'annual' ? Number(plan.price_annual) : Number(plan.price_monthly),
+    currency: 'USD',
+  }, { company: companyId });
 
   console.log('✅ Subscription created/updated for company:', companyId);
 }
@@ -372,6 +379,9 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   trackServerEvent(existingSub.company_id, null, 'server_subscription_cancelled', {
     stripe_subscription_id: subscription.id,
   });
+  await captureServerEvent(existingSub.company_id, 'server_subscription_cancelled', {
+    stripe_subscription_id: subscription.id,
+  }, { company: existingSub.company_id });
 }
 
 /**

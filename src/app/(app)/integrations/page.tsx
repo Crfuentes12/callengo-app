@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import IntegrationsPage from '@/components/integrations/IntegrationsPage';
 import { PageTracker } from '@/components/analytics/PageTracker';
+import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,6 +129,7 @@ export default async function Integrations() {
   return (
     <>
     <PageTracker page="integrations" />
+    <PostHogPageTracker page="integrations" />
     <IntegrationsPage
       integrations={{
         google_calendar: {

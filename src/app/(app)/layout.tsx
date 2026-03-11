@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import Layout from '@/components/layout/Layout';
 import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider';
+import { PostHogProvider } from '@/components/analytics/PostHogProvider';
 import type { Database } from '@/types/supabase';
 
 export default async function AppLayout({
@@ -70,6 +71,18 @@ export default async function AppLayout({
         teamSize={teamSize ?? 1}
         countryCode={(userData as Record<string, unknown>).country_code as string | undefined}
         currency={(userData as Record<string, unknown>).currency as string | undefined}
+      />
+      <PostHogProvider
+        userId={user.id}
+        planSlug={planSlug}
+        billingCycle={subscription?.billing_cycle ?? 'monthly'}
+        companyId={company.id}
+        companyName={company.name ?? undefined}
+        companyIndustry={company.industry ?? undefined}
+        teamSize={teamSize ?? 1}
+        countryCode={(userData as Record<string, unknown>).country_code as string | undefined}
+        currency={(userData as Record<string, unknown>).currency as string | undefined}
+        createdAt={user.created_at}
       />
       {children}
     </Layout>

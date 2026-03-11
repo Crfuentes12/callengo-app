@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import SettingsManager from '@/components/settings/SettingsManager';
 import { PageTracker } from '@/components/analytics/PageTracker';
+import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
 
 export default async function SettingsPage() {
   const supabase = await createServerClient();
@@ -34,6 +35,7 @@ export default async function SettingsPage() {
   return (
     <>
       <PageTracker page="settings" />
+      <PostHogPageTracker page="settings" />
       <SettingsManager
         company={company}
         settings={settings!}

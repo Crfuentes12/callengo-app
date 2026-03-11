@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/i18n';
 import { authEvents } from '@/lib/analytics';
+import { phAuthEvents } from '@/lib/posthog';
 
 export default function ForgotPasswordPage() {
   const { resetPassword } = useAuth();
@@ -20,7 +21,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     const { error: resetError } = await resetPassword(email);
     if (resetError) { setError(resetError.message || t.auth.forgotPassword.errorGeneric); }
-    else { authEvents.passwordResetRequested(); setSent(true); }
+    else { authEvents.passwordResetRequested(); phAuthEvents.passwordResetRequested(); setSent(true); }
     setLoading(false);
   };
 

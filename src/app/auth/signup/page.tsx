@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import { useTranslation } from '@/i18n';
 import { authEvents } from '@/lib/analytics';
+import { phAuthEvents } from '@/lib/posthog';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function SignupPage() {
       const { error: signUpError } = await signUp(formData.email, formData.password, formData.fullName);
       if (signUpError) throw signUpError;
       authEvents.signUp('email');
+      phAuthEvents.signUp('email');
       router.push('/auth/verify-email?email=' + encodeURIComponent(formData.email));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t.auth.signup.errorGeneric);
