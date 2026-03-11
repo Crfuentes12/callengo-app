@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import OpenAI from 'openai';
 import { trackServerEvent } from '@/lib/analytics';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -155,6 +156,11 @@ Return JSON with this structure:
       contact_count: contacts.length,
       has_selected_contacts: !!(contactIds && contactIds.length > 0),
     });
+    await captureServerEvent(user.id, 'contact_ai_analysis', {
+      action,
+      contact_count: contacts.length,
+      has_selected_contacts: !!(contactIds && contactIds.length > 0),
+    }, { company: userData.company_id });
 
     return NextResponse.json({ action, result, contactCount: contacts.length });
   } catch (error) {

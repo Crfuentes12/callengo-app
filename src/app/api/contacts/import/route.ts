@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { parseCSV, mapRowToContact } from '@/lib/call-agent-utils';
 import { ColumnMapping } from '@/types/call-agent';
 import { trackServerEvent } from '@/lib/analytics';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_ROWS = 10_000;
@@ -99,6 +100,13 @@ export async function POST(request: NextRequest) {
       file_type: fileName.endsWith('.csv') ? 'csv' : 'txt',
       has_list_id: !!listId,
     });
+    await captureServerEvent(user.id, 'contact_import_completed', {
+      imported_count: contacts.length,
+      skipped_count: skipped.length,
+      total_rows: rows.length,
+      file_type: fileName.endsWith('.csv') ? 'csv' : 'txt',
+      has_list_id: !!listId,
+    }, { company: userData.company_id });
 
     return NextResponse.json({
       imported: contacts.length,

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { agentEvents } from '@/lib/analytics';
+import { phAgentEvents } from '@/lib/posthog';
 import { AgentTemplate, Company, ContactList } from '@/types/supabase';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 import { BLAND_VOICES } from '@/lib/voices/bland-voices';
@@ -148,6 +149,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   // Load contact lists and plan limits on mount
   useEffect(() => {
     agentEvents.configModalOpened(getAgentType());
+    phAgentEvents.configModalOpened(getAgentType());
     loadContactLists();
     // Fetch plan limits and overage data
     fetch('/api/billing/subscription')
@@ -243,6 +245,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     const voice = BLAND_VOICES.find(v => v.id === newVoice);
     if (voice) {
       agentEvents.voiceSelected(newVoice, voice.name, determineGender(voice));
+      phAgentEvents.voiceSelected(newVoice, voice.name, determineGender(voice));
     }
     if (settings.voice && settings.voice !== newVoice) {
       setPreviousVoice(settings.voice);
@@ -398,6 +401,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
 
     console.log('✅ Starting test call...');
     agentEvents.testCallInitiated(getAgentType());
+    phAgentEvents.testCallInitiated(getAgentType());
     setTestingAgent(true);
     setCallStatus('dialing');
     setCallDuration(0);
@@ -518,6 +522,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       if (error) throw error;
 
       agentEvents.created(getAgentType(), agentName || agent.name);
+      phAgentEvents.created(getAgentType(), agentName || agent.name);
 
       // Redirect to campaign page
       router.push(`/dashboard/campaigns/${run?.id as string}`);
@@ -588,6 +593,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
   const handleClose = () => {
     agentEvents.configModalClosed(getAgentType(), getStepNumber() - 1);
+    phAgentEvents.configModalClosed(getAgentType(), getStepNumber() - 1);
     onClose();
   };
 
@@ -748,6 +754,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                             const max = planLimits?.maxCallDuration || 15;
                             setSettings({ ...settings, maxDuration: Math.min(val, max) });
                             agentEvents.settingsUpdated(getAgentType(), 'maxDuration');
+                            phAgentEvents.settingsUpdated(getAgentType(), 'maxDuration');
                           }}
                           className="w-full px-3 py-2 pr-10 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
@@ -769,6 +776,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           onChange={e => {
                             setSettings({ ...settings, intervalMinutes: Math.round(parseInt(e.target.value) || 5) });
                             agentEvents.settingsUpdated(getAgentType(), 'intervalMinutes');
+                            phAgentEvents.settingsUpdated(getAgentType(), 'intervalMinutes');
                           }}
                           className="w-full px-3 py-2 pr-10 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
@@ -788,6 +796,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           const max = planLimits?.maxCallsPerDay || 1000;
                           setSettings({ ...settings, maxCallsPerDay: Math.min(val, max) });
                           agentEvents.settingsUpdated(getAgentType(), 'maxCallsPerDay');
+                          phAgentEvents.settingsUpdated(getAgentType(), 'maxCallsPerDay');
                         }}
                         className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                       />
@@ -813,6 +822,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   <button
                     onClick={() => {
                       agentEvents.voicePreviewed(settings.voice);
+                      phAgentEvents.voicePreviewed(settings.voice);
                       setTestPhoneNumber(settings.testPhoneNumber);
                       setShowTestModal(true);
                     }}
@@ -860,6 +870,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 onClick={() => {
                   if (!settings.voice) return;
                   agentEvents.configStepCompleted(getAgentType(), 'preview', 1);
+                  phAgentEvents.configStepCompleted(getAgentType(), 'preview', 1);
                   loadContactCount(true);
                   setStep('contacts');
                 }}
@@ -1869,6 +1880,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     onChange={e => {
                       setSettings({ ...settings, customTask: e.target.value });
                       agentEvents.settingsUpdated(getAgentType(), 'customTask');
+                      phAgentEvents.settingsUpdated(getAgentType(), 'customTask');
                     }}
                     className="w-full px-3 py-2.5 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none placeholder-[var(--color-neutral-300)]"
                     rows={3}
@@ -1974,6 +1986,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 <button
                   onClick={() => {
                     agentEvents.configStepCompleted(getAgentType(), 'contacts', 2);
+                    phAgentEvents.configStepCompleted(getAgentType(), 'contacts', 2);
                     setStep('calendar');
                   }}
                   disabled={contactCount === 0}
@@ -2039,6 +2052,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     smartFollowUp: calendarConfig.smartFollowUp,
                   }));
                   agentEvents.configStepCompleted(getAgentType(), 'calendar', 3);
+                  phAgentEvents.configStepCompleted(getAgentType(), 'calendar', 3);
                   setStep('confirm');
                 }}
                 className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all duration-300`}

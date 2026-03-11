@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { billingEvents } from '@/lib/analytics';
+import { phBillingEvents } from '@/lib/posthog';
 
 // Initialize Stripe
 const stripePromise = loadStripe(
@@ -44,6 +45,7 @@ export function useStripe() {
       // Redirect to Stripe Checkout URL
       if (data.url) {
         billingEvents.checkoutStarted(params.planId, params.billingCycle, 0);
+        phBillingEvents.checkoutStarted(params.planId, params.billingCycle, 0);
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received from server');
@@ -83,6 +85,7 @@ export function useStripe() {
 
       if (data.url) {
         billingEvents.addonPurchased(params.addonType, 0);
+        phBillingEvents.addonPurchased(params.addonType, 0);
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received');
@@ -119,6 +122,7 @@ export function useStripe() {
 
       // Redirect to billing portal
       billingEvents.billingPortalOpened();
+      phBillingEvents.billingPortalOpened();
       window.location.href = data.url;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';

@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import CallsHistory from '@/components/calls/CallsHistory';
 import { PageTracker } from '@/components/analytics/PageTracker';
+import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
 
 export default async function CallsPage() {
   const supabase = await createServerClient();
@@ -37,6 +38,7 @@ export default async function CallsPage() {
   return (
     <>
     <PageTracker page="calls" />
+    <PostHogPageTracker page="calls" />
     <CallsHistory
       callLogs={(callLogs || []) as Parameters<typeof CallsHistory>[0]['callLogs']}
       agentTemplates={agentTemplates || []}

@@ -9,6 +9,7 @@ import AgentSelectionModal from '@/components/agents/AgentSelectionModal';
 import AgentConfigModal from '@/components/agents/AgentConfigModal';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { campaignEvents } from '@/lib/analytics';
+import { phCampaignEvents } from '@/lib/posthog';
 
 interface Campaign {
   id: string;
@@ -72,6 +73,7 @@ export default function CampaignsOverview({
 
   const handleAgentSelect = (agent: AgentTemplate) => {
     campaignEvents.newCampaignClicked();
+    phCampaignEvents.newCampaignClicked();
     setSelectedAgent(agent);
     setShowAgentSelection(false);
     setShowConfigModal(true);
@@ -237,7 +239,7 @@ export default function CampaignsOverview({
               return (
                 <button
                   key={status}
-                  onClick={() => { setFilterStatus(status); campaignEvents.filtered('status', status); }}
+                  onClick={() => { setFilterStatus(status); campaignEvents.filtered('status', status); phCampaignEvents.filtered('status', status); }}
                   className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
                     filterStatus === status
                       ? 'gradient-bg text-white shadow-sm'

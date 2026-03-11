@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import FollowUpsPage from '@/components/followups/FollowUpsPage';
 import { PageTracker } from '@/components/analytics/PageTracker';
+import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
 
 export default async function FollowUps() {
   const supabase = await createServerClient();
@@ -33,6 +34,7 @@ export default async function FollowUps() {
   return (
     <>
     <PageTracker page="follow-ups" />
+    <PostHogPageTracker page="follow-ups" />
     <FollowUpsPage followUps={followUps || []} />
     </>
   );

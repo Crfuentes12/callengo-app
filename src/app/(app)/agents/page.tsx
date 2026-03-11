@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import AgentsLibrary from '@/components/agents/AgentsLibrary';
 import { PageTracker } from '@/components/analytics/PageTracker';
+import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
 
 export default async function AgentsPage() {
   const supabase = await createServerClient();
@@ -57,6 +58,7 @@ export default async function AgentsPage() {
   return (
     <>
     <PageTracker page="agents" />
+    <PostHogPageTracker page="agents" />
     <AgentsLibrary
       agentTemplates={agentTemplates || []}
       companyAgents={(companyAgents || []) as unknown as Parameters<typeof AgentsLibrary>[0]['companyAgents']}

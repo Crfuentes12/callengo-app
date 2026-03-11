@@ -5,6 +5,7 @@ import TeamSettings from '@/components/settings/TeamSettings';
 import Link from 'next/link';
 import { getTranslationSync } from '@/i18n';
 import { PageTracker } from '@/components/analytics/PageTracker';
+import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
 
 function TeamUpgradeCTA() {
   const t = getTranslationSync('en');
@@ -135,7 +136,7 @@ export default async function TeamPage() {
   // Show upgrade CTA for free and starter plans
   const hasTeamAccess = ['business', 'teams', 'enterprise'].includes(planSlug);
   if (!hasTeamAccess) {
-    return <><PageTracker page="team" /><TeamUpgradeCTA /></>;
+    return <><PageTracker page="team" /><PostHogPageTracker page="team" /><TeamUpgradeCTA /></>;
   }
 
   // Check all integration connections in parallel
@@ -162,6 +163,7 @@ export default async function TeamPage() {
   return (
     <>
     <PageTracker page="team" />
+    <PostHogPageTracker page="team" />
     <div className="space-y-6">
       {/* Header */}
       <div className="gradient-bg-subtle rounded-2xl p-8 shadow-md border border-[var(--border-default)]">
