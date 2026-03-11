@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Database } from '@/types/supabase';
 import { useTranslation } from '@/i18n';
+import { navigationEvents } from '@/lib/analytics';
 type Company = Database['public']['Tables']['companies']['Row'];
 interface SidebarProps {
   company: Company;
@@ -264,7 +265,7 @@ export default function Sidebar({
                   <Link
                     key={item.name}
                     href={item.href}
-                    onClick={() => onClose()}
+                    onClick={() => { navigationEvents.sidebarClicked(item.href); onClose(); }}
                     onMouseEnter={(e) => showTooltip(e, item.name)}
                     onMouseLeave={hideTooltip}
                     className={`
@@ -310,7 +311,7 @@ export default function Sidebar({
                   <Link
                     key={item.name}
                     href={item.href}
-                    onClick={() => onClose()}
+                    onClick={() => { navigationEvents.sidebarClicked(item.href); onClose(); }}
                     onMouseEnter={(e) => showTooltip(e, item.name)}
                     onMouseLeave={hideTooltip}
                     className={`

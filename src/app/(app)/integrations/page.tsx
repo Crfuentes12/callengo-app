@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import IntegrationsPage from '@/components/integrations/IntegrationsPage';
+import { PageTracker } from '@/components/analytics/PageTracker';
 
 export const dynamic = 'force-dynamic';
 
@@ -125,6 +126,8 @@ export default async function Integrations() {
   }
 
   return (
+    <>
+    <PageTracker page="integrations" />
     <IntegrationsPage
       integrations={{
         google_calendar: {
@@ -219,5 +222,6 @@ export default async function Integrations() {
       planSlug={planSlug}
       companyId={companyId}
     />
+    </>
   );
 }

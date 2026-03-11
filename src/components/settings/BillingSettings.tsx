@@ -6,6 +6,7 @@ import { useStripe } from '@/hooks/useStripe';
 import { getCampaignFeatureAccess, getPhoneNumberFeatures } from '@/config/plan-features';
 import { useUserCurrency } from '@/hooks/useAutoGeolocation';
 import { useTranslation } from '@/i18n';
+import { billingEvents } from '@/lib/analytics';
 
 interface Plan {
   id: string;
@@ -180,12 +181,14 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const handleChangePlan = async (planId: string) => {
     const selectedPlan = plans.find(p => p.id === planId);
     if (selectedPlan?.slug === 'enterprise') {
+      billingEvents.upgradeCtaClicked('billing_settings', currentPlan?.slug, 'enterprise');
       window.open('mailto:sales@callengo.ai?subject=Enterprise Plan Inquiry', '_blank');
       return;
     }
     try {
       setChanging(true);
       setSuccess('');
+      billingEvents.checkoutStarted(selectedPlan?.slug || 'unknown', billingCycle, billingCycle === 'monthly' ? (selectedPlan?.price_monthly || 0) : (selectedPlan?.price_annual || 0));
       await createCheckoutSession({ planId, billingCycle, currency });
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -204,6 +207,11 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         body: JSON.stringify({ companyId, subscriptionId: subscription.id, enabled, budget: enabled ? overageBudget : 0 })
       });
       if (response.ok) {
+        if (enabled) {
+          billingEvents.overageEnabled(overageBudget);
+        } else {
+          billingEvents.overageDisabled();
+        }
         setSuccess(enabled ? `${t.billing.overageCost} ${t.common.enabled.toLowerCase()}` : `${t.billing.overageCost} ${t.common.disabled.toLowerCase()}`);
         await fetchData();
         setShowOverageModal(false);
@@ -224,6 +232,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   // ── Cancellation flow handlers ──
 
   const handleStartCancel = () => {
+    billingEvents.subscriptionCancelled(currentPlan?.slug || 'unknown', 'initiated');
     setCancelStep('confirm');
   };
 
@@ -252,6 +261,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         setFeedbackId(data.feedback_id);
       }
 
+      billingEvents.subscriptionCancelled(currentPlan?.slug || 'unknown', cancelReason);
+
       // If reason is "too expensive", check retention eligibility
       if (cancelReason === 'too_expensive') {
         try {
@@ -278,6 +289,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   };
 
   const handleAcceptRetention = async () => {
+    billingEvents.retentionOfferAccepted(currentPlan?.slug || 'unknown', 'discount');
     setRetentionLoading(true);
     try {
       const res = await fetch('/api/billing/check-retention', {
@@ -309,6 +321,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   };
 
   const handleDeclineRetention = () => {
+    billingEvents.retentionOfferDeclined(currentPlan?.slug || 'unknown');
     setCancelStep('final');
   };
 
@@ -609,8 +622,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <p className="text-sm text-[var(--color-neutral-500)]">{higherPlans.length > 0 ? t.billing.upgradePlan : t.billing.currentPlan}</p>
             </div>
             <div className="inline-flex items-center gap-2 p-1 bg-[var(--color-neutral-100)] rounded-lg">
-              <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>{t.billing.monthly}</button>
-              <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>
+              <button onClick={() => { setBillingCycle('monthly'); billingEvents.billingCycleToggled('monthly'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>{t.billing.monthly}</button>
+              <button onClick={() => { setBillingCycle('annual'); billingEvents.billingCycleToggled('annual'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>
                 {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">{t.billing.saveUpTo}</span>
               </button>
             </div>
@@ -704,7 +717,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         {comparisonPlans.length > 1 && (
           <div className="border-t border-[var(--border-subtle)] pt-6">
             <button
-              onClick={() => setShowComparison(!showComparison)}
+              onClick={() => { setShowComparison(!showComparison); if (!showComparison) billingEvents.planComparisonViewed(); }}
               className="flex items-center gap-2 text-sm text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)] transition-colors"
             >
               <svg className={`w-4 h-4 transition-transform ${showComparison ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1395,8 +1408,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           </div>
           {plans.length > 0 && (
             <div className="inline-flex items-center gap-2 p-1 bg-[var(--color-neutral-100)] rounded-lg">
-              <button onClick={() => setBillingCycle('monthly')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>{t.billing.monthly}</button>
-              <button onClick={() => setBillingCycle('annual')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>
+              <button onClick={() => { setBillingCycle('monthly'); billingEvents.billingCycleToggled('monthly'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>{t.billing.monthly}</button>
+              <button onClick={() => { setBillingCycle('annual'); billingEvents.billingCycleToggled('annual'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>
                 {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">{t.billing.saveUpTo}</span>
               </button>
             </div>

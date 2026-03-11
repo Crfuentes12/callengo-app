@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
+import { authEvents } from '@/lib/analytics';
 
 type OAuthProvider = 'google' | 'azure' | 'slack_oidc';
 
@@ -113,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    authEvents.logout();
     await supabase.auth.signOut();
     router.push('/auth/login');
   };

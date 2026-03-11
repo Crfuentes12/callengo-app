@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import OpenAI from 'openai';
+import { trackServerEvent } from '@/lib/analytics';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -148,6 +149,12 @@ Return JSON with this structure:
     });
 
     const result = JSON.parse(completion.choices[0]?.message?.content || '{}');
+
+    trackServerEvent(user.id, user.id, 'contact_ai_analysis', {
+      action,
+      contact_count: contacts.length,
+      has_selected_contacts: !!(contactIds && contactIds.length > 0),
+    });
 
     return NextResponse.json({ action, result, contactCount: contacts.length });
   } catch (error) {

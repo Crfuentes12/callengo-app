@@ -7,6 +7,7 @@ import { BiLogoZoom } from 'react-icons/bi';
 import { GoogleCalendarIcon, GoogleMeetIcon, OutlookIcon, TeamsIcon } from '@/components/icons/BrandIcons';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
 import { useTranslation } from '@/i18n';
+import { calendarEvents } from '@/lib/analytics';
 
 // ============================================================================
 // TYPES
@@ -608,6 +609,7 @@ export default function CalendarPage({
   }, [refreshIntegrations, showToast]);
 
   const handleSync = useCallback(async (provider: string) => {
+    calendarEvents.syncTriggered(provider);
     setSyncing(prev => ({ ...prev, [provider]: true }));
     try {
       const endpoint = provider === 'google_calendar'
@@ -746,6 +748,8 @@ export default function CalendarPage({
         body: JSON.stringify(settingsForm),
       });
       if (res.ok) {
+        calendarEvents.workingHoursUpdated(settingsForm.working_hours_start, settingsForm.working_hours_end);
+        calendarEvents.timezoneChanged(settingsForm.timezone);
         setCalSettings({ ...settingsForm });
         showToast('Calendar settings saved', 'success');
         setShowSettingsMenu(false);
@@ -1299,7 +1303,7 @@ export default function CalendarPage({
               ] as { id: FilterType; label: string }[]).map(f => (
                 <button
                   key={f.id}
-                  onClick={() => setFilterType(f.id)}
+                  onClick={() => { setFilterType(f.id); calendarEvents.filterApplied(f.id); }}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
                     filterType === f.id ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'
                   }`}
@@ -1334,7 +1338,7 @@ export default function CalendarPage({
               {(['month', 'week', 'day', 'agenda'] as ViewMode[]).map(mode => (
                 <button
                   key={mode}
-                  onClick={() => setViewMode(mode)}
+                  onClick={() => { setViewMode(mode); calendarEvents.viewChanged(mode); }}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all capitalize whitespace-nowrap ${
                     viewMode === mode ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'
                   }`}

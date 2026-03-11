@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase/service';
 import { verifyWebhookSignature } from '@/lib/stripe';
 import Stripe from 'stripe';
+import { trackServerEvent } from '@/lib/analytics';
 
 // Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';
@@ -230,6 +231,14 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     });
   }
 
+  // GA4 server-side: subscription started
+  trackServerEvent(companyId, null, 'server_subscription_started', {
+    plan: plan.slug,
+    billing_cycle: billingCycle,
+    value: billingCycle === 'annual' ? Number(plan.price_annual) : Number(plan.price_monthly),
+    currency: 'USD',
+  });
+
   console.log('✅ Subscription created/updated for company:', companyId);
 }
 
@@ -357,6 +366,11 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     },
     minutes_consumed: 0,
     cost_usd: 0,
+  });
+
+  // GA4 server-side: subscription cancelled
+  trackServerEvent(existingSub.company_id, null, 'server_subscription_cancelled', {
+    stripe_subscription_id: subscription.id,
   });
 }
 

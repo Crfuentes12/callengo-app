@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { contactsToCSV } from '@/lib/call-agent-utils';
 import type { Contact } from '@/types/call-agent';
+import { trackServerEvent } from '@/lib/analytics';
 
 const EXPORT_FIELDS = [
   'company_name', 'contact_name', 'email', 'phone_number',
@@ -88,6 +89,13 @@ export async function GET(request: NextRequest) {
         hasMore = false;
       }
     }
+
+    trackServerEvent(user.id, user.id, 'contact_export_completed', {
+      format,
+      contact_count: allContacts.length,
+      has_list_filter: !!listId && listId !== 'all',
+      has_status_filter: !!status && status !== 'all',
+    });
 
     const today = new Date().toISOString().split('T')[0];
 

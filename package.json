@@ -12,6 +12,7 @@
     "stripe:sync:dry": "node -r dotenv/config node_modules/.bin/tsx scripts/stripe-sync.ts dotenv_config_path=.env.local --dry-run --verbose"
   },
   "dependencies": {
+    "@next/third-parties": "^16.1.6",
     "@stripe/stripe-js": "^8.6.0",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.8.0",

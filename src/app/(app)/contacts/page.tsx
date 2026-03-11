@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import ContactsManager from '@/components/contacts/ContactsManager';
+import { PageTracker } from '@/components/analytics/PageTracker';
 
 export default async function ContactsPage() {
   const supabase = await createServerClient();
@@ -83,6 +84,8 @@ export default async function ContactsPage() {
   ]);
 
   return (
+    <>
+    <PageTracker page="contacts" />
     <ContactsManager
       initialContacts={initialContacts || []}
       initialTotalCount={totalCount || 0}
@@ -104,5 +107,6 @@ export default async function ContactsPage() {
       hasSimplyBookAccess={hasSimplyBookAccess}
       sbConnected={!!sbResult.data}
     />
+    </>
   );
 }

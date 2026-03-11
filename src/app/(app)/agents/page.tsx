@@ -1,6 +1,7 @@
 // app/(app)/agents/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
 import AgentsLibrary from '@/components/agents/AgentsLibrary';
+import { PageTracker } from '@/components/analytics/PageTracker';
 
 export default async function AgentsPage() {
   const supabase = await createServerClient();
@@ -54,6 +55,8 @@ export default async function AgentsPage() {
   }
 
   return (
+    <>
+    <PageTracker page="agents" />
     <AgentsLibrary
       agentTemplates={agentTemplates || []}
       companyAgents={(companyAgents || []) as unknown as Parameters<typeof AgentsLibrary>[0]['companyAgents']}
@@ -61,5 +64,6 @@ export default async function AgentsPage() {
       company={company}
       companySettings={{ ...companySettings, plan_slug: planSlug }}
     />
+    </>
   );
 }

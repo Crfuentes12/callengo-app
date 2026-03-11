@@ -9,6 +9,7 @@ import PainSelection from '@/components/onboarding/PainSelection';
 import AgentTestExperience from '@/components/onboarding/AgentTestExperience';
 import { useLanguage } from '@/i18n';
 import LanguageSelector from '@/components/LanguageSelector';
+import { onboardingEvents } from '@/lib/analytics';
 
 type OnboardingStep =
   | 'language_selection'
@@ -92,6 +93,7 @@ export default function OnboardingPage() {
       return;
     }
 
+    onboardingEvents.started();
     await setupAccount();
   };
 
@@ -236,11 +238,14 @@ export default function OnboardingPage() {
 
   const handlePainSelection = (pain: Pain) => {
     setSelectedPain(pain);
+    onboardingEvents.stepCompleted('pain_selection', 2);
     setProgress(95);
     setStep('agent_test');
   };
 
   const handleSkipPain = () => {
+    onboardingEvents.skipped('pain_selection');
+    onboardingEvents.completed();
     setProgress(100);
     setStep('complete');
     setTimeout(() => {
@@ -250,6 +255,8 @@ export default function OnboardingPage() {
   };
 
   const handleAgentTestComplete = async (callData: unknown) => {
+    onboardingEvents.stepCompleted('agent_test', 3);
+    onboardingEvents.completed();
     setProgress(100);
     setStep('complete');
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -258,6 +265,8 @@ export default function OnboardingPage() {
   };
 
   const handleSkipAgentTest = () => {
+    onboardingEvents.skipped('agent_test');
+    onboardingEvents.completed();
     setProgress(100);
     setStep('complete');
     setTimeout(() => {

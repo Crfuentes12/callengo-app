@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { parseCSV, mapRowToContact } from '@/lib/call-agent-utils';
 import { ColumnMapping } from '@/types/call-agent';
+import { trackServerEvent } from '@/lib/analytics';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_ROWS = 10_000;
@@ -90,6 +91,14 @@ export async function POST(request: NextRequest) {
       const { error } = await supabase.from('contacts').insert(contacts as never);
       if (error) throw error;
     }
+
+    trackServerEvent(user.id, user.id, 'contact_import_completed', {
+      imported_count: contacts.length,
+      skipped_count: skipped.length,
+      total_rows: rows.length,
+      file_type: fileName.endsWith('.csv') ? 'csv' : 'txt',
+      has_list_id: !!listId,
+    });
 
     return NextResponse.json({
       imported: contacts.length,

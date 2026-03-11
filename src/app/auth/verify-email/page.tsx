@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/i18n';
+import { authEvents } from '@/lib/analytics';
 
 function VerifyEmailForm() {
   const searchParams = useSearchParams();
@@ -22,7 +23,7 @@ function VerifyEmailForm() {
     setResent(false);
     const { error: resendError } = await resendVerification(email);
     if (resendError) { setError(resendError.message || t.auth.verifyEmail.errorResend); }
-    else { setResent(true); }
+    else { authEvents.verificationEmailResent(); setResent(true); }
     setResending(false);
   };
 
