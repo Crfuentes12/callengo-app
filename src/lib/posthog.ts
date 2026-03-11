@@ -180,11 +180,17 @@ export function updateUserProperties(props: Record<string, string | number | boo
 /**
  * Increment a numeric person property.
  * Useful for: total_campaigns_created, total_calls_made, total_contacts_imported
+ *
+ * Uses capture with $set to track the "first time" timestamp,
+ * and a dedicated event so PostHog can compute running totals via formulas.
  */
 export function incrementUserProperty(property: string, value: number = 1) {
   if (!initialized || typeof window === 'undefined') return
   posthog.people.set_once({ [`first_${property}_at`]: new Date().toISOString() })
-  posthog.people.increment(property, value)
+  posthog.capture('user_property_incremented', {
+    property,
+    increment_value: value,
+  })
 }
 
 /**
