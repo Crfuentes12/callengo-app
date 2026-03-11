@@ -1,6 +1,7 @@
 // app/(app)/calls/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
 import CallsHistory from '@/components/calls/CallsHistory';
+import { PageTracker } from '@/components/analytics/PageTracker';
 
 export default async function CallsPage() {
   const supabase = await createServerClient();
@@ -34,9 +35,12 @@ export default async function CallsPage() {
     .eq('is_active', true);
 
   return (
+    <>
+    <PageTracker page="calls" />
     <CallsHistory
       callLogs={(callLogs || []) as Parameters<typeof CallsHistory>[0]['callLogs']}
       agentTemplates={agentTemplates || []}
     />
+    </>
   );
 }

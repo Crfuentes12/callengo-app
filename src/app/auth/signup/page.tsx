@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import { useTranslation } from '@/i18n';
+import { authEvents } from '@/lib/analytics';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function SignupPage() {
     try {
       const { error: signUpError } = await signUp(formData.email, formData.password, formData.fullName);
       if (signUpError) throw signUpError;
+      authEvents.signUp('email');
       router.push('/auth/verify-email?email=' + encodeURIComponent(formData.email));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t.auth.signup.errorGeneric);

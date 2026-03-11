@@ -1,6 +1,7 @@
 // app/(app)/follow-ups/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
 import FollowUpsPage from '@/components/followups/FollowUpsPage';
+import { PageTracker } from '@/components/analytics/PageTracker';
 
 export default async function FollowUps() {
   const supabase = await createServerClient();
@@ -30,6 +31,9 @@ export default async function FollowUps() {
     .order('next_attempt_at', { ascending: true });
 
   return (
+    <>
+    <PageTracker page="follow-ups" />
     <FollowUpsPage followUps={followUps || []} />
+    </>
   );
 }

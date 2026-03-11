@@ -1,6 +1,7 @@
 // app/(app)/analytics/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
+import { PageTracker } from '@/components/analytics/PageTracker';
 
 export default async function AnalyticsPage() {
   const supabase = await createServerClient();
@@ -55,6 +56,8 @@ export default async function AnalyticsPage() {
     .order('created_at', { ascending: false });
 
   return (
+    <>
+    <PageTracker page="analytics" />
     <AnalyticsDashboard
       callLogs={callLogs || []}
       contacts={contacts || []}
@@ -62,5 +65,6 @@ export default async function AnalyticsPage() {
       agentRuns={agentRuns || []}
       campaigns={campaigns || []}
     />
+    </>
   );
 }

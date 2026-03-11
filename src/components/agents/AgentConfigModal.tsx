@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { agentEvents } from '@/lib/analytics';
 import { AgentTemplate, Company, ContactList } from '@/types/supabase';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 import { BLAND_VOICES } from '@/lib/voices/bland-voices';
@@ -146,6 +147,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
 
   // Load contact lists and plan limits on mount
   useEffect(() => {
+    agentEvents.configModalOpened(getAgentType());
     loadContactLists();
     // Fetch plan limits and overage data
     fetch('/api/billing/subscription')
@@ -238,6 +240,10 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
 
   // Handle voice change with smooth crossfade transition
   const handleVoiceChange = (newVoice: string) => {
+    const voice = BLAND_VOICES.find(v => v.id === newVoice);
+    if (voice) {
+      agentEvents.voiceSelected(newVoice, voice.name, determineGender(voice));
+    }
     if (settings.voice && settings.voice !== newVoice) {
       setPreviousVoice(settings.voice);
       setIsTransitioning(true);
@@ -391,6 +397,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     }
 
     console.log('✅ Starting test call...');
+    agentEvents.testCallInitiated(getAgentType());
     setTestingAgent(true);
     setCallStatus('dialing');
     setCallDuration(0);
@@ -510,6 +517,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
       if (error) throw error;
 
+      agentEvents.created(getAgentType(), agentName || agent.name);
+
       // Redirect to campaign page
       router.push(`/dashboard/campaigns/${run?.id as string}`);
     } catch (error) {
@@ -577,6 +586,11 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
     return 1;
   };
 
+  const handleClose = () => {
+    agentEvents.configModalClosed(getAgentType(), getStepNumber() - 1);
+    onClose();
+  };
+
   if (step === 'preview') {
     return (
       <>
@@ -584,7 +598,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-[var(--border-default)] overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-[var(--color-neutral-100)] backdrop-blur-sm border border-[var(--border-default)] text-[var(--color-neutral-500)] hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
             <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -733,6 +747,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                             const val = Math.round(parseInt(e.target.value) || 5);
                             const max = planLimits?.maxCallDuration || 15;
                             setSettings({ ...settings, maxDuration: Math.min(val, max) });
+                            agentEvents.settingsUpdated(getAgentType(), 'maxDuration');
                           }}
                           className="w-full px-3 py-2 pr-10 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
@@ -751,7 +766,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           max="60"
                           step="1"
                           value={settings.intervalMinutes}
-                          onChange={e => setSettings({ ...settings, intervalMinutes: Math.round(parseInt(e.target.value) || 5) })}
+                          onChange={e => {
+                            setSettings({ ...settings, intervalMinutes: Math.round(parseInt(e.target.value) || 5) });
+                            agentEvents.settingsUpdated(getAgentType(), 'intervalMinutes');
+                          }}
                           className="w-full px-3 py-2 pr-10 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[var(--color-neutral-400)]">min</span>
@@ -769,6 +787,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           const val = Math.round(parseInt(e.target.value) || 100);
                           const max = planLimits?.maxCallsPerDay || 1000;
                           setSettings({ ...settings, maxCallsPerDay: Math.min(val, max) });
+                          agentEvents.settingsUpdated(getAgentType(), 'maxCallsPerDay');
                         }}
                         className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
                       />
@@ -793,6 +812,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   {/* Test Agent CTA */}
                   <button
                     onClick={() => {
+                      agentEvents.voicePreviewed(settings.voice);
                       setTestPhoneNumber(settings.testPhoneNumber);
                       setShowTestModal(true);
                     }}
@@ -831,7 +851,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             {/* Action buttons */}
             <div className="flex gap-3 mt-6 pt-4 border-t border-[var(--border-default)]">
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex-1 px-5 py-2.5 bg-white border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-lg hover:bg-[var(--surface-hover)] font-bold text-sm transition-all duration-300"
               >
                 {t.common.cancel}
@@ -839,6 +859,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               <button
                 onClick={() => {
                   if (!settings.voice) return;
+                  agentEvents.configStepCompleted(getAgentType(), 'preview', 1);
                   loadContactCount(true);
                   setStep('contacts');
                 }}
@@ -1487,7 +1508,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ isolation: 'isolate', willChange: 'transform' }}>
         <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-[var(--border-default)] overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-[var(--color-neutral-100)] border border-[var(--border-default)] text-[var(--color-neutral-500)] hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
             <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1845,7 +1866,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   <textarea
                     placeholder={getContextPlaceholder()}
                     value={settings.customTask}
-                    onChange={e => setSettings({ ...settings, customTask: e.target.value })}
+                    onChange={e => {
+                      setSettings({ ...settings, customTask: e.target.value });
+                      agentEvents.settingsUpdated(getAgentType(), 'customTask');
+                    }}
                     className="w-full px-3 py-2.5 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none resize-none placeholder-[var(--color-neutral-300)]"
                     rows={3}
                   />
@@ -1948,7 +1972,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   Back
                 </button>
                 <button
-                  onClick={() => setStep('calendar')}
+                  onClick={() => {
+                    agentEvents.configStepCompleted(getAgentType(), 'contacts', 2);
+                    setStep('calendar');
+                  }}
                   disabled={contactCount === 0}
                   className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg font-semibold text-sm transition-all duration-300 ${contactCount === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
                 >
@@ -1968,7 +1995,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-[var(--border-default)] overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-[var(--color-neutral-100)] backdrop-blur-sm border border-[var(--border-default)] text-[var(--color-neutral-500)] hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
             <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2011,6 +2038,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     followUpIntervalHours: calendarConfig.followUpIntervalHours,
                     smartFollowUp: calendarConfig.smartFollowUp,
                   }));
+                  agentEvents.configStepCompleted(getAgentType(), 'calendar', 3);
                   setStep('confirm');
                 }}
                 className={`flex-1 px-5 py-2.5 gradient-bg text-white rounded-lg hover:opacity-90 font-semibold text-sm transition-all duration-300`}
@@ -2030,7 +2058,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-[var(--border-default)] overflow-hidden relative flex flex-col" style={{ transform: 'translateZ(0)' }}>
           {/* Close button */}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-[var(--color-neutral-100)] backdrop-blur-sm border border-[var(--border-default)] text-[var(--color-neutral-500)] hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
           >
             <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">

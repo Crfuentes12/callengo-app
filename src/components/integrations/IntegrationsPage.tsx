@@ -9,6 +9,7 @@ import { BiLogoZoom } from 'react-icons/bi';
 import { createClient } from '@/lib/supabase/client';
 import { GoogleCalendarIcon, GoogleMeetIcon, GoogleSheetsIcon, OutlookIcon, TeamsIcon, SlackIcon } from '@/components/icons/BrandIcons';
 import { useTranslation } from '@/i18n';
+import { integrationEvents } from '@/lib/analytics';
 import {
   PLAN_ORDER, planMeetsRequirement, getPlanLabel, getPlanBadgeColors,
   formatLastSynced, Spinner, Tooltip,
@@ -109,6 +110,7 @@ function SimplyBookSetupModal({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to connect');
+      integrationEvents.connected('simplybook', 'calendar');
       onSuccess();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to connect to SimplyBook.me');
@@ -321,6 +323,7 @@ function SlackConfigureModal({
           })),
         })
         .eq('company_id', companyId);
+      integrationEvents.slackNotificationsConfigured(config.channelIds.length);
       onSave();
     } catch {
       // fail silently
@@ -560,6 +563,7 @@ function WebhooksSetupModal({
       setNewUrl(''); setNewDescription(''); setNewEvents([]);
       setShowAddForm(false);
       setRevealedSecrets(prev => new Set(prev).add(data.endpoint.id));
+      integrationEvents.webhookCreated();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create endpoint');
     } finally { setCreating(false); }
@@ -567,7 +571,7 @@ function WebhooksSetupModal({
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
-    try { const res = await fetch(`/api/webhooks/endpoints/${id}`, { method: 'DELETE' }); if (res.ok) setEndpoints(prev => prev.filter(e => e.id !== id)); }
+    try { const res = await fetch(`/api/webhooks/endpoints/${id}`, { method: 'DELETE' }); if (res.ok) { setEndpoints(prev => prev.filter(e => e.id !== id)); integrationEvents.webhookDeleted(); } }
     catch { /* ignore */ } finally { setDeletingId(null); }
   };
 
@@ -964,6 +968,7 @@ function FeedbackSection() {
       });
       if (res.status === 429) { setAlreadySubmitted(true); setError('You already submitted feedback today. Come back tomorrow!'); return; }
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Failed to submit'); }
+      integrationEvents.feedbackSubmitted(feedbackType);
       setSubmitted(true); setMessage('');
     } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Failed to submit'); }
     finally { setSubmitting(false); }
@@ -1077,6 +1082,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   // --------------------------------------------------------------------------
 
   const handleConnect = useCallback(async (provider: string, connectUrl: string, method?: 'redirect' | 'post' | 'webhooks_inline' | 'simplybook_inline') => {
+    integrationEvents.connectStarted(provider, method || 'redirect');
     if (method === 'webhooks_inline') {
       setShowWebhooksSetup(true);
       return;
@@ -1090,6 +1096,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       try {
         const res = await fetch(connectUrl, { method: 'POST' });
         if (res.ok) {
+          integrationEvents.connected(provider, 'post');
           showToast(t.integrations.syncSuccess, 'success');
           router.refresh();
         } else {
@@ -1112,6 +1119,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     try {
       const res = await fetch(`/api/integrations/${provider}/disconnect`, { method: 'POST' });
       if (res.ok) {
+        integrationEvents.disconnected(provider, provider);
         showToast(`${name} disconnected`, 'success');
         setConfigItem(null);
         router.refresh();
@@ -1128,16 +1136,21 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
 
   const handleSync = useCallback(async (provider: string, name: string) => {
     setLoadingAction(`sync-${provider}`);
+    integrationEvents.syncStarted(provider);
     try {
       const res = await fetch(`/api/integrations/${provider}/sync`, { method: 'POST' });
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        integrationEvents.syncCompleted(provider, data.records_created ?? 0, data.records_updated ?? 0);
         showToast(t.integrations.syncSuccess, 'success');
         router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));
+        integrationEvents.syncFailed(provider, data.error || 'unknown');
         showToast(data.error || `Failed to sync ${name}`, 'error');
       }
     } catch {
+      integrationEvents.syncFailed(provider, 'network_error');
       showToast(`Failed to sync ${name}`, 'error');
     } finally {
       setLoadingAction(null);

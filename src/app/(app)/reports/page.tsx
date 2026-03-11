@@ -1,6 +1,7 @@
 // app/(app)/reports/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
 import ReportsPage from '@/components/reports/ReportsPage';
+import { PageTracker } from '@/components/analytics/PageTracker';
 
 export default async function Reports() {
   const supabase = await createServerClient();
@@ -37,11 +38,14 @@ export default async function Reports() {
     .eq('company_id', userData!.company_id);
 
   return (
+    <>
+    <PageTracker page="reports" />
     <ReportsPage
       campaigns={campaigns || []}
       callStats={callStats || []}
       contacts={contacts || []}
       companyId={userData!.company_id}
     />
+    </>
   );
 }

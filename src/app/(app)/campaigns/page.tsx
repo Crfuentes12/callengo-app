@@ -1,6 +1,7 @@
 // app/(app)/campaigns/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
 import CampaignsOverview from '@/components/campaigns/CampaignsOverview';
+import { PageTracker } from '@/components/analytics/PageTracker';
 
 export default async function CampaignsPage() {
   const supabase = await createServerClient();
@@ -63,6 +64,8 @@ export default async function CampaignsPage() {
     .single();
 
   return (
+    <>
+    <PageTracker page="campaigns" />
     <CampaignsOverview
       campaigns={campaigns || []}
       companyId={userData!.company_id}
@@ -72,5 +75,6 @@ export default async function CampaignsPage() {
       company={company!}
       companySettings={companySettings ?? undefined}
     />
+    </>
   );
 }

@@ -12,6 +12,7 @@ import VoiceSelector from '@/components/voice/VoiceSelector';
 import { useTranslation, useLanguage } from '@/i18n';
 import LanguageSelector from '@/components/LanguageSelector';
 import type { SupportedLanguage } from '@/i18n/translations';
+import { settingsEvents, navigationEvents } from '@/lib/analytics';
 
 type Company = Database['public']['Tables']['companies']['Row'];
 type CompanySettings = Database['public']['Tables']['company_settings']['Row'];
@@ -86,6 +87,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     try {
       const { error } = await supabase.from('users').update({ full_name: fullName }).eq('id', user.id);
       if (error) throw error;
+      settingsEvents.companyProfileUpdated();
       setProfileSuccess('Name updated successfully.');
       setTimeout(() => setProfileSuccess(''), 3000);
     } catch {
@@ -410,7 +412,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'general' | 'company' | 'calling' | 'billing')}
+                onClick={() => { setActiveTab(tab.id as 'general' | 'company' | 'calling' | 'billing'); settingsEvents.tabChanged(tab.id); }}
                 className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-all ${
                   activeTab === tab.id
                     ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-50)]'
@@ -853,6 +855,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                           .update({ settings: { ...existingJsonSettings, language } })
                           .eq('company_id', initialCompany.id);
                         if (error) throw error;
+                        navigationEvents.languageChanged('previous', language);
                         setSuccess(t.settings.language.success);
                       } catch {
                         alert(t.settings.language.error);

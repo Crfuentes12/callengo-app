@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import Layout from '@/components/layout/Layout';
+import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider';
 import type { Database } from '@/types/supabase';
 
 export default async function AppLayout({
@@ -32,6 +33,24 @@ export default async function AppLayout({
     redirect('/onboarding');
   }
 
+  // Fetch subscription data for analytics user properties
+  const { data: subscription } = await supabase
+    .from('company_subscriptions')
+    .select('billing_cycle, subscription_plans(slug)')
+    .eq('company_id', company.id)
+    .eq('status', 'active')
+    .single();
+
+  // Fetch team size for analytics
+  const { count: teamSize } = await supabase
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', company.id);
+
+  const planSlug = subscription?.subscription_plans
+    ? (subscription.subscription_plans as { slug: string }).slug
+    : 'free';
+
   return (
     <Layout
       user={{
@@ -43,6 +62,15 @@ export default async function AppLayout({
       headerTitle=""
       headerSubtitle=""
     >
+      <AnalyticsProvider
+        userId={user.id}
+        planSlug={planSlug}
+        billingCycle={subscription?.billing_cycle ?? 'monthly'}
+        companyIndustry={company.industry ?? undefined}
+        teamSize={teamSize ?? 1}
+        countryCode={(userData as Record<string, unknown>).country_code as string | undefined}
+        currency={(userData as Record<string, unknown>).currency as string | undefined}
+      />
       {children}
     </Layout>
   );

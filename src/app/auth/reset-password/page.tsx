@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/i18n';
+import { authEvents } from '@/lib/analytics';
 
 function EyeToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
   return (
@@ -38,7 +39,7 @@ export default function ResetPasswordPage() {
     setLoading(true);
     const { error: updateError } = await updatePassword(password);
     if (updateError) { setError(updateError.message || t.auth.resetPassword.errorGeneric); setLoading(false); }
-    else { router.push('/dashboard'); }
+    else { authEvents.passwordResetCompleted(); router.push('/dashboard'); }
   };
 
   return (

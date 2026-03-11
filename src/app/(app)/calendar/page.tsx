@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import CalendarPage from '@/components/calendar/CalendarPage';
+import { PageTracker } from '@/components/analytics/PageTracker';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
 
 export const dynamic = 'force-dynamic';
@@ -110,6 +111,8 @@ export default async function Calendar() {
   };
 
   return (
+    <>
+    <PageTracker page="calendar" />
     <CalendarPage
       events={(calendarEvents || []) as unknown as CalendarEvent[]}
       integrations={integrationStatuses}
@@ -132,5 +135,6 @@ export default async function Calendar() {
         email: c.email,
       }))}
     />
+    </>
   );
 }

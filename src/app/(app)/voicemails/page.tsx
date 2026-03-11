@@ -1,6 +1,7 @@
 // app/(app)/voicemails/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
 import VoicemailsPage from '@/components/voicemails/VoicemailsPage';
+import { PageTracker } from '@/components/analytics/PageTracker';
 
 export default async function Voicemails() {
   const supabase = await createServerClient();
@@ -30,6 +31,9 @@ export default async function Voicemails() {
     .order('detected_at', { ascending: false });
 
   return (
+    <>
+    <PageTracker page="voicemails" />
     <VoicemailsPage voicemails={voicemails || []} />
+    </>
   );
 }

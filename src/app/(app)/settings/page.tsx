@@ -1,6 +1,7 @@
 // app/(app)/settings/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
 import SettingsManager from '@/components/settings/SettingsManager';
+import { PageTracker } from '@/components/analytics/PageTracker';
 
 export default async function SettingsPage() {
   const supabase = await createServerClient();
@@ -31,17 +32,20 @@ export default async function SettingsPage() {
   }
 
   return (
-    <SettingsManager
-      company={company}
-      settings={settings!}
-      user={{
-        id: user!.id,
-        email: user!.email!,
-        full_name: userData!.full_name,
-        role: userData!.role,
-        notifications_enabled: userData!.notifications_enabled,
-        timezone: userData!.timezone
-      }}
-    />
+    <>
+      <PageTracker page="settings" />
+      <SettingsManager
+        company={company}
+        settings={settings!}
+        user={{
+          id: user!.id,
+          email: user!.email!,
+          full_name: userData!.full_name,
+          role: userData!.role,
+          notifications_enabled: userData!.notifications_enabled,
+          timezone: userData!.timezone
+        }}
+      />
+    </>
   );
 }

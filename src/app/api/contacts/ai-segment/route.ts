@@ -2,6 +2,7 @@
 // Creates a contact list from AI suggestion and assigns matching contacts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { trackServerEvent } from '@/lib/analytics';
 
 interface ListFilters {
   status?: string[];
@@ -132,6 +133,13 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    trackServerEvent(user.id, user.id, 'contact_ai_segment_created', {
+      list_name: name,
+      assigned_count: assignedCount,
+      total_matched: allContactIds.length,
+      filter_count: Object.keys(filters || {}).length,
+    });
 
     return NextResponse.json({
       listId,

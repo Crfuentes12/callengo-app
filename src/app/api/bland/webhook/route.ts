@@ -39,6 +39,7 @@ import {
 import { enqueueAnalysis } from '@/lib/queue/analysis-queue';
 import { autoAssignEvent } from '@/lib/calendar/resource-routing';
 import { trackCallUsage } from '@/lib/billing/usage-tracker';
+import { trackServerEvent } from '@/lib/analytics';
 
 interface WebhookMetadata {
   company_id?: string;
@@ -150,6 +151,20 @@ export async function POST(request: NextRequest) {
       error_message: error_message || null,
       metadata: body as unknown as Json,
     });
+
+    // GA4 server-side event: call completed
+    trackServerEvent(
+      companyId,
+      null,
+      'server_call_completed',
+      {
+        agent_type: metadata?.agent_template_slug || 'unknown',
+        call_status: status || 'unknown',
+        duration_seconds: call_length || 0,
+        answered_by: answered_by || 'unknown',
+        completed: completed || false,
+      }
+    );
 
     // Lock the contact during processing to prevent user edits
     if (contactId) {

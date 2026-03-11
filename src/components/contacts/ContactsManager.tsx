@@ -14,6 +14,7 @@ import GoogleSheetsSyncProgress, { type SyncJobInfo } from './GoogleSheetsSyncPr
 import { GoogleSheetsIcon } from '@/components/icons/BrandIcons';
 import { FaSalesforce, FaHubspot } from 'react-icons/fa';
 import Link from 'next/link';
+import { contactEvents } from '@/lib/analytics';
 
 interface ContactsManagerProps {
   initialContacts: Record<string, unknown>[];
@@ -226,6 +227,9 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
         setContacts(data.contacts as ContactType[]);
         setTotal(data.total);
         setTotalPages(data.totalPages);
+        if (debouncedSearch) {
+          contactEvents.searched(debouncedSearch.length, data.total);
+        }
       }
     } catch {
       // Keep existing data on error
@@ -292,6 +296,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
   };
 
   const handleSort = (field: SortField) => {
+    const newDirection = field === sortBy ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc';
     if (field === sortBy) {
       setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
@@ -299,6 +304,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       setSortOrder('desc');
     }
     setPage(1);
+    contactEvents.sorted(field, newDirection);
   };
 
   const handleAIAnalysis = async (action: 'suggest-lists' | 'analyze-quality') => {
@@ -339,6 +345,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       setCreatedSegments(prev => new Set(prev).add(index));
       await loadContactLists();
       await refreshContacts();
+      contactEvents.aiSegmentationUsed(data.assignedCount ?? 0);
       showToast(`List "${segment.name}" created with ${data.assignedCount} contacts`, 'success');
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Failed to create list', 'error');
@@ -362,10 +369,14 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     setImportType(type);
     setShowImportModal(true);
     setShowAddContactsDropdown(false);
+    if (type === 'csv') {
+      contactEvents.csvImportStarted();
+    }
   };
 
   const handleGoogleSheetsClick = () => {
     setShowAddContactsDropdown(false);
+    contactEvents.googleSheetsImportStarted();
     if (gsConnected) {
       // Connected: open picker to browse sheets
       setShowGSheetsPicker(true);
@@ -489,6 +500,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
           await refreshContacts();
           setSelectedContactIds([]);
           setShowBatchActions(false);
+          contactEvents.bulkDeleted(count);
           showToast(`Deleted ${count} contact${count > 1 ? 's' : ''} successfully`, 'success');
         } catch (error) {
           showToast('Failed to delete contacts', 'error');
@@ -509,11 +521,17 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
     setPage(1);
+    if (value !== 'all') {
+      contactEvents.filtered('status');
+    }
   };
 
   const handleListFilterChange = (value: string) => {
     setSelectedListFilter(value);
     setPage(1);
+    if (value !== 'all') {
+      contactEvents.filtered('list');
+    }
   };
 
   return (
@@ -987,7 +1005,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
         onSelectionChange={setSelectedContactIds}
         contactLists={contactLists}
         onListClick={handleQuickFilterClick}
-        onContactClick={(contact) => setSelectedContact(contact)}
+        onContactClick={(contact) => { setSelectedContact(contact); contactEvents.detailViewed(); }}
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSort={handleSort}
@@ -1064,6 +1082,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
           onRefresh={() => {
             refreshContacts();
             setSelectedContact(null);
+            contactEvents.edited(1);
           }}
           onShowToast={showToast}
           sfConnected={sfConnected}
@@ -1313,6 +1332,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
       setNewListColor('#3b82f6');
       setShowCreateForm(false);
       onUpdate();
+      contactEvents.listCreated();
       onShowToast('List created successfully', 'success');
     } catch (error) {
       console.error('Error creating list:', error);
@@ -1365,6 +1385,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
           if (error) throw error;
 
           onUpdate();
+          contactEvents.listDeleted();
           onShowToast('List deleted successfully', 'success');
         } catch (error) {
           onShowToast('Failed to delete list', 'error');
@@ -1714,6 +1735,7 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
 
       if (error) throw error;
 
+      contactEvents.created('manual');
       onComplete();
       onClose();
     } catch (error) {

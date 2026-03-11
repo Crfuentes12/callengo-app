@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams } from 'next/navigation';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import { useTranslation } from '@/i18n';
+import { authEvents } from '@/lib/analytics';
 
 function LoginForm() {
   const { signIn } = useAuth();
@@ -27,6 +28,7 @@ function LoginForm() {
       setLoading(false);
       return;
     }
+    authEvents.login('email');
     window.location.href = '/dashboard';
   };
 

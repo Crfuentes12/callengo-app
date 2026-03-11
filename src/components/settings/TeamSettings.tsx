@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { teamEvents } from '@/lib/analytics';
 
 interface TeamMember {
   id: string;
@@ -176,6 +177,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to send invitation');
 
+      teamEvents.memberInvited(inviteRole, 'email');
       setSuccess(`Invitation sent to ${inviteEmail}`);
       setInviteEmail('');
       await loadTeamData();
@@ -199,6 +201,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       });
 
       if (!response.ok) throw new Error('Failed to remove member');
+      teamEvents.memberRemoved();
       setSuccess('Team member removed');
       await loadTeamData();
       router.refresh();
@@ -216,6 +219,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       });
 
       if (!response.ok) throw new Error('Failed to cancel invitation');
+      teamEvents.inviteCancelled();
       setSuccess('Invitation cancelled');
       await loadTeamData();
       router.refresh();
@@ -239,6 +243,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to resend invitation');
 
+      teamEvents.inviteResent();
       setSuccess(`Invitation resent to ${invite.email}`);
     } catch (err: unknown) {
       setError((err as Error).message || 'Failed to resend invitation');
@@ -386,6 +391,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       setBulkProgress({ sent: sent, total: bulkEmails.length });
     }
 
+    teamEvents.bulkInviteSent(sent, bulkFileName ? 'csv' : 'manual');
     setSuccess(`${sent} of ${bulkEmails.length} invitation${bulkEmails.length !== 1 ? 's' : ''} sent`);
     setBulkEmails([]);
     setBulkFileName('');
