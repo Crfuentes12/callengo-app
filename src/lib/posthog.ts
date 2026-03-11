@@ -1145,44 +1145,8 @@ export const phEngagementEvents = {
 }
 
 // ============================================================
-// 20. SERVER-SIDE TRACKING HELPER (for API routes)
+// 20. SERVER-SIDE TRACKING
 // ============================================================
-
-/**
- * Server-side PostHog event capture.
- * Uses posthog-node SDK for API routes and webhooks.
- *
- * Requires: NEXT_PUBLIC_POSTHOG_KEY and optionally NEXT_PUBLIC_POSTHOG_HOST
- */
-export async function captureServerEvent(
-  distinctId: string,
-  eventName: string,
-  properties: Record<string, string | number | boolean> = {},
-  groups?: { company?: string }
-) {
-  // Dynamic import to avoid loading posthog-node on client
-  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
-  if (!key) return
-
-  try {
-    const { PostHog } = await import('posthog-node')
-    const client = new PostHog(key, {
-      host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
-      flushAt: 1,
-      flushInterval: 0,
-    })
-
-    client.capture({
-      distinctId,
-      event: eventName,
-      properties: {
-        ...properties,
-        $groups: groups,
-      },
-    })
-
-    await client.shutdown()
-  } catch {
-    // Silently fail — analytics should never break the app
-  }
-}
+// Server-side tracking lives in src/lib/posthog-server.ts
+// to avoid bundling posthog-node (which uses node:fs) in client code.
+// Import from '@/lib/posthog-server' in API routes.

@@ -3,7 +3,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabase/service';
 import { verifyWebhookSignature } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { trackServerEvent } from '@/lib/analytics';
-import { captureServerEvent } from '@/lib/posthog';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 // Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';

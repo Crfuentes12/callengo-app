@@ -40,7 +40,7 @@ import { enqueueAnalysis } from '@/lib/queue/analysis-queue';
 import { autoAssignEvent } from '@/lib/calendar/resource-routing';
 import { trackCallUsage } from '@/lib/billing/usage-tracker';
 import { trackServerEvent } from '@/lib/analytics';
-import { captureServerEvent } from '@/lib/posthog';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 interface WebhookMetadata {
   company_id?: string;

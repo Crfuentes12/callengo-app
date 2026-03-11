@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import OpenAI from 'openai';
 import { trackServerEvent } from '@/lib/analytics';
-import { captureServerEvent } from '@/lib/posthog';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

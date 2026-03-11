@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { parseCSV, mapRowToContact } from '@/lib/call-agent-utils';
 import { ColumnMapping } from '@/types/call-agent';
 import { trackServerEvent } from '@/lib/analytics';
-import { captureServerEvent } from '@/lib/posthog';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_ROWS = 10_000;

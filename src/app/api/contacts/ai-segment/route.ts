@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { trackServerEvent } from '@/lib/analytics';
-import { captureServerEvent } from '@/lib/posthog';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 interface ListFilters {
   status?: string[];

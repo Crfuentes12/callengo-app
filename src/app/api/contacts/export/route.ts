@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { contactsToCSV } from '@/lib/call-agent-utils';
 import type { Contact } from '@/types/call-agent';
 import { trackServerEvent } from '@/lib/analytics';
-import { captureServerEvent } from '@/lib/posthog';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 const EXPORT_FIELDS = [
   'company_name', 'contact_name', 'email', 'phone_number',
