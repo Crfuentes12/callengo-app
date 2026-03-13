@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
+import { syncUserToHubSpot } from '@/lib/hubspot-user-sync';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -140,6 +141,17 @@ export async function GET(request: NextRequest) {
           } catch (inviteError) {
             console.error('Error auto-accepting team invite from metadata:', inviteError);
           }
+        }
+
+        // Sync new user to HubSpot (fire-and-forget, never blocks signup)
+        try {
+          await syncUserToHubSpot({
+            email: user.email!,
+            fullName: user.user_metadata?.full_name || user.user_metadata?.name,
+            userId: user.id,
+          });
+        } catch (e) {
+          console.error('[Auth Callback] HubSpot sync failed:', e);
         }
 
         // New user without invite - redirect to onboarding

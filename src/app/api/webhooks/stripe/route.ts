@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase/service';
-import { verifyWebhookSignature } from '@/lib/stripe';
+import { verifyWebhookSignature, stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { trackServerEvent } from '@/lib/analytics';
 import { captureServerEvent } from '@/lib/posthog-server';
+import {
+  updateContactPlan,
+  closeWonDeal,
+  createTaskForContact,
+  logProductEvent,
+  hsEventName,
+} from '@/lib/hubspot-user-sync';
 
 // Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';
@@ -282,6 +289,36 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription & Rec
       current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date().toISOString(),
     })
     .eq('company_id', companyId);
+
+  // --- HubSpot sync ---
+  try {
+    const customerId = subscription.customer as string;
+    const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+    const email = customer.email;
+    if (email) {
+      // Resolve plan slug from subscription metadata or DB
+      const planSlug = subscription.metadata?.plan_slug || await getPlanSlugForSubscription(companyId);
+      const priceItem = subscription.items?.data?.[0];
+      const unitAmount = priceItem?.price?.unit_amount || 0;
+      const interval = priceItem?.price?.recurring?.interval;
+      // MRR = monthly amount; if annual, divide by 12
+      const mrr = interval === 'year'
+        ? String(Math.round((unitAmount / 100) / 12))
+        : String(Math.round(unitAmount / 100));
+
+      await updateContactPlan(email, planSlug, mrr, customerId);
+      await closeWonDeal(email, planSlug, mrr);
+
+      // PostHog: subscription_created event for HubSpot destination
+      await captureServerEvent(companyId, 'subscription_created', {
+        plan_name: planSlug,
+        mrr: Number(mrr),
+        stripe_customer_id: customerId,
+      }, { company: companyId });
+    }
+  } catch (e) {
+    console.error('[Stripe Webhook] HubSpot sync failed in subscription.created:', e);
+  }
 }
 
 /**
@@ -291,10 +328,10 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription & Rec
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription & Record<string, any>) {
   console.log('🔄 Subscription updated:', subscription.id);
 
-  // Find subscription by Stripe ID
+  // Find subscription by Stripe ID (join plan for slug comparison)
   const { data: existingSub } = await supabase
     .from('company_subscriptions')
-    .select('*')
+    .select('*, subscription_plans(slug)')
     .eq('stripe_subscription_id', subscription.id)
     .single();
 
@@ -336,6 +373,45 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription & Rec
     minutes_consumed: 0,
     cost_usd: 0,
   });
+
+  // --- HubSpot sync ---
+  try {
+    const customerId = subscription.customer as string;
+    const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+    const email = customer.email;
+    if (email) {
+      const planSlug = subscription.metadata?.plan_slug || await getPlanSlugForSubscription(existingSub.company_id);
+      const priceItem = subscription.items?.data?.[0];
+      const unitAmount = priceItem?.price?.unit_amount || 0;
+      const interval = priceItem?.price?.recurring?.interval;
+      const mrr = interval === 'year'
+        ? String(Math.round((unitAmount / 100) / 12))
+        : String(Math.round(unitAmount / 100));
+
+      await updateContactPlan(email, planSlug, mrr, customerId);
+      await closeWonDeal(email, planSlug, mrr);
+
+      // Detect plan change → emit plan_upgraded PostHog + HubSpot behavioral events
+      const previousPlanSlug = subscription.metadata?.previous_plan_slug
+        || existingSub.subscription_plans?.slug;
+      if (previousPlanSlug && previousPlanSlug !== planSlug) {
+        await captureServerEvent(existingSub.company_id, 'plan_upgraded', {
+          previous_plan: previousPlanSlug as string,
+          new_plan: planSlug,
+          new_mrr: Number(mrr),
+        }, { company: existingSub.company_id });
+
+        // HubSpot Custom Behavioral Event
+        await logProductEvent(email, hsEventName('callengo_plan_upgraded'), {
+          previous_plan: previousPlanSlug as string,
+          new_plan: planSlug,
+          new_mrr: Number(mrr),
+        });
+      }
+    }
+  } catch (e) {
+    console.error('[Stripe Webhook] HubSpot sync failed in subscription.updated:', e);
+  }
 }
 
 /**
@@ -382,6 +458,18 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   await captureServerEvent(existingSub.company_id, 'server_subscription_cancelled', {
     stripe_subscription_id: subscription.id,
   }, { company: existingSub.company_id });
+
+  // --- HubSpot sync: churn → reset to free/lead ---
+  try {
+    const customerId = subscription.customer as string;
+    const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+    const email = customer.email;
+    if (email) {
+      await updateContactPlan(email, 'free', '0', customerId);
+    }
+  } catch (e) {
+    console.error('[Stripe Webhook] HubSpot sync failed in subscription.deleted:', e);
+  }
 }
 
 /**
@@ -496,6 +584,22 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice & Record<strin
     minutes_consumed: 0,
     cost_usd: 0,
   });
+
+  // --- HubSpot: create task for payment failure ---
+  try {
+    const customerId = invoice.customer as string;
+    const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+    const email = customer.email;
+    if (email) {
+      await createTaskForContact(
+        email,
+        `Payment failed — ${email}`,
+        'HIGH'
+      );
+    }
+  } catch (e) {
+    console.error('[Stripe Webhook] HubSpot task creation failed in payment_failed:', e);
+  }
 }
 
 /**
@@ -523,4 +627,24 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
     minutes_consumed: 0,
     cost_usd: 0,
   });
+}
+
+/**
+ * Resolve the plan slug for a company from the DB.
+ * Falls back to 'free' if not found.
+ */
+async function getPlanSlugForSubscription(companyId: string): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from('company_subscriptions')
+      .select('subscription_plans(slug)')
+      .eq('company_id', companyId)
+      .single();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const plans = (data as any)?.subscription_plans;
+    return plans?.slug || 'free';
+  } catch {
+    return 'free';
+  }
 }
