@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { agentEvents } from '@/lib/analytics';
-import { phAgentEvents } from '@/lib/posthog';
+import { phAgentEvents, phCampaignEvents } from '@/lib/posthog';
 import { AgentTemplate, Company, ContactList } from '@/types/supabase';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 import { BLAND_VOICES } from '@/lib/voices/bland-voices';
@@ -523,6 +523,28 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
       agentEvents.created(getAgentType(), agentName || agent.name);
       phAgentEvents.created(getAgentType(), agentName || agent.name);
+      phCampaignEvents.created({
+        agentType: getAgentType(),
+        contactCount: contactCount,
+        followUpEnabled: calendarConfig.followUpEnabled,
+        voicemailEnabled: calendarConfig.voicemailEnabled,
+        calendarEnabled: calendarConfig.calendarContextEnabled,
+      });
+      phCampaignEvents.started(getAgentType(), contactCount);
+
+      // HubSpot behavioral event (fire-and-forget)
+      fetch('/api/hubspot-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventName: 'callengo_campaign_started',
+          properties: {
+            agent_type: getAgentType(),
+            contacts_count: contactCount,
+            campaign_name: agentName || agent.name,
+          },
+        }),
+      }).catch(() => {});
 
       // Redirect to campaign page
       router.push(`/dashboard/campaigns/${run?.id as string}`);
