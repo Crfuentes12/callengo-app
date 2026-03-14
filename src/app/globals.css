@@ -1,6 +1,6 @@
 /* ============================================================
-   CALLENGO — GLOBAL DESIGN SYSTEM v2.0
-   Brand: Deep Indigo / Slate Indigo / Electric
+   CALLENGO — GLOBAL DESIGN SYSTEM v2.1
+   Brand: Electric Indigo (primary) / Soft Indigo (secondary) / Deep Navy (background)
    Typography: Inter (cv02, cv03) + Poppins display + JetBrains Mono
    Updated: March 2026
    ============================================================ */
@@ -12,10 +12,14 @@
 :root {
   /* ----------------------------------------------------------
      BRAND CORE
+     Primary:    #4F5FE8 — Electric Indigo (buttons, CTAs, accent)
+     Secondary:  #A8B3F0 — Soft Indigo (icon shadow, highlights)
+     Background: #1E2D6B — Deep Navy (sidebar, header, shell)
      ---------------------------------------------------------- */
   --color-deep-indigo:   #1E2D6B;
   --color-slate-indigo:  #8B96C8;
   --color-electric:      #4F5FE8;
+  --color-secondary:     #A8B3F0;
   --color-void:          #0D1117;
   --color-arctic:        #F4F5FA;
   --color-ink:           #1A1B2E;
@@ -35,13 +39,16 @@
   --color-primary-900:   #141D47;
   --color-primary-950:   #0D1117;
 
-  /* Legacy aliases for components using old variable names */
-  --color-primary:       var(--color-electric);
-  --color-primary-dark:  var(--color-deep-indigo);
-  --color-primary-light: var(--color-slate-indigo);
-  --color-accent:        var(--color-electric);
+  /* Semantic aliases — color hierarchy */
+  --color-primary:       var(--color-electric);        /* #4F5FE8 — buttons, CTAs */
+  --color-primary-dark:  var(--color-deep-indigo);     /* #1E2D6B — shell background */
+  --color-primary-light: var(--color-secondary);       /* #A8B3F0 — highlights, icon shadow */
+  --color-accent:        var(--color-electric);        /* #4F5FE8 */
 
-  /* Gradient System — legacy aliases */
+  /* Shell background — used for sidebar, header, dark chrome */
+  --color-shell-bg:      var(--color-deep-indigo);     /* #1E2D6B */
+
+  /* Gradient System */
   --color-gradient-start: var(--color-deep-indigo);
   --color-gradient-mid:   var(--color-primary-600);
   --color-gradient-end:   var(--color-electric);
@@ -138,7 +145,7 @@
   --surface-overlay:        rgba(26, 27, 46, 0.50);
   --surface-overlay-light:  rgba(26, 27, 46, 0.08);
   --surface-dark-page:      #0D1117;
-  --surface-dark-card:      #141D47;
+  --surface-dark-card:      #1A2558;
   --surface-dark-elevated:  #1E2D6B;
   --surface-dark-hover:     rgba(255, 255, 255, 0.05);
   --surface-dark-active:    rgba(79, 95, 232, 0.20);
@@ -166,7 +173,7 @@
   --gradient-echo: linear-gradient(
     145deg,
     #1E2D6B 0%,
-    #8B96C8 100%
+    #A8B3F0 100%
   );
   --gradient-success: linear-gradient(
     135deg,
@@ -180,16 +187,16 @@
   );
   --gradient-shell: linear-gradient(
     180deg,
-    #141D47 0%,
-    #1E2D6B 55%,
-    #2538B8 100%
+    #1E2D6B 0%,
+    #1E2D6B 70%,
+    #243576 100%
   );
   --gradient-auth-base: linear-gradient(
     135deg,
     #0D1117 0%,
-    #141D47 40%,
-    #1E2D6B 70%,
-    #2538B8 100%
+    #141D47 30%,
+    #1E2D6B 65%,
+    #4F5FE8 100%
   );
 
   /* ----------------------------------------------------------
@@ -584,7 +591,7 @@ body {
 }
 
 .gradient-text-premium {
-  background: linear-gradient(135deg, #8B96C8 0%, #FFFFFF 50%, #8B96C8 100%);
+  background: linear-gradient(135deg, #A8B3F0 0%, #FFFFFF 50%, #A8B3F0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

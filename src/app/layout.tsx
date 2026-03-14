@@ -25,8 +25,60 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Callengo - AI Voice Automation Platform",
-  description: "Automated voice agents for your business operations",
+  title: {
+    default: "Callengo — AI Phone Agents for Business",
+    template: "%s | Callengo",
+  },
+  description:
+    "Automate outbound calls with AI voice agents. Qualify leads, validate data, and confirm appointments — so your team never has to.",
+  metadataBase: new URL("https://app.callengo.com"),
+  applicationName: "Callengo",
+  keywords: [
+    "AI phone agents",
+    "outbound call automation",
+    "lead qualification",
+    "AI voice agents",
+    "appointment confirmation",
+    "data validation",
+    "B2B SaaS",
+    "sales automation",
+    "AI calling platform",
+  ],
+  authors: [{ name: "Callengo" }],
+  creator: "Callengo",
+  publisher: "Callengo",
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://app.callengo.com",
+    siteName: "Callengo",
+    title: "Callengo — AI Phone Agents for Business",
+    description:
+      "Automate outbound calls with AI voice agents. Qualify leads, validate data, and confirm appointments — so your team never has to.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Callengo — AI Phone Agents for Business",
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Callengo — AI Phone Agents for Business",
+    description:
+      "Automate outbound calls with AI voice agents. Qualify leads, validate data, and confirm appointments.",
+    images: ["/og-image.png"],
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
