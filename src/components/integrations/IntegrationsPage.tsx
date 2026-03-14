@@ -67,6 +67,7 @@ interface IntegrationItem {
   alwaysActive?: boolean;
   parentProvider?: string;
   parentConnectUrl?: string;
+  infoUrl?: string;
 }
 
 // ============================================================================
@@ -1178,7 +1179,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'google-calendar', provider: 'google-calendar', name: 'Google Calendar',
       description: 'Sync call schedules, appointments, and events',
       icon: <GoogleCalendarIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-blue-50',
-      category: 'calendar', requiredPlan: 'free',
+      category: 'calendar', requiredPlan: 'free', infoUrl: 'https://callengo.com/integrations/google-calendar',
       status: integrations.google_calendar.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/google-calendar/connect?return_to=/integrations',
       syncUrl: '/api/integrations/google-calendar/sync', showSync: true,
@@ -1191,7 +1192,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'microsoft-outlook', provider: 'microsoft-outlook', name: 'Microsoft 365',
       description: 'Sync Outlook calendar events and schedules',
       icon: <OutlookIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-blue-50',
-      category: 'calendar', requiredPlan: 'business',
+      category: 'calendar', requiredPlan: 'business', infoUrl: 'https://callengo.com/integrations/outlook-calendar',
       status: integrations.microsoft_outlook.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/microsoft-outlook/connect?return_to=/integrations',
       syncUrl: '/api/integrations/microsoft-outlook/sync', showSync: true,
@@ -1204,7 +1205,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'google-meet', provider: 'google-meet', name: 'Google Meet',
       description: 'Auto-generate Meet links for calendar events',
       icon: <GoogleMeetIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-teal-50',
-      category: 'video', requiredPlan: 'free',
+      category: 'video', requiredPlan: 'free', infoUrl: 'https://callengo.com/integrations/google-meet',
       status: integrations.google_calendar.connected ? 'auto_enabled' : 'available',
       autoEnabledWith: 'Google Calendar',
       parentProvider: 'google-calendar',
@@ -1214,9 +1215,9 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'microsoft-teams', provider: 'microsoft-teams', name: 'Microsoft Teams',
       description: 'Auto-generate Teams links for calendar events',
       icon: <TeamsIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-indigo-50',
-      category: 'video', requiredPlan: 'business',
+      category: 'video', requiredPlan: 'business', infoUrl: 'https://callengo.com/integrations/microsoft-teams',
       status: integrations.microsoft_outlook.connected ? 'auto_enabled' : 'available',
-      autoEnabledWith: 'Microsoft 365 Outlook',
+      autoEnabledWith: 'Microsoft 365',
       parentProvider: 'microsoft-outlook',
       parentConnectUrl: '/api/integrations/microsoft-outlook/connect?return_to=/integrations',
     },
@@ -1224,7 +1225,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'zoom', provider: 'zoom', name: 'Zoom',
       description: 'Server-to-server integration, always available',
       icon: <BiLogoZoom className="w-7 h-7" />, iconColor: 'text-[#2D8CFF]', iconBg: 'bg-blue-50',
-      category: 'video', requiredPlan: 'free',
+      category: 'video', requiredPlan: 'free', infoUrl: 'https://callengo.com/integrations/zoom',
       status: 'connected',
       alwaysActive: true,
       connectedInfo: [{ label: 'Status', value: 'Always available' }],
@@ -1233,7 +1234,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'salesforce', provider: 'salesforce', name: 'Salesforce',
       description: 'Sync contacts, leads, and call data with your CRM',
       icon: <FaSalesforce className="w-7 h-7" />, iconColor: 'text-[#00A1E0]', iconBg: 'bg-blue-50',
-      category: 'crm', requiredPlan: 'teams',
+      category: 'crm', requiredPlan: 'teams', infoUrl: 'https://callengo.com/integrations/salesforce',
       status: integrations.salesforce.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/salesforce/connect?return_to=/integrations',
       syncUrl: '/api/integrations/salesforce/sync', showSync: true,
@@ -1247,7 +1248,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'slack', provider: 'slack', name: 'Slack',
       description: 'Real-time notifications and slash commands',
       icon: <SlackIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-purple-50',
-      category: 'communication', requiredPlan: 'starter',
+      category: 'communication', requiredPlan: 'starter', infoUrl: 'https://callengo.com/integrations/slack',
       status: integrations.slack.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/slack/connect?return_to=/integrations',
       connectedInfo: integrations.slack.connected ? [
@@ -1259,7 +1260,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'google-sheets', provider: 'google-sheets', name: 'Google Sheets',
       description: 'Import contacts from your Google Sheets spreadsheets',
       icon: <GoogleSheetsIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-green-50',
-      category: 'crm', requiredPlan: 'free',
+      category: 'crm', requiredPlan: 'free', infoUrl: 'https://callengo.com/integrations/google-sheets',
       status: integrations.google_sheets?.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/google-sheets/connect?return_to=/integrations',
       disconnectUrl: '/api/integrations/google-sheets/disconnect',
@@ -1273,7 +1274,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'hubspot', provider: 'hubspot', name: 'HubSpot',
       description: 'Import contacts and sync call outcomes',
       icon: <FaHubspot className="w-7 h-7" />, iconColor: 'text-[#FF7A59]', iconBg: 'bg-orange-50',
-      category: 'crm', requiredPlan: 'business',
+      category: 'crm', requiredPlan: 'business', infoUrl: 'https://callengo.com/integrations/hubspot',
       status: integrations.hubspot?.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/hubspot/connect?return_to=/integrations',
       disconnectUrl: '/api/integrations/hubspot/disconnect',
@@ -1290,7 +1291,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'pipedrive', provider: 'pipedrive', name: 'Pipedrive',
       description: 'Bidirectional sync: import contacts and push call results back to your CRM',
       icon: <PipedriveIcon className="w-7 h-7" />, iconColor: 'text-black', iconBg: 'bg-[var(--color-neutral-50)]',
-      category: 'crm', requiredPlan: 'business',
+      category: 'crm', requiredPlan: 'business', infoUrl: 'https://callengo.com/integrations/pipedrive',
       status: integrations.pipedrive?.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/pipedrive/connect?return_to=/integrations',
       disconnectUrl: '/api/integrations/pipedrive/disconnect',
@@ -1307,7 +1308,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'clio', provider: 'clio', name: 'Clio',
       description: 'Import contacts, matters, and calendar from your legal practice management software',
       icon: <img src="/clio-logo.png" alt="Clio" className="w-7 h-7" />, iconColor: '', iconBg: 'bg-[#1B2B5B]/5',
-      category: 'crm', requiredPlan: 'business',
+      category: 'crm', requiredPlan: 'business', infoUrl: 'https://callengo.com/integrations/clio',
       status: integrations.clio?.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/clio/connect?return_to=/integrations',
       disconnectUrl: '/api/integrations/clio/disconnect',
@@ -1324,7 +1325,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'zoho', provider: 'zoho', name: 'Zoho CRM',
       description: 'Sync leads, contacts, and call logs bidirectionally',
       icon: <ZohoIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-red-50',
-      category: 'crm', requiredPlan: 'business',
+      category: 'crm', requiredPlan: 'business', infoUrl: 'https://callengo.com/integrations/zoho-crm',
       status: integrations.zoho?.connected ? 'connected' : 'available',
       connectUrl: '/api/integrations/zoho/connect?return_to=/integrations',
       disconnectUrl: '/api/integrations/zoho/disconnect',
@@ -1340,7 +1341,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'simplybook', provider: 'simplybook', name: 'SimplyBook.me',
       description: 'Sync clients, bookings, and providers from SimplyBook.me',
       icon: <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-7 h-7 rounded" />, iconColor: '', iconBg: 'bg-sky-50',
-      category: 'calendar', requiredPlan: 'starter',
+      category: 'calendar', requiredPlan: 'starter', infoUrl: 'https://callengo.com/integrations/simplybook-me',
       status: integrations.simplybook?.connected ? 'connected' : 'available',
       connectUrl: '#simplybook-setup',
       connectMethod: 'simplybook_inline' as const,
@@ -1357,7 +1358,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'webhooks', provider: 'webhooks', name: 'Webhooks',
       description: 'Receive real-time events via HTTP. Connect with Zapier, Make, n8n, or your own systems',
       icon: <WebhookIcon className="w-6 h-6" />, iconColor: 'text-[var(--color-neutral-700)]', iconBg: 'bg-[var(--color-neutral-100)]',
-      category: 'communication', requiredPlan: 'starter',
+      category: 'communication', requiredPlan: 'starter', infoUrl: 'https://callengo.com/integrations/webhooks',
       status: 'available',
       connectUrl: '#webhooks-setup',
       connectMethod: 'webhooks_inline' as const,
@@ -1366,7 +1367,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'dynamics', provider: 'dynamics', name: 'Microsoft Dynamics',
       description: 'Sync contacts, leads, and opportunities with Dynamics 365',
       icon: <DynamicsIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-blue-50',
-      category: 'crm', requiredPlan: 'teams',
+      category: 'crm', requiredPlan: 'teams', infoUrl: 'https://callengo.com/integrations/microsoft-dynamics-365',
       status: integrations.dynamics ? 'connected' : 'available',
       connectUrl: '/api/integrations/dynamics/connect?return_to=/integrations',
       disconnectUrl: '/api/integrations/dynamics/disconnect',
@@ -1381,7 +1382,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       id: 'stripe', provider: 'stripe', name: 'Stripe',
       description: 'Payment processing, overage billing, and auto-recharge for call minutes',
       icon: <StripeIcon className="w-7 h-7" />, iconColor: '', iconBg: 'bg-indigo-50',
-      category: 'payment', requiredPlan: 'free',
+      category: 'payment', requiredPlan: 'free', infoUrl: 'https://callengo.com/integrations/stripe',
       status: 'connected',
       alwaysActive: true,
       connectedInfo: [{ label: 'Status', value: 'Always available' }],
@@ -1526,13 +1527,29 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
           </div>
         )}
 
-        {/* Header row: icon + name + status */}
+        {/* Header row: icon + name + status + info link */}
         <div className="flex items-start gap-3 mb-3">
           <div className={`w-11 h-11 rounded-xl ${item.iconBg} ${item.iconColor || ''} flex items-center justify-center shrink-0`}>
             {item.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-bold text-[var(--color-ink)] leading-tight">{item.name}</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-sm font-bold text-[var(--color-ink)] leading-tight">{item.name}</h3>
+              {item.infoUrl && (
+                <a
+                  href={item.infoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--color-neutral-300)] hover:text-[var(--color-primary)] transition-colors shrink-0"
+                  title={`Learn more about ${item.name}`}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                  </svg>
+                </a>
+              )}
+            </div>
             {isActive && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
