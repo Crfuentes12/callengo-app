@@ -299,22 +299,22 @@ const ACTIONS: SearchResult[] = [
 ];
 
 const INTEGRATIONS: SearchResult[] = [
-  { id: 'i-hubspot',     type: 'integration', title: 'HubSpot',                subtitle: 'CRM sync & contact import',         href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-salesforce',  type: 'integration', title: 'Salesforce',             subtitle: 'CRM sync & lead management',        href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-pipedrive',   type: 'integration', title: 'Pipedrive',              subtitle: 'CRM sync & deal tracking',          href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-zoho',        type: 'integration', title: 'Zoho CRM',               subtitle: 'CRM sync & contact management',     href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-dynamics',    type: 'integration', title: 'Microsoft Dynamics 365', subtitle: 'Enterprise CRM integration',        href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-clio',        type: 'integration', title: 'Clio',                   subtitle: 'Legal CRM for law firms',           href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-gcal',        type: 'integration', title: 'Google Calendar',        subtitle: 'Calendar sync & scheduling',        href: '/integrations',   icon: <IconCalendar /> },
-  { id: 'i-outlook',     type: 'integration', title: 'Microsoft Outlook',      subtitle: 'Calendar & email integration',      href: '/integrations',   icon: <IconCalendar /> },
-  { id: 'i-gmeet',       type: 'integration', title: 'Google Meet',            subtitle: 'Video meeting links',               href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-zoom',        type: 'integration', title: 'Zoom',                   subtitle: 'Video meeting integration',         href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-teams',       type: 'integration', title: 'Microsoft Teams',        subtitle: 'Team meetings & notifications',     href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-slack',       type: 'integration', title: 'Slack',                  subtitle: 'Real-time notifications',           href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-gsheets',     type: 'integration', title: 'Google Sheets',          subtitle: 'Import contacts from spreadsheets', href: '/integrations',   icon: <IconIntegrations /> },
-  { id: 'i-stripe',      type: 'integration', title: 'Stripe',                 subtitle: 'Payment processing',                href: '/integrations',   icon: <IconBilling /> },
-  { id: 'i-simplybook',  type: 'integration', title: 'SimplyBook.me',          subtitle: 'Booking & appointment scheduling',  href: '/integrations',   icon: <IconCalendar /> },
-  { id: 'i-webhooks',    type: 'integration', title: 'Webhooks',               subtitle: 'Zapier, Make, n8n automation',      href: '/integrations',   icon: <IconIntegrations /> },
+  { id: 'i-hubspot',     type: 'integration', title: 'HubSpot',                subtitle: 'CRM sync & contact import',         href: 'https://callengo.com/integrations/hubspot',                icon: <IconIntegrations />, external: true },
+  { id: 'i-salesforce',  type: 'integration', title: 'Salesforce',             subtitle: 'CRM sync & lead management',        href: 'https://callengo.com/integrations/salesforce',             icon: <IconIntegrations />, external: true },
+  { id: 'i-pipedrive',   type: 'integration', title: 'Pipedrive',              subtitle: 'CRM sync & deal tracking',          href: 'https://callengo.com/integrations/pipedrive',              icon: <IconIntegrations />, external: true },
+  { id: 'i-zoho',        type: 'integration', title: 'Zoho CRM',               subtitle: 'CRM sync & contact management',     href: 'https://callengo.com/integrations/zoho-crm',               icon: <IconIntegrations />, external: true },
+  { id: 'i-dynamics',    type: 'integration', title: 'Microsoft Dynamics 365', subtitle: 'Enterprise CRM integration',        href: 'https://callengo.com/integrations/microsoft-dynamics-365', icon: <IconIntegrations />, external: true },
+  { id: 'i-clio',        type: 'integration', title: 'Clio',                   subtitle: 'Legal CRM for law firms',           href: 'https://callengo.com/integrations/clio',                   icon: <IconIntegrations />, external: true },
+  { id: 'i-gcal',        type: 'integration', title: 'Google Calendar',        subtitle: 'Calendar sync & scheduling',        href: 'https://callengo.com/integrations/google-calendar',        icon: <IconCalendar />,     external: true },
+  { id: 'i-outlook',     type: 'integration', title: 'Microsoft Outlook',      subtitle: 'Calendar & email integration',      href: 'https://callengo.com/integrations/outlook-calendar',       icon: <IconCalendar />,     external: true },
+  { id: 'i-gmeet',       type: 'integration', title: 'Google Meet',            subtitle: 'Video meeting links',               href: 'https://callengo.com/integrations/google-meet',            icon: <IconIntegrations />, external: true },
+  { id: 'i-zoom',        type: 'integration', title: 'Zoom',                   subtitle: 'Video meeting integration',         href: 'https://callengo.com/integrations/zoom',                   icon: <IconIntegrations />, external: true },
+  { id: 'i-teams',       type: 'integration', title: 'Microsoft Teams',        subtitle: 'Team meetings & notifications',     href: 'https://callengo.com/integrations/microsoft-teams',        icon: <IconIntegrations />, external: true },
+  { id: 'i-slack',       type: 'integration', title: 'Slack',                  subtitle: 'Real-time notifications',           href: 'https://callengo.com/integrations/slack',                  icon: <IconIntegrations />, external: true },
+  { id: 'i-gsheets',     type: 'integration', title: 'Google Sheets',          subtitle: 'Import contacts from spreadsheets', href: 'https://callengo.com/integrations/google-sheets',          icon: <IconIntegrations />, external: true },
+  { id: 'i-stripe',      type: 'integration', title: 'Stripe',                 subtitle: 'Payment processing',                href: 'https://callengo.com/integrations/stripe',                 icon: <IconBilling />,      external: true },
+  { id: 'i-simplybook',  type: 'integration', title: 'SimplyBook.me',          subtitle: 'Booking & appointment scheduling',  href: 'https://callengo.com/integrations/simplybook-me',          icon: <IconCalendar />,     external: true },
+  { id: 'i-webhooks',    type: 'integration', title: 'Webhooks',               subtitle: 'Zapier, Make, n8n automation',      href: 'https://callengo.com/integrations/webhooks',               icon: <IconIntegrations />, external: true },
 ];
 
 const SETTINGS: SearchResult[] = [

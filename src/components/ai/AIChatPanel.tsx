@@ -245,7 +245,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
 
   return (
     <div
-      className="fixed top-0 right-0 bottom-0 z-[60] w-[400px] max-w-[calc(100vw-48px)] flex flex-col bg-white border-l border-[var(--border-default)] shadow-2xl"
+      className="fixed top-0 right-0 bottom-0 z-[60] w-[400px] max-w-[calc(100vw-48px)] flex flex-col bg-white shadow-2xl"
       style={{ animation: 'slideInFromRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}
     >
       {/* Header — matches main header h-12 (48px), accent indigo background */}
