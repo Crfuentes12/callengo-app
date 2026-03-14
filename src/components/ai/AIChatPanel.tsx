@@ -19,9 +19,14 @@ const PAGE_ROUTES: Record<string, string> = {
   'Follow-ups': '/follow-ups',
   'Follow-Ups': '/follow-ups',
   'Analytics': '/analytics',
+  'Reports': '/reports',
   'Integrations': '/integrations',
   'Settings': '/settings',
   'Billing': '/settings?tab=billing',
+  'Team': '/settings?tab=team',
+  'Call Settings': '/settings?tab=calling',
+  'Notifications': '/settings?tab=notifications',
+  'Onboarding': '/onboarding',
 };
 
 // Convert bold page names like **Campaigns** into markdown links if the AI didn't already
@@ -243,27 +248,27 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
       className="fixed top-0 right-0 bottom-0 z-[60] w-[400px] max-w-[calc(100vw-48px)] flex flex-col bg-white border-l border-[var(--border-default)] shadow-2xl"
       style={{ animation: 'slideInFromRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}
     >
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-gradient-to-r from-[var(--color-primary-50)] via-white to-purple-50/30 shrink-0">
-        <div className="flex items-center justify-between">
+      {/* Header — matches main header h-12 (48px), accent indigo background */}
+      <div className="h-12 px-4 flex items-center border-b border-[var(--color-primary-700)]/20 bg-[var(--color-primary)] shrink-0">
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-purple-600 flex items-center justify-center shadow-md">
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                <svg className="w-4.5 h-4.5 text-white" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
                 </svg>
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[var(--color-primary)]" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[var(--color-ink)]">Cali</h3>
-              <p className="text-[10px] text-[var(--color-neutral-400)] font-medium">{t.aiChat.title}</p>
+              <h3 className="text-sm font-bold text-white">Cali</h3>
+              <p className="text-[10px] text-white/60 font-medium">{t.aiChat.title}</p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className={`p-1.5 rounded-lg transition-colors ${showHistory ? 'text-[var(--color-primary)] bg-[var(--color-primary-50)]' : 'text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)]'}`}
+              className={`p-1.5 rounded-lg transition-colors ${showHistory ? 'text-white bg-white/20' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
               title={t.aiChat.history}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -272,7 +277,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             </button>
             <button
               onClick={startNewConversation}
-              className="p-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)] transition-colors"
+              className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
               title={t.aiChat.newConversation}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -281,7 +286,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             </button>
             <button
               onClick={() => setIsMinimized(true)}
-              className="p-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)] transition-colors"
+              className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
               title="Minimize"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -290,7 +295,7 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-red-500 hover:bg-red-50 transition-colors"
+              className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
               title="Close"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
