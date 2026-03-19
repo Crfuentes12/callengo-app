@@ -199,6 +199,7 @@ const nl: TranslationKeys = {
   // NAVIGATION / SIDEBAR
   // ============================================================
   nav: {
+    home: 'Home',
     dashboard: 'Dashboard',
     contacts: 'Contacten',
     campaigns: 'Campagnes',

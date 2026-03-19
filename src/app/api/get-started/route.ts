@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,46 +26,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'task_id is required' }, { status: 400 });
     }
 
-    // Try to upsert progress - table may not exist yet
-    try {
-      const { data: existing } = await supabaseAdmin
-        .from('get_started_progress')
-        .select('*')
-        .eq('company_id', userData.company_id)
-        .single();
+    // Store progress in company_settings JSONB
+    const { data: settingsRow } = await supabase
+      .from('company_settings')
+      .select('settings')
+      .eq('company_id', userData.company_id)
+      .single();
 
-      if (existing) {
-        await supabaseAdmin
-          .from('get_started_progress')
-          .update({ [task_id]: true, updated_at: new Date().toISOString() })
-          .eq('company_id', userData.company_id);
-      } else {
-        await supabaseAdmin
-          .from('get_started_progress')
-          .insert({
-            company_id: userData.company_id,
-            [task_id]: true,
-          });
-      }
-    } catch {
-      // Table might not exist yet - store in company_settings JSONB instead
-      const { data: settings } = await supabase
-        .from('company_settings')
-        .select('settings')
-        .eq('company_id', userData.company_id)
-        .single();
+    const existingSettings = (settingsRow?.settings as Record<string, unknown>) || {};
+    const getStartedProgress = (existingSettings.get_started_progress as Record<string, boolean>) || {};
+    getStartedProgress[task_id] = true;
 
-      const existingSettings = (settings?.settings as Record<string, unknown>) || {};
-      const getStartedProgress = (existingSettings.get_started_progress as Record<string, boolean>) || {};
-      getStartedProgress[task_id] = true;
-
-      await supabase
-        .from('company_settings')
-        .update({
-          settings: { ...existingSettings, get_started_progress: getStartedProgress },
-        })
-        .eq('company_id', userData.company_id);
-    }
+    await supabase
+      .from('company_settings')
+      .update({
+        settings: { ...existingSettings, get_started_progress: getStartedProgress },
+      })
+      .eq('company_id', userData.company_id);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -93,26 +69,14 @@ export async function GET() {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
-    // Try dedicated table first, fall back to company_settings
-    let progress: Record<string, boolean> = {};
-    try {
-      const { data } = await supabase
-        .from('get_started_progress')
-        .select('*')
-        .eq('company_id', userData.company_id)
-        .single();
-      if (data) {
-        progress = data as unknown as Record<string, boolean>;
-      }
-    } catch {
-      const { data: settings } = await supabase
-        .from('company_settings')
-        .select('settings')
-        .eq('company_id', userData.company_id)
-        .single();
-      const existingSettings = (settings?.settings as Record<string, unknown>) || {};
-      progress = (existingSettings.get_started_progress as Record<string, boolean>) || {};
-    }
+    const { data: settingsRow } = await supabase
+      .from('company_settings')
+      .select('settings')
+      .eq('company_id', userData.company_id)
+      .single();
+
+    const existingSettings = (settingsRow?.settings as Record<string, unknown>) || {};
+    const progress = (existingSettings.get_started_progress as Record<string, boolean>) || {};
 
     return NextResponse.json({ progress });
   } catch (error) {

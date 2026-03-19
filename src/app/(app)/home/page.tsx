@@ -1,6 +1,5 @@
 // app/(app)/home/page.tsx
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
 import HomePage from '@/components/home/HomePage';
 import { PageTracker } from '@/components/analytics/PageTracker';
 import { PostHogPageTracker } from '@/components/analytics/PostHogPageTracker';
@@ -41,23 +40,12 @@ export default async function HomePageRoute() {
     supabase.from('usage_tracking').select('*').eq('company_id', companyId).lte('period_start', new Date().toISOString()).gte('period_end', new Date().toISOString()).limit(1).maybeSingle(),
   ]);
 
-  // Check for get-started progress
-  let getStartedProgress: Record<string, boolean> = {};
-  try {
-    const { data: progressData } = await supabaseAdmin
-      .from('get_started_progress')
-      .select('*')
-      .eq('company_id', companyId)
-      .single();
-    if (progressData) {
-      getStartedProgress = (progressData as Record<string, unknown>) as Record<string, boolean>;
-    }
-  } catch {
-    // Table might not exist yet, that's ok
-  }
-
   // Determine completed tasks based on actual data
   const settings = (integrationsRes.data?.settings as Record<string, unknown>) || {};
+
+  // Get progress from company_settings JSONB
+  const getStartedProgress: Record<string, boolean> =
+    (settings.get_started_progress as Record<string, boolean>) || {};
   const hasGoogleCalendar = !!(settings.google_calendar_connected || settings.google_calendar_token);
   const hasListenedCall = getStartedProgress.listened_call || false;
   const hasViewedTranscript = getStartedProgress.viewed_transcript || false;
