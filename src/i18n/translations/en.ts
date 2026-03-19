@@ -950,6 +950,23 @@ const en = {
   },
 
   // ============================================================
+  // GET STARTED (Home page checklist)
+  // ============================================================
+  getStarted: {
+    addContacts: 'Add your first contacts',
+    configureAgent: 'Configure an AI agent',
+    launchCampaign: 'Launch your first campaign',
+    testAgent: 'Test your AI agent',
+    connectCalendar: 'Connect Google Calendar',
+    syncCalendarContacts: 'Sync contacts with calendar',
+    viewAnalytics: 'View your analytics',
+    listenRecording: 'Listen to a call recording',
+    viewTranscript: 'View a call transcript',
+    updateContact: 'Update a contact',
+    exploreIntegrations: 'Explore integrations',
+  },
+
+  // ============================================================
   // COMMON / SHARED
   // ============================================================
   common: {
@@ -1024,6 +1041,7 @@ const en = {
     lastWeek: 'Last Week',
     thisMonth: 'This Month',
     lastMonth: 'Last Month',
+    more: 'more',
   },
 
   // ============================================================

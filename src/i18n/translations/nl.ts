@@ -939,6 +939,23 @@ const nl: TranslationKeys = {
   },
 
   // ============================================================
+  // GET STARTED (Home page checklist)
+  // ============================================================
+  getStarted: {
+    addContacts: 'Voeg je eerste contacten toe',
+    configureAgent: 'Configureer een AI-agent',
+    launchCampaign: 'Start je eerste campagne',
+    testAgent: 'Test je AI-agent',
+    connectCalendar: 'Verbind Google Agenda',
+    syncCalendarContacts: 'Synchroniseer contacten met kalender',
+    viewAnalytics: 'Bekijk je analyses',
+    listenRecording: 'Luister naar een gespreksopname',
+    viewTranscript: 'Bekijk een gesprekstranscript',
+    updateContact: 'Werk een contact bij',
+    exploreIntegrations: 'Ontdek integraties',
+  },
+
+  // ============================================================
   // COMMON / SHARED
   // ============================================================
   common: {
@@ -1013,6 +1030,7 @@ const nl: TranslationKeys = {
     lastWeek: 'Vorige week',
     thisMonth: 'Deze maand',
     lastMonth: 'Vorige maand',
+    more: 'meer',
   },
 
   // ============================================================

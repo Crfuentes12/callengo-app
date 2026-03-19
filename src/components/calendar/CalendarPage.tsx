@@ -625,6 +625,32 @@ export default function CalendarPage({
         showToast(`Synced ${data.created + data.updated} events from ${provider === 'google_calendar' ? 'Google Calendar' : 'Microsoft Outlook'}`, 'success');
         await refreshEvents();
         await refreshIntegrations();
+
+        // Auto cross-reference contacts with newly synced calendar events
+        try {
+          const crossRefRes = await fetch('/api/calendar/contact-sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'cross_reference' }),
+          });
+          const crossRefData = await crossRefRes.json();
+          if (crossRefRes.ok && crossRefData.linked_count > 0) {
+            showToast(`Linked ${crossRefData.linked_count} calendar events to existing contacts`, 'info');
+          }
+
+          // Import new contacts from calendar events that have contact info
+          const importRes = await fetch('/api/calendar/contact-sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'import_from_calendar' }),
+          });
+          const importData = await importRes.json();
+          if (importRes.ok && importData.imported_count > 0) {
+            showToast(`Imported ${importData.imported_count} new contacts from calendar`, 'success');
+          }
+        } catch {
+          // Non-critical, don't show error for cross-reference
+        }
       } else {
         showToast(data.error || 'Sync failed', 'error');
       }

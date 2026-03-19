@@ -62,6 +62,15 @@ export default function ContactDetailDrawer({
   const analysis = contact.analysis as CallAnalysis | null;
   const metadata = contact.call_metadata as CallMetadata | null;
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [calendarEvents, setCalendarEvents] = useState<Array<{
+    id: string;
+    title: string;
+    start_time: string;
+    end_time: string;
+    event_type: string;
+    status: string;
+  }>>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
 
   // Categorize custom_fields for organized display
   const customFieldCategories = useMemo(() => {
@@ -139,6 +148,16 @@ export default function ContactDetailDrawer({
         if (data.crmMappings) setCrmMappings(data.crmMappings);
       })
       .catch((err) => console.warn('Non-critical fetch failed:', err?.message));
+
+    // Fetch calendar events for this contact
+    setCalendarLoading(true);
+    fetch(`/api/calendar/events?contact_id=${contact.id}&limit=20`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.events) setCalendarEvents(data.events);
+      })
+      .catch((err) => console.warn('Calendar fetch failed:', err?.message))
+      .finally(() => setCalendarLoading(false));
   }, [contact.id]);
 
   const handleSave = async () => {
@@ -563,6 +582,75 @@ export default function ContactDetailDrawer({
                   <p className="text-xs text-[var(--color-neutral-400)] mt-0.5">{t.contacts.noContactsDesc}</p>
                 </div>
               )}
+
+              {/* Calendar Events */}
+              <div className="border-t border-[var(--border-subtle)] pt-4">
+                <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                  </svg>
+                  {t.calendar.title}
+                  {calendarEvents.length > 0 && (
+                    <span className="ml-auto text-[10px] font-semibold px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-md">{calendarEvents.length}</span>
+                  )}
+                </h3>
+                {calendarLoading ? (
+                  <div className="space-y-2">
+                    {[0, 1].map(i => (
+                      <div key={i} className="h-12 bg-[var(--color-neutral-100)] rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : calendarEvents.length > 0 ? (
+                  <div className="space-y-2">
+                    {calendarEvents.map((evt) => {
+                      const isUpcoming = new Date(evt.start_time) >= new Date() && evt.status !== 'completed' && evt.status !== 'no_show' && evt.status !== 'cancelled';
+                      const eventTypeColors: Record<string, string> = {
+                        call: 'bg-blue-100 text-blue-700',
+                        follow_up: 'bg-purple-100 text-purple-700',
+                        meeting: 'bg-emerald-100 text-emerald-700',
+                        appointment: 'bg-teal-100 text-teal-700',
+                        callback: 'bg-amber-100 text-amber-700',
+                        no_show_retry: 'bg-red-100 text-red-700',
+                        voicemail_followup: 'bg-orange-100 text-orange-700',
+                      };
+                      const typeStyle = eventTypeColors[evt.event_type] || 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)]';
+                      return (
+                        <div key={evt.id} className={`p-3 rounded-lg border ${isUpcoming ? 'bg-emerald-50/50 border-emerald-200' : 'bg-[var(--color-neutral-50)] border-[var(--border-default)]'}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[var(--color-ink)] truncate">{evt.title}</p>
+                              <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
+                                {new Date(evt.start_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {' '}
+                                {new Date(evt.start_time).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {isUpcoming && (
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_4px_rgba(16,185,129,0.5)]" />
+                              )}
+                              <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${typeStyle}`}>
+                                {evt.event_type.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <a
+                      href={`/calendar`}
+                      className="text-xs text-[var(--color-primary)] font-medium hover:underline flex items-center gap-1 mt-1"
+                    >
+                      {t.common.viewAll}
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                  </div>
+                ) : (
+                  <p className="text-xs text-[var(--color-neutral-400)] py-2">{t.calendar.noEvents}</p>
+                )}
+              </div>
 
               {/* Contact metadata */}
               <div className="border-t border-[var(--border-subtle)] pt-4 space-y-2">
