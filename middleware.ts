@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
   const verificationRoutes = ['/auth/verify-email'];
 
   // Protected routes that require authentication AND email verification
-  const protectedRoutes = ['/dashboard', '/onboarding', '/contacts', '/campaigns', '/agents', '/calls', '/voicemails', '/follow-ups', '/analytics', '/reports', '/integrations', '/settings', '/billing', '/admin', '/subscription', '/calendar'];
+  const protectedRoutes = ['/home', '/dashboard', '/onboarding', '/contacts', '/campaigns', '/agents', '/calls', '/voicemails', '/follow-ups', '/analytics', '/reports', '/integrations', '/settings', '/billing', '/admin', '/subscription', '/calendar'];
 
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   const isVerificationRoute = verificationRoutes.some(route => pathname.startsWith(route));
@@ -122,8 +122,8 @@ export async function middleware(request: NextRequest) {
     }
 
     if (userData?.company_id && pathname === '/onboarding') {
-      // User has completed onboarding but is on onboarding page - redirect to dashboard
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      // User has completed onboarding but is on onboarding page - redirect to home
+      return NextResponse.redirect(new URL('/home', request.url));
     }
   }
 
@@ -141,8 +141,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/onboarding', request.url));
     }
 
-    // User has completed onboarding - redirect to dashboard
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    // User has completed onboarding - redirect to home
+    return NextResponse.redirect(new URL('/home', request.url));
   }
 
   return supabaseResponse;

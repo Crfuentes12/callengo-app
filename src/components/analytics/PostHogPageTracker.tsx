@@ -23,6 +23,7 @@ import {
 
 type TrackedPage =
   | 'dashboard'
+  | 'home'
   | 'agents'
   | 'campaigns'
   | 'calls'
@@ -38,6 +39,7 @@ type TrackedPage =
   | 'pricing'
 
 const pageViewHandlers: Record<TrackedPage, () => void> = {
+  home: () => phDashboardEvents.pageViewed(),
   dashboard: phDashboardEvents.pageViewed,
   agents: phAgentEvents.pageViewed,
   campaigns: phCampaignEvents.pageViewed,

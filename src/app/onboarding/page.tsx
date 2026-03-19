@@ -1,19 +1,17 @@
 // app/onboarding/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import PainSelection from '@/components/onboarding/PainSelection';
 import AgentTestExperience from '@/components/onboarding/AgentTestExperience';
 import { useLanguage } from '@/i18n';
-import LanguageSelector from '@/components/LanguageSelector';
 import { onboardingEvents } from '@/lib/analytics';
 import { phOnboardingEvents } from '@/lib/posthog';
 
 type OnboardingStep =
-  | 'language_selection'
   | 'form'
   | 'creating_company'
   | 'setting_up_account'
@@ -48,10 +46,11 @@ interface Pain {
 export default function OnboardingPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { t, language, setLanguage, detectedLanguage, detectedCountry, isAutoDetected } = useLanguage();
+  const { t } = useLanguage();
   const supabase = createClient();
+  const onboardingStartedRef = useRef(false);
 
-  const [step, setStep] = useState<OnboardingStep>('language_selection');
+  const [step, setStep] = useState<OnboardingStep>('form');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [scrapedData, setScrapedData] = useState<ScrapedResults | null>(null);
@@ -72,6 +71,9 @@ export default function OnboardingPage() {
       return;
     }
 
+    // Don't redirect if onboarding has already started (prevents auto-close bug)
+    if (onboardingStartedRef.current) return;
+
     // Check if user already has a company
     const { data: existingUser } = await supabase
       .from('users')
@@ -81,7 +83,7 @@ export default function OnboardingPage() {
 
     if (existingUser?.company_id) {
       // User already has company - go to dashboard
-      router.push('/dashboard');
+      router.push('/home');
     }
   };
 
@@ -94,6 +96,7 @@ export default function OnboardingPage() {
       return;
     }
 
+    onboardingStartedRef.current = true;
     onboardingEvents.started();
     phOnboardingEvents.started();
     await setupAccount();
@@ -117,7 +120,7 @@ export default function OnboardingPage() {
 
       if (existingUserRecord?.company_id) {
         // User already has a company, redirect to dashboard
-        router.push('/dashboard');
+        router.push('/home');
         return;
       }
 
@@ -254,7 +257,7 @@ export default function OnboardingPage() {
     setProgress(100);
     setStep('complete');
     setTimeout(() => {
-      router.push('/dashboard');
+      router.push('/home');
       router.refresh();
     }, 1500);
   };
@@ -267,7 +270,7 @@ export default function OnboardingPage() {
     setProgress(100);
     setStep('complete');
     await new Promise(resolve => setTimeout(resolve, 1500));
-    router.push('/dashboard');
+    router.push('/home');
     router.refresh();
   };
 
@@ -279,7 +282,7 @@ export default function OnboardingPage() {
     setProgress(100);
     setStep('complete');
     setTimeout(() => {
-      router.push('/dashboard');
+      router.push('/home');
       router.refresh();
     }, 1500);
   };
@@ -324,17 +327,12 @@ export default function OnboardingPage() {
       );
     }
 
-    if (step === 'showing_results' && scrapedData?.favicon_url) {
+    if (step === 'showing_results') {
       return (
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 flex items-center justify-center shadow-2xl shadow-emerald-500/50 animate-bounce">
-          <img
-            src={scrapedData.favicon_url}
-            alt="Company favicon"
-            className="w-10 h-10 rounded"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+          <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
         </div>
       );
     }
@@ -349,50 +347,7 @@ export default function OnboardingPage() {
     );
   };
 
-  const isProcessing = step !== 'form' && step !== 'language_selection' && step !== 'error' && step !== 'pain_selection' && step !== 'agent_test';
-
-  // Language Selection Step
-  if (step === 'language_selection') {
-    const detectedLangName = detectedLanguage ? t.languages[detectedLanguage as keyof typeof t.languages] || detectedLanguage : language;
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="w-full max-w-md relative z-10">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-bg mb-6 shadow-md">
-              <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-              </svg>
-            </div>
-            <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">{t.onboarding.languageDetection.title}</h1>
-            {isAutoDetected && detectedCountry && (
-              <p className="text-[var(--color-neutral-300)] text-lg">
-                {t.onboarding.languageDetection.detected} <span className="font-semibold text-white">{detectedCountry}</span>.
-                <br />
-                {t.onboarding.languageDetection.defaultLanguage} <span className="font-semibold text-white">{detectedLangName}</span>.
-              </p>
-            )}
-            {!isAutoDetected && (
-              <p className="text-[var(--color-neutral-300)] text-lg">{t.onboarding.languageDetection.selectLanguage}</p>
-            )}
-          </div>
-
-          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
-            <p className="text-sm text-[var(--color-neutral-600)] mb-4">{t.onboarding.languageDetection.changePrompt}</p>
-            <LanguageSelector value={language} onChange={(lang) => setLanguage(lang)} />
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => setStep('form')}
-                className="w-full py-4 gradient-bg text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-md transform hover:-translate-y-0.5"
-              >
-                {t.onboarding.languageDetection.confirm}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const isProcessing = step !== 'form' && step !== 'error' && step !== 'pain_selection' && step !== 'agent_test';
 
   if (step === 'form') {
     return (
@@ -475,9 +430,6 @@ export default function OnboardingPage() {
             </form>
           </div>
 
-          <p className="text-center text-[var(--color-neutral-300)] text-sm mt-8">
-            {t.settings.language.description}
-          </p>
         </div>
 
       </div>
@@ -512,7 +464,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
 
-      <div className="w-full max-w-md relative z-10">
+      <div className={`w-full relative z-10 ${step === 'showing_results' ? 'max-w-xl' : 'max-w-md'}`}>
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-12 border border-white/20">
           <div className="text-center">
             {/* Icon */}
@@ -569,63 +521,71 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Scraped Results - WOW Effect */}
+            {/* Scraped Results - Company Card */}
             {step === 'showing_results' && scrapedData && (
-              <div className="space-y-4 text-left animate-fadeIn">
-                <div className="p-5 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl">
-                  <div className="flex items-start gap-4">
-                    {scrapedData.favicon_url && (
+              <div className="animate-fadeIn">
+                <div className="bg-white border border-[var(--border-default)] rounded-2xl shadow-sm overflow-hidden">
+                  {/* Company Header */}
+                  <div className="p-6 flex items-start gap-4">
+                    {scrapedData.favicon_url ? (
                       <img
                         src={scrapedData.favicon_url}
                         alt="Company logo"
-                        className="w-12 h-12 rounded-xl shadow-md"
+                        className="w-14 h-14 rounded-xl shadow-sm border border-[var(--border-default)] object-cover flex-shrink-0"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}
                       />
+                    ) : (
+                      <div className="w-14 h-14 rounded-xl gradient-bg flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <span className="text-2xl font-bold text-white">{formData.companyName.charAt(0).toUpperCase()}</span>
+                      </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-lg text-[var(--color-ink)] mb-1">
                         {scrapedData.data.title || formData.companyName}
                       </h3>
                       {scrapedData.data.description && (
-                        <p className="text-sm text-[var(--color-neutral-600)] line-clamp-2">
+                        <p className="text-sm text-[var(--color-neutral-500)] line-clamp-2">
                           {scrapedData.data.description}
                         </p>
                       )}
                     </div>
                   </div>
-                </div>
 
-                {scrapedData.summary && (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                    <div className="flex items-start gap-2">
-                      <svg className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
-                      <div>
-                        <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide mb-1">{t.calls.summary}</p>
-                        <p className="text-sm text-blue-900">{scrapedData.summary}</p>
+                  {/* AI Summary */}
+                  {scrapedData.summary && (
+                    <div className="px-6 pb-5">
+                      <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)]">
+                        <div className="flex items-start gap-2.5">
+                          <svg className="w-4 h-4 text-[var(--color-primary)] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                          </svg>
+                          <div>
+                            <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wide mb-1">AI Summary</p>
+                            <p className="text-sm text-[var(--color-neutral-700)] leading-relaxed">{scrapedData.summary}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {scrapedData.data.headings && scrapedData.data.headings.length > 0 && (
-                  <div className="p-4 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl">
-                    <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wide mb-2">Key Topics</p>
-                    <div className="flex flex-wrap gap-2">
-                      {scrapedData.data.headings.slice(0, 4).map((heading, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-white border border-[var(--border-default)] rounded-full text-xs font-medium text-[var(--color-neutral-700)]"
-                        >
-                          {heading.length > 30 ? heading.substring(0, 30) + '...' : heading}
-                        </span>
-                      ))}
+                  {/* Key Topics */}
+                  {scrapedData.data.headings && scrapedData.data.headings.length > 0 && (
+                    <div className="px-6 pb-6">
+                      <div className="flex flex-wrap gap-2">
+                        {scrapedData.data.headings.slice(0, 4).map((heading, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-1 bg-[var(--color-primary-50)] border border-[var(--color-primary-100)] rounded-full text-xs font-medium text-[var(--color-primary-700)]"
+                          >
+                            {heading.length > 30 ? heading.substring(0, 30) + '...' : heading}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
 

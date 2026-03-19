@@ -184,7 +184,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
     if (selectedPlan?.slug === 'enterprise') {
       billingEvents.upgradeCtaClicked('billing_settings', currentPlan?.slug, 'enterprise');
       phBillingEvents.upgradeCtaClicked('billing_settings', currentPlan?.slug, 'enterprise');
-      window.open('mailto:sales@callengo.ai?subject=Enterprise Plan Inquiry', '_blank');
+      window.open('mailto:sales@callengo.com?subject=Enterprise Plan Inquiry', '_blank');
       return;
     }
     try {
@@ -383,8 +383,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   // Plan tier ordering for filtering higher tiers only
   const PLAN_TIER_ORDER: Record<string, number> = { free: 0, starter: 1, growth: 2, business: 3, teams: 4, enterprise: 5 };
   const currentTier = PLAN_TIER_ORDER[currentPlan?.slug || 'free'] ?? 0;
-  const higherPlans = plans.filter(p => (PLAN_TIER_ORDER[p.slug] ?? 0) > currentTier);
-  const comparisonPlans = plans.filter(p => (PLAN_TIER_ORDER[p.slug] ?? 0) >= currentTier);
+  const higherPlans = plans.filter(p => (PLAN_TIER_ORDER[p.slug] ?? 0) > currentTier && p.slug !== 'enterprise');
+  // Always show Starter through Teams for plan comparison (never enterprise, it gets its own banner)
+  const comparisonPlans = plans.filter(p => p.slug !== 'free' && p.slug !== 'enterprise');
+  const enterprisePlan = plans.find(p => p.slug === 'enterprise');
 
   // ══════════════════════════════════════════════════
   //  PAID PLAN VIEW — Management + upgrade options
@@ -722,7 +724,32 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           </div>
         </div>
 
-        {/* ── Detailed Comparison (expandable) ── */}
+        {/* ── Enterprise Banner ── */}
+        {enterprisePlan && (
+          <div className="bg-gradient-to-r from-purple-50 via-fuchsia-50 to-violet-50 border border-purple-200 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-fuchsia-600 flex items-center justify-center shadow-md">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-purple-900">Enterprise</h4>
+                  <p className="text-sm text-purple-700 mt-0.5">Custom pricing, unlimited users & concurrent calls, dedicated support, SLA, and custom integrations.</p>
+                </div>
+              </div>
+              <a
+                href="mailto:sales@callengo.com?subject=Enterprise Plan Inquiry"
+                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-sm font-semibold rounded-lg hover:from-purple-700 hover:to-fuchsia-700 transition-all shadow-md flex-shrink-0"
+              >
+                Contact Sales
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* ── Detailed Comparison ── */}
         {comparisonPlans.length > 1 && (
           <div className="border-t border-[var(--border-subtle)] pt-6">
             <button
@@ -1041,7 +1068,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   <div className="text-sm text-blue-900">
                     <p className="font-semibold mb-1">{t.billing.needHelp}</p>
-                    <p className="text-blue-700">{t.billing.contactUsAt} <a href="mailto:billing@callengo.ai" className="underline">billing@callengo.ai</a></p>
+                    <p className="text-blue-700">{t.billing.contactUsAt} <a href="mailto:support@callengo.com" className="underline">support@callengo.com</a></p>
                   </div>
                 </div>
               </div>
@@ -1433,12 +1460,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         ) : (
           <div className={`grid gap-4 ${higherPlans.length === 1 ? 'grid-cols-1 max-w-md' : higherPlans.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : higherPlans.length === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
             {higherPlans.map((plan) => {
-              const isEnterprise = plan.slug === 'enterprise';
               const isPopular = plan.slug === 'business';
-              const monthlyPrice = isEnterprise ? plan.price_monthly : (billingCycle === 'monthly' ? plan.price_monthly : Math.round(plan.price_annual / 12));
-              // price_annual is the total annual charge
+              const monthlyPrice = billingCycle === 'monthly' ? plan.price_monthly : Math.round(plan.price_annual / 12);
               const yearlyTotal = plan.price_annual;
-              const discountPercent = !isEnterprise && billingCycle === 'annual' ? Math.round(((plan.price_monthly * 12 - yearlyTotal) / (plan.price_monthly * 12)) * 100) : 0;
+              const discountPercent = billingCycle === 'annual' ? Math.round(((plan.price_monthly * 12 - yearlyTotal) / (plan.price_monthly * 12)) * 100) : 0;
 
               return (
                 <div key={plan.id} className="relative flex pt-6">
@@ -1454,11 +1479,10 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                     </div>
                     <div className="mb-3 pb-3 border-b border-[var(--border-subtle)] min-h-[4rem]">
                       <div className="flex items-baseline gap-1">
-                        {isEnterprise && <span className="text-xs text-[var(--color-neutral-400)] font-normal">from</span>}
                         <span className="text-2xl font-bold text-[var(--color-ink)]">{formatPrice(monthlyPrice)}</span>
                         <span className="text-xs text-[var(--color-neutral-500)]">{t.billing.mo}</span>
                       </div>
-                      {!isEnterprise && billingCycle === 'annual' && discountPercent > 0 && (
+                      {billingCycle === 'annual' && discountPercent > 0 && (
                         <div className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 mt-1">{t.billing.save} {discountPercent}%</div>
                       )}
                     </div>
@@ -1477,22 +1501,38 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                         ))}
                       </div>
                     </div>
-                    {isEnterprise ? (
-                      <a
-                        href="mailto:sales@callengo.com?subject=Enterprise Plan Inquiry"
-                        className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto text-center block bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white hover:from-purple-700 hover:to-fuchsia-700`}
-                      >
-                        Contact Sales
-                      </a>
-                    ) : (
-                      <button onClick={() => handleChangePlan(plan.id)} disabled={changing} className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto ${isPopular ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-[var(--color-neutral-800)] text-white hover:bg-[var(--color-neutral-900)]'}`}>
-                        {changing ? t.common.loading : t.billing.upgradePlan}
-                      </button>
-                    )}
+                    <button onClick={() => handleChangePlan(plan.id)} disabled={changing} className={`w-full py-2 rounded-lg text-xs font-semibold transition-all mt-auto ${isPopular ? 'gradient-bg text-white hover:opacity-90 shadow-md' : 'bg-[var(--color-neutral-800)] text-white hover:bg-[var(--color-neutral-900)]'}`}>
+                      {changing ? t.common.loading : t.billing.upgradePlan}
+                    </button>
                   </div>
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Enterprise Banner */}
+        {enterprisePlan && (
+          <div className="mt-6 bg-gradient-to-r from-purple-50 via-fuchsia-50 to-violet-50 border border-purple-200 rounded-xl p-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-fuchsia-600 flex items-center justify-center shadow-md">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-purple-900">Enterprise</h4>
+                  <p className="text-sm text-purple-700 mt-0.5">Custom pricing, unlimited users & concurrent calls, dedicated support, SLA, and custom integrations.</p>
+                </div>
+              </div>
+              <a
+                href="mailto:sales@callengo.com?subject=Enterprise Plan Inquiry"
+                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-sm font-semibold rounded-lg hover:from-purple-700 hover:to-fuchsia-700 transition-all shadow-md flex-shrink-0"
+              >
+                Contact Sales
+              </a>
+            </div>
           </div>
         )}
       </div>
@@ -1503,7 +1543,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <div className="text-sm text-blue-900">
             <p className="font-semibold mb-1">{t.billing.needHelpChoosing}</p>
-            <p className="text-blue-700">{t.billing.contactUsAt} <a href="mailto:billing@callengo.ai" className="underline">billing@callengo.ai</a> {t.billing.orViewOur} <a href="#" className="underline">{t.billing.pricingFaq}</a>.</p>
+            <p className="text-blue-700">{t.billing.contactUsAt} <a href="mailto:support@callengo.com" className="underline">support@callengo.com</a> {t.billing.orViewOur} <a href="https://callengo.com/pricing" target="_blank" rel="noopener noreferrer" className="underline">{t.billing.pricingFaq}</a>.</p>
           </div>
         </div>
       </div>
