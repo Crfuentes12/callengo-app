@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Main from './Main';
+import ProgressTracker from '@/components/home/ProgressTracker';
 import { Database } from '@/types/supabase';
 type Company = Database['public']['Tables']['companies']['Row'];
 type User = {
@@ -113,6 +114,8 @@ export default function Layout({
         />
         <Main>{children}</Main>
       </div>
+      {/* Progress Tracker */}
+      <ProgressTracker />
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div

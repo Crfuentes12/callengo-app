@@ -42,7 +42,7 @@ function getStoredLanguage(): SupportedLanguage | null {
   if (typeof window === 'undefined') return null;
   try {
     const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (stored && ['en', 'es', 'de', 'nl', 'fr', 'it'].includes(stored)) {
+    if (stored && ['en', 'es'].includes(stored)) {
       return stored as SupportedLanguage;
     }
   } catch {

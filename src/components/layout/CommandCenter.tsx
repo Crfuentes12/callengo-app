@@ -291,7 +291,7 @@ const PAGES: SearchResult[] = [
 const ACTIONS: SearchResult[] = [
   { id: 'a-import',     type: 'action', title: 'Import Contacts',      subtitle: 'CSV, Excel, Google Sheets',         href: '/contacts',       icon: <IconImport /> },
   { id: 'a-campaign',   type: 'action', title: 'Create Campaign',      subtitle: 'Launch a new AI calling campaign',  href: '/campaigns',      icon: <IconRocket /> },
-  { id: 'a-agent',      type: 'action', title: 'Create Agent',         subtitle: 'Configure a new AI voice agent',   href: '/agents',         icon: <IconPlus /> },
+  { id: 'a-agent',      type: 'action', title: 'View Agents',          subtitle: 'Explore & configure AI voice agents', href: '/agents',       icon: <IconPlus /> },
   { id: 'a-contact',    type: 'action', title: 'Add Contact',          subtitle: 'Manually add a new contact',        href: '/contacts',       icon: <IconPlus /> },
   { id: 'a-schedule',   type: 'action', title: 'Schedule Event',       subtitle: 'Add to calendar',                   href: '/calendar',       icon: <IconCalendar /> },
   { id: 'a-export',     type: 'action', title: 'Export Reports',       subtitle: 'Download analytics & call data',    href: '/analytics',      icon: <IconExport /> },

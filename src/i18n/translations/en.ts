@@ -197,6 +197,7 @@ const en = {
   // NAVIGATION / SIDEBAR
   // ============================================================
   nav: {
+    home: 'Home',
     dashboard: 'Dashboard',
     contacts: 'Contacts',
     campaigns: 'Campaigns',

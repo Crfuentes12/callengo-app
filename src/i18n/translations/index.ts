@@ -10,15 +10,11 @@ const translationLoaders: Record<string, () => Promise<{ default: TranslationKey
   it: () => import('./it'),
 };
 
-export type SupportedLanguage = 'en' | 'es' | 'de' | 'nl' | 'fr' | 'it';
+export type SupportedLanguage = 'en' | 'es';
 
 export const SUPPORTED_LANGUAGES: { code: SupportedLanguage; name: string; nativeName: string; flag: string }[] = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸' },
   { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
-  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', flag: '🇳🇱' },
-  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷' },
-  { code: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹' },
 ];
 
 // Cache loaded translations
