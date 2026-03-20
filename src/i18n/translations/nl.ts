@@ -241,6 +241,7 @@ const nl: TranslationKeys = {
     settings: 'Instellingen',
     billing: 'Facturering',
     reports: 'Rapporten',
+    adminCommandCenter: 'Commandocentrum',
     adminFinances: 'Admin Financiën',
     signOut: 'Uitloggen',
     closeNavigation: 'Navigatie sluiten',
@@ -1123,6 +1124,14 @@ const nl: TranslationKeys = {
       supabaseCost: 'Supabase-kosten',
       subscriptionRevenue: 'Abonnementsomzet',
       overageRevenue: 'Omzet extra verbruik',
+    },
+    commandCenter: {
+      title: 'Commandocentrum',
+      subtitle: 'Realtime platformmonitoring & klantbeheer',
+      tabHealth: 'Gezondheidsdashboard',
+      tabClients: 'Klanten',
+      tabEvents: 'Factureringsgebeurtenissen',
+      tabReconcile: 'Reconciliatie',
     },
   },
 

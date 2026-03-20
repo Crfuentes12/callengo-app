@@ -285,6 +285,49 @@ async function processUsagePostUpdate(
     }
   }
 
+  // ================================================================
+  // AUDIT FIX: Progressive usage alerts (70%, 90%, 100% of included minutes)
+  // These track plan usage, separate from overage budget alerts above.
+  // ================================================================
+  if (minutesIncluded > 0) {
+    const usagePercent = (newMinutesUsed / minutesIncluded) * 100;
+    let usageAlertLevel = 0;
+    if (usagePercent >= 100) usageAlertLevel = 3;
+    else if (usagePercent >= 90) usageAlertLevel = 2;
+    else if (usagePercent >= 70) usageAlertLevel = 1;
+
+    // Only emit alert if level increased (avoid duplicate alerts)
+    const currentAlertLevel = overageAlertLevel || 0;
+    if (usageAlertLevel > currentAlertLevel && !overageEnabled) {
+      // Only alert non-overage users about plan usage (overage users get budget alerts instead)
+      await supabase
+        .from('company_subscriptions')
+        .update({ overage_alert_level: usageAlertLevel })
+        .eq('id', subId);
+
+      const alertMessages: Record<number, string> = {
+        1: '70% of included minutes used',
+        2: '90% of included minutes used — consider upgrading or enabling overage',
+        3: '100% of included minutes used — calls are now blocked',
+      };
+
+      await supabase.from('billing_events').insert({
+        company_id: companyId,
+        subscription_id: subId,
+        event_type: 'usage_alert',
+        event_data: {
+          level: usageAlertLevel,
+          percent: Math.round(usagePercent),
+          minutes_used: newMinutesUsed,
+          minutes_included: minutesIncluded,
+          message: alertMessages[usageAlertLevel],
+        },
+        minutes_consumed: 0,
+        cost_usd: 0,
+      });
+    }
+  }
+
   return {
     success: true,
     usage: {
@@ -295,6 +338,7 @@ async function processUsagePostUpdate(
       budget_remaining: overageBudget
         ? Math.max(0, overageBudget - overageCost)
         : null,
+      percent_used: minutesIncluded > 0 ? Math.round((newMinutesUsed / minutesIncluded) * 100) : 0,
     },
   };
 }

@@ -24,7 +24,7 @@ Callengo es una plataforma B2B SaaS de llamadas outbound automatizadas con IA. R
 | **Pagos** | Stripe 20.1.0 (suscripciones, metered billing para overage, add-ons) |
 | **Llamadas** | Bland AI (voz + transcripción) con arquitectura de sub-cuentas por empresa |
 | **Análisis IA** | OpenAI GPT-4o-mini (temperature 0.1, JSON mode, post-call intelligence) |
-| **Charts** | Recharts 2.10.3 |
+| **Charts** | Recharts 3.8.0 |
 | **i18n** | 7 idiomas: en, es, fr, de, it, nl, pt (detección por geolocalización) |
 | **Deploy** | Vercel |
 
@@ -144,15 +144,21 @@ Llama 24-48h antes de una cita. Confirma asistencia, gestiona reprogramaciones, 
 
 Cada empresa tiene una **sub-cuenta aislada en Bland AI** creada al registrarse:
 - API key propia (`bland_subaccount_id` en tabla `company_settings`)
-- Balance de créditos independiente (se financia desde la cuenta padre)
+- Balance de créditos independiente (redistribuido desde la cuenta master)
 - Historial de llamadas y analíticas aislados
 - Sin concurrencia compartida entre empresas
 
-**Flujo de créditos:**
-1. Empresa se suscribe → Stripe cobra mensualmente
-2. Webhook dispara → créditos asignados a la sub-cuenta Bland
-3. Bland descuenta créditos en tiempo real por minuto usado
-4. Overage: Stripe metered billing cobra al final del período
+**Modelo de créditos (Stripe y Bland son independientes):**
+- **Stripe** solo cobra a los clientes. No interactúa con Bland.
+- **Bland** se carga manualmente con créditos en la cuenta master.
+- El sistema redistribuye créditos **dentro de Bland** (master → sub-cuentas) cuando Stripe confirma pagos via webhook.
+
+**Flujo operativo:**
+1. El owner carga créditos en su cuenta master de Bland (manual, independiente)
+2. Cliente paga en Stripe → webhook confirma pago
+3. Webhook redistribuye créditos de la master a la sub-cuenta del cliente en Bland
+4. Bland descuenta créditos en tiempo real por minuto usado
+5. Overage: Stripe metered billing cobra al cliente al final del período
 
 > ⚠️ Twilio BYOP NO está disponible — incompatible con arquitectura multi-tenant de sub-cuentas Bland.
 

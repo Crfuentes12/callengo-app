@@ -584,6 +584,7 @@ export type Database = {
         Row: {
           company_id: string
           bland_api_key: string | null
+          bland_subaccount_id: string | null
           openai_api_key: string | null
           default_voice: string
           default_max_duration: number
@@ -596,6 +597,7 @@ export type Database = {
         Insert: {
           company_id: string
           bland_api_key?: string | null
+          bland_subaccount_id?: string | null
           openai_api_key?: string | null
           default_voice?: string
           default_max_duration?: number
@@ -608,6 +610,7 @@ export type Database = {
         Update: {
           company_id?: string
           bland_api_key?: string | null
+          bland_subaccount_id?: string | null
           openai_api_key?: string | null
           default_voice?: string
           default_max_duration?: number
