@@ -24,7 +24,7 @@ Callengo es una plataforma B2B SaaS de llamadas outbound automatizadas con IA. R
 | **Pagos** | Stripe 20.1.0 (suscripciones, metered billing para overage, add-ons) |
 | **Llamadas** | Bland AI (voz + transcripción) con arquitectura de sub-cuentas por empresa |
 | **Análisis IA** | OpenAI GPT-4o-mini (temperature 0.1, JSON mode, post-call intelligence) |
-| **Charts** | Recharts 2.10.3 |
+| **Charts** | Recharts 3.8.0 |
 | **i18n** | 7 idiomas: en, es, fr, de, it, nl, pt (detección por geolocalización) |
 | **Deploy** | Vercel |
 

@@ -1,7 +1,7 @@
 # CALLENGO — Complete Platform Master Document
 
 > **Version:** 1.3.0
-> **Last Updated:** March 2026 (V4 Pricing — Bland AI sub-accounts, Growth plan, add-ons)
+> **Last Updated:** March 2026 (V4 Pricing — Bland AI sub-accounts, Growth plan, add-ons, billing audit)
 > **Purpose:** Comprehensive reference for the entire Callengo platform — business strategy, target market, architecture, features, pricing, database schema, API endpoints, integrations, and business logic.
 
 ---
@@ -821,15 +821,45 @@ The system recognizes 88+ field name patterns for automatic column mapping from 
 ### Call Provider
 Bland AI is the underlying call engine. Calls are initiated via the Bland AI API and results are received via webhook.
 
+### Bland AI Sub-Account Architecture
+
+Each Callengo company gets an **isolated Bland AI sub-account** for call execution and tracking.
+
+**Key Principle: Stripe and Bland are completely independent systems.**
+- **Stripe** only handles customer payments. It never interacts with Bland.
+- **Bland** master account is funded manually by the platform owner (independent of Stripe).
+- When Stripe webhooks confirm a payment, the system **redistributes credits within Bland** (master → sub-account). No money flows between Stripe and Bland.
+
+**Sub-Account Lifecycle:**
+1. **Creation:** On `checkout.session.completed` webhook (after first payment), a sub-account is created via `POST /v1/accounts` using the master API key. The sub-account ID and API key are stored in `company_settings`.
+2. **Credit Redistribution:** Credits are moved from the master Bland account to the sub-account via `POST /v1/accounts/{id}/credits/add`. This happens on:
+   - Initial subscription activation
+   - Monthly cycle renewal (old credits reclaimed first, then fresh allocation)
+   - Plan upgrade (pro-rated differential credits for remaining period)
+   - Calls Booster add-on activation
+3. **Call Execution:** Calls use the sub-account's own API key, ensuring isolation of call history, analytics, and concurrency.
+4. **Credit Reclamation:** On cycle renewal or cancellation, unused credits are returned to the master account via `POST /v1/accounts/{id}/credits/remove`.
+5. **Deactivation:** On subscription cancellation, credits are reclaimed and sub-account credentials are cleared from `company_settings`.
+
+**Credit Calculation Formula:**
+```
+credits = (plan_minutes × $0.11/min) × 1.05 (5% buffer)
+```
+Example: Starter (300 min) → $33 × 1.05 = $34.65 redistributed to sub-account.
+
+**Important:** Sub-accounts do NOT automatically draw from the parent balance. Each sub-account has its own isolated balance. If a sub-account runs out of credits, calls fail — there is no fallback to the master account. The automated redistribution system ensures credits are always allocated when customers pay.
+
+**Implementation:** `src/lib/bland/subaccount-manager.ts` — handles creation, credit redistribution, reclamation, deactivation, and plan upgrade pro-rating.
+
 ### Call Flow
 1. Campaign started → contacts queued in `call_queue`
 2. Queue processor picks up contacts based on concurrency limits
-3. Call sent to Bland AI via `/api/bland/send-call`
-4. Bland AI executes call with configured voice, prompt, and settings
+3. Call sent to Bland AI via `/api/bland/send-call` (using company's sub-account API key)
+4. Bland AI executes call with configured voice, prompt, and settings (credits deducted from sub-account in real-time)
 5. Webhook received at `/api/bland/webhook` on call completion
 6. Call log created, contact status updated, analysis stored
 7. Follow-ups scheduled if applicable
-8. Usage tracked for billing
+8. Usage tracked for billing (Callengo-side minute tracking in `usage_tracking` table)
 
 ### Call Statuses
 | Status | Description |
@@ -1104,6 +1134,34 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 - Billing portal sessions for self-service
 - Metered billing for overage
 - Webhook processing at `/api/webhooks/stripe`
+- **Stripe does NOT interact with Bland AI** — it only handles customer payments
+
+### Stripe ↔ Bland Separation (Critical Architecture)
+
+Stripe and Bland AI operate as **completely independent financial systems**:
+
+| System | Role | Funded By |
+|---|---|---|
+| **Stripe** | Collects payments from Callengo customers | Customer credit cards |
+| **Bland AI** | Provides calling infrastructure and per-minute billing | Platform owner loads credits manually |
+
+**How they connect (indirectly):**
+1. Customer pays via Stripe → Stripe webhook fires
+2. Webhook triggers Bland credit **redistribution** (master → sub-account)
+3. Credits are moved **within Bland's own system** — no money flows from Stripe to Bland
+4. Platform owner funds the Bland master account independently
+
+**Webhook-Triggered Bland Operations:**
+
+| Stripe Event | Bland Action |
+|---|---|
+| `checkout.session.completed` | Create sub-account + allocate initial credits |
+| `invoice.payment_succeeded` (cycle renewal) | Reclaim old credits → allocate fresh credits |
+| `customer.subscription.updated` (plan upgrade) | Allocate pro-rated differential credits |
+| `customer.subscription.deleted` | Reclaim credits → deactivate sub-account |
+
+**Admin Monitoring:**
+The admin dashboard (`/admin`) shows Bland infrastructure costs, sub-account count, per-minute rates, and margin analysis — all for the platform owner's visibility. The platform owner manages their Bland account balance independently through Bland's own dashboard.
 
 ---
 
@@ -1128,6 +1186,7 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 | Google APIs | 144.0.0 | Calendar, Sheets, Meet |
 | Axios | 1.13.2 | HTTP client |
 | LRU-Cache | 11.2.6 | Performance caching |
+| Recharts | 3.8.0 | Data visualization / charts |
 | Lucide React | 0.562.0 | Icon library |
 | PapaParse | 5.5.3 | CSV parsing |
 | XLSX | 0.18.5 | Excel file support |
@@ -1189,7 +1248,8 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 | Column | Type | Notes |
 |---|---|---|
 | company_id | uuid (PK, FK) | |
-| bland_api_key | text? | Encrypted |
+| bland_subaccount_id | text? | Bland AI sub-account ID (cleared on deactivation) |
+| bland_api_key | text? | Bland sub-account API key (encrypted, cleared on deactivation) |
 | openai_api_key | text? | Encrypted |
 | default_voice | text | maya, josh, matt, nat |
 | default_max_duration | number | Minutes |
@@ -1572,11 +1632,19 @@ Tables: `salesforce_integrations`, `hubspot_integrations`, `pipedrive_integratio
 | id | uuid (PK) | |
 | company_id | uuid (FK) | |
 | subscription_id | uuid? (FK) | |
-| event_type | text | |
+| event_type | text | See event types below |
 | event_data | json | |
 | minutes_consumed | number? | |
-| cost_usd | number? | |
+| cost_usd | number? | For Bland events: dollar equivalent of credits (not actual financial transaction) |
 | created_at | timestamp | |
+
+**Event Types:**
+- `payment_succeeded`, `payment_failed` — Stripe payment events
+- `subscription_updated`, `subscription_canceled`, `trial_ending` — Subscription lifecycle
+- `bland_credits_allocated` — Credits redistributed from master → sub-account
+- `bland_credits_reclaimed` — Credits returned from sub-account → master
+- `bland_subaccount_deactivated` — Sub-account credentials cleared on cancellation
+- `overage_alert`, `overage_budget_exceeded`, `overage_enabled`, `overage_disabled` — Overage events
 
 #### `notifications`
 | Column | Type | Notes |
@@ -1688,6 +1756,18 @@ Each CRM has an integration table + sync log table + contact mapping table:
 | POST | `/api/billing/ensure-free-plan` | Ensure free plan exists |
 | POST | `/api/billing/update-overage` | Update overage settings |
 | POST | `/api/billing/verify-session` | Verify Stripe session |
+
+### Bland AI Sub-Account Management
+| Method | Endpoint | Purpose |
+|---|---|---|
+| — | (internal) `createBlandSubAccount()` | Creates sub-account on checkout completion |
+| — | (internal) `allocateBlandCredits()` | Redistributes credits master → sub-account |
+| — | (internal) `reclaimBlandCredits()` | Returns unused credits sub-account → master |
+| — | (internal) `handleCycleRenewalCredits()` | Reclaims + reallocates on monthly renewal |
+| — | (internal) `handlePlanUpgradeCredits()` | Allocates pro-rated differential on upgrade |
+| — | (internal) `deactivateBlandSubAccount()` | Reclaims credits + clears sub-account on cancel |
+
+> These are internal functions in `src/lib/bland/subaccount-manager.ts`, triggered by Stripe webhooks. Not exposed as API endpoints.
 
 ### Bland AI / Calls (4 endpoints)
 | Method | Endpoint | Purpose |
@@ -2015,7 +2095,8 @@ Each CRM has an integration table + sync log table + contact mapping table:
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `NEXT_PUBLIC_APP_URL` | Application URL |
 | `OPENAI_API_KEY` | OpenAI API key |
-| `BLAND_API_KEY` | Bland AI API key |
+| `BLAND_API_KEY` | Bland AI master account API key (used for sub-account management) |
+| `BLAND_COST_PER_MINUTE` | Bland per-minute rate override (default: $0.11 — Scale plan) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth |
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | Microsoft OAuth |
 | `SALESFORCE_CLIENT_ID` / `SALESFORCE_CLIENT_SECRET` | Salesforce OAuth |
