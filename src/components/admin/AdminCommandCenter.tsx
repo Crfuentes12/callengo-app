@@ -141,6 +141,7 @@ export default function AdminCommandCenter() {
   const [loading, setLoading] = useState(true);
   const [clientSort, setClientSort] = useState<'usage' | 'profit' | 'cost' | 'name'>('usage');
   const [clientSearch, setClientSearch] = useState('');
+  const [cleaningUp, setCleaningUp] = useState(false);
 
   // Auto-refresh health data every 30 seconds
   const fetchHealth = useCallback(async () => {
@@ -166,6 +167,26 @@ export default function AdminCommandCenter() {
       console.error('Failed to fetch clients:', e);
     }
   }, []);
+
+  const handleCleanupOrphans = useCallback(async () => {
+    if (!confirm('This will archive orphaned companies (no active users) and delete their operational data (contacts, agents, integrations). Financial records (subscriptions, billing, usage, call logs) are preserved. Continue?')) return;
+    setCleaningUp(true);
+    try {
+      const res = await fetch('/api/admin/cleanup-orphans', { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Archived ${data.archived} orphaned companies. Financial records preserved.`);
+        fetchClients();
+      } else {
+        alert(`Error: ${data.error}`);
+      }
+    } catch (e) {
+      console.error('Cleanup failed:', e);
+      alert('Cleanup failed — check console');
+    } finally {
+      setCleaningUp(false);
+    }
+  }, [fetchClients]);
 
   const fetchEvents = useCallback(async (page = 1, eventType = '') => {
     try {
@@ -457,6 +478,13 @@ export default function AdminCommandCenter() {
             <button onClick={fetchClients} className="px-3 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:opacity-90">
               Refresh
             </button>
+            <button
+              onClick={handleCleanupOrphans}
+              disabled={cleaningUp}
+              className="px-3 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm hover:bg-red-100 disabled:opacity-50"
+            >
+              {cleaningUp ? 'Cleaning...' : 'Cleanup Orphans'}
+            </button>
             <span className="text-xs text-[var(--color-neutral-400)]">{sortedClients.length} companies</span>
           </div>
 
@@ -482,7 +510,7 @@ export default function AdminCommandCenter() {
                   {sortedClients.map((client) => (
                     <tr key={client.id} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)] transition-colors">
                       <td className="py-3 px-4">
-                        <div className="font-medium text-[var(--color-ink)]">{client.name}</div>
+                        <div className="font-medium text-[var(--color-ink)] max-w-[280px] truncate" title={client.name}>{client.name}</div>
                         <div className="text-xs text-[var(--color-neutral-400)]">{client.id.substring(0, 8)}...</div>
                       </td>
                       <td className="text-center py-3 px-3">

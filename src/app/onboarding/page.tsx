@@ -206,7 +206,7 @@ export default function OnboardingPage() {
             const scrapeData = await scrapeResponse.json();
             setScrapedData(scrapeData);
             // Pre-fill editable fields
-            setEditableCompanyName(scrapeData.data.title || formData.companyName);
+            setEditableCompanyName(scrapeData.name || formData.companyName);
             setEditableDescription(scrapeData.data.description || '');
             setEditableSummary(scrapeData.summary || '');
             setProgress(90);
