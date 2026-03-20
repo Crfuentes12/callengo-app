@@ -3,8 +3,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '@/i18n';
-import { BLAND_VOICES } from '@/lib/voices/bland-voices';
-import { determineGender } from '@/lib/voices/voice-utils';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 
 interface AgentConfig {
@@ -150,7 +148,6 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
       setCallId(data.call_id);
       setCallStatus('ringing');
 
-      // Start polling for call status
       pollingIntervalRef.current = setInterval(() => pollCallStatus(data.call_id), 2000);
 
     } catch (error) {
@@ -209,7 +206,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
       }
     } catch (error) {
       console.error('Error analyzing call:', error);
-      setStep('analysis'); // Still show analysis screen even if analysis fails
+      setStep('analysis');
     }
   };
 
@@ -221,11 +218,11 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
   const getStatusColor = () => {
     switch (callStatus) {
-      case 'dialing': return 'from-yellow-500 to-orange-500';
-      case 'ringing': return 'from-blue-500 to-blue-700';
-      case 'connected': return 'from-emerald-500 to-green-500';
+      case 'dialing': return 'from-amber-400 to-orange-500';
+      case 'ringing': return 'from-blue-400 to-blue-600';
+      case 'connected': return 'from-emerald-400 to-green-500';
       case 'ended': return 'from-[var(--color-deep-indigo)] to-[var(--color-electric)]';
-      default: return 'from-[var(--color-neutral-500)] to-[var(--color-neutral-600)]';
+      default: return 'from-[var(--color-neutral-400)] to-[var(--color-neutral-500)]';
     }
   };
 
@@ -240,218 +237,214 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-950)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4">
-      {/* Background */}
+    <div className="w-full">
+      {/* Setup Step */}
+      {step === 'setup' && (
+        <div>
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${agent.color} mb-4 shadow-md`}>
+              <span className="text-2xl">{agent.icon}</span>
+            </div>
+            <h2 className="text-2xl font-bold text-[var(--color-ink)] mb-2">{t.onboarding.agentTest.testYourAgent.replace('{agentTitle}', agentTitle)}</h2>
+            <p className="text-sm text-[var(--color-neutral-500)]">
+              {t.onboarding.agentTest.experienceAgent.replace('{agentName}', agentName)}
+            </p>
+          </div>
 
-      <div className="relative z-10 max-w-2xl w-full">
-        {/* Setup Step */}
-        {step === 'setup' && (
-          <div className="bg-gradient-to-br from-[var(--color-neutral-900)]/90 to-[var(--color-neutral-800)]/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-[var(--color-neutral-800)]">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${agent.color} mb-4 shadow-lg`}>
-                <span className="text-3xl">{agent.icon}</span>
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-2">{t.onboarding.agentTest.testYourAgent.replace('{agentTitle}', agentTitle)}</h2>
-              <p className="text-[var(--color-neutral-400)]">
-                {t.onboarding.agentTest.experienceAgent.replace('{agentName}', agentName)}
+          {/* Form */}
+          <div className="space-y-5">
+            {/* Agent Name */}
+            <div>
+              <label className="block text-[11px] font-bold text-[var(--color-neutral-600)] uppercase mb-1">
+                {t.onboarding.agentTest.agentName}
+              </label>
+              <input
+                type="text"
+                value={agentName}
+                onChange={(e) => setAgentName(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"
+                placeholder={t.onboarding.agentTest.agentNamePlaceholder}
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div>
+              <label className="block text-[11px] font-bold text-[var(--color-neutral-600)] uppercase mb-1">
+                {t.onboarding.agentTest.yourPhoneNumber}
+              </label>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"
+                placeholder="+1 (555) 123-4567"
+              />
+              <p className="text-xs text-[var(--color-neutral-400)] mt-1.5">
+                {t.onboarding.agentTest.phoneHint}
               </p>
             </div>
 
-            {/* Form */}
-            <div className="space-y-6">
-              {/* Agent Name */}
-              <div>
-                <label className="block text-sm font-bold text-[var(--color-neutral-300)] mb-2">
-                  {t.onboarding.agentTest.agentName}
-                </label>
-                <input
-                  type="text"
-                  value={agentName}
-                  onChange={(e) => setAgentName(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--color-neutral-800)]/50 border border-[var(--color-neutral-700)] rounded-lg text-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
-                  placeholder={t.onboarding.agentTest.agentNamePlaceholder}
-                />
-              </div>
-
-              {/* Phone Number */}
-              <div>
-                <label className="block text-sm font-bold text-[var(--color-neutral-300)] mb-2">
-                  {t.onboarding.agentTest.yourPhoneNumber}
-                </label>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--color-neutral-800)]/50 border border-[var(--color-neutral-700)] rounded-lg text-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
-                  placeholder="+1 (555) 123-4567"
-                />
-                <p className="text-xs text-[var(--color-neutral-500)] mt-2">
-                  {t.onboarding.agentTest.phoneHint}
-                </p>
-              </div>
-
-              {/* Voice Selector */}
-              <div>
-                <label className="block text-sm font-bold text-[var(--color-neutral-300)] mb-2">
-                  {t.onboarding.agentTest.selectVoice}
-                </label>
-                <VoiceSelector
-                  selectedVoiceId={selectedVoice}
-                  onVoiceSelect={setSelectedVoice}
-                  variant="dark"
-                />
-              </div>
-
-              {/* Demo Data Info */}
-              <div className="bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-4">
-                <h3 className="text-sm font-bold text-white mb-2">{t.onboarding.agentTest.demoData}</h3>
-                <div className="space-y-1">
-                  {Object.entries(agent.demoData).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
-                      <span className="text-[var(--color-neutral-400)] capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                      <span className="text-[var(--color-neutral-300)] font-medium">{value as string}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={startCall}
-                  disabled={!phoneNumber || !selectedVoice || loading}
-                  className={`
-                    flex-1 px-6 py-4 bg-gradient-to-r ${agent.color} text-white rounded-lg font-bold
-                    transition-all duration-300 flex items-center justify-center gap-2
-                    ${!phoneNumber || !selectedVoice || loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}
-                  `}
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  {t.onboarding.agentTest.startTestCall}
-                </button>
-                <button
-                  onClick={onSkip}
-                  className="px-6 py-4 bg-[var(--color-neutral-800)] text-[var(--color-neutral-300)] rounded-lg font-medium hover:bg-[var(--color-neutral-700)] transition-colors"
-                >
-                  {t.onboarding.agentTest.skip}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Calling Step */}
-        {step === 'calling' && (
-          <div className="bg-gradient-to-br from-[var(--color-neutral-900)]/90 to-[var(--color-neutral-800)]/90 backdrop-blur-sm rounded-3xl p-12 shadow-2xl border border-[var(--color-neutral-800)] text-center">
-            {/* Status Indicator */}
-            <div className={`inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br ${getStatusColor()} mb-6 shadow-2xl animate-pulse`}>
-              <svg className="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
+            {/* Voice Selector */}
+            <div>
+              <label className="block text-[11px] font-bold text-[var(--color-neutral-600)] uppercase mb-1">
+                {t.onboarding.agentTest.selectVoice}
+              </label>
+              <VoiceSelector
+                selectedVoiceId={selectedVoice}
+                onVoiceSelect={setSelectedVoice}
+                variant="light"
+              />
             </div>
 
-            <h2 className="text-4xl font-bold text-white mb-2">{getStatusText()}</h2>
-            <p className="text-xl text-[var(--color-neutral-400)] mb-6">{t.onboarding.agentTest.callingYou.replace('{agentName}', agentName)}</p>
-
-            {callStatus === 'connected' && (
-              <div className="text-6xl font-bold text-white tabular-nums">
-                {formatDuration(callDuration)}
-              </div>
-            )}
-
-            <div className="mt-8 bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[var(--color-neutral-400)]">{t.onboarding.agentTest.phone}</span>
-                  <span className="text-white font-mono">{phoneNumber}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[var(--color-neutral-400)]">{t.onboarding.agentTest.agent}</span>
-                  <span className="text-white">{agentName}</span>
-                </div>
+            {/* Demo Data Info */}
+            <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-4">
+              <h3 className="text-[11px] font-bold text-[var(--color-ink)] uppercase mb-2">{t.onboarding.agentTest.demoData}</h3>
+              <div className="space-y-1">
+                {Object.entries(agent.demoData).map(([key, value]) => (
+                  <div key={key} className="flex justify-between text-sm">
+                    <span className="text-[var(--color-neutral-500)] capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                    <span className="text-[var(--color-ink)] font-medium">{value as string}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Analysis Step */}
-        {step === 'analysis' && (
-          <div className="bg-gradient-to-br from-[var(--color-neutral-900)]/90 to-[var(--color-neutral-800)]/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-[var(--color-neutral-800)]">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 mb-4 shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={startCall}
+                disabled={!phoneNumber || !selectedVoice || loading}
+                className={`
+                  flex-1 px-5 py-3 bg-gradient-to-r ${agent.color} text-white rounded-lg font-bold text-sm
+                  transition-all duration-300 flex items-center justify-center gap-2
+                  ${!phoneNumber || !selectedVoice || loading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90 hover:shadow-lg'}
+                `}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-2">{t.onboarding.agentTest.callComplete}</h2>
-              <p className="text-[var(--color-neutral-400)]">
-                {t.onboarding.agentTest.agentPerformance.replace('{agentName}', agentName)}
-              </p>
+                {t.onboarding.agentTest.startTestCall}
+              </button>
+              <button
+                onClick={onSkip}
+                className="px-5 py-3 bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)] rounded-lg font-semibold text-sm hover:bg-[var(--color-neutral-200)] transition-all border border-[var(--border-default)]"
+              >
+                {t.onboarding.agentTest.skip}
+              </button>
             </div>
-
-            {/* Call Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-white mb-1">{formatDuration(callDuration)}</div>
-                <div className="text-xs text-[var(--color-neutral-400)]">{t.onboarding.agentTest.duration}</div>
-              </div>
-              <div className="bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-emerald-400 mb-1">{t.onboarding.agentTest.demo}</div>
-                <div className="text-xs text-[var(--color-neutral-400)]">{t.onboarding.agentTest.callType}</div>
-              </div>
-              <div className="bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-white mb-1">✓</div>
-                <div className="text-xs text-[var(--color-neutral-400)]">{t.onboarding.agentTest.completed}</div>
-              </div>
-            </div>
-
-            {/* Analysis */}
-            {callAnalysis && (
-              <div className="bg-[var(--color-neutral-800)]/30 border border-[var(--color-neutral-700)]/50 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-bold text-white mb-4">{t.onboarding.agentTest.callAnalysis}</h3>
-                <div className="space-y-3 text-[var(--color-neutral-300)]">
-                  <p>{callAnalysis.summary || t.onboarding.agentTest.callCompletedSuccess}</p>
-                  {callAnalysis.key_points && callAnalysis.key_points.length > 0 && (
-                    <div>
-                      <p className="text-sm font-bold text-[var(--color-neutral-400)] mb-2">{t.onboarding.agentTest.keyPoints}</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {callAnalysis.key_points.map((point: string, idx: number) => (
-                          <li key={idx} className="text-sm">{point}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* CTA Button */}
-            <button
-              onClick={() => onComplete(callData ?? {})}
-              className={`
-                w-full px-6 py-4 bg-gradient-to-r ${agent.color} text-white rounded-lg font-bold text-lg
-                hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2
-              `}
-            >
-              {t.onboarding.agentTest.continueToDashboard}
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </button>
-
-            <button
-              onClick={onSkip}
-              className="w-full mt-3 px-6 py-3 text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-300)] text-sm font-medium transition-colors"
-            >
-              {t.onboarding.agentTest.skipToDashboard}
-            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Calling Step */}
+      {step === 'calling' && (
+        <div className="text-center py-8">
+          {/* Status Indicator */}
+          <div className={`inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br ${getStatusColor()} mb-6 shadow-lg animate-pulse`}>
+            <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+          </div>
+
+          <h2 className="text-2xl font-bold text-[var(--color-ink)] mb-2">{getStatusText()}</h2>
+          <p className="text-sm text-[var(--color-neutral-500)] mb-4">{t.onboarding.agentTest.callingYou.replace('{agentName}', agentName)}</p>
+
+          {callStatus === 'connected' && (
+            <div className="text-4xl font-bold text-[var(--color-ink)] tabular-nums mb-4">
+              {formatDuration(callDuration)}
+            </div>
+          )}
+
+          <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-4 max-w-sm mx-auto">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-[var(--color-neutral-500)]">{t.onboarding.agentTest.phone}</span>
+                <span className="text-[var(--color-ink)] font-mono text-xs">{phoneNumber}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-[var(--color-neutral-500)]">{t.onboarding.agentTest.agent}</span>
+                <span className="text-[var(--color-ink)]">{agentName}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Analysis Step */}
+      {step === 'analysis' && (
+        <div>
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 mb-4">
+              <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-[var(--color-ink)] mb-2">{t.onboarding.agentTest.callComplete}</h2>
+            <p className="text-sm text-[var(--color-neutral-500)]">
+              {t.onboarding.agentTest.agentPerformance.replace('{agentName}', agentName)}
+            </p>
+          </div>
+
+          {/* Call Stats */}
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-3 text-center">
+              <div className="text-lg font-bold text-[var(--color-ink)] mb-0.5">{formatDuration(callDuration)}</div>
+              <div className="text-[10px] text-[var(--color-neutral-400)] uppercase font-semibold">{t.onboarding.agentTest.duration}</div>
+            </div>
+            <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-3 text-center">
+              <div className="text-lg font-bold text-emerald-600 mb-0.5">{t.onboarding.agentTest.demo}</div>
+              <div className="text-[10px] text-[var(--color-neutral-400)] uppercase font-semibold">{t.onboarding.agentTest.callType}</div>
+            </div>
+            <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-3 text-center">
+              <div className="text-lg font-bold text-[var(--color-ink)] mb-0.5">✓</div>
+              <div className="text-[10px] text-[var(--color-neutral-400)] uppercase font-semibold">{t.onboarding.agentTest.completed}</div>
+            </div>
+          </div>
+
+          {/* Analysis */}
+          {callAnalysis && (
+            <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-5 mb-5">
+              <h3 className="text-sm font-bold text-[var(--color-ink)] mb-3">{t.onboarding.agentTest.callAnalysis}</h3>
+              <div className="space-y-2 text-[var(--color-neutral-600)]">
+                <p className="text-sm">{callAnalysis.summary || t.onboarding.agentTest.callCompletedSuccess}</p>
+                {callAnalysis.key_points && callAnalysis.key_points.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold text-[var(--color-neutral-400)] mb-1.5">{t.onboarding.agentTest.keyPoints}</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      {callAnalysis.key_points.map((point: string, idx: number) => (
+                        <li key={idx} className="text-sm">{point}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* CTA Button */}
+          <button
+            onClick={() => onComplete(callData ?? {})}
+            className={`
+              w-full px-5 py-3.5 bg-gradient-to-r ${agent.color} text-white rounded-lg font-bold text-sm
+              hover:opacity-90 transition-all duration-300 flex items-center justify-center gap-2
+            `}
+          >
+            {t.onboarding.agentTest.continueToDashboard}
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </button>
+
+          <button
+            onClick={onSkip}
+            className="w-full mt-2 px-5 py-2.5 text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)] text-sm font-medium transition-colors"
+          >
+            {t.onboarding.agentTest.skipToDashboard}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
