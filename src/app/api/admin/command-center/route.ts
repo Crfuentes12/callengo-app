@@ -197,28 +197,64 @@ export async function GET() {
   }
 }
 
+function extractBalance(data: Record<string, unknown>): number | null {
+  // Check top-level fields
+  for (const key of ['credits', 'balance', 'current_balance', 'available_credits']) {
+    if (typeof data[key] === 'number' && data[key] !== 0) return data[key] as number;
+  }
+  // Check nested billing/account objects
+  for (const parent of ['billing', 'account', 'org', 'organization']) {
+    if (data[parent] && typeof data[parent] === 'object') {
+      const nested = data[parent] as Record<string, unknown>;
+      for (const key of ['credits', 'balance', 'current_balance', 'available_credits']) {
+        if (typeof nested[key] === 'number' && nested[key] !== 0) return nested[key] as number;
+      }
+    }
+  }
+  // If all fields are explicitly 0, return 0 (not null)
+  for (const key of ['credits', 'balance', 'current_balance']) {
+    if (typeof data[key] === 'number') return data[key] as number;
+  }
+  return null;
+}
+
 async function fetchBlandMasterBalance(): Promise<{ balance: number; error?: string }> {
-  try {
-    // Use /me endpoint to get master account info (not /accounts which lists sub-accounts)
-    const response = await fetch(`${BLAND_API_URL}/me`, {
-      method: 'GET',
-      headers: { 'Authorization': BLAND_MASTER_KEY },
-    });
-    if (!response.ok) {
-      // Fallback: try /org endpoint
-      const orgResponse = await fetch(`${BLAND_API_URL}/org`, {
+  if (!BLAND_MASTER_KEY) {
+    return { balance: 0, error: 'BLAND_API_KEY not configured' };
+  }
+
+  // Try multiple endpoints — org_ keys may use different paths than sk- keys
+  const endpoints = [
+    `${BLAND_API_URL}/org`,
+    `${BLAND_API_URL}/me`,
+    `${BLAND_API_URL}/billing`,
+  ];
+
+  const errors: string[] = [];
+
+  for (const url of endpoints) {
+    try {
+      const response = await fetch(url, {
         method: 'GET',
         headers: { 'Authorization': BLAND_MASTER_KEY },
       });
-      if (!orgResponse.ok) {
-        return { balance: 0, error: `Bland API returned ${response.status}` };
+
+      if (!response.ok) {
+        errors.push(`${url.split('/v1/')[1]}: HTTP ${response.status}`);
+        continue;
       }
-      const orgData = await orgResponse.json();
-      return { balance: orgData.credits || orgData.balance || orgData.current_balance || 0 };
+
+      const data = await response.json();
+      const balance = extractBalance(data);
+      if (balance !== null) {
+        return { balance };
+      }
+      // Got a 200 but couldn't find balance — log what we received
+      errors.push(`${url.split('/v1/')[1]}: 200 OK but no balance field (keys: ${Object.keys(data).join(',')})`);
+    } catch (err) {
+      errors.push(`${url.split('/v1/')[1]}: ${String(err)}`);
     }
-    const data = await response.json();
-    return { balance: data.credits || data.balance || data.current_balance || 0 };
-  } catch (err) {
-    return { balance: 0, error: String(err) };
   }
+
+  return { balance: 0, error: `Could not read balance. Tried: ${errors.join(' | ')}` };
 }

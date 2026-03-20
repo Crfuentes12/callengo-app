@@ -28,12 +28,27 @@ export async function GET() {
     }
 
     // Get all companies with subscriptions and settings
-    const { data: companies } = await supabaseAdmin
+    const { data: allCompanies } = await supabaseAdmin
       .from('companies')
       .select('id, name, created_at')
       .order('created_at', { ascending: false });
 
-    if (!companies || companies.length === 0) {
+    if (!allCompanies || allCompanies.length === 0) {
+      return NextResponse.json({ clients: [] });
+    }
+
+    // Filter out orphaned companies (no users associated)
+    const { data: usersWithCompanies } = await supabaseAdmin
+      .from('users')
+      .select('company_id');
+
+    const activeCompanyIds = new Set(
+      (usersWithCompanies || []).map(u => u.company_id).filter(Boolean)
+    );
+
+    const companies = allCompanies.filter(c => activeCompanyIds.has(c.id));
+
+    if (companies.length === 0) {
       return NextResponse.json({ clients: [] });
     }
 
