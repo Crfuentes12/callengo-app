@@ -1,9 +1,12 @@
 /**
  * Bland AI Sub-Account Manager
- * Handles creation, credit allocation, recovery, and lifecycle of Bland sub-accounts.
+ * Handles creation, credit redistribution, recovery, and lifecycle of Bland sub-accounts.
  *
- * AUDIT FIX: This service was completely missing. The bland_subaccount_id column existed
- * in company_settings but no code created or managed sub-accounts.
+ * KEY ARCHITECTURE PRINCIPLE:
+ * - The Bland master account is funded manually (independent of Stripe).
+ * - This module redistributes credits WITHIN Bland (master → sub-accounts).
+ * - Stripe only handles customer payments. No money flows from Stripe to Bland.
+ * - When a Stripe webhook confirms payment, we redistribute Bland credits internally.
  */
 
 import { supabaseAdmin } from '@/lib/supabase/service';
@@ -107,7 +110,8 @@ export function calculateCreditAmount(minutesIncluded: number): number {
 }
 
 /**
- * Allocate Bland credits to a company's sub-account.
+ * Redistribute Bland credits from master account to a company's sub-account.
+ * This is an internal Bland operation — no external money movement.
  * Called on:
  *  - Initial subscription (checkout.session.completed)
  *  - Monthly renewal (invoice.payment_succeeded with billing_reason=subscription_cycle)
@@ -207,9 +211,10 @@ export async function getBlandCreditBalance(companyId: string): Promise<number> 
 }
 
 /**
- * Reclaim unused Bland credits from a company's sub-account back to the master account.
+ * Return unused Bland credits from a sub-account back to the master account.
+ * Internal Bland redistribution — credits return to your master balance.
  * Called before:
- *  - Monthly renewal top-up (reclaim leftover, then allocate fresh)
+ *  - Monthly renewal top-up (reclaim leftover, then redistribute fresh)
  *  - Cancellation
  *  - Downgrade
  */

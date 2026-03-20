@@ -15,6 +15,7 @@ import {
   createBlandSubAccount,
   allocateBlandCredits,
   handleCycleRenewalCredits,
+  handlePlanUpgradeCredits,
   deactivateBlandSubAccount,
 } from '@/lib/bland/subaccount-manager';
 
@@ -401,6 +402,60 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription & Rec
     minutes_consumed: 0,
     cost_usd: 0,
   });
+
+  // ================================================================
+  // Bland credit reallocation on plan upgrade
+  // Credits are redistributed WITHIN Bland (master → sub-account).
+  // Stripe only handles customer payments — no money flows to Bland.
+  // ================================================================
+  try {
+    const newPlanSlug = subscription.metadata?.plan_slug;
+    const previousPlanSlug = subscription.metadata?.previous_plan_slug
+      || existingSub.subscription_plans?.slug;
+
+    if (newPlanSlug && previousPlanSlug && newPlanSlug !== previousPlanSlug) {
+      // Fetch both plans to compare minutes
+      const { data: oldPlan } = await supabase
+        .from('subscription_plans')
+        .select('minutes_included, slug')
+        .eq('slug', previousPlanSlug)
+        .single();
+
+      const { data: newPlan } = await supabase
+        .from('subscription_plans')
+        .select('minutes_included, slug')
+        .eq('slug', newPlanSlug)
+        .single();
+
+      if (oldPlan && newPlan && newPlan.slug !== 'free') {
+        const oldMinutes = oldPlan.minutes_included || 0;
+        const newMinutes = newPlan.minutes_included || 0;
+
+        if (newMinutes > oldMinutes && periodStart && periodEnd) {
+          // Upgrade: allocate pro-rated differential credits for remaining period
+          const now = Date.now();
+          const periodEndMs = periodEnd * 1000;
+          const periodStartMs = periodStart * 1000;
+          const totalDays = Math.ceil((periodEndMs - periodStartMs) / (1000 * 60 * 60 * 24));
+          const remainingDays = Math.ceil((periodEndMs - now) / (1000 * 60 * 60 * 24));
+
+          if (remainingDays > 0 && totalDays > 0) {
+            await handlePlanUpgradeCredits(
+              existingSub.company_id,
+              oldMinutes,
+              newMinutes,
+              remainingDays,
+              totalDays
+            );
+          }
+        }
+        // Downgrade: credits stay as-is until next renewal cycle
+        // (reclaim + fresh allocation happens at invoice.payment_succeeded)
+      }
+    }
+  } catch (blandError) {
+    console.error('⚠️ Bland credit reallocation on plan change failed (non-fatal):', blandError);
+  }
 
   // --- HubSpot sync ---
   try {
