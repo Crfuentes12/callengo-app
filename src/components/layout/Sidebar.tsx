@@ -174,6 +174,7 @@ export default function Sidebar({
   ];
 
   const adminNavigation = [
+    { name: t.nav.adminCommandCenter || 'Command Center', href: '/admin/command-center', icon: ShieldIcon },
     { name: t.nav.adminFinances, href: '/admin/finances', icon: ShieldIcon },
   ];
 

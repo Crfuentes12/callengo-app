@@ -241,6 +241,7 @@ const es: TranslationKeys = {
     settings: 'Configuración',
     billing: 'Facturación',
     reports: 'Informes',
+    adminCommandCenter: 'Centro de Comando',
     adminFinances: 'Finanzas de administración',
     signOut: 'Cerrar sesión',
     closeNavigation: 'Cerrar navegación',
@@ -1123,6 +1124,14 @@ const es: TranslationKeys = {
       supabaseCost: 'Costo de Supabase',
       subscriptionRevenue: 'Ingresos por suscripción',
       overageRevenue: 'Ingresos por excedente',
+    },
+    commandCenter: {
+      title: 'Centro de Comando',
+      subtitle: 'Monitoreo en tiempo real de la plataforma y gestión de clientes',
+      tabHealth: 'Dashboard de Salud',
+      tabClients: 'Clientes',
+      tabEvents: 'Eventos de Facturación',
+      tabReconcile: 'Reconciliación',
     },
   },
 

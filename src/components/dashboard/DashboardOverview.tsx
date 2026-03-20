@@ -8,6 +8,7 @@ import { Company, AgentTemplate, AgentRun, ContactList } from '@/types/supabase'
 import { Contact } from '@/types/call-agent';
 import { formatDuration } from '@/lib/call-agent-utils';
 import AgentSelectionModal from '@/components/agents/AgentSelectionModal';
+import BillingAlertBanner from '@/components/billing/BillingAlertBanner';
 import AgentConfigModal from '@/components/agents/AgentConfigModal';
 import CallDetailModal from '@/components/calls/CallDetailModal';
 
@@ -176,6 +177,9 @@ export default function DashboardOverview({
 
   return (
     <div className="space-y-6">
+      {/* Billing Alerts */}
+      <BillingAlertBanner />
+
       {/* Welcome Header */}
       <div className="gradient-bg-subtle rounded-2xl p-8 border border-[var(--border-default)]">
         <div className="flex items-center gap-4">

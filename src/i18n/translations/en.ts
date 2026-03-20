@@ -239,6 +239,7 @@ const en = {
     settings: 'Settings',
     billing: 'Billing',
     reports: 'Reports',
+    adminCommandCenter: 'Command Center',
     adminFinances: 'Admin Finances',
     signOut: 'Sign out',
     closeNavigation: 'Close navigation',
@@ -1134,6 +1135,14 @@ const en = {
       supabaseCost: 'Supabase Cost',
       subscriptionRevenue: 'Subscription Revenue',
       overageRevenue: 'Overage Revenue',
+    },
+    commandCenter: {
+      title: 'Command Center',
+      subtitle: 'Real-time platform monitoring & client management',
+      tabHealth: 'Health Dashboard',
+      tabClients: 'Clients',
+      tabEvents: 'Billing Events',
+      tabReconcile: 'Reconciliation',
     },
   },
 
