@@ -191,15 +191,25 @@ export async function GET() {
 
 async function fetchBlandMasterBalance(): Promise<{ balance: number; error?: string }> {
   try {
-    const response = await fetch(`${BLAND_API_URL}/accounts`, {
+    // Use /me endpoint to get master account info (not /accounts which lists sub-accounts)
+    const response = await fetch(`${BLAND_API_URL}/me`, {
       method: 'GET',
       headers: { 'Authorization': BLAND_MASTER_KEY },
     });
     if (!response.ok) {
-      return { balance: 0, error: `Bland API returned ${response.status}` };
+      // Fallback: try /org endpoint
+      const orgResponse = await fetch(`${BLAND_API_URL}/org`, {
+        method: 'GET',
+        headers: { 'Authorization': BLAND_MASTER_KEY },
+      });
+      if (!orgResponse.ok) {
+        return { balance: 0, error: `Bland API returned ${response.status}` };
+      }
+      const orgData = await orgResponse.json();
+      return { balance: orgData.credits || orgData.balance || orgData.current_balance || 0 };
     }
     const data = await response.json();
-    return { balance: data.credits || data.balance || 0 };
+    return { balance: data.credits || data.balance || data.current_balance || 0 };
   } catch (err) {
     return { balance: 0, error: String(err) };
   }

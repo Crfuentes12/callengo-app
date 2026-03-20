@@ -1,17 +1,16 @@
-// app/admin/finances/page.tsx
+// app/(app)/admin/command-center/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import AdminFinances from '@/components/admin/AdminFinances';
+import AdminCommandCenter from '@/components/admin/AdminCommandCenter';
 
-export default function AdminFinancesPage() {
+export default function AdminCommandCenterPage() {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is admin
     const checkAdminAccess = async () => {
       try {
         const response = await fetch('/api/auth/check-admin');
@@ -25,8 +24,7 @@ export default function AdminFinancesPage() {
         } else {
           router.push('/dashboard');
         }
-      } catch (error) {
-        console.error('Error checking admin access:', error);
+      } catch {
         router.push('/dashboard');
       } finally {
         setIsLoading(false);
@@ -38,19 +36,16 @@ export default function AdminFinancesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-50)] via-white to-[var(--color-neutral-100)] flex items-center justify-center">
-        <div className="text-[var(--color-neutral-600)]">Loading...</div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-8 h-8 border border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-[var(--color-neutral-500)]">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  if (!isAuthorized) {
-    return null;
-  }
+  if (!isAuthorized) return null;
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-50)] via-white to-[var(--color-neutral-100)]">
-      <AdminFinances />
-    </div>
-  );
+  return <AdminCommandCenter />;
 }

@@ -175,7 +175,6 @@ export default function Sidebar({
 
   const adminNavigation = [
     { name: t.nav.adminCommandCenter || 'Command Center', href: '/admin/command-center', icon: ShieldIcon },
-    { name: t.nav.adminFinances, href: '/admin/finances', icon: ShieldIcon },
   ];
 
   // Dynamically calculate sidebar width based on widest nav item
@@ -184,9 +183,9 @@ export default function Sidebar({
       t.nav.home, t.nav.dashboard, t.nav.contacts, t.nav.campaigns, t.nav.agents,
       t.nav.callHistory, t.nav.calendar, t.nav.voicemails, t.nav.followUps,
       t.nav.analytics, t.nav.integrations, t.nav.team,
-      t.nav.adminFinances, t.nav.signOut,
+      t.nav.adminCommandCenter || 'Command Center', t.nav.signOut,
     ];
-  }, [t.nav.dashboard, t.nav.contacts, t.nav.campaigns, t.nav.agents, t.nav.callHistory, t.nav.calendar, t.nav.voicemails, t.nav.followUps, t.nav.analytics, t.nav.integrations, t.nav.team, t.nav.adminFinances, t.nav.signOut]);
+  }, [t.nav.home, t.nav.dashboard, t.nav.contacts, t.nav.campaigns, t.nav.agents, t.nav.callHistory, t.nav.calendar, t.nav.voicemails, t.nav.followUps, t.nav.analytics, t.nav.integrations, t.nav.team, t.nav.adminCommandCenter, t.nav.signOut]);
 
   const expandedWidth = useMemo(() => {
     if (typeof document === 'undefined') return 200;

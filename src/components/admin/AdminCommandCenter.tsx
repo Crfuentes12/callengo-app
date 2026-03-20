@@ -63,7 +63,34 @@ interface ReconcileData {
   summary: { total: number; withIssues: number; critical: number; major: number; minor: number; ok: number };
 }
 
-type Tab = 'health' | 'clients' | 'events' | 'reconcile';
+interface FinanceData {
+  revenue_total: number | null;
+  revenue_subscriptions: number | null;
+  revenue_overages: number | null;
+  cost_total: number | null;
+  cost_bland: number | null;
+  cost_openai: number | null;
+  cost_supabase: number | null;
+  gross_margin: number | null;
+  gross_margin_percent: number | null;
+  total_companies_active: number | null;
+  total_users_active: number | null;
+  total_calls_made: number | null;
+  total_minutes_used: number | null;
+  avg_minutes_per_call: number | null;
+  avg_revenue_per_company: number | null;
+  overage_revenue_percent: number | null;
+  bland_plan: string | null;
+  bland_plan_cost: number | null;
+  bland_talk_rate: number | null;
+  bland_transfer_rate: number | null;
+  bland_concurrent_limit: string | null;
+  bland_daily_limit: string | null;
+  notes: string | null;
+  [key: string]: unknown;
+}
+
+type Tab = 'health' | 'clients' | 'events' | 'reconcile' | 'finances';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -109,6 +136,8 @@ export default function AdminCommandCenter() {
   const [eventsTotalPages, setEventsTotalPages] = useState(1);
   const [eventsFilter, setEventsFilter] = useState('');
   const [reconcileData, setReconcileData] = useState<ReconcileData | null>(null);
+  const [financeData, setFinanceData] = useState<FinanceData | null>(null);
+  const [financePeriod, setFinancePeriod] = useState('current');
   const [loading, setLoading] = useState(true);
   const [clientSort, setClientSort] = useState<'usage' | 'profit' | 'cost' | 'name'>('usage');
   const [clientSearch, setClientSearch] = useState('');
@@ -165,6 +194,19 @@ export default function AdminCommandCenter() {
     }
   }, []);
 
+  const fetchFinances = useCallback(async (period = 'current') => {
+    try {
+      const res = await fetch(`/api/admin/finances?period=${period}`);
+      if (res.ok) {
+        const data = await res.json();
+        const finances = data.finances || [];
+        setFinanceData(finances[0] || null);
+      }
+    } catch (e) {
+      console.error('Failed to fetch finances:', e);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     const load = async () => {
@@ -187,7 +229,8 @@ export default function AdminCommandCenter() {
     if (tab === 'clients' && clients.length === 0) fetchClients();
     if (tab === 'events' && events.length === 0) fetchEvents(1, eventsFilter);
     if (tab === 'reconcile' && !reconcileData) fetchReconcile();
-  }, [tab, clients.length, events.length, reconcileData, fetchClients, fetchEvents, fetchReconcile, eventsFilter]);
+    if (tab === 'finances' && !financeData) fetchFinances(financePeriod);
+  }, [tab, clients.length, events.length, reconcileData, financeData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, eventsFilter, financePeriod]);
 
   if (loading) {
     return (
@@ -255,6 +298,7 @@ export default function AdminCommandCenter() {
           { id: 'clients' as Tab, label: t.admin.commandCenter?.tabClients || 'Clients' },
           { id: 'events' as Tab, label: t.admin.commandCenter?.tabEvents || 'Billing Events' },
           { id: 'reconcile' as Tab, label: t.admin.commandCenter?.tabReconcile || 'Reconciliation' },
+          { id: 'finances' as Tab, label: 'Finances' },
         ]).map(({ id, label }) => (
           <button
             key={id}
@@ -693,6 +737,175 @@ export default function AdminCommandCenter() {
                 </div>
               )}
             </>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════
+          TAB: FINANCES
+         ════════════════════════════════════════════════════════════════ */}
+      {tab === 'finances' && (
+        <div className="space-y-6">
+          {/* Period selector */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-[var(--color-neutral-600)]">V4 Pricing Model — Sub-accounts + Add-ons</p>
+            <select
+              value={financePeriod}
+              onChange={(e) => { setFinancePeriod(e.target.value); fetchFinances(e.target.value); }}
+              className="px-3 py-2 border border-[var(--border-default)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            >
+              <option value="current">Current Period</option>
+              <option value="last_30">Last 30 Days</option>
+              <option value="last_90">Last 90 Days</option>
+            </select>
+          </div>
+
+          {financeData ? (
+            <>
+              {/* Key Metrics */}
+              {(() => {
+                const addonRevenue = (financeData.addon_revenue as number) || 0;
+                const totalRevenue = (financeData.revenue_total || 0) + addonRevenue;
+                const blandInfrastructureCost = (financeData.bland_infrastructure_cost as number) || 0;
+                const activeSubaccounts = (financeData.active_subaccounts as number) || 0;
+                const marginColor = (p: number | null) => !p ? 'text-[var(--color-neutral-600)]' : p >= 50 ? 'text-emerald-600' : p >= 35 ? 'text-amber-600' : 'text-red-600';
+
+                return (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-5">
+                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Total Revenue</p>
+                        <p className="text-2xl font-bold text-emerald-900">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                        <div className="mt-2 space-y-0.5 text-xs text-emerald-700">
+                          <div className="flex justify-between"><span>Subscriptions</span><span>${financeData.revenue_subscriptions?.toLocaleString() || 0}</span></div>
+                          <div className="flex justify-between"><span>Overages</span><span>${financeData.revenue_overages?.toLocaleString() || 0}</span></div>
+                          {addonRevenue > 0 && <div className="flex justify-between font-semibold"><span>Add-ons</span><span>${addonRevenue.toLocaleString()}</span></div>}
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-5">
+                        <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-1">Total Costs</p>
+                        <p className="text-2xl font-bold text-red-900">${financeData.cost_total?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}</p>
+                        <div className="mt-2 space-y-0.5 text-xs text-red-700">
+                          <div className="flex justify-between"><span>Bland per-min</span><span>${financeData.cost_bland?.toLocaleString() || 0}</span></div>
+                          {blandInfrastructureCost > 0 && <div className="flex justify-between"><span>Bland infra</span><span>${blandInfrastructureCost.toLocaleString()}</span></div>}
+                          <div className="flex justify-between"><span>Other</span><span>${((financeData.cost_openai || 0) + (financeData.cost_supabase || 0)).toLocaleString()}</span></div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5">
+                        <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Gross Margin</p>
+                        <p className="text-2xl font-bold text-[var(--color-ink)]">${financeData.gross_margin?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}</p>
+                        <p className={`mt-2 text-xl font-bold ${marginColor(financeData.gross_margin_percent)}`}>{financeData.gross_margin_percent?.toFixed(1) || '0.0'}%</p>
+                        <p className="text-xs text-[var(--color-neutral-500)]">Target: 55-67%</p>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-xl p-5">
+                        <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Companies</p>
+                        <p className="text-2xl font-bold text-[var(--color-ink)]">{financeData.total_companies_active || 0}</p>
+                        <p className="mt-2 text-sm text-violet-700">${financeData.avg_revenue_per_company?.toFixed(2) || '0.00'} ARPC</p>
+                        {activeSubaccounts > 0 && <p className="text-xs text-[var(--color-neutral-500)]">{activeSubaccounts} Bland sub-accounts</p>}
+                      </div>
+                    </div>
+
+                    {/* Usage Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                        <p className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Total Calls</p>
+                        <p className="text-3xl font-bold text-[var(--color-ink)]">{financeData.total_calls_made?.toLocaleString() || 0}</p>
+                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">{financeData.total_minutes_used?.toLocaleString() || 0} minutes used</p>
+                        <p className="text-xs text-[var(--color-neutral-500)] mt-1">Avg: {financeData.avg_minutes_per_call?.toFixed(2) || '0.00'} min/call (target: ~1.5)</p>
+                      </div>
+                      <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                        <p className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Overage Revenue</p>
+                        <p className="text-3xl font-bold text-[var(--color-ink)]">${financeData.revenue_overages?.toLocaleString() || '0'}</p>
+                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">{financeData.overage_revenue_percent?.toFixed(1) || '0.0'}% of subscription revenue</p>
+                      </div>
+                      <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                        <p className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Active Users</p>
+                        <p className="text-3xl font-bold text-[var(--color-ink)]">{financeData.total_users_active || 0}</p>
+                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">across {financeData.total_companies_active || 0} companies</p>
+                      </div>
+                    </div>
+
+                    {/* Bland AI Infrastructure */}
+                    <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Bland AI — Sub-account Architecture</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Parent Plan</p>
+                          <p className="text-lg font-bold text-[var(--color-ink)]">{financeData.bland_plan || 'Scale'}</p>
+                          <p className="text-xs text-[var(--color-neutral-600)]">${financeData.bland_plan_cost || 0}/mo</p>
+                        </div>
+                        <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Per-Min Rate</p>
+                          <p className="text-lg font-bold text-[var(--color-ink)]">${financeData.bland_talk_rate?.toFixed(4) || '0.1100'}/min</p>
+                          <p className="text-xs text-[var(--color-neutral-600)]">Transfer: ${financeData.bland_transfer_rate?.toFixed(4) || '0.0000'}/min</p>
+                        </div>
+                        <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Sub-accounts</p>
+                          <p className="text-lg font-bold text-[var(--color-ink)]">{activeSubaccounts}</p>
+                          <p className="text-xs text-[var(--color-neutral-600)]">Isolated per company</p>
+                        </div>
+                        <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Parent Limits</p>
+                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{financeData.bland_concurrent_limit || '\u221E'}</strong> concurrent</p>
+                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{financeData.bland_daily_limit || '\u221E'}</strong> per day</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Unit Economics Reference */}
+                    <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Unit Economics Reference (V4)</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b-2 border-[var(--border-default)]">
+                              <th className="text-left py-2 pr-4 text-[var(--color-neutral-500)] font-semibold">Plan</th>
+                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Price</th>
+                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Calls</th>
+                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Min</th>
+                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Bland Cost</th>
+                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Gross Margin</th>
+                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Overage</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { plan: 'Starter', price: 99, calls: 200, min: 300, blandCost: 33, margin: 66.7, overage: 0.29 },
+                              { plan: 'Growth', price: 179, calls: 400, min: 600, blandCost: 66, margin: 63.1, overage: 0.26 },
+                              { plan: 'Business', price: 299, calls: 800, min: 1200, blandCost: 132, margin: 55.9, overage: 0.23 },
+                              { plan: 'Teams', price: 649, calls: 1500, min: 2250, blandCost: 247.5, margin: 61.9, overage: 0.20 },
+                              { plan: 'Enterprise', price: 1499, calls: 4000, min: 6000, blandCost: 660, margin: 56.0, overage: 0.17 },
+                            ].map((row, i) => (
+                              <tr key={i} className={i % 2 === 0 ? 'bg-[var(--color-neutral-50)]' : ''}>
+                                <td className="py-2 pr-4 font-semibold text-[var(--color-neutral-800)]">{row.plan}</td>
+                                <td className="text-center py-2 px-3">${row.price}/mo</td>
+                                <td className="text-center py-2 px-3">~{row.calls}</td>
+                                <td className="text-center py-2 px-3">{row.min}</td>
+                                <td className="text-center py-2 px-3 text-red-600">${row.blandCost}</td>
+                                <td className={`text-center py-2 px-3 font-bold ${row.margin >= 60 ? 'text-emerald-600' : 'text-amber-600'}`}>{row.margin}%</td>
+                                <td className="text-center py-2 px-3">${row.overage}/min</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <p className="text-xs text-[var(--color-neutral-500)] mt-2">* Bland cost @ $0.11/min (Scale plan). Effective avg: 1.5 min/call attempt.</p>
+                    </div>
+
+                    {financeData.notes && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+                        <strong>Notes:</strong> {financeData.notes}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </>
+          ) : (
+            <div className="text-center py-12 text-[var(--color-neutral-400)]">No financial data available</div>
           )}
         </div>
       )}
