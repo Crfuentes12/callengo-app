@@ -635,7 +635,7 @@ export default function CalendarPage({
           });
           const crossRefData = await crossRefRes.json();
           if (crossRefRes.ok && crossRefData.linked_count > 0) {
-            showToast(`Linked ${crossRefData.linked_count} calendar events to existing contacts`, 'info');
+            showToast(`Linked ${crossRefData.linked_count} calendar events to existing contacts`, 'success');
           }
 
           // Import new contacts from calendar events that have contact info
