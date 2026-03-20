@@ -16,19 +16,13 @@ export default function ContactsSkeleton() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-[var(--color-info-50)] to-[var(--color-primary-50)] rounded-xl p-5 border border-[var(--color-info-200)] animate-skeleton-slide [animation-delay:100ms]">
-          <Skeleton className="h-4 w-32 mb-3" />
-          <Skeleton className="h-8 w-20" />
-        </div>
-        <div className="bg-gradient-to-br from-[var(--color-success-50)] to-[var(--color-success-100)] rounded-xl p-5 border border-[var(--color-success-200)] animate-skeleton-slide [animation-delay:150ms]">
-          <Skeleton className="h-4 w-32 mb-3" />
-          <Skeleton className="h-8 w-20" />
-        </div>
-        <div className="gradient-bg-subtle rounded-xl p-5 border border-[var(--color-primary-500)]/20 animate-skeleton-slide [animation-delay:200ms]">
-          <Skeleton className="h-4 w-32 mb-3" />
-          <Skeleton className="h-8 w-20" />
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className={`bg-white rounded-xl p-5 border border-[var(--border-default)] animate-skeleton-slide`} style={{ animationDelay: `${100 + i * 50}ms` }}>
+            <Skeleton className="h-4 w-24 mb-3" />
+            <Skeleton className="h-8 w-16" />
+          </div>
+        ))}
       </div>
 
       {/* Contacts Table */}

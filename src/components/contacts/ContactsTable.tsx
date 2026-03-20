@@ -9,6 +9,15 @@ import { formatPhoneForDisplay, getStatusColor } from '@/lib/call-agent-utils';
 export type SortField = 'created_at' | 'updated_at' | 'company_name' | 'contact_name' | 'email' | 'phone_number' | 'status' | 'city' | 'call_attempts' | 'last_call_date' | 'source';
 export type SortOrder = 'asc' | 'desc';
 
+export interface ContactCalendarInfo {
+  upcoming_events: number;
+  total_events: number;
+  next_event_date: string | null;
+  next_event_type: string | null;
+  next_event_title: string | null;
+  has_calendar_events: boolean;
+}
+
 interface ContactsTableProps {
   contacts: Contact[];
   selectedContactIds: string[];
@@ -20,6 +29,8 @@ interface ContactsTableProps {
   sortOrder: SortOrder;
   onSort: (field: SortField) => void;
   isLoading?: boolean;
+  // Calendar sync data
+  calendarMap?: Record<string, ContactCalendarInfo>;
   // Pagination
   page: number;
   pageSize: number;
@@ -60,6 +71,7 @@ export default function ContactsTable({
   total,
   totalPages,
   onPageChange,
+  calendarMap,
   onPageSizeChange,
 }: ContactsTableProps) {
   const { t } = useTranslation();
@@ -140,6 +152,11 @@ export default function ContactsTable({
               {visibleColumns.address && renderSortableHeader('city', t.contacts.address)}
               {visibleColumns.zipCode && <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.zipCode}</th>}
               {renderSortableHeader('status', t.contacts.status)}
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider w-14" title={t.calendar.title}>
+                <svg className="w-4 h-4 text-[var(--color-neutral-500)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+              </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.list}</th>
               {renderSortableHeader('contact_name', t.contacts.name)}
               {renderSortableHeader('email', t.contacts.email)}
@@ -199,6 +216,7 @@ export default function ContactsTable({
                   <td className="px-4 py-3.5"><div className="h-4 w-28 bg-[var(--color-neutral-200)] rounded" /></td>
                   <td className="px-4 py-3.5"><div className="h-4 w-24 bg-[var(--color-neutral-200)] rounded" /></td>
                   <td className="px-4 py-3.5"><div className="h-5 w-20 bg-[var(--color-neutral-200)] rounded-lg" /></td>
+                  <td className="px-4 py-3.5"><div className="h-3 w-3 bg-[var(--color-neutral-200)] rounded-full mx-auto" /></td>
                   <td className="px-4 py-3.5"><div className="h-5 w-16 bg-[var(--color-neutral-200)] rounded-lg" /></td>
                   <td className="px-4 py-3.5"><div className="h-4 w-20 bg-[var(--color-neutral-200)] rounded" /></td>
                   <td className="px-4 py-3.5"><div className="h-4 w-28 bg-[var(--color-neutral-200)] rounded" /></td>
@@ -276,6 +294,27 @@ export default function ContactsTable({
                     <span className={`inline-flex px-2 py-0.5 text-[11px] font-semibold rounded-md border ${getStatusColor(contact.status)}`}>
                       {contact.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-center">
+                    {(() => {
+                      const calInfo = calendarMap?.[contact.id];
+                      if (!calInfo?.has_calendar_events) {
+                        return <span className="text-[var(--color-neutral-200)]">—</span>;
+                      }
+                      const hasUpcoming = calInfo.upcoming_events > 0;
+                      return (
+                        <div className="flex items-center justify-center" title={
+                          hasUpcoming
+                            ? `${calInfo.upcoming_events} upcoming · ${calInfo.total_events} total${calInfo.next_event_title ? ` · Next: ${calInfo.next_event_title}` : ''}`
+                            : `${calInfo.total_events} past event${calInfo.total_events !== 1 ? 's' : ''}`
+                        }>
+                          <div className={`w-2.5 h-2.5 rounded-full ${hasUpcoming ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-[var(--color-neutral-300)]'}`} />
+                          {hasUpcoming && calInfo.upcoming_events > 1 && (
+                            <span className="ml-1 text-[10px] font-bold text-emerald-600">{calInfo.upcoming_events}</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     {(() => {

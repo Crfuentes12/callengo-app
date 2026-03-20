@@ -939,6 +939,23 @@ const es: TranslationKeys = {
   },
 
   // ============================================================
+  // GET STARTED (Home page checklist)
+  // ============================================================
+  getStarted: {
+    addContacts: 'Añade tus primeros contactos',
+    configureAgent: 'Configura un agente de IA',
+    launchCampaign: 'Lanza tu primera campaña',
+    testAgent: 'Prueba tu agente de IA',
+    connectCalendar: 'Conecta Google Calendar',
+    syncCalendarContacts: 'Sincroniza contactos con el calendario',
+    viewAnalytics: 'Consulta tus analíticas',
+    listenRecording: 'Escucha una grabación de llamada',
+    viewTranscript: 'Lee una transcripción de llamada',
+    updateContact: 'Actualiza un contacto',
+    exploreIntegrations: 'Explora las integraciones',
+  },
+
+  // ============================================================
   // COMMON / SHARED
   // ============================================================
   common: {
@@ -1013,6 +1030,7 @@ const es: TranslationKeys = {
     lastWeek: 'Semana pasada',
     thisMonth: 'Este mes',
     lastMonth: 'Mes pasado',
+    more: 'más',
   },
 
   // ============================================================

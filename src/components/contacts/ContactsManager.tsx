@@ -6,7 +6,7 @@ import { useTranslation } from '@/i18n';
 import { createClient } from '@/lib/supabase/client';
 import { Contact as ContactType } from '@/types/call-agent';
 import { ContactList } from '@/types/supabase';
-import ContactsTable, { type SortField, type SortOrder } from './ContactsTable';
+import ContactsTable, { type SortField, type SortOrder, type ContactCalendarInfo } from './ContactsTable';
 import ContactDetailDrawer from './ContactDetailDrawer';
 import ImportModal from './ImportModal';
 import GoogleSheetsPickerModal from './GoogleSheetsPickerModal';
@@ -181,6 +181,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     onConfirm: () => {},
   });
   const aiMenuRef = useRef<HTMLDivElement>(null);
+  const [calendarMap, setCalendarMap] = useState<Record<string, ContactCalendarInfo>>({});
 
   const supabase = createClient();
 
@@ -261,6 +262,25 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  // Fetch calendar sync data for current contacts
+  const fetchCalendarMap = useCallback(async () => {
+    if (contacts.length === 0) return;
+    try {
+      const contactIds = contacts.map(c => c.id).join(',');
+      const res = await fetch(`/api/calendar/contact-sync?contact_ids=${contactIds}`);
+      const data = await res.json();
+      if (res.ok && data.contact_calendar_map) {
+        setCalendarMap(data.contact_calendar_map);
+      }
+    } catch {
+      // Non-critical, ignore errors
+    }
+  }, [contacts]);
+
+  useEffect(() => {
+    fetchCalendarMap();
+  }, [fetchCalendarMap]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -367,6 +387,21 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     setShowImportModal(false);
     setImportType(null);
     setGSheetsPreloadedData(null);
+
+    // Cross-reference newly imported contacts with calendar events
+    fetch('/api/calendar/contact-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'cross_reference' }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.linked_count > 0) {
+          showToast(`Linked ${data.linked_count} contacts to calendar events`, 'info');
+          fetchCalendarMap();
+        }
+      })
+      .catch(() => { /* non-critical */ });
   };
 
   const handleImportTypeSelect = (type: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json') => {
@@ -546,7 +581,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
   return (
     <div className="space-y-5">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <div className="bg-white rounded-xl p-4 border border-[var(--border-default)]/80 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-[var(--color-info-50)] flex items-center justify-center">
@@ -589,6 +624,17 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
               ) : (
                 <p className="text-2xl font-bold text-[var(--color-ink)]">{(stats?.withEmail || 0).toLocaleString()}</p>
               )}
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-[var(--border-default)]/80 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase">{t.calendar.title}</p>
+              <p className="text-2xl font-bold text-[var(--color-ink)]">{Object.keys(calendarMap).length.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -1019,6 +1065,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
         sortOrder={sortOrder}
         onSort={handleSort}
         isLoading={isLoading}
+        calendarMap={calendarMap}
         page={page}
         pageSize={pageSize}
         total={total}

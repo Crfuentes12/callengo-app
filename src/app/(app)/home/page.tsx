@@ -59,6 +59,7 @@ export default async function HomePageRoute() {
     launched_campaign: (campaignsCountRes.count || 0) > 0,
     tested_agent: hasTestedAgent,
     connected_google: hasGoogleCalendar,
+    synced_calendar_contacts: getStartedProgress.synced_calendar_contacts || false,
     viewed_analytics: hasViewedAnalytics,
     listened_call: hasListenedCall,
     viewed_transcript: hasViewedTranscript,
