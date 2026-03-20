@@ -312,6 +312,18 @@ export const phOnboardingEvents = {
   skipped(atStep: string) {
     capture('onboarding_skipped', { at_step: atStep })
   },
+
+  wizardOpened(source: 'auto' | 'banner') {
+    capture('onboarding_wizard_opened', { source })
+  },
+
+  wizardDismissed(atStep: string) {
+    capture('onboarding_wizard_dismissed', { at_step: atStep })
+  },
+
+  companyReviewed() {
+    capture('onboarding_company_reviewed')
+  },
 }
 
 // ============================================================

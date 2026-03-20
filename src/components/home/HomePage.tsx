@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/i18n';
+import OnboardingWizardModal from '@/components/onboarding/OnboardingWizardModal';
 
 interface HomePageProps {
   userName: string;
   companyId: string;
+  companyName: string;
   completedTasks: Record<string, boolean>;
+  onboardingWizardCompleted: boolean;
   stats: {
     contacts: number;
     campaigns: number;
@@ -105,11 +108,31 @@ function getNestedValue(obj: Record<string, unknown>, path: string): string {
 
 const COLLAPSED_COUNT = 5;
 
-export default function HomePage({ userName, companyId, completedTasks, stats, plan }: HomePageProps) {
+export default function HomePage({ userName, companyId, companyName, completedTasks, onboardingWizardCompleted, stats, plan }: HomePageProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const [videoModal, setVideoModal] = useState<{ title: string; videoId: string } | null>(null);
   const [showAllTasks, setShowAllTasks] = useState(false);
+  const [showOnboardingWizard, setShowOnboardingWizard] = useState(false);
+  const [wizardCompleted, setWizardCompleted] = useState(onboardingWizardCompleted);
+
+  // Auto-open the onboarding wizard modal if not completed
+  useEffect(() => {
+    if (!onboardingWizardCompleted) {
+      setShowOnboardingWizard(true);
+    }
+  }, [onboardingWizardCompleted]);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboardingWizard(false);
+    setWizardCompleted(true);
+    router.refresh();
+  };
+
+  const handleOnboardingDismiss = () => {
+    setShowOnboardingWizard(false);
+    setWizardCompleted(true);
+  };
 
   const completedCount = Object.values(completedTasks).filter(Boolean).length;
   const totalTasks = GET_STARTED_TASKS.length;
@@ -179,6 +202,27 @@ export default function HomePage({ userName, companyId, completedTasks, stats, p
             className="px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors flex-shrink-0"
           >
             {t.billing.changePlan}
+          </button>
+        </div>
+      )}
+
+      {/* Pending Onboarding Banner — only if wizard not completed and modal not open */}
+      {!wizardCompleted && !showOnboardingWizard && (
+        <div className="bg-gradient-to-r from-[var(--color-primary-50)] to-indigo-50 border border-[var(--color-primary-200)] rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg gradient-bg flex items-center justify-center flex-shrink-0 shadow-sm">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-[var(--color-ink)]">{t.onboarding.wizard.completeOnboarding}</p>
+            <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{t.onboarding.wizard.pendingSetup}</p>
+          </div>
+          <button
+            onClick={() => setShowOnboardingWizard(true)}
+            className="px-4 py-2 gradient-bg text-white text-xs font-bold rounded-lg hover:opacity-90 transition-all shadow-sm flex-shrink-0"
+          >
+            {t.onboarding.wizard.resumeSetup}
           </button>
         </div>
       )}
@@ -396,6 +440,16 @@ export default function HomePage({ userName, companyId, completedTasks, stats, p
             </div>
           </div>
         </div>
+      )}
+
+      {/* Onboarding Wizard Modal — overlay on top of home page */}
+      {showOnboardingWizard && (
+        <OnboardingWizardModal
+          companyId={companyId}
+          companyName={companyName}
+          onComplete={handleOnboardingComplete}
+          onDismiss={handleOnboardingDismiss}
+        />
       )}
     </div>
   );

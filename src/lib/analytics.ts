@@ -137,6 +137,18 @@ export const onboardingEvents = {
   skipped(atStep: string) {
     track('onboarding_skipped', { at_step: atStep })
   },
+
+  wizardOpened(source: 'auto' | 'banner') {
+    track('onboarding_wizard_opened', { source })
+  },
+
+  wizardDismissed(atStep: string) {
+    track('onboarding_wizard_dismissed', { at_step: atStep })
+  },
+
+  companyReviewed() {
+    track('onboarding_company_reviewed', {})
+  },
 }
 
 // ============================================================

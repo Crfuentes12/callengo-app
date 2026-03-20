@@ -5,8 +5,6 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import PainSelection from '@/components/onboarding/PainSelection';
-import AgentTestExperience from '@/components/onboarding/AgentTestExperience';
 import { useLanguage } from '@/i18n';
 import { onboardingEvents } from '@/lib/analytics';
 import { phOnboardingEvents } from '@/lib/posthog';
@@ -17,8 +15,6 @@ type OnboardingStep =
   | 'setting_up_account'
   | 'analyzing_website'
   | 'showing_results'
-  | 'pain_selection'
-  | 'agent_test'
   | 'complete'
   | 'error';
 
@@ -32,17 +28,6 @@ interface ScrapedResults {
   };
 }
 
-interface Pain {
-  id: string;
-  title: string;
-  description: string;
-  emoji: string;
-  color: string;
-  gradient: string;
-  value: string;
-  agentSlug: string;
-}
-
 export default function OnboardingPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -54,12 +39,17 @@ export default function OnboardingPage() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [scrapedData, setScrapedData] = useState<ScrapedResults | null>(null);
-  const [selectedPain, setSelectedPain] = useState<Pain | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     companyName: '',
     companyWebsite: '',
   });
+
+  // Editable scraped data fields
+  const [editableCompanyName, setEditableCompanyName] = useState('');
+  const [editableDescription, setEditableDescription] = useState('');
+  const [editableSummary, setEditableSummary] = useState('');
+  const [savingResults, setSavingResults] = useState(false);
 
   useEffect(() => {
     checkOnboardingStatus();
@@ -82,7 +72,7 @@ export default function OnboardingPage() {
       .single();
 
     if (existingUser?.company_id) {
-      // User already has company - go to dashboard
+      // User already has company - go to home
       router.push('/home');
     }
   };
@@ -119,7 +109,6 @@ export default function OnboardingPage() {
         .maybeSingle();
 
       if (existingUserRecord?.company_id) {
-        // User already has a company, redirect to dashboard
         router.push('/home');
         return;
       }
@@ -142,7 +131,6 @@ export default function OnboardingPage() {
         throw new Error(`Failed to create company: ${companyError.message}`);
       }
 
-      // Store company ID for later use
       setCompanyId(companyData.id);
 
       setProgress(50);
@@ -179,13 +167,12 @@ export default function OnboardingPage() {
 
       if (settingsError) {
         console.error('Settings creation error:', settingsError);
-        // Non-critical, continue
       }
 
       setProgress(75);
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 5. Assign Free plan to new user (server-side API to bypass RLS)
+      // 5. Assign Free plan to new user
       try {
         await fetch('/api/billing/ensure-free-plan', {
           method: 'POST',
@@ -194,7 +181,6 @@ export default function OnboardingPage() {
         });
       } catch (planError) {
         console.error('Error assigning free plan:', planError);
-        // Non-critical, continue
       }
 
       setProgress(80);
@@ -212,27 +198,38 @@ export default function OnboardingPage() {
             body: JSON.stringify({
               company_id: companyData.id,
               website: formData.companyWebsite,
-              auto_save: true, // Auto-save for onboarding
+              auto_save: true,
             }),
           });
 
           if (scrapeResponse.ok) {
             const scrapeData = await scrapeResponse.json();
             setScrapedData(scrapeData);
-            setProgress(88);
+            // Pre-fill editable fields
+            setEditableCompanyName(scrapeData.data.title || formData.companyName);
+            setEditableDescription(scrapeData.data.description || '');
+            setEditableSummary(scrapeData.summary || '');
+            setProgress(90);
             setStep('showing_results');
-            // Show the wow effect for 4 seconds so user can see the results
-            await new Promise(resolve => setTimeout(resolve, 4000));
+            onboardingEvents.stepCompleted('website_analysis', 1);
+            phOnboardingEvents.stepCompleted('website_analysis', 1);
+            // DO NOT auto-advance — wait for user to review and click Continue
+            return;
           }
         } catch (scrapeError) {
-          // Non-critical, continue without showing results
           console.error('Scrape error:', scrapeError);
         }
       }
 
-      // 7. Move to pain selection
-      setProgress(90);
-      setStep('pain_selection');
+      // No website or scraping failed — go directly to home
+      setProgress(100);
+      setStep('complete');
+      onboardingEvents.stepCompleted('company_setup', 1);
+      phOnboardingEvents.stepCompleted('company_setup', 1);
+      setTimeout(() => {
+        router.push('/home');
+        router.refresh();
+      }, 1500);
 
     } catch (err: unknown) {
       console.error('Onboarding error:', err);
@@ -241,46 +238,31 @@ export default function OnboardingPage() {
     }
   };
 
-  const handlePainSelection = (pain: Pain) => {
-    setSelectedPain(pain);
-    onboardingEvents.stepCompleted('pain_selection', 2);
-    phOnboardingEvents.stepCompleted('pain_selection', 2);
-    setProgress(95);
-    setStep('agent_test');
-  };
+  const handleContinueFromResults = async () => {
+    if (!companyId) return;
+    setSavingResults(true);
 
-  const handleSkipPain = () => {
-    onboardingEvents.skipped('pain_selection');
-    phOnboardingEvents.skipped('pain_selection');
-    onboardingEvents.completed();
-    phOnboardingEvents.completed();
+    try {
+      // Save any edits to the company
+      await fetch('/api/company/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editableCompanyName || formData.companyName,
+          description: editableDescription || undefined,
+        }),
+      });
+    } catch (err) {
+      console.error('Error saving company edits:', err);
+    }
+
+    setSavingResults(false);
     setProgress(100);
     setStep('complete');
-    setTimeout(() => {
-      router.push('/home');
-      router.refresh();
-    }, 1500);
-  };
 
-  const handleAgentTestComplete = async (callData: unknown) => {
-    onboardingEvents.stepCompleted('agent_test', 3);
-    phOnboardingEvents.stepCompleted('agent_test', 3);
-    onboardingEvents.completed();
-    phOnboardingEvents.completed();
-    setProgress(100);
-    setStep('complete');
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    router.push('/home');
-    router.refresh();
-  };
+    onboardingEvents.stepCompleted('company_review', 1);
+    phOnboardingEvents.stepCompleted('company_review', 1);
 
-  const handleSkipAgentTest = () => {
-    onboardingEvents.skipped('agent_test');
-    phOnboardingEvents.skipped('agent_test');
-    onboardingEvents.completed();
-    phOnboardingEvents.completed();
-    setProgress(100);
-    setStep('complete');
     setTimeout(() => {
       router.push('/home');
       router.refresh();
@@ -347,8 +329,9 @@ export default function OnboardingPage() {
     );
   };
 
-  const isProcessing = step !== 'form' && step !== 'error' && step !== 'pain_selection' && step !== 'agent_test';
+  const isProcessing = step !== 'form' && step !== 'error' && step !== 'showing_results';
 
+  // ============ FORM STEP ============
   if (step === 'form') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
@@ -429,42 +412,161 @@ export default function OnboardingPage() {
               </button>
             </form>
           </div>
-
         </div>
-
       </div>
     );
   }
 
-  // Pain Selection Step
-  if (step === 'pain_selection') {
+  // ============ SHOWING RESULTS STEP — Paused, editable ============
+  if (step === 'showing_results' && scrapedData) {
     return (
-      <PainSelection
-        onSelect={handlePainSelection}
-        onSkip={handleSkipPain}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="w-full max-w-xl relative z-10 animate-fadeIn">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">{t.onboarding.results.title}</h2>
+            <p className="text-[var(--color-neutral-400)] text-sm">{t.onboarding.results.subtitle}</p>
+          </div>
+
+          {/* Editable Company Card */}
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+            {/* Company Header with logo */}
+            <div className="p-6 flex items-start gap-4 border-b border-[var(--border-default)]">
+              {scrapedData.favicon_url ? (
+                <img
+                  src={scrapedData.favicon_url}
+                  alt="Company logo"
+                  className="w-14 h-14 rounded-xl shadow-sm border border-[var(--border-default)] object-cover flex-shrink-0"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-xl gradient-bg flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <span className="text-2xl font-bold text-white">{formData.companyName.charAt(0).toUpperCase()}</span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1">
+                  {t.onboarding.results.companyName}
+                </label>
+                <input
+                  type="text"
+                  value={editableCompanyName}
+                  onChange={(e) => setEditableCompanyName(e.target.value)}
+                  className="w-full px-3 py-2 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-base font-semibold focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="px-6 py-4 border-b border-[var(--border-default)]">
+              <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1">
+                {t.onboarding.results.description}
+              </label>
+              <textarea
+                value={editableDescription}
+                onChange={(e) => setEditableDescription(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all resize-none"
+                placeholder={t.onboarding.results.descriptionPlaceholder}
+              />
+            </div>
+
+            {/* AI Summary */}
+            {editableSummary && (
+              <div className="px-6 py-4 border-b border-[var(--border-default)]">
+                <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)]">
+                  <div className="flex items-start gap-2.5">
+                    <svg className="w-4 h-4 text-[var(--color-primary)] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                    </svg>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wide mb-1">{t.onboarding.results.aiSummary}</p>
+                      <textarea
+                        value={editableSummary}
+                        onChange={(e) => setEditableSummary(e.target.value)}
+                        rows={3}
+                        className="w-full px-0 py-0 bg-transparent border-none text-sm text-[var(--color-neutral-700)] leading-relaxed focus:outline-none resize-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Key Topics */}
+            {scrapedData.data.headings && scrapedData.data.headings.length > 0 && (
+              <div className="px-6 py-4 border-b border-[var(--border-default)]">
+                <p className="text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-2">{t.onboarding.results.keyTopics}</p>
+                <div className="flex flex-wrap gap-2">
+                  {scrapedData.data.headings.slice(0, 6).map((heading, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-[var(--color-primary-50)] border border-[var(--color-primary-100)] rounded-full text-xs font-medium text-[var(--color-primary-700)]"
+                    >
+                      {heading.length > 30 ? heading.substring(0, 30) + '...' : heading}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Continue Button */}
+            <div className="px-6 py-5">
+              <button
+                onClick={handleContinueFromResults}
+                disabled={savingResults}
+                className="w-full py-4 gradient-bg text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-md transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {savingResults ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {t.common.loading}
+                  </>
+                ) : (
+                  <>
+                    {t.onboarding.results.continueButton}
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </>
+                )}
+              </button>
+              <p className="text-center text-xs text-[var(--color-neutral-400)] mt-3">
+                {t.onboarding.results.editHint}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <style jsx>{`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.5s ease-out forwards;
+          }
+        `}</style>
+      </div>
     );
   }
 
-  // Agent Test Step
-  if (step === 'agent_test' && selectedPain) {
-    return (
-      <AgentTestExperience
-        agentSlug={selectedPain.agentSlug}
-        agentTitle={selectedPain.title}
-        agentDescription={selectedPain.description}
-        companyId={companyId!}
-        companyName={formData.companyName}
-        onComplete={handleAgentTestComplete}
-        onSkip={handleSkipAgentTest}
-      />
-    );
-  }
-
+  // ============ PROCESSING / COMPLETE / ERROR STEPS ============
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
-
-      <div className={`w-full relative z-10 ${step === 'showing_results' ? 'max-w-xl' : 'max-w-md'}`}>
+      <div className="w-full max-w-md relative z-10">
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-12 border border-white/20">
           <div className="text-center">
             {/* Icon */}
@@ -521,84 +623,16 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Scraped Results - Company Card */}
-            {step === 'showing_results' && scrapedData && (
-              <div className="animate-fadeIn">
-                <div className="bg-white border border-[var(--border-default)] rounded-2xl shadow-sm overflow-hidden">
-                  {/* Company Header */}
-                  <div className="p-6 flex items-start gap-4">
-                    {scrapedData.favicon_url ? (
-                      <img
-                        src={scrapedData.favicon_url}
-                        alt="Company logo"
-                        className="w-14 h-14 rounded-xl shadow-sm border border-[var(--border-default)] object-cover flex-shrink-0"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl gradient-bg flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <span className="text-2xl font-bold text-white">{formData.companyName.charAt(0).toUpperCase()}</span>
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-lg text-[var(--color-ink)] mb-1">
-                        {scrapedData.data.title || formData.companyName}
-                      </h3>
-                      {scrapedData.data.description && (
-                        <p className="text-sm text-[var(--color-neutral-500)] line-clamp-2">
-                          {scrapedData.data.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* AI Summary */}
-                  {scrapedData.summary && (
-                    <div className="px-6 pb-5">
-                      <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)]">
-                        <div className="flex items-start gap-2.5">
-                          <svg className="w-4 h-4 text-[var(--color-primary)] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                          </svg>
-                          <div>
-                            <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wide mb-1">AI Summary</p>
-                            <p className="text-sm text-[var(--color-neutral-700)] leading-relaxed">{scrapedData.summary}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Key Topics */}
-                  {scrapedData.data.headings && scrapedData.data.headings.length > 0 && (
-                    <div className="px-6 pb-6">
-                      <div className="flex flex-wrap gap-2">
-                        {scrapedData.data.headings.slice(0, 4).map((heading, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1 bg-[var(--color-primary-50)] border border-[var(--color-primary-100)] rounded-full text-xs font-medium text-[var(--color-primary-700)]"
-                          >
-                            {heading.length > 30 ? heading.substring(0, 30) + '...' : heading}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Steps list */}
-            {isProcessing && step !== 'showing_results' && (
+            {isProcessing && step !== 'complete' && (
               <div className="space-y-3 text-left">
                 <div className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
-                  ['creating_company', 'setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
+                  ['creating_company', 'setting_up_account', 'analyzing_website', 'complete'].includes(step)
                     ? 'bg-emerald-50 border border-emerald-200'
                     : 'bg-[var(--color-neutral-50)] border border-[var(--border-default)]'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                    ['creating_company', 'setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
+                    ['creating_company', 'setting_up_account', 'analyzing_website', 'complete'].includes(step)
                       ? 'bg-emerald-500'
                       : 'bg-[var(--color-neutral-300)]'
                   }`}>
@@ -607,7 +641,7 @@ export default function OnboardingPage() {
                     </svg>
                   </div>
                   <span className={`text-sm font-medium ${
-                    ['creating_company', 'setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
+                    ['creating_company', 'setting_up_account', 'analyzing_website', 'complete'].includes(step)
                       ? 'text-emerald-900'
                       : 'text-[var(--color-neutral-600)]'
                   }`}>
@@ -616,12 +650,12 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
-                  ['setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
+                  ['setting_up_account', 'analyzing_website', 'complete'].includes(step)
                     ? 'bg-emerald-50 border border-emerald-200'
                     : 'bg-[var(--color-neutral-50)] border border-[var(--border-default)]'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                    ['setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
+                    ['setting_up_account', 'analyzing_website', 'complete'].includes(step)
                       ? 'bg-emerald-500'
                       : 'bg-[var(--color-neutral-300)]'
                   }`}>
@@ -630,7 +664,7 @@ export default function OnboardingPage() {
                     </svg>
                   </div>
                   <span className={`text-sm font-medium ${
-                    ['setting_up_account', 'analyzing_website', 'showing_results', 'complete'].includes(step)
+                    ['setting_up_account', 'analyzing_website', 'complete'].includes(step)
                       ? 'text-emerald-900'
                       : 'text-[var(--color-neutral-600)]'
                   }`}>
@@ -640,12 +674,12 @@ export default function OnboardingPage() {
 
                 {formData.companyWebsite && (
                   <div className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
-                    ['analyzing_website', 'showing_results', 'complete'].includes(step)
+                    ['analyzing_website', 'complete'].includes(step)
                       ? 'bg-emerald-50 border border-emerald-200'
                       : 'bg-[var(--color-neutral-50)] border border-[var(--border-default)]'
                   }`}>
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                      ['analyzing_website', 'showing_results', 'complete'].includes(step)
+                      ['analyzing_website', 'complete'].includes(step)
                         ? 'bg-emerald-500'
                         : 'bg-[var(--color-neutral-300)]'
                     }`}>
@@ -654,7 +688,7 @@ export default function OnboardingPage() {
                       </svg>
                     </div>
                     <span className={`text-sm font-medium ${
-                      ['analyzing_website', 'showing_results', 'complete'].includes(step)
+                      ['analyzing_website', 'complete'].includes(step)
                         ? 'text-emerald-900'
                         : 'text-[var(--color-neutral-600)]'
                     }`}>
@@ -673,16 +707,6 @@ export default function OnboardingPage() {
           </p>
         )}
       </div>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 }

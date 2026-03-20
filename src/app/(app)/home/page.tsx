@@ -40,6 +40,10 @@ export default async function HomePageRoute() {
     supabase.from('usage_tracking').select('*').eq('company_id', companyId).lte('period_start', new Date().toISOString()).gte('period_end', new Date().toISOString()).limit(1).maybeSingle(),
   ]);
 
+  // Determine onboarding wizard completion status
+  const allSettings = (integrationsRes.data?.settings as Record<string, unknown>) || {};
+  const onboardingWizardCompleted = !!allSettings.onboarding_wizard_completed;
+
   // Determine completed tasks based on actual data
   const settings = (integrationsRes.data?.settings as Record<string, unknown>) || {};
 
@@ -76,7 +80,9 @@ export default async function HomePageRoute() {
       <HomePage
         userName={userData!.full_name || user!.email || ''}
         companyId={companyId}
+        companyName={(companyRes.data?.name as string) || ''}
         completedTasks={completedTasks}
+        onboardingWizardCompleted={onboardingWizardCompleted}
         stats={{
           contacts: contactsCountRes.count || 0,
           campaigns: campaignsCountRes.count || 0,
