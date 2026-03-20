@@ -32,6 +32,23 @@ export async function GET() {
     const hourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
+    // Get active company IDs (companies with at least one user, not archived)
+    const { data: usersWithCompanies } = await supabaseAdmin
+      .from('users')
+      .select('company_id');
+    const { data: allCompanies } = await supabaseAdmin
+      .from('companies')
+      .select('id, name');
+
+    const companiesWithUsers = new Set(
+      (usersWithCompanies || []).map(u => u.company_id).filter(Boolean)
+    );
+    const activeCompanyIds = new Set(
+      (allCompanies || [])
+        .filter(c => companiesWithUsers.has(c.id) && !c.name.startsWith('[ARCHIVED] '))
+        .map(c => c.id)
+    );
+
     // Run all queries in parallel
     const [
       blandBalanceResult,
@@ -73,10 +90,10 @@ export async function GET() {
       // 6. Total minutes this month (from usage_tracking)
       supabaseAdmin
         .from('usage_tracking')
-        .select('minutes_used, minutes_included')
+        .select('company_id, minutes_used, minutes_included')
         .gte('period_start', monthStart),
 
-      // 7. Active companies count
+      // 7. Active companies with subscriptions
       supabaseAdmin
         .from('company_subscriptions')
         .select('id, company_id, status, subscription_plans(slug)')
@@ -91,17 +108,25 @@ export async function GET() {
         .limit(20),
     ]);
 
-    // Aggregate minutes
-    const totalMinutesUsed = (minutesThisMonthResult.data || []).reduce(
+    // Filter subscriptions & usage to only active (non-orphan) companies
+    const activeSubscriptions = (companiesResult.data || []).filter(
+      sub => activeCompanyIds.has(sub.company_id)
+    );
+    const activeUsage = (minutesThisMonthResult.data || []).filter(
+      row => activeCompanyIds.has(row.company_id)
+    );
+
+    // Aggregate minutes (only active companies)
+    const totalMinutesUsed = activeUsage.reduce(
       (sum, row) => sum + (row.minutes_used || 0), 0
     );
-    const totalMinutesIncluded = (minutesThisMonthResult.data || []).reduce(
+    const totalMinutesIncluded = activeUsage.reduce(
       (sum, row) => sum + (row.minutes_included || 0), 0
     );
 
-    // Plan distribution
+    // Plan distribution (only active companies)
     const planDistribution: Record<string, number> = {};
-    (companiesResult.data || []).forEach((sub) => {
+    activeSubscriptions.forEach((sub) => {
       const slug = (sub.subscription_plans as { slug?: string } | null)?.slug || 'unknown';
       planDistribution[slug] = (planDistribution[slug] || 0) + 1;
     });
@@ -183,7 +208,7 @@ export async function GET() {
       totalMinutesUsed,
       totalMinutesIncluded,
       usagePercent: Math.round(usagePercent * 10) / 10,
-      activeCompanies: companiesResult.data?.length || 0,
+      activeCompanies: activeSubscriptions.length,
       planDistribution,
       hourlyCallsChart: hourlyBuckets,
       dailyCallsChart: dailyBuckets,

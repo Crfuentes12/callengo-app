@@ -485,7 +485,7 @@ export default function AdminCommandCenter() {
             >
               {cleaningUp ? 'Cleaning...' : 'Cleanup Orphans'}
             </button>
-            <span className="text-xs text-[var(--color-neutral-400)]">{sortedClients.length} companies</span>
+            <span className="text-xs text-[var(--color-neutral-400)]">{sortedClients.length} {sortedClients.length === 1 ? 'company' : 'companies'}</span>
           </div>
 
           {/* Clients Table */}

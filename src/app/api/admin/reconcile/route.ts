@@ -34,10 +34,27 @@ export async function GET() {
       .in('status', ['active', 'trialing']);
 
     if (!subscriptions || subscriptions.length === 0) {
-      return NextResponse.json({ discrepancies: [], summary: { total: 0, withIssues: 0 } });
+      return NextResponse.json({ discrepancies: [], summary: { total: 0, withIssues: 0, critical: 0, major: 0, minor: 0, ok: 0 } });
     }
 
-    const companyIds = subscriptions.map(s => s.company_id);
+    // Filter out orphaned companies (no users or archived)
+    const { data: usersWithCompanies } = await supabaseAdmin
+      .from('users')
+      .select('company_id');
+    const { data: allCompanies } = await supabaseAdmin
+      .from('companies')
+      .select('id, name');
+
+    const companiesWithUsers = new Set(
+      (usersWithCompanies || []).map(u => u.company_id).filter(Boolean)
+    );
+    const archivedNames = new Set(
+      (allCompanies || []).filter(c => c.name.startsWith('[ARCHIVED] ')).map(c => c.id)
+    );
+
+    const companyIds = subscriptions
+      .map(s => s.company_id)
+      .filter(id => companiesWithUsers.has(id) && !archivedNames.has(id));
 
     // Get call_logs minutes per company (source of truth from Bland webhooks)
     const { data: callLogs } = await supabaseAdmin
