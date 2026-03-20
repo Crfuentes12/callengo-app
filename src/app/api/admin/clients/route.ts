@@ -74,7 +74,8 @@ export async function GET() {
     ]);
 
     // Index data by company_id
-    const subsByCompany = new Map<string, typeof subscriptionsResult.data extends (infer T)[] ? T : never>();
+    type SubscriptionRow = NonNullable<typeof subscriptionsResult.data>[number];
+    const subsByCompany = new Map<string, SubscriptionRow>();
     (subscriptionsResult.data || []).forEach(s => subsByCompany.set(s.company_id, s));
 
     const settingsByCompany = new Map<string, { bland_subaccount_id: string | null; bland_api_key: string | null }>();
