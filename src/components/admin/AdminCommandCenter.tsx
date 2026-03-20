@@ -324,8 +324,8 @@ export default function AdminCommandCenter() {
             <KPICard
               label="Bland AI Balance"
               value={`$${fmt(healthData.blandBalance)}`}
-              color={healthData.blandBalance < 50 ? 'red' : healthData.blandBalance < 200 ? 'amber' : 'emerald'}
-              sub={healthData.blandBalanceError ? 'API error' : 'Master account'}
+              color={healthData.blandBalanceError ? 'amber' : healthData.blandBalance < 1 ? 'red' : healthData.blandBalance < 5 ? 'amber' : 'emerald'}
+              sub={healthData.blandBalanceError ? 'API error' : 'Auto-recharge enabled'}
             />
             <KPICard label="Active Calls" value={String(healthData.activeCalls)} color="blue" sub="Right now" />
             <KPICard label="Calls / Hour" value={fmtInt(healthData.callsThisHour)} color="indigo" sub="Last 60 min" />

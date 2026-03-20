@@ -147,16 +147,24 @@ export async function GET() {
     // Usage alerts (recent)
     const alerts: { level: string; message: string; time: string }[] = [];
 
-    if (blandBalanceResult.balance < 50) {
-      alerts.push({
-        level: 'critical',
-        message: `Bland AI master balance critically low: $${blandBalanceResult.balance.toFixed(2)}`,
-        time: now.toISOString(),
-      });
-    } else if (blandBalanceResult.balance < 200) {
+    // Thresholds calibrated for auto-recharge setup (threshold $10, refill $10)
+    // Critical = auto-recharge likely failed, Warning = approaching recharge threshold
+    if (blandBalanceResult.error) {
       alerts.push({
         level: 'warning',
-        message: `Bland AI master balance low: $${blandBalanceResult.balance.toFixed(2)}. Consider adding credits.`,
+        message: `Bland AI balance check failed: ${blandBalanceResult.error}`,
+        time: now.toISOString(),
+      });
+    } else if (blandBalanceResult.balance < 1) {
+      alerts.push({
+        level: 'critical',
+        message: `Bland AI master balance depleted: $${blandBalanceResult.balance.toFixed(2)} — auto-recharge may have failed`,
+        time: now.toISOString(),
+      });
+    } else if (blandBalanceResult.balance < 5) {
+      alerts.push({
+        level: 'warning',
+        message: `Bland AI master balance low: $${blandBalanceResult.balance.toFixed(2)} — approaching auto-recharge threshold`,
         time: now.toISOString(),
       });
     }
