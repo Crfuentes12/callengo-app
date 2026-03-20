@@ -46,7 +46,9 @@ export async function GET() {
       (usersWithCompanies || []).map(u => u.company_id).filter(Boolean)
     );
 
-    const companies = allCompanies.filter(c => activeCompanyIds.has(c.id));
+    const companies = allCompanies.filter(c =>
+      activeCompanyIds.has(c.id) && !c.name.startsWith('[ARCHIVED] ')
+    );
 
     if (companies.length === 0) {
       return NextResponse.json({ clients: [] });

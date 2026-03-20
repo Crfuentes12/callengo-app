@@ -169,13 +169,13 @@ export default function AdminCommandCenter() {
   }, []);
 
   const handleCleanupOrphans = useCallback(async () => {
-    if (!confirm('This will delete orphaned companies (no active users) and their operational data. Financial records (subscriptions, billing, usage) will be preserved. Continue?')) return;
+    if (!confirm('This will archive orphaned companies (no active users) and delete their operational data (contacts, agents, integrations). Financial records (subscriptions, billing, usage, call logs) are preserved. Continue?')) return;
     setCleaningUp(true);
     try {
       const res = await fetch('/api/admin/cleanup-orphans', { method: 'DELETE' });
       const data = await res.json();
       if (res.ok) {
-        alert(`Cleaned up ${data.deleted} orphaned companies. Financial records preserved.`);
+        alert(`Archived ${data.archived} orphaned companies. Financial records preserved.`);
         fetchClients();
       } else {
         alert(`Error: ${data.error}`);
