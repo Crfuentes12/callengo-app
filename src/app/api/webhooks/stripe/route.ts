@@ -11,6 +11,12 @@ import {
   logProductEvent,
   hsEventName,
 } from '@/lib/hubspot-user-sync';
+import {
+  createBlandSubAccount,
+  allocateBlandCredits,
+  handleCycleRenewalCredits,
+  deactivateBlandSubAccount,
+} from '@/lib/bland/subaccount-manager';
 
 // Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';
@@ -239,6 +245,28 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     });
   }
 
+  // ================================================================
+  // AUDIT FIX: Create Bland sub-account and allocate credits after payment
+  // This is the correct moment — Stripe has confirmed payment.
+  // ================================================================
+  if (plan.slug !== 'free') {
+    try {
+      // Get company name for sub-account
+      const { data: company } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', companyId)
+        .single();
+
+      await createBlandSubAccount(companyId, company?.name || `Company ${companyId}`);
+      await allocateBlandCredits(companyId, plan.minutes_included || 0);
+    } catch (blandError) {
+      // Log but don't fail the webhook — subscription is already active
+      // The credits can be allocated manually or on next renewal
+      console.error('⚠️ Bland sub-account setup failed (non-fatal):', blandError);
+    }
+  }
+
   // GA4 server-side: subscription started
   trackServerEvent(companyId, null, 'server_subscription_started', {
     plan: plan.slug,
@@ -451,6 +479,15 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     cost_usd: 0,
   });
 
+  // ================================================================
+  // AUDIT FIX: Deactivate Bland sub-account and reclaim credits on cancellation
+  // ================================================================
+  try {
+    await deactivateBlandSubAccount(existingSub.company_id);
+  } catch (blandError) {
+    console.error('⚠️ Bland sub-account deactivation failed (non-fatal):', blandError);
+  }
+
   // GA4 server-side: subscription cancelled
   trackServerEvent(existingSub.company_id, null, 'server_subscription_cancelled', {
     stripe_subscription_id: subscription.id,
@@ -533,6 +570,25 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice & Record<st
         overage_alert_level: 0,
       })
       .eq('id', subscription.id);
+
+    // ================================================================
+    // AUDIT FIX: Reclaim old Bland credits and allocate fresh for new cycle
+    // ================================================================
+    if (invoice.billing_reason === 'subscription_cycle') {
+      try {
+        const { data: plan } = await supabase
+          .from('subscription_plans')
+          .select('minutes_included, slug')
+          .eq('id', subscription.plan_id)
+          .single();
+
+        if (plan && plan.slug !== 'free') {
+          await handleCycleRenewalCredits(subscription.company_id, plan.minutes_included || 0);
+        }
+      } catch (blandError) {
+        console.error('⚠️ Bland credit renewal failed (non-fatal):', blandError);
+      }
+    }
   }
 }
 
