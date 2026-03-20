@@ -52,6 +52,9 @@ const it: TranslationKeys = {
       or: 'oppure',
       errorAllFields: 'Compila tutti i campi',
       errorPasswordLength: 'La password deve contenere almeno 6 caratteri',
+      confirmPasswordLabel: 'Conferma password',
+      confirmPasswordPlaceholder: 'Reinserisci la password',
+      errorPasswordMismatch: 'Le password non corrispondono',
       errorGeneric: 'Impossibile creare l\'account.',
     },
     forgotPassword: {

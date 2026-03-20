@@ -73,40 +73,76 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
-      <div className="gradient-bg-subtle rounded-2xl p-8 border border-[var(--border-default)]">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 rounded-2xl gradient-bg flex items-center justify-center shadow-md overflow-hidden">
-            <Image
-              src="/agent-avatars/agent-face.png"
-              alt="Agent"
-              width={56}
-              height={56}
-              className="object-cover"
-            />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--color-ink)]">
-              {t.agents.title}
-            </h2>
-            <p className="text-[var(--color-neutral-600)] mt-0.5">
-              {t.agents.subtitle}
-            </p>
-          </div>
-        </div>
+      {/* Hero Header — AI-driven design */}
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--border-default)]">
+        {/* Gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary-50)] via-white to-blue-50" />
+        {/* Subtle animated mesh pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: 'radial-gradient(circle at 25% 25%, var(--color-primary) 1px, transparent 1px), radial-gradient(circle at 75% 75%, var(--color-accent) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }} />
 
-        {/* Stats bar */}
-        <div className="flex items-center gap-4 mt-6 p-4 bg-white rounded-xl border border-[var(--border-default)] shadow-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-            <span className="text-xs text-[var(--color-neutral-500)] font-medium">Available:</span>
-            <span className="text-sm text-[var(--color-ink)] font-semibold">{agentTemplates.length}</span>
+        <div className="relative px-8 py-8">
+          <div className="flex items-center gap-5 mb-5">
+            {/* Animated AI icon */}
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl gradient-bg flex items-center justify-center shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                </svg>
+              </div>
+              {/* Pulse ring */}
+              <div className="absolute -inset-1 rounded-2xl gradient-bg opacity-20 animate-pulse" />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-bold text-[var(--color-ink)] tracking-tight">
+                {t.agents.title}
+              </h2>
+              <p className="text-[var(--color-neutral-500)] mt-0.5 text-sm">
+                {t.agents.subtitle}
+              </p>
+            </div>
           </div>
-          <div className="h-4 w-px bg-[var(--color-neutral-200)]"></div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
-            <span className="text-xs text-[var(--color-neutral-500)] font-medium">Status:</span>
-            <span className="text-sm text-emerald-600 font-semibold">Ready</span>
+
+          {/* Stats bar */}
+          <div className="flex items-center gap-6 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-[var(--border-default)] shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                </svg>
+              </div>
+              <div>
+                <span className="text-xs text-[var(--color-neutral-500)] font-medium">Available</span>
+                <p className="text-sm text-[var(--color-ink)] font-bold">{agentTemplates.length} agents</p>
+              </div>
+            </div>
+            <div className="h-8 w-px bg-[var(--color-neutral-200)]" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                </svg>
+              </div>
+              <div>
+                <span className="text-xs text-[var(--color-neutral-500)] font-medium">Status</span>
+                <p className="text-sm text-emerald-600 font-bold">Operational</p>
+              </div>
+            </div>
+            <div className="h-8 w-px bg-[var(--color-neutral-200)]" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
+                <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+              </div>
+              <div>
+                <span className="text-xs text-[var(--color-neutral-500)] font-medium">Powered by</span>
+                <p className="text-sm text-[var(--color-ink)] font-bold">GPT-4o + Bland AI</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -200,14 +236,20 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
         </div>
       )}
 
-      {/* Additional Agents Banner */}
-      <div className="gradient-bg-subtle rounded-2xl border border-[var(--border-default)]">
-        <div className="px-8 py-6">
+      {/* Coming Soon Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--border-default)]">
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-neutral-50)] via-white to-violet-50/30" />
+        <div className="absolute inset-0 opacity-[0.02]" style={{
+          backgroundImage: 'radial-gradient(circle at 50% 50%, var(--color-primary) 1px, transparent 1px)',
+          backgroundSize: '30px 30px',
+        }} />
+
+        <div className="relative px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center shadow-sm">
                 <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
               </div>
 
@@ -215,7 +257,7 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
                 <h3 className="text-lg font-semibold text-[var(--color-ink)] mb-0.5">
                   New Agents Coming Soon
                 </h3>
-                <p className="text-[var(--color-neutral-600)] text-sm">
+                <p className="text-[var(--color-neutral-500)] text-sm">
                   Expanding your automation capabilities with specialized agents
                 </p>
               </div>
@@ -224,7 +266,7 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <div className="text-2xl font-bold gradient-text">
-                  2
+                  1
                 </div>
                 <div className="text-xs text-[var(--color-neutral-500)] font-medium">
                   In Development
@@ -236,7 +278,7 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
                   Next Release
                 </div>
                 <div className="text-sm font-semibold text-emerald-600">
-                  Q1 2026
+                  Q3 2026
                 </div>
               </div>
             </div>

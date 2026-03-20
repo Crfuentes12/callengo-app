@@ -334,7 +334,11 @@ export default function OnboardingPage() {
   // ============ FORM STEP ============
   if (step === 'form') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-[var(--surface-base)] flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Blurred background overlay to simulate being inside the app */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-neutral-100)] via-[var(--surface-base)] to-[var(--color-neutral-100)]" />
+        <div className="absolute inset-0 backdrop-blur-sm bg-black/5" />
+
         <div className="w-full max-w-md relative z-10">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-bg mb-6 shadow-md">
@@ -342,11 +346,11 @@ export default function OnboardingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
-            <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">{t.onboarding.form.title}</h1>
-            <p className="text-[var(--color-neutral-300)] text-lg">{t.onboarding.form.companyNamePlaceholder}</p>
+            <h1 className="text-4xl font-bold text-[var(--color-ink)] mb-3 tracking-tight">{t.onboarding.form.title}</h1>
+            <p className="text-[var(--color-neutral-500)] text-lg">{t.onboarding.form.companyNamePlaceholder}</p>
           </div>
 
-          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
+          <div className="bg-white backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-[var(--border-default)]">
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start gap-3">
                 <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -419,24 +423,33 @@ export default function OnboardingPage() {
 
   // ============ SHOWING RESULTS STEP — Paused, editable ============
   if (step === 'showing_results' && scrapedData) {
+    // Combine description + AI summary into a single unified description
+    const combinedDescription = editableSummary
+      ? (editableDescription ? `${editableDescription}\n\n${editableSummary}` : editableSummary)
+      : editableDescription;
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="w-full max-w-xl relative z-10 animate-fadeIn">
+      <div className="min-h-screen bg-[var(--surface-base)] flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Blurred background overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-neutral-100)] via-[var(--surface-base)] to-[var(--color-neutral-100)]" />
+        <div className="absolute inset-0 backdrop-blur-sm bg-black/5" />
+
+        <div className="w-full max-w-2xl relative z-10 animate-fadeIn">
           {/* Header */}
           <div className="text-center mb-6">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg">
                 <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">{t.onboarding.results.title}</h2>
-            <p className="text-[var(--color-neutral-400)] text-sm">{t.onboarding.results.subtitle}</p>
+            <h2 className="text-2xl font-bold text-[var(--color-ink)] mb-2">{t.onboarding.results.title}</h2>
+            <p className="text-[var(--color-neutral-500)] text-sm">{t.onboarding.results.subtitle}</p>
           </div>
 
-          {/* Editable Company Card */}
-          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+          {/* Unified Company Card */}
+          <div className="bg-white backdrop-blur-xl rounded-2xl shadow-2xl border border-[var(--border-default)] overflow-hidden">
             {/* Company Header with logo */}
             <div className="p-6 flex items-start gap-4 border-b border-[var(--border-default)]">
               {scrapedData.favicon_url ? (
@@ -466,45 +479,30 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Description */}
-            <div className="px-6 py-4 border-b border-[var(--border-default)]">
-              <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1">
+            {/* Unified About section — merged description + AI summary */}
+            <div className="px-6 py-5">
+              <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-2 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                </svg>
                 {t.onboarding.results.description}
               </label>
               <textarea
-                value={editableDescription}
-                onChange={(e) => setEditableDescription(e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all resize-none"
+                value={combinedDescription}
+                onChange={(e) => {
+                  // Store everything in editableDescription, clear AI summary
+                  setEditableDescription(e.target.value);
+                  setEditableSummary('');
+                }}
+                rows={4}
+                className="w-full px-3 py-2.5 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm leading-relaxed focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all resize-none"
                 placeholder={t.onboarding.results.descriptionPlaceholder}
               />
             </div>
 
-            {/* AI Summary */}
-            {editableSummary && (
-              <div className="px-6 py-4 border-b border-[var(--border-default)]">
-                <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)]">
-                  <div className="flex items-start gap-2.5">
-                    <svg className="w-4 h-4 text-[var(--color-primary)] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wide mb-1">{t.onboarding.results.aiSummary}</p>
-                      <textarea
-                        value={editableSummary}
-                        onChange={(e) => setEditableSummary(e.target.value)}
-                        rows={3}
-                        className="w-full px-0 py-0 bg-transparent border-none text-sm text-[var(--color-neutral-700)] leading-relaxed focus:outline-none resize-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Key Topics */}
             {scrapedData.data.headings && scrapedData.data.headings.length > 0 && (
-              <div className="px-6 py-4 border-b border-[var(--border-default)]">
+              <div className="px-6 pb-5">
                 <p className="text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-2">{t.onboarding.results.keyTopics}</p>
                 <div className="flex flex-wrap gap-2">
                   {scrapedData.data.headings.slice(0, 6).map((heading, index) => (
@@ -520,7 +518,7 @@ export default function OnboardingPage() {
             )}
 
             {/* Continue Button */}
-            <div className="px-6 py-5">
+            <div className="px-6 py-5 border-t border-[var(--border-default)]">
               <button
                 onClick={handleContinueFromResults}
                 disabled={savingResults}
@@ -565,9 +563,13 @@ export default function OnboardingPage() {
 
   // ============ PROCESSING / COMPLETE / ERROR STEPS ============
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[var(--color-neutral-900)] via-[var(--color-neutral-900)] to-[var(--color-neutral-950)] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--surface-base)] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Blurred background overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-neutral-100)] via-[var(--surface-base)] to-[var(--color-neutral-100)]" />
+      <div className="absolute inset-0 backdrop-blur-sm bg-black/5" />
+
       <div className="w-full max-w-md relative z-10">
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-12 border border-white/20">
+        <div className="bg-white backdrop-blur-xl rounded-3xl shadow-2xl p-12 border border-[var(--border-default)]">
           <div className="text-center">
             {/* Icon */}
             <div className="flex justify-center mb-8">
@@ -702,7 +704,7 @@ export default function OnboardingPage() {
         </div>
 
         {isProcessing && (
-          <p className="text-center text-[var(--color-neutral-300)] text-sm mt-8">
+          <p className="text-center text-[var(--color-neutral-500)] text-sm mt-8">
             {t.common.loading}
           </p>
         )}

@@ -56,6 +56,12 @@ const pageViewHandlers: Record<TrackedPage, () => void> = {
   pricing: () => billingEvents.pricingPageViewed(),
 }
 
+// Map pages to get-started task IDs that should auto-complete on visit
+const pageTaskMap: Partial<Record<TrackedPage, string>> = {
+  integrations: 'explored_integrations',
+  analytics: 'viewed_analytics',
+}
+
 export function PageTracker({ page }: { page: TrackedPage }) {
   const hasFired = useRef(false)
 
@@ -64,6 +70,12 @@ export function PageTracker({ page }: { page: TrackedPage }) {
     hasFired.current = true
     const handler = pageViewHandlers[page]
     if (handler) handler()
+
+    // Auto-complete get-started tasks when visiting relevant pages
+    const taskId = pageTaskMap[page]
+    if (taskId) {
+      window.dispatchEvent(new CustomEvent('callengo:task-complete', { detail: { taskId } }))
+    }
   }, [page])
 
   return null

@@ -23,19 +23,19 @@ type ImportStep = 'upload' | 'list-select' | 'mapping' | 'preview' | 'complete';
 const getImportTypeInfo = (type?: 'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null) => {
   switch (type) {
     case 'csv':
-      return { title: 'Import CSV', accept: '.csv', icon: '📊' };
+      return { title: 'Import CSV', accept: '.csv', icon: 'table' };
     case 'xlsx':
-      return { title: 'Import XLSX', accept: '.xlsx,.xls', icon: '📈' };
+      return { title: 'Import XLSX', accept: '.xlsx,.xls', icon: 'table' };
     case 'google':
-      return { title: 'Import from Google Sheets', accept: '', icon: '📑' };
+      return { title: 'Import from Google Sheets', accept: '', icon: 'cloud' };
     case 'txt':
-      return { title: 'Import TXT', accept: '.txt', icon: '📄' };
+      return { title: 'Import TXT', accept: '.txt', icon: 'document' };
     case 'xml':
-      return { title: 'Import XML', accept: '.xml', icon: '📋' };
+      return { title: 'Import XML', accept: '.xml', icon: 'code' };
     case 'json':
-      return { title: 'Import JSON', accept: '.json', icon: '📦' };
+      return { title: 'Import JSON', accept: '.json', icon: 'code' };
     default:
-      return { title: 'Import Contacts', accept: '.csv', icon: '📊' };
+      return { title: 'Import Contacts', accept: '.csv', icon: 'table' };
   }
 };
 
@@ -270,7 +270,13 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
       <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-[var(--border-default)]/50 overflow-hidden">
         <div className="p-6 border-b border-[var(--border-subtle)]">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-[var(--color-ink)]">{typeInfo.icon} {typeInfo.title}</h2>
+            <h2 className="text-xl font-bold text-[var(--color-ink)] flex items-center gap-2">
+              {typeInfo.icon === 'table' && <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125m0 0h-7.5" /></svg>}
+              {typeInfo.icon === 'cloud' && <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>}
+              {typeInfo.icon === 'document' && <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
+              {typeInfo.icon === 'code' && <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>}
+              {typeInfo.title}
+            </h2>
             <button onClick={onClose} className="w-9 h-9 rounded-lg bg-white border border-[var(--border-default)] text-[var(--color-neutral-600)] hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group">
               <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

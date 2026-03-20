@@ -48,8 +48,11 @@ const en = {
       hasAccount: 'Already have an account?',
       signIn: 'Sign in',
       or: 'or',
+      confirmPasswordLabel: 'Confirm Password',
+      confirmPasswordPlaceholder: 'Re-enter your password',
       errorAllFields: 'Please fill in all fields',
       errorPasswordLength: 'Password must be at least 6 characters',
+      errorPasswordMismatch: 'Passwords do not match',
       errorGeneric: 'Failed to create account.',
     },
     forgotPassword: {
