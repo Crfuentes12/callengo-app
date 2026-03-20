@@ -52,6 +52,9 @@ const de: TranslationKeys = {
       or: 'oder',
       errorAllFields: 'Bitte füllen Sie alle Felder aus',
       errorPasswordLength: 'Das Passwort muss mindestens 6 Zeichen lang sein',
+      confirmPasswordLabel: 'Passwort bestätigen',
+      confirmPasswordPlaceholder: 'Passwort erneut eingeben',
+      errorPasswordMismatch: 'Passwörter stimmen nicht überein',
       errorGeneric: 'Konto konnte nicht erstellt werden.',
     },
     forgotPassword: {

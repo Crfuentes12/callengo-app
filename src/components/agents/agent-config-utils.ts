@@ -94,13 +94,13 @@ export const getAgentStats = (agent: AgentTemplate) => {
  */
 export const getCategoryColor = (category: string | null) => {
   const colors: Record<string, string> = {
-    'sales': 'from-emerald-400 via-emerald-500 to-teal-600',
-    'support': 'from-blue-400 via-blue-500 to-blue-600',
-    'verification': 'from-[var(--color-primary)] via-[var(--color-primary-light)] to-[var(--color-accent)]',
-    'appointment': 'from-blue-400 via-blue-500 to-blue-600',
-    'survey': 'from-blue-400 via-blue-500 to-violet-600',
+    'sales': 'from-emerald-400 to-teal-600',
+    'support': 'from-blue-400 to-blue-600',
+    'verification': 'from-[var(--color-primary)] to-[var(--color-accent)]',
+    'appointment': 'from-blue-400 to-blue-600',
+    'survey': 'from-blue-400 to-violet-600',
   };
 
   const cat = category?.toLowerCase() || 'default';
-  return colors[cat] || 'from-[var(--color-neutral-400)] via-[var(--color-neutral-500)] to-[var(--color-neutral-600)]';
+  return colors[cat] || 'from-[var(--color-neutral-400)] to-[var(--color-neutral-600)]';
 };

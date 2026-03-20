@@ -52,6 +52,9 @@ const fr: TranslationKeys = {
       or: 'ou',
       errorAllFields: 'Veuillez remplir tous les champs',
       errorPasswordLength: 'Le mot de passe doit contenir au moins 6 caractères',
+      confirmPasswordLabel: 'Confirmer le mot de passe',
+      confirmPasswordPlaceholder: 'Ressaisissez votre mot de passe',
+      errorPasswordMismatch: 'Les mots de passe ne correspondent pas',
       errorGeneric: 'Échec de la création du compte.',
     },
     forgotPassword: {

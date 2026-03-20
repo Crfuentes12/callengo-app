@@ -134,16 +134,16 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
   const getNotificationStyle = (type: string) => {
     switch (type) {
       case 'campaign_completed':
-        return { icon: '✓', bgColor: 'bg-[var(--color-success-50)]', textColor: 'text-[var(--color-success-600)]', borderColor: 'border-[var(--color-success-200)]' };
+        return { icon: 'check', bgColor: 'bg-[var(--color-success-50)]', textColor: 'text-[var(--color-success-600)]', borderColor: 'border-[var(--color-success-200)]' };
       case 'campaign_failed':
       case 'high_failure_rate':
-        return { icon: '⚠', bgColor: 'bg-[var(--color-error-50)]', textColor: 'text-[var(--color-error-600)]', borderColor: 'border-[var(--color-error-200)]' };
+        return { icon: 'warning', bgColor: 'bg-[var(--color-error-50)]', textColor: 'text-[var(--color-error-600)]', borderColor: 'border-[var(--color-error-200)]' };
       case 'minutes_warning':
       case 'minutes_critical':
       case 'minutes_exceeded':
-        return { icon: '🕒', bgColor: 'bg-[var(--color-warning-50)]', textColor: 'text-[var(--color-warning-600)]', borderColor: 'border-[var(--color-warning-200)]' };
+        return { icon: 'clock', bgColor: 'bg-[var(--color-warning-50)]', textColor: 'text-[var(--color-warning-600)]', borderColor: 'border-[var(--color-warning-200)]' };
       default:
-        return { icon: 'ℹ', bgColor: 'bg-[var(--color-info-50)]', textColor: 'text-[var(--color-info-600)]', borderColor: 'border-[var(--color-info-200)]' };
+        return { icon: 'info', bgColor: 'bg-[var(--color-info-50)]', textColor: 'text-[var(--color-info-600)]', borderColor: 'border-[var(--color-info-200)]' };
     }
   };
 
@@ -265,7 +265,10 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
                     >
                       <div className="flex gap-3">
                         <div className={`w-10 h-10 rounded-lg ${style.bgColor} ${style.textColor} flex items-center justify-center flex-shrink-0 border ${style.borderColor}`}>
-                          <span className="text-lg">{style.icon}</span>
+                          {style.icon === 'check' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                          {style.icon === 'warning' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>}
+                          {style.icon === 'clock' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                          {style.icon === 'info' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">

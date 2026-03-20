@@ -292,7 +292,8 @@ export default function VoiceSelectionModal({
                 : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)]'
             }`}
           >
-            🔍 Explore All Voices
+            <svg className="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+            Explore All Voices
           </button>
         </div>
 

@@ -52,6 +52,9 @@ const nl: TranslationKeys = {
       or: 'of',
       errorAllFields: 'Vul alle velden in',
       errorPasswordLength: 'Wachtwoord moet minimaal 6 tekens bevatten',
+      confirmPasswordLabel: 'Bevestig wachtwoord',
+      confirmPasswordPlaceholder: 'Voer je wachtwoord opnieuw in',
+      errorPasswordMismatch: 'Wachtwoorden komen niet overeen',
       errorGeneric: 'Account aanmaken mislukt.',
     },
     forgotPassword: {

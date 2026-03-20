@@ -26,6 +26,19 @@ interface AgentConfigModalProps {
 // Utility functions (getAvatarImage, getAgentDescription, getAgentStats, getCategoryColor)
 // are imported from ./agent-config-utils
 
+// Tooltip helper
+const InfoTooltip = ({ text }: { text: string }) => (
+  <span className="group relative inline-flex ml-1 cursor-help">
+    <svg className="w-3.5 h-3.5 text-[var(--color-neutral-400)] hover:text-[var(--color-primary)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+    </svg>
+    <span className="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 bg-[var(--color-ink)] text-white text-[10px] rounded-lg whitespace-nowrap shadow-lg z-50 max-w-[200px] text-center leading-relaxed">
+      {text}
+      <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[var(--color-ink)]"></span>
+    </span>
+  </span>
+);
+
 // Stat bar component
 const StatBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
   <div className="space-y-1.5">
@@ -174,6 +187,16 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
       })
       .catch((err) => console.warn('Non-critical operation failed:', err?.message));
   }, []);
+
+  // When plan limits load, cap maxDuration to plan's max
+  useEffect(() => {
+    if (planLimits) {
+      setSettings(prev => ({
+        ...prev,
+        maxDuration: Math.min(prev.maxDuration, planLimits.maxCallDuration),
+      }));
+    }
+  }, [planLimits]);
 
   // Reload contact count when selected lists change (no skeleton on list toggle)
   useEffect(() => {
@@ -674,8 +697,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 <h3 className="text-xs font-bold text-[var(--color-ink)] uppercase">{t.agents.agentName}</h3>
 
                 <div>
-                  <label className="block text-xs font-bold text-[var(--color-neutral-600)] uppercase mb-1.5">
-                    Voice <span className="text-red-400">*</span>
+                  <label className="flex items-center text-xs font-bold text-[var(--color-neutral-600)] uppercase mb-1.5">
+                    Voice <span className="text-red-400 ml-0.5">*</span>
+                    <InfoTooltip text="The AI voice your agent will use during calls" />
                   </label>
                   <VoiceSelector
                     selectedVoiceId={settings.voice}
@@ -700,7 +724,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-[var(--color-neutral-600)] uppercase mb-1">Agent Name</label>
+                    <label className="flex items-center text-[11px] font-bold text-[var(--color-neutral-600)] uppercase mb-1">Agent Name<InfoTooltip text="How the agent introduces itself on calls" /></label>
                     <input
                       type="text"
                       placeholder={agent.name}
@@ -710,7 +734,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-[var(--color-neutral-600)] uppercase mb-1">Agent Title</label>
+                    <label className="flex items-center text-[11px] font-bold text-[var(--color-neutral-600)] uppercase mb-1">Agent Title<InfoTooltip text="Role context for the agent's behavior" /></label>
                     <input
                       type="text"
                       placeholder="AI Sales Agent"
@@ -761,8 +785,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 <div className="space-y-3">
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1 whitespace-nowrap">
+                      <label className="flex items-center text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1 whitespace-nowrap">
                         Max Duration
+                        <InfoTooltip text="Maximum length of each call in minutes" />
                       </label>
                       <div className="relative">
                         <input
@@ -787,7 +812,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       )}
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1 whitespace-nowrap">Interval</label>
+                      <label className="flex items-center text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1 whitespace-nowrap">Interval<InfoTooltip text="Wait time between each call" /></label>
                       <div className="relative">
                         <input
                           type="number"
@@ -1607,7 +1632,19 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               <div className="space-y-5">
                 {/* Auto-Overage Billing Toggle */}
                 {overageData && planLimits && (
-                  <div className={`rounded-xl p-4 border space-y-3 transition-all ${overageData.enabled ? 'bg-green-50/50 border-green-200' : 'bg-amber-50/50 border-amber-200'}`}>
+                  <div className={`rounded-xl p-4 border space-y-3 transition-all relative ${planLimits.slug === 'free' ? 'bg-[var(--color-neutral-50)] border-[var(--border-default)] opacity-75' : overageData.enabled ? 'bg-green-50/50 border-green-200' : 'bg-amber-50/50 border-amber-200'}`}>
+                    {/* Free plan overlay */}
+                    {planLimits.slug === 'free' && (
+                      <div className="absolute inset-0 z-10 rounded-xl flex items-center justify-center bg-white/60 backdrop-blur-[1px]">
+                        <div className="text-center px-4">
+                          <svg className="w-5 h-5 text-[var(--color-neutral-400)] mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                          <p className="text-xs font-semibold text-[var(--color-neutral-600)]">Available on Starter+</p>
+                          <a href="/settings?tab=billing" className="text-[10px] text-[var(--color-primary)] font-semibold hover:underline">Upgrade</a>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${overageData.enabled ? 'bg-green-100' : 'bg-amber-100'}`}>
@@ -1626,6 +1663,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                       </div>
                       <button
                         onClick={() => {
+                          if (planLimits.slug === 'free') return; // Block free users
                           const newEnabled = !overageData.enabled;
                           // Optimistic update - toggle immediately
                           setOverageData(prev => prev ? { ...prev, enabled: newEnabled, budget: newEnabled ? (prev.budget || 50) : prev.budget } : prev);
@@ -1644,9 +1682,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                             setOverageData(prev => prev ? { ...prev, enabled: !newEnabled } : prev);
                           });
                         }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${overageData.enabled ? 'bg-green-500' : 'bg-[var(--color-neutral-300)]'}`}
+                        disabled={planLimits.slug === 'free'}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${planLimits.slug === 'free' ? 'bg-[var(--color-neutral-200)] cursor-not-allowed' : overageData.enabled ? 'bg-green-500' : 'bg-[var(--color-neutral-300)]'}`}
                       >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${overageData.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${overageData.enabled && planLimits.slug !== 'free' ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
                     </div>
                     {overageData.enabled ? (

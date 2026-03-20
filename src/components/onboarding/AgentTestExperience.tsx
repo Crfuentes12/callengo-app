@@ -31,7 +31,7 @@ interface AgentTestExperienceProps {
 const AGENT_CONFIG: Record<string, AgentConfig> = {
   'data-validation': {
     name: 'Data Validation Agent',
-    icon: '🔍',
+    icon: 'shield-check',
     color: 'from-emerald-500 to-teal-600',
     demoData: {
       companyName: 'TechCorp Solutions',
@@ -43,7 +43,7 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
   },
   'appointment-confirmation': {
     name: 'Appointment Confirmation Agent',
-    icon: '📅',
+    icon: 'clock',
     color: 'from-blue-500 to-blue-700',
     demoData: {
       companyName: 'Healthcare Clinic',
@@ -55,7 +55,7 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
   },
   'lead-qualification': {
     name: 'Lead Qualification Agent',
-    icon: '🎯',
+    icon: 'bolt',
     color: 'from-[var(--color-deep-indigo)] to-[var(--color-electric)]',
     demoData: {
       companyName: 'Sales Pro Inc',
@@ -244,7 +244,15 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
           {/* Header */}
           <div className="text-center mb-6">
             <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${agent.color} mb-4 shadow-md`}>
-              <span className="text-2xl">{agent.icon}</span>
+              {agent.icon === 'shield-check' && (
+                <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+              )}
+              {agent.icon === 'clock' && (
+                <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              )}
+              {agent.icon === 'bolt' && (
+                <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+              )}
             </div>
             <h2 className="text-2xl font-bold text-[var(--color-ink)] mb-2">{t.onboarding.agentTest.testYourAgent.replace('{agentTitle}', agentTitle)}</h2>
             <p className="text-sm text-[var(--color-neutral-500)]">
@@ -398,7 +406,9 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
               <div className="text-[10px] text-[var(--color-neutral-400)] uppercase font-semibold">{t.onboarding.agentTest.callType}</div>
             </div>
             <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-3 text-center">
-              <div className="text-lg font-bold text-[var(--color-ink)] mb-0.5">✓</div>
+              <div className="text-lg font-bold text-emerald-600 mb-0.5">
+                <svg className="w-5 h-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </div>
               <div className="text-[10px] text-[var(--color-neutral-400)] uppercase font-semibold">{t.onboarding.agentTest.completed}</div>
             </div>
           </div>

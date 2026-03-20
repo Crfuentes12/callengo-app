@@ -52,6 +52,9 @@ const es: TranslationKeys = {
       or: 'o',
       errorAllFields: 'Por favor, completa todos los campos',
       errorPasswordLength: 'La contraseña debe tener al menos 6 caracteres',
+      confirmPasswordLabel: 'Confirmar contraseña',
+      confirmPasswordPlaceholder: 'Vuelve a introducir tu contraseña',
+      errorPasswordMismatch: 'Las contraseñas no coinciden',
       errorGeneric: 'Error al crear la cuenta.',
     },
     forgotPassword: {
