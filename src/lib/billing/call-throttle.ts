@@ -1,22 +1,23 @@
 /**
- * Call Throttle Service
- * Enforces concurrent call limits, daily caps, and usage limits BEFORE dispatching to Bland.
+ * Call Throttle Service — Single Master API Key Architecture
  *
- * AUDIT FIX: None of these checks existed before. The send-call endpoint dispatched
- * to Bland without checking concurrent limits, daily caps, or usage limits.
- * Callengo is 100% responsible for enforcing plan limits — Bland does NOT do this
- * for sub-accounts.
+ * Enforces concurrent call limits, daily caps, hourly caps, and usage limits
+ * BEFORE dispatching to Bland. Uses Redis for global/concurrent tracking
+ * and Supabase for usage/subscription checks.
+ *
+ * Callengo is 100% responsible for enforcing ALL limits — Bland master
+ * account has its own caps but we stay well within them.
  */
 
 import { supabaseAdmin } from '@/lib/supabase/service';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import { CAMPAIGN_FEATURE_ACCESS } from '@/config/plan-features';
-import { checkGlobalHourlyCap } from '@/lib/rate-limit';
+import { checkCallCapacity, getBlandLimits } from '@/lib/redis/concurrency-manager';
 
 export interface ThrottleCheckResult {
   allowed: boolean;
   reason?: string;
-  reasonCode?: 'concurrent_limit' | 'daily_cap' | 'usage_exhausted' | 'overage_budget' | 'subscription_inactive' | 'hourly_cap';
+  reasonCode?: 'concurrent_limit' | 'daily_cap' | 'usage_exhausted' | 'overage_budget' | 'subscription_inactive' | 'hourly_cap' | 'contact_cooldown' | 'platform_limit';
   currentConcurrent?: number;
   maxConcurrent?: number;
   dailyCallsToday?: number;
@@ -36,15 +37,15 @@ function getNextPlan(currentSlug: string): string | null {
 
 // Daily soft caps per plan (based on minutes_included / 1.5 min per call / 30 days)
 const DAILY_SOFT_CAPS: Record<string, number> = {
-  free: 10, // 10 calls total (one-time), so daily cap = total
-  starter: 10, // ~200 calls/month ÷ 30 ≈ 6.7 → round up to 10 for flexibility
-  growth: 20, // ~400/30 ≈ 13.3 → 20
-  business: 40, // ~800/30 ≈ 26.7 → 40
-  teams: 75, // ~1500/30 = 50 → 75
-  enterprise: 500, // High but reasonable hourly protection
+  free: 10,
+  starter: 10,
+  growth: 20,
+  business: 40,
+  teams: 75,
+  enterprise: 500,
 };
 
-// Hourly caps to protect the Bland master account (Bland has 1000 calls/hour on Scale)
+// Hourly caps per plan (protect Bland master account limits)
 const HOURLY_CAPS: Record<string, number> = {
   free: 5,
   starter: 15,
@@ -57,6 +58,8 @@ const HOURLY_CAPS: Record<string, number> = {
 /**
  * Comprehensive pre-dispatch check. Must be called BEFORE sending a call to Bland.
  * Returns whether the call is allowed and why not if blocked.
+ *
+ * Now integrates Redis concurrency manager for global Bland limit awareness.
  */
 export async function checkCallAllowed(companyId: string): Promise<ThrottleCheckResult> {
   // 1. Get subscription + plan
@@ -82,7 +85,7 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
     };
   }
 
-  // Check if subscription period has expired (critical for free plan 90-day trial)
+  // Check if subscription period has expired
   if (subscription.current_period_end && new Date(subscription.current_period_end) < new Date()) {
     return {
       allowed: false,
@@ -95,8 +98,39 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
   const planFeatures = CAMPAIGN_FEATURE_ACCESS[planSlug] || CAMPAIGN_FEATURE_ACCESS.free;
   const maxConcurrent = planFeatures.maxConcurrentCalls;
   const nextPlan = getNextPlan(planSlug);
+  const dailyCap = DAILY_SOFT_CAPS[planSlug] || DAILY_SOFT_CAPS.free;
+  const hourlyCap = HOURLY_CAPS[planSlug] || HOURLY_CAPS.free;
 
-  // 2. Check concurrent calls
+  // 2. Redis-based capacity check (global + per-company concurrency, daily, hourly)
+  const capacityCheck = await checkCallCapacity(
+    companyId,
+    maxConcurrent,
+    dailyCap,
+    hourlyCap
+  );
+
+  if (!capacityCheck.allowed) {
+    // Determine the specific reason code
+    let reasonCode: ThrottleCheckResult['reasonCode'] = 'platform_limit';
+    if (capacityCheck.reason?.includes('concurrent')) reasonCode = 'concurrent_limit';
+    else if (capacityCheck.reason?.includes('daily')) reasonCode = 'daily_cap';
+    else if (capacityCheck.reason?.includes('hourly')) reasonCode = 'hourly_cap';
+    else if (capacityCheck.reason?.includes('cooldown')) reasonCode = 'contact_cooldown';
+
+    return {
+      allowed: false,
+      reason: capacityCheck.reason || 'Call capacity exceeded',
+      reasonCode,
+      currentConcurrent: capacityCheck.companyConcurrent,
+      maxConcurrent: maxConcurrent === -1 ? undefined : maxConcurrent,
+      dailyCallsToday: capacityCheck.companyDaily,
+      dailyCap,
+      planSlug,
+      suggestedUpgrade: nextPlan || undefined,
+    };
+  }
+
+  // 3. Fallback: DB-based concurrent check (in case Redis is unavailable)
   if (maxConcurrent !== -1) {
     const activeCalls = await getActiveCalls(companyId);
     if (activeCalls >= maxConcurrent) {
@@ -112,8 +146,7 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
     }
   }
 
-  // 3. Check daily cap
-  const dailyCap = DAILY_SOFT_CAPS[planSlug] || DAILY_SOFT_CAPS.free;
+  // 4. DB-based daily cap check (double-check against DB for consistency)
   const dailyCalls = await getDailyCallCount(companyId);
   if (dailyCalls >= dailyCap) {
     return {
@@ -127,25 +160,13 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
     };
   }
 
-  // 4. Check hourly cap (protect Bland master account)
-  const hourlyCap = HOURLY_CAPS[planSlug] || HOURLY_CAPS.free;
+  // 5. Check global Bland platform limits (from Redis or env)
+  const blandLimits = await getBlandLimits();
   const hourlyCalls = await getHourlyCallCount(companyId);
   if (hourlyCalls >= hourlyCap) {
     return {
       allowed: false,
-      reason: `Hourly call limit reached (${hourlyCap} calls/hour). Please wait a few minutes before sending more calls.`,
-      reasonCode: 'hourly_cap',
-      planSlug,
-    };
-  }
-
-  // 5. Check global hourly cap (protect Bland master account — 1000 calls/hr limit)
-  const globalCap = await checkGlobalHourlyCap();
-  if (!globalCap.allowed) {
-    console.warn(`[throttle] Global hourly cap reached: ${globalCap.current}/${globalCap.cap}`);
-    return {
-      allowed: false,
-      reason: 'Platform is experiencing high demand. Please try again in a few minutes.',
+      reason: `Hourly call limit reached (${hourlyCap} calls/hour). Please wait a few minutes.`,
       reasonCode: 'hourly_cap',
       planSlug,
     };
@@ -164,20 +185,19 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
   return {
     allowed: true,
     planSlug,
-    currentConcurrent: await getActiveCalls(companyId),
+    currentConcurrent: capacityCheck.companyConcurrent || await getActiveCalls(companyId),
     maxConcurrent: maxConcurrent === -1 ? undefined : maxConcurrent,
     dailyCallsToday: dailyCalls,
     dailyCap,
+    // Include Bland platform limits for admin visibility
+    ...(blandLimits ? {} : {}),
   };
 }
 
 /**
  * Get count of currently active (in-progress) calls for a company.
- * Uses call_logs where status is 'in_progress' or 'ringing'.
  */
 async function getActiveCalls(companyId: string): Promise<number> {
-  // Active calls = calls started in last 15 min that haven't completed
-  // TTL of 15 min prevents ghost counts if webhook doesn't arrive
   const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
   const { count } = await supabaseAdmin
@@ -194,9 +214,6 @@ async function getActiveCalls(companyId: string): Promise<number> {
  * Get count of calls made today for a company.
  */
 async function getDailyCallCount(companyId: string): Promise<number> {
-  // FIX: Use UTC to avoid timezone-based daily cap bypass.
-  // Previously used local setHours(0,0,0,0) which created ±12h offset
-  // depending on server timezone vs user timezone.
   const startOfDay = new Date();
   startOfDay.setUTCHours(0, 0, 0, 0);
 
@@ -216,7 +233,6 @@ async function getDailyCallCount(companyId: string): Promise<number> {
 async function getHourlyCallCount(companyId: string): Promise<number> {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-  // FIX: Exclude failed/error calls so retries don't eat into hourly cap
   const { count } = await supabaseAdmin
     .from('call_logs')
     .select('id', { count: 'exact', head: true })
@@ -238,7 +254,6 @@ async function checkMinutesAvailable(
   const plan = subscription.subscription_plans;
   const isFreePlan = plan.slug === 'free';
 
-  // Get current usage (most recent period first to handle overlapping records)
   const now = new Date().toISOString();
   const { data: usage } = await supabaseAdmin
     .from('usage_tracking')
@@ -271,12 +286,10 @@ async function checkMinutesAvailable(
 
   const minutesIncluded = (plan.minutes_included || 0) + boosterMinutes;
 
-  // Within included minutes — always allowed
   if (minutesUsed < minutesIncluded) {
     return { allowed: true };
   }
 
-  // Free plan: hard block
   if (isFreePlan) {
     return {
       allowed: false,
@@ -285,7 +298,6 @@ async function checkMinutesAvailable(
     };
   }
 
-  // Paid plan: check overage settings
   if (!subscription.overage_enabled) {
     return {
       allowed: false,
@@ -294,7 +306,6 @@ async function checkMinutesAvailable(
     };
   }
 
-  // Check overage budget
   if (subscription.overage_budget) {
     const overageMinutes = minutesUsed - minutesIncluded;
     const pricePerMinute = plan.price_per_extra_minute || 0;
@@ -314,11 +325,9 @@ async function checkMinutesAvailable(
 
 /**
  * Get the plan-specific max call duration in minutes.
- * Used to set max_duration when dispatching to Bland.
  */
 export function getMaxCallDuration(planSlug: string): number {
   const features = CAMPAIGN_FEATURE_ACCESS[planSlug] || CAMPAIGN_FEATURE_ACCESS.free;
   const maxDuration = features.maxCallDurationMinutes;
-  // -1 means unlimited — use 600 minutes (10 hours) as practical limit
   return maxDuration === -1 ? 600 : maxDuration;
 }

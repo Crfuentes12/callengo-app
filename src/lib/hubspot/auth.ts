@@ -140,7 +140,7 @@ export async function refreshHubSpotToken(
   const data = await res.json();
   const newAccessToken = data.access_token as string;
   const newRefreshToken = data.refresh_token as string;
-  const expiresIn = data.expires_in as number; // seconds
+  const expiresIn = (data.expires_in as number) || 3600; // seconds, default 1h
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
   // Update tokens in DB

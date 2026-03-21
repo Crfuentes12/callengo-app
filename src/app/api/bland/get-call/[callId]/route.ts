@@ -1,6 +1,10 @@
 // app/api/bland/get-call/[callId]/route.ts
+// Single master API key — call details fetched via master key
+// Company ownership verified via call_logs.company_id in Supabase
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/service';
+import { getCallDetails } from '@/lib/bland/master-client';
 
 export async function GET(
   request: NextRequest,
@@ -35,35 +39,28 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { data: settings } = await supabase
-      .from('company_settings')
-      .select('bland_api_key')
+    // Verify this call belongs to the company (prevents cross-company access)
+    const { data: callLog } = await supabaseAdmin
+      .from('call_logs')
+      .select('id')
+      .eq('call_id', callId)
       .eq('company_id', companyId)
-      .single();
+      .maybeSingle();
 
-    // Never fall back to master API key — would leak cross-company data
-    if (!settings?.bland_api_key) {
+    if (!callLog) {
       return NextResponse.json(
-        { error: 'Bland sub-account not configured for this company. Please contact support.' },
-        { status: 500 }
+        { error: 'Call not found or does not belong to this company' },
+        { status: 404 }
       );
     }
-    const apiKey = settings.bland_api_key;
 
-    const response = await fetch(`https://api.bland.ai/v1/calls/${callId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': apiKey,
-        'Content-Type': 'application/json',
-      },
-    });
+    // Fetch from Bland via master key
+    const data = await getCallDetails(callId);
 
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (!data) {
       return NextResponse.json(
-        { error: data.message || 'Failed to fetch call details' },
-        { status: response.status }
+        { error: 'Failed to fetch call details from Bland' },
+        { status: 502 }
       );
     }
 

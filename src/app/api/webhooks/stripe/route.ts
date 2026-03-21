@@ -612,12 +612,23 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   });
 
   // ================================================================
-  // AUDIT FIX: Deactivate Bland sub-account and reclaim credits on cancellation
+  // Deactivate Bland + cancel active addons on subscription cancellation
   // ================================================================
   try {
     await deactivateBlandSubAccount(existingSub.company_id);
   } catch (blandError) {
     console.error('⚠️ Bland sub-account deactivation failed (non-fatal):', blandError);
+  }
+
+  // Cancel all active addons (dedicated numbers, recording vault, etc.)
+  try {
+    await supabaseAdminRaw
+      .from('company_addons')
+      .update({ status: 'canceled' })
+      .eq('company_id', existingSub.company_id)
+      .eq('status', 'active');
+  } catch (addonError) {
+    console.error('⚠️ Addon deactivation failed (non-fatal):', addonError);
   }
 
   // GA4 server-side: subscription cancelled
@@ -666,18 +677,26 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice & Record<st
     return;
   }
 
-  // Create billing history entry
-  await supabase.from('billing_history').insert({
-    company_id: subscription.company_id,
-    subscription_id: subscription.id,
-    amount: (invoice.amount_paid || 0) / 100, // Convert from cents
-    currency: (invoice.currency || 'usd').toUpperCase(),
-    status: 'paid',
-    stripe_invoice_id: invoice.id,
-    stripe_payment_intent_id: invoice.payment_intent || null,
-    payment_method: invoice.charge ? 'card' : 'other',
-    billing_date: new Date((invoice.created || Date.now() / 1000) * 1000).toISOString(),
-  });
+  // Create billing history entry (idempotent — skip if invoice already recorded)
+  const { data: existingBilling } = await supabase
+    .from('billing_history')
+    .select('id')
+    .eq('stripe_invoice_id', invoice.id)
+    .maybeSingle();
+
+  if (!existingBilling) {
+    await supabase.from('billing_history').insert({
+      company_id: subscription.company_id,
+      subscription_id: subscription.id,
+      amount: (invoice.amount_paid || 0) / 100, // Convert from cents
+      currency: (invoice.currency || 'usd').toUpperCase(),
+      status: 'paid',
+      stripe_invoice_id: invoice.id,
+      stripe_payment_intent_id: invoice.payment_intent || null,
+      payment_method: invoice.charge ? 'card' : 'other',
+      billing_date: new Date((invoice.created || Date.now() / 1000) * 1000).toISOString(),
+    });
+  }
 
   // Log event
   await supabase.from('billing_events').insert({
@@ -752,17 +771,25 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice & Record<strin
 
   if (!subscription) return;
 
-  // Create billing history entry
-  await supabase.from('billing_history').insert({
-    company_id: subscription.company_id,
-    subscription_id: subscription.id,
-    amount: (invoice.amount_due || 0) / 100,
-    currency: (invoice.currency || 'usd').toUpperCase(),
-    status: 'failed',
-    stripe_invoice_id: invoice.id,
-    failure_reason: 'Payment failed',
-    billing_date: new Date((invoice.created || Date.now() / 1000) * 1000).toISOString(),
-  });
+  // Create billing history entry (idempotent — skip if invoice already recorded)
+  const { data: existingFailedBilling } = await supabase
+    .from('billing_history')
+    .select('id')
+    .eq('stripe_invoice_id', invoice.id)
+    .maybeSingle();
+
+  if (!existingFailedBilling) {
+    await supabase.from('billing_history').insert({
+      company_id: subscription.company_id,
+      subscription_id: subscription.id,
+      amount: (invoice.amount_due || 0) / 100,
+      currency: (invoice.currency || 'usd').toUpperCase(),
+      status: 'failed',
+      stripe_invoice_id: invoice.id,
+      failure_reason: 'Payment failed',
+      billing_date: new Date((invoice.created || Date.now() / 1000) * 1000).toISOString(),
+    });
+  }
 
   // Update subscription status to past_due
   await supabase

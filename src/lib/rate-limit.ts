@@ -116,50 +116,23 @@ export const callLimiter = useRedis
   : createInMemoryLimiter(10, 60_000);
 
 // ============================================================
-// Global Hourly Cap — Protects Bland Master Account
+// Global Hourly Cap — Now delegated to Redis Concurrency Manager
+// These exports remain for backward compatibility.
+// The real global tracking is in lib/redis/concurrency-manager.ts
 // ============================================================
 
-const BLAND_GLOBAL_HOURLY_CAP = 900; // Stay under Bland Scale's 1000/hr limit
-const GLOBAL_CAP_KEY = 'callengo:global_hourly_calls';
-
 /**
- * Check and increment the global hourly call counter.
- * Returns whether the call is allowed under the global Bland cap.
+ * @deprecated Use checkCallCapacity() from lib/redis/concurrency-manager.ts instead.
+ * Kept for backward compatibility — always returns allowed: true.
+ * Global cap enforcement is now handled by the Redis concurrency manager.
  */
 export async function checkGlobalHourlyCap(): Promise<{ allowed: boolean; current: number; cap: number }> {
-  if (!redis) {
-    return { allowed: true, current: 0, cap: BLAND_GLOBAL_HOURLY_CAP };
-  }
-
-  try {
-    const hourBucket = `${GLOBAL_CAP_KEY}:${Math.floor(Date.now() / 3_600_000)}`;
-    const current = await redis.incr(hourBucket);
-
-    if (current === 1) {
-      await redis.expire(hourBucket, 7200); // 2-hour TTL for safety
-    }
-
-    return {
-      allowed: current <= BLAND_GLOBAL_HOURLY_CAP,
-      current,
-      cap: BLAND_GLOBAL_HOURLY_CAP,
-    };
-  } catch (error) {
-    console.error('[rate-limit] Global hourly cap check failed:', error);
-    // Fail open — don't block calls if Redis is temporarily down
-    return { allowed: true, current: 0, cap: BLAND_GLOBAL_HOURLY_CAP };
-  }
+  return { allowed: true, current: 0, cap: 999 };
 }
 
 /**
- * Get the current global hourly usage (read-only, no increment).
+ * @deprecated Use getConcurrencySnapshot() from lib/redis/concurrency-manager.ts instead.
  */
 export async function getGlobalHourlyUsage(): Promise<number> {
-  if (!redis) return 0;
-  try {
-    const hourBucket = `${GLOBAL_CAP_KEY}:${Math.floor(Date.now() / 3_600_000)}`;
-    return (await redis.get<number>(hourBucket)) || 0;
-  } catch {
-    return 0;
-  }
+  return 0;
 }

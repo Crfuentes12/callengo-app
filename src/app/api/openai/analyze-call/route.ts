@@ -1,5 +1,6 @@
 // app/api/openai/analyze-call/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/server';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -8,6 +9,13 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check — prevent unauthenticated access to OpenAI API
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { transcripts, agentType, demoData } = await request.json();
 
     if (!transcripts || !Array.isArray(transcripts)) {

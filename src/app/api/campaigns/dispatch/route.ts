@@ -1,6 +1,6 @@
 // app/api/campaigns/dispatch/route.ts
-// Server-side campaign batch dispatch — processes contacts sequentially
-// with throttling to avoid overwhelming Bland and bypassing per-company limits.
+// Server-side campaign batch dispatch — single master API key architecture
+// Processes contacts sequentially with throttling and Redis concurrency control.
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { z } from 'zod';
@@ -8,6 +8,9 @@ import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 import { checkCallAllowed, getMaxCallDuration } from '@/lib/billing/call-throttle';
 import { expensiveLimiter } from '@/lib/rate-limit';
+import { dispatchCall } from '@/lib/bland/master-client';
+import { getCompanyCallerNumber } from '@/lib/bland/phone-numbers';
+import { acquireCallSlot, releaseCallSlot } from '@/lib/redis/concurrency-manager';
 
 const dispatchSchema = z.object({
   company_id: z.string().uuid(),
@@ -31,6 +34,9 @@ const dispatchSchema = z.object({
   webhook_url: z.string().url().optional(),
   delay_between_calls_ms: z.number().int().min(500).max(30000).default(2000),
 });
+
+// Minimum 5 minutes (300s) between calls to the same contact — handled by Redis contactCooldown
+// The delay_between_calls_ms is for sequential dispatch pacing (not same-contact protection)
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,20 +76,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized for this company' }, { status: 403 });
     }
 
-    // Get company API key
-    const { data: settings } = await supabaseAdmin
-      .from('company_settings')
-      .select('bland_api_key, bland_subaccount_id')
-      .eq('company_id', company_id)
-      .single();
-
-    if (!settings?.bland_api_key) {
-      return NextResponse.json(
-        { error: 'Bland sub-account not configured. Please contact support.' },
-        { status: 500 }
-      );
-    }
-
     // Initial throttle check before starting
     const initialCheck = await checkCallAllowed(company_id);
     if (!initialCheck.allowed) {
@@ -101,8 +93,11 @@ export async function POST(request: NextRequest) {
     // Build the base webhook URL (use company's custom webhook or the platform webhook)
     const platformWebhook = `${request.nextUrl.origin}/api/bland/webhook`;
 
+    // Get dedicated number if company has one
+    const dedicatedNumber = await getCompanyCallerNumber(company_id);
+
     // Process contacts sequentially with delays
-    const results: { contact_id: string; status: 'dispatched' | 'throttled' | 'failed'; call_id?: string; error?: string }[] = [];
+    const results: { contact_id: string; status: 'dispatched' | 'throttled' | 'failed' | 'cooldown'; call_id?: string; error?: string }[] = [];
     let dispatched = 0;
     let throttled = 0;
     let failed = 0;
@@ -112,7 +107,6 @@ export async function POST(request: NextRequest) {
 
       try {
         // FIX: Pre-register call_log BEFORE throttle re-check to prevent TOCTOU race.
-        // The 'queued' entry is visible to concurrent getActiveCalls() queries.
         const preCallId = `pre_${Date.now()}_${crypto.randomUUID()}`;
         const { data: preLog } = await supabaseAdmin.from('call_logs').insert({
           company_id,
@@ -141,8 +135,18 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Dispatch to Bland
-        const blandPayload: Record<string, unknown> = {
+        // Acquire Redis call slot (checks contact cooldown + all limits)
+        const slot = await acquireCallSlot(company_id, preCallId, contact.contact_id);
+        if (!slot.acquired) {
+          if (preLog?.id) {
+            await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+          }
+          results.push({ contact_id: contact.contact_id, status: 'cooldown', error: slot.error || 'Call slot unavailable' });
+          continue; // Skip this contact but try next
+        }
+
+        // Dispatch via master API key
+        const result = await dispatchCall({
           phone_number: contact.phone_number,
           task: call_config.task,
           voice: call_config.voice,
@@ -151,8 +155,6 @@ export async function POST(request: NextRequest) {
           max_duration: effectiveMaxDuration,
           voicemail_action: call_config.voicemail_action,
           answered_by_enabled: true,
-          model: 'enhanced',
-          language: 'en',
           webhook: webhook_url || platformWebhook,
           metadata: {
             company_id,
@@ -163,37 +165,27 @@ export async function POST(request: NextRequest) {
             agent_template_slug: call_config.agent_template_slug || null,
             contact_name: contact.contact_name || null,
           },
-        };
-
-        if (call_config.first_sentence) blandPayload.first_sentence = call_config.first_sentence;
-        if (call_config.voicemail_message) blandPayload.voicemail_message = call_config.voicemail_message;
-
-        const response = await fetch('https://api.bland.ai/v1/calls', {
-          method: 'POST',
-          headers: {
-            'Authorization': settings.bland_api_key,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(blandPayload),
+          first_sentence: call_config.first_sentence,
+          voicemail_message: call_config.voicemail_message,
+          from: dedicatedNumber || undefined,
         });
 
-        const data = await response.json();
-
-        if (response.ok && data.call_id) {
+        if (result.success && result.callId) {
           // Update pre-registered call_log with real call_id
           if (preLog?.id) {
             await supabaseAdmin.from('call_logs')
-              .update({ call_id: data.call_id, status: 'in_progress' })
+              .update({ call_id: result.callId, status: 'in_progress' })
               .eq('id', preLog.id);
           }
-          results.push({ contact_id: contact.contact_id, status: 'dispatched', call_id: data.call_id });
+          results.push({ contact_id: contact.contact_id, status: 'dispatched', call_id: result.callId });
           dispatched++;
         } else {
-          // Remove pre-registered call_log
+          // Remove pre-registered call_log and release slot
           if (preLog?.id) {
             await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
           }
-          results.push({ contact_id: contact.contact_id, status: 'failed', error: data.message || 'Bland API error' });
+          await releaseCallSlot(company_id, preCallId);
+          results.push({ contact_id: contact.contact_id, status: 'failed', error: result.error || 'Bland API error' });
           failed++;
         }
       } catch (callError) {

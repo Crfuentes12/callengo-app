@@ -3,14 +3,14 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
-import { BLAND_COST_PER_MINUTE } from '@/lib/bland/subaccount-manager';
+import { BLAND_COST_PER_MINUTE } from '@/lib/bland/master-client';
 
 const BLAND_API_URL = 'https://api.bland.ai/v1';
 const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
 
 // Add-on prices (monthly) — source of truth from pricing model V4
 const ADDON_PRICES: Record<string, number> = {
-  dedicated_number: 15,
+  dedicated_number: 25, // $25/mo to customer ($15/mo Bland cost)
   recording_vault: 12,
   calls_booster: 35,
 };
