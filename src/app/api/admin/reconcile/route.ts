@@ -56,6 +56,10 @@ export async function GET() {
       .map(s => s.company_id)
       .filter(id => companiesWithUsers.has(id) && !archivedNames.has(id));
 
+    if (companyIds.length === 0) {
+      return NextResponse.json({ discrepancies: [], summary: { total: 0, withIssues: 0, critical: 0, major: 0, minor: 0, ok: 0 } });
+    }
+
     // Get call_logs minutes per company (source of truth from Bland webhooks)
     const { data: callLogs } = await supabaseAdmin
       .from('call_logs')

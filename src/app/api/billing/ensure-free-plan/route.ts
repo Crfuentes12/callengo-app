@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
+import { createBlandSubAccount, allocateBlandCredits } from '@/lib/bland/subaccount-manager';
 
 /**
  * Ensures a company has a Free trial plan subscription.
@@ -101,7 +102,24 @@ export async function POST(req: NextRequest) {
       minutes_included: freePlan.minutes_included,
     });
 
-    console.log(`[ensure-free-plan] Free trial plan (15 min) assigned to company ${company_id}`);
+    // Create Bland sub-account and allocate credits for Free trial minutes
+    // Without this, Free users cannot actually make any calls
+    try {
+      const { data: company } = await supabaseAdmin
+        .from('companies')
+        .select('name')
+        .eq('id', company_id)
+        .single();
+
+      await createBlandSubAccount(company_id, company?.name || `Company ${company_id}`);
+      await allocateBlandCredits(company_id, freePlan.minutes_included);
+      console.log(`[ensure-free-plan] Bland sub-account + $${(freePlan.minutes_included * 0.11 * 1.05).toFixed(2)} credits allocated for free trial`);
+    } catch (blandError) {
+      // Non-fatal: subscription is created, Bland setup can be retried
+      console.error('[ensure-free-plan] Bland sub-account setup failed (non-fatal):', blandError);
+    }
+
+    console.log(`[ensure-free-plan] Free trial plan (${freePlan.minutes_included} min) assigned to company ${company_id}`);
 
     return NextResponse.json({ status: 'created', subscription_id: newSub.id });
   } catch (error) {

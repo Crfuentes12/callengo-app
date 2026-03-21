@@ -43,11 +43,20 @@ export async function GET() {
     const companiesWithUsers = new Set(
       (usersWithCompanies || []).map(u => u.company_id).filter(Boolean)
     );
+    const archivedCompanies = (allCompanies || []).filter(c => c.name.startsWith('[ARCHIVED] '));
+    const orphanedCompanies = (allCompanies || []).filter(
+      c => !companiesWithUsers.has(c.id) && !c.name.startsWith('[ARCHIVED] ')
+    );
     const activeCompanyIds = new Set(
       (allCompanies || [])
         .filter(c => companiesWithUsers.has(c.id) && !c.name.startsWith('[ARCHIVED] '))
         .map(c => c.id)
     );
+
+    // Mask the Bland API key for admin display (e.g., "org_abc1...def9")
+    const maskedBlandKey = BLAND_MASTER_KEY
+      ? `${BLAND_MASTER_KEY.substring(0, 8)}...${BLAND_MASTER_KEY.slice(-4)}`
+      : null;
 
     // Run all queries in parallel
     const [
@@ -209,6 +218,9 @@ export async function GET() {
       totalMinutesIncluded,
       usagePercent: Math.round(usagePercent * 10) / 10,
       activeCompanies: activeSubscriptions.length,
+      orphanedCompanies: orphanedCompanies.length,
+      archivedCompanies: archivedCompanies.length,
+      blandApiKeyMasked: maskedBlandKey,
       planDistribution,
       hourlyCallsChart: hourlyBuckets,
       dailyCallsChart: dailyBuckets,
