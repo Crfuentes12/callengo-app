@@ -198,11 +198,12 @@ export async function POST(request: NextRequest) {
     }, { company: companyId });
 
     // Lock the contact during processing to prevent user edits (5-min TTL)
-    if (contactId) {
+    if (contactId && companyId) {
       const { data: lockContact } = await supabaseAdmin
         .from('contacts')
         .select('custom_fields')
         .eq('id', contactId)
+        .eq('company_id', companyId)
         .single();
       const lockCf = (lockContact?.custom_fields as Record<string, unknown>) || {};
 
@@ -230,11 +231,12 @@ export async function POST(request: NextRequest) {
             _lock_call_id: call_id,
           })),
         })
-        .eq('id', contactId);
+        .eq('id', contactId)
+        .eq('company_id', companyId);
     }
 
     // If there's a contact_id, update the contact
-    if (contactId && completed) {
+    if (contactId && completed && companyId) {
       const updates: Record<string, unknown> = {
         call_status: status,
         call_duration: call_length,
@@ -258,7 +260,8 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin
         .from('contacts')
         .update(updates)
-        .eq('id', contactId);
+        .eq('id', contactId)
+        .eq('company_id', companyId);
     }
 
     // ================================================================
@@ -500,6 +503,7 @@ export async function POST(request: NextRequest) {
                 .from('contacts')
                 .select('custom_fields')
                 .eq('id', contactId)
+                .eq('company_id', companyId)
                 .single();
               const cf = (contactData?.custom_fields as Record<string, unknown>) || {};
               await supabaseAdmin
@@ -507,7 +511,8 @@ export async function POST(request: NextRequest) {
                 .update({
                   custom_fields: { ...cf, ...apptResult.extractedData, ai_sentiment: apptResult.patientSentiment },
                 })
-                .eq('id', contactId);
+                .eq('id', contactId)
+                .eq('company_id', companyId);
             }
 
             dispatchWebhookEvent(companyId, 'appointment.confirmed', {
@@ -645,6 +650,7 @@ export async function POST(request: NextRequest) {
               .from('contacts')
               .select('custom_fields')
               .eq('id', contactId)
+              .eq('company_id', companyId)
               .single();
             const cf = (contactData?.custom_fields as Record<string, unknown>) || {};
             await supabaseAdmin
@@ -661,7 +667,8 @@ export async function POST(request: NextRequest) {
                 })),
                 updated_at: new Date().toISOString(),
               })
-              .eq('id', contactId);
+              .eq('id', contactId)
+              .eq('company_id', companyId);
           }
         }
 
@@ -690,6 +697,7 @@ export async function POST(request: NextRequest) {
               .from('contacts')
               .select('custom_fields')
               .eq('id', contactId)
+              .eq('company_id', companyId)
               .single();
             const cf = (contactData?.custom_fields as Record<string, unknown>) || {};
 
@@ -728,7 +736,8 @@ export async function POST(request: NextRequest) {
             await supabaseAdmin
               .from('contacts')
               .update(contactUpdates)
-              .eq('id', contactId);
+              .eq('id', contactId)
+              .eq('company_id', companyId);
           }
         }
 
@@ -913,12 +922,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Unlock the contact after all processing is complete
-    if (contactId) {
+    if (contactId && companyId) {
       try {
         const { data: unlockContact } = await supabaseAdmin
           .from('contacts')
           .select('custom_fields')
           .eq('id', contactId)
+          .eq('company_id', companyId)
           .single();
         const unlockCf = (unlockContact?.custom_fields as Record<string, unknown>) || {};
         // Remove lock fields
@@ -926,7 +936,8 @@ export async function POST(request: NextRequest) {
         await supabaseAdmin
           .from('contacts')
           .update({ custom_fields: JSON.parse(JSON.stringify(restFields)) })
-          .eq('id', contactId);
+          .eq('id', contactId)
+          .eq('company_id', companyId);
       } catch (unlockErr) {
         console.error('Failed to unlock contact (non-fatal):', unlockErr);
       }

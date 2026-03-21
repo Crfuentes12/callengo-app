@@ -165,6 +165,16 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { data: userData } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData?.company_id) {
+      return NextResponse.json({ error: 'No company found' }, { status: 400 });
+    }
+
     const body = await request.json();
     const { event_id, action, ...updateData } = body;
 
@@ -173,6 +183,18 @@ export async function PUT(request: NextRequest) {
         { error: 'Missing event_id' },
         { status: 400 }
       );
+    }
+
+    // Verify event belongs to this company
+    const { data: event } = await supabase
+      .from('calendar_events')
+      .select('id')
+      .eq('id', event_id)
+      .eq('company_id', userData.company_id)
+      .maybeSingle();
+
+    if (!event) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
     let result;
@@ -244,12 +266,34 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { data: userData } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData?.company_id) {
+      return NextResponse.json({ error: 'No company found' }, { status: 400 });
+    }
+
     const eventId = request.nextUrl.searchParams.get('event_id');
     if (!eventId) {
       return NextResponse.json(
         { error: 'Missing event_id' },
         { status: 400 }
       );
+    }
+
+    // Verify event belongs to this company
+    const { data: eventRecord } = await supabase
+      .from('calendar_events')
+      .select('id')
+      .eq('id', eventId)
+      .eq('company_id', userData.company_id)
+      .maybeSingle();
+
+    if (!eventRecord) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
     const cancelled = await cancelCalendarEvent(eventId);

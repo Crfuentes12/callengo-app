@@ -131,7 +131,7 @@ export async function refreshClioToken(
   const data = await res.json();
   const newAccessToken = data.access_token as string;
   const newRefreshToken = data.refresh_token as string;
-  const expiresIn = data.expires_in as number;
+  const expiresIn = (data.expires_in as number) || 3600; // default 1h
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
   // Update tokens in DB

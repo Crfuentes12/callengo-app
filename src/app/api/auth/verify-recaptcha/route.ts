@@ -17,8 +17,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (!RECAPTCHA_SECRET_KEY) {
-    // If reCAPTCHA is not configured, allow through (dev environment)
-    console.warn('[verify-recaptcha] RECAPTCHA_SECRET_KEY not configured — skipping verification');
+    // In production, reject if reCAPTCHA not configured — prevents bot signup bypass
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[verify-recaptcha] RECAPTCHA_SECRET_KEY not configured in production!');
+      return NextResponse.json({ error: 'reCAPTCHA not configured' }, { status: 500 });
+    }
+    // In dev, allow through
+    console.warn('[verify-recaptcha] RECAPTCHA_SECRET_KEY not configured — skipping verification (dev)');
     return NextResponse.json({ success: true, score: 1.0 });
   }
 

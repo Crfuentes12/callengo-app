@@ -122,6 +122,13 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
 
     // Check if subscription period has expired (enforces 90-day free trial)
     if (subscription.current_period_end && new Date(subscription.current_period_end) < new Date()) {
+      // Persist expired status to DB so other code paths see consistent state
+      await supabase
+        .from('company_subscriptions')
+        .update({ status: 'expired' })
+        .eq('id', subscription.id)
+        .eq('status', 'active'); // Only transition from active (idempotent)
+
       return {
         allowed: false,
         reason: 'Subscription period has expired. Please upgrade to continue.',

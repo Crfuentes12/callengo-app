@@ -15,7 +15,7 @@ import { expensiveLimiter } from '@/lib/rate-limit';
  */
 export async function POST(req: NextRequest) {
   try {
-    // Rate limit: 5 requests per minute per IP
+    // Rate limit: 5 requests per minute per IP (pre-auth fallback)
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const rateLimitResult = await expensiveLimiter.check(5, `ensure-free-plan:${ip}`);
     if (!rateLimitResult.success) {

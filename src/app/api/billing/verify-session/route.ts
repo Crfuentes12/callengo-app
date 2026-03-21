@@ -71,7 +71,8 @@ export async function POST(req: NextRequest) {
 
     const companyId = session.metadata?.company_id;
     const planId = session.metadata?.plan_id;
-    const billingCycle = session.metadata?.billing_cycle || 'monthly';
+    const rawBillingCycle = session.metadata?.billing_cycle || 'monthly';
+    const billingCycle = rawBillingCycle === 'annual' ? 'annual' : 'monthly'; // Sanitize to valid values only
     const subscriptionId = session.subscription;
     const customerId = session.customer as string;
 
