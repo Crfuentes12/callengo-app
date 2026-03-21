@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create the subscription using admin client (bypasses RLS)
+    // Handle race condition: if UNIQUE constraint on company_id rejects, treat as already_exists
     const now = new Date();
     const periodEnd = new Date();
     periodEnd.setDate(periodEnd.getDate() + 90); // 90-day free trial
@@ -132,6 +133,16 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (subError) {
+      // Unique constraint violation (23505) = another request created it first
+      if (subError.code === '23505') {
+        console.log(`[ensure-free-plan] Subscription already exists (race condition handled) for company ${company_id}`);
+        const { data: raceSub } = await supabaseAdmin
+          .from('company_subscriptions')
+          .select('id')
+          .eq('company_id', company_id)
+          .single();
+        return NextResponse.json({ status: 'already_exists', subscription_id: raceSub?.id });
+      }
       console.error('[ensure-free-plan] Error creating subscription:', subError);
       return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
     }
@@ -158,14 +169,25 @@ export async function POST(req: NextRequest) {
 
     if (emailVerified) {
       try {
-        const { data: company } = await supabaseAdmin
-          .from('companies')
-          .select('name')
-          .eq('id', company_id)
+        // Idempotency: check if sub-account already exists before creating
+        const { data: existingSettings } = await supabaseAdmin
+          .from('company_settings')
+          .select('bland_subaccount_id')
+          .eq('company_id', company_id)
           .single();
 
-        await createBlandSubAccount(company_id, company?.name || `Company ${company_id}`);
-        await allocateBlandCredits(company_id, freePlan.minutes_included);
+        if (existingSettings?.bland_subaccount_id) {
+          console.log(`[ensure-free-plan] Bland sub-account already exists for company ${company_id}, skipping`);
+        } else {
+          const { data: company } = await supabaseAdmin
+            .from('companies')
+            .select('name')
+            .eq('id', company_id)
+            .single();
+
+          await createBlandSubAccount(company_id, company?.name || `Company ${company_id}`);
+          await allocateBlandCredits(company_id, freePlan.minutes_included);
+        }
         console.log(`[ensure-free-plan] Bland sub-account + $${(freePlan.minutes_included * 0.11 * 1.05).toFixed(2)} credits allocated for free trial`);
       } catch (blandError) {
         // Non-fatal: subscription is created, Bland setup can be retried

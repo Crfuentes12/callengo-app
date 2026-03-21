@@ -79,9 +79,24 @@ export async function POST(req: NextRequest) {
 
     if (userRecordError) {
       console.error('[bootstrap] User record creation failed:', userRecordError);
-      // Try to clean up the company we just created
       await supabaseAdmin.from('companies').delete().eq('id', companyData.id);
       return NextResponse.json({ error: 'Failed to create user record' }, { status: 500 });
+    }
+
+    // Verify the user is actually linked to this company (race condition: another request
+    // may have created a different company and the upsert linked to that one instead)
+    const { data: verifyUser } = await supabaseAdmin
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+
+    if (verifyUser && verifyUser.company_id !== companyData.id) {
+      // Another request won the race — clean up our orphaned company
+      console.log(`[bootstrap] Race condition: user linked to ${verifyUser.company_id}, cleaning up ${companyData.id}`);
+      await supabaseAdmin.from('company_settings').delete().eq('company_id', companyData.id);
+      await supabaseAdmin.from('companies').delete().eq('id', companyData.id);
+      return NextResponse.json({ status: 'already_exists', company_id: verifyUser.company_id });
     }
 
     // Create company settings using admin client

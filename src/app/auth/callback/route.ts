@@ -117,27 +117,41 @@ export async function GET(request: NextRequest) {
               { auth: { autoRefreshToken: false, persistSession: false } }
             );
 
-            // Accept the invitation from metadata
-            await adminClient
-              .from('users')
-              .update({
-                company_id: invitedCompany,
-                role: invitedRole || 'member',
-              })
-              .eq('id', user.id);
-
-            // Mark the invitation as accepted
-            await adminClient
+            // Verify invitation exists, matches email, and belongs to the claimed company
+            const { data: invitation } = await adminClient
               .from('team_invitations')
-              .update({
-                status: 'accepted',
-                accepted_at: new Date().toISOString(),
-              })
+              .select('*')
               .eq('token', metadataToken)
-              .eq('status', 'pending');
+              .eq('status', 'pending')
+              .single();
 
-            console.log(`Team invitation auto-accepted from metadata: ${user.email}`);
-            return NextResponse.redirect(`${origin}/dashboard?team_joined=true`);
+            if (!invitation
+              || invitation.company_id !== invitedCompany
+              || invitation.email.toLowerCase() !== user.email?.toLowerCase()
+              || new Date(invitation.expires_at) <= new Date()) {
+              console.error(`[callback] Metadata invite validation failed for ${user.email}`);
+              // Fall through to normal onboarding
+            } else {
+              // Accept the verified invitation
+              await adminClient
+                .from('users')
+                .update({
+                  company_id: invitedCompany,
+                  role: invitedRole || 'member',
+                })
+                .eq('id', user.id);
+
+              await adminClient
+                .from('team_invitations')
+                .update({
+                  status: 'accepted',
+                  accepted_at: new Date().toISOString(),
+                })
+                .eq('id', invitation.id);
+
+              console.log(`Team invitation auto-accepted from metadata: ${user.email}`);
+              return NextResponse.redirect(`${origin}/dashboard?team_joined=true`);
+            }
           } catch (inviteError) {
             console.error('Error auto-accepting team invite from metadata:', inviteError);
           }
@@ -153,20 +167,23 @@ export async function GET(request: NextRequest) {
         // New user without invite - redirect to onboarding
         return NextResponse.redirect(`${origin}/onboarding`);
       }
+
+      // Check if user is admin — redirect to Command Center instead of Dashboard
+      const { data: roleData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (roleData?.role === 'admin') {
+        return NextResponse.redirect(`${origin}/admin/command-center`);
+      }
+
+      // User already onboarded - redirect to dashboard
+      return NextResponse.redirect(`${origin}/dashboard`);
     }
 
-    // Check if user is admin — redirect to Command Center instead of Dashboard
-    const { data: roleData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user!.id)
-      .single();
-
-    if (roleData?.role === 'admin') {
-      return NextResponse.redirect(`${origin}/admin/command-center`);
-    }
-
-    // User already onboarded - redirect to dashboard
+    // User authenticated but no user object — redirect to dashboard (middleware will handle)
     return NextResponse.redirect(`${origin}/dashboard`);
   }
 

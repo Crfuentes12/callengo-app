@@ -577,6 +577,7 @@ export default function OnboardingPage() {
                   </button>
                   <button
                     onClick={() => {
+                      setupInProgressRef.current = false;
                       setStep('form');
                       setError('');
                       setProgress(0);

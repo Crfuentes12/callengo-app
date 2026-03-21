@@ -83,18 +83,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Remove the user from the company by setting company_id to null
-    // and resetting their role (use untyped client because typed client doesn't allow null for company_id)
-    const { error: updateError } = await supabaseAdminRaw
+    // Delete the user record from the users table.
+    // company_id has a NOT NULL constraint, so we can't set it to null.
+    // The user keeps their Supabase Auth account and can re-onboard or accept a new invite.
+    const { error: deleteError } = await supabaseAdmin
       .from('users')
-      .update({
-        company_id: null,
-        role: 'member',
-      })
+      .delete()
       .eq('id', userId);
 
-    if (updateError) {
-      console.error('Error removing member:', updateError);
+    if (deleteError) {
+      console.error('Error removing member:', deleteError);
       return NextResponse.json({ error: 'Failed to remove team member' }, { status: 500 });
     }
 
