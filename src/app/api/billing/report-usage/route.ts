@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get current usage tracking (for current billing period)
+    // Get current usage tracking (for current billing period, most recent first)
     const now = new Date().toISOString();
     const { data: usage, error: usageError } = await supabaseAdmin
       .from('usage_tracking')
@@ -92,8 +92,9 @@ export async function POST(req: NextRequest) {
       .eq('subscription_id', subscription.id)
       .lte('period_start', now)
       .gte('period_end', now)
+      .order('period_start', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (usageError || !usage) {
       return NextResponse.json(
@@ -135,44 +136,51 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If no rows were updated, another request modified the record — retry once
+    // If no rows were updated, another request modified the record — retry with backoff
     if (!updatedRows || updatedRows.length === 0) {
-      // Re-read and retry
-      const { data: freshUsage } = await supabaseAdmin
-        .from('usage_tracking')
-        .select('*')
-        .eq('id', usage.id)
-        .single();
+      const MAX_RETRIES = 3;
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        // Re-read fresh data
+        const { data: freshUsage } = await supabaseAdmin
+          .from('usage_tracking')
+          .select('*')
+          .eq('id', usage.id)
+          .single();
 
-      if (!freshUsage) {
-        return NextResponse.json({ error: 'Usage tracking not found on retry' }, { status: 404 });
+        if (!freshUsage) {
+          return NextResponse.json({ error: 'Usage tracking not found on retry' }, { status: 404 });
+        }
+
+        // Recalculate with fresh data
+        const retryMinutesUsed = freshUsage.minutes_used + minutes;
+        const retryMinutesIncluded = subscription.subscription_plans?.minutes_included || 0;
+        const retryOverageMinutes = Math.max(0, retryMinutesUsed - retryMinutesIncluded);
+        const retryPricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;
+        const retryOverageCost = retryOverageMinutes * retryPricePerMinute;
+
+        const { data: retryRows } = await supabaseAdmin
+          .from('usage_tracking')
+          .update({
+            minutes_used: retryMinutesUsed,
+            total_cost: retryOverageCost,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', freshUsage.id)
+          .eq('updated_at', freshUsage.updated_at)
+          .select('id');
+
+        if (retryRows && retryRows.length > 0) {
+          // Retry succeeded
+          const retryResult = await processUsagePostUpdate(
+            supabaseAdmin, subscription, companyId, callId, minutes,
+            retryMinutesUsed, retryMinutesIncluded, retryOverageMinutes, retryPricePerMinute, retryOverageCost
+          );
+          return NextResponse.json(retryResult);
+        }
+        // Exponential backoff before next attempt
+        await new Promise(r => setTimeout(r, 50 * Math.pow(2, attempt)));
       }
-
-      const retryMinutesUsed = freshUsage.minutes_used + minutes;
-      const retryOverageMinutes = Math.max(0, retryMinutesUsed - minutesIncluded);
-      const retryOverageCost = retryOverageMinutes * pricePerMinute;
-
-      const { error: retryError } = await supabaseAdmin
-        .from('usage_tracking')
-        .update({
-          minutes_used: retryMinutesUsed,
-          total_cost: retryOverageCost,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', freshUsage.id)
-        .eq('updated_at', freshUsage.updated_at);
-
-      if (retryError) {
-        console.error('Error on usage update retry:', retryError);
-        return NextResponse.json({ error: 'Usage update conflict — please retry' }, { status: 409 });
-      }
-
-      // Use retried values for the rest of the flow
-      const retryResult = await processUsagePostUpdate(
-        supabaseAdmin, subscription, companyId, callId, minutes,
-        retryMinutesUsed, minutesIncluded, retryOverageMinutes, pricePerMinute, retryOverageCost
-      );
-      return NextResponse.json(retryResult);
+      return NextResponse.json({ error: 'Usage update conflict after retries — please retry' }, { status: 409 });
     }
 
     // Proceed with post-update operations
@@ -390,7 +398,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get current usage (for current billing period)
+    // Get current usage (for current billing period, most recent first)
     const getNow = new Date().toISOString();
     const { data: usage } = await supabase
       .from('usage_tracking')
@@ -399,8 +407,9 @@ export async function GET(req: NextRequest) {
       .eq('subscription_id', subscription.id)
       .lte('period_start', getNow)
       .gte('period_end', getNow)
+      .order('period_start', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     return NextResponse.json({
       usage: usage || {

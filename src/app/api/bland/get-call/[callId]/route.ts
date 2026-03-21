@@ -41,14 +41,14 @@ export async function GET(
       .eq('company_id', companyId)
       .single();
 
-    const apiKey = settings?.bland_api_key || process.env.BLAND_API_KEY;
-
-    if (!apiKey) {
+    // Never fall back to master API key — would leak cross-company data
+    if (!settings?.bland_api_key) {
       return NextResponse.json(
-        { error: 'API key not configured' },
+        { error: 'Bland sub-account not configured for this company. Please contact support.' },
         { status: 500 }
       );
     }
+    const apiKey = settings.bland_api_key;
 
     const response = await fetch(`https://api.bland.ai/v1/calls/${callId}`, {
       method: 'GET',

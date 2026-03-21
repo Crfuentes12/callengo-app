@@ -11,7 +11,7 @@ const MIN_SCORE = Number(process.env.RECAPTCHA_MIN_SCORE || '0.5');
 export async function POST(req: NextRequest) {
   // Rate limit: 10 requests per minute per IP
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rateLimitResult = expensiveLimiter.check(10, `verify-recaptcha:${ip}`);
+  const rateLimitResult = await expensiveLimiter.check(10, `verify-recaptcha:${ip}`);
   if (!rateLimitResult.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }

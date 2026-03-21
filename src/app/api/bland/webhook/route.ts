@@ -135,9 +135,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing company_id' }, { status: 400 });
     }
 
-    // Log the call
+    // Idempotency check: skip if this call_id was already fully processed
+    if (call_id) {
+      const { data: existingLog } = await supabaseAdmin
+        .from('call_logs')
+        .select('id, completed')
+        .eq('call_id', call_id)
+        .maybeSingle();
 
-    await supabaseAdmin.from('call_logs').insert({
+      if (existingLog?.completed) {
+        console.log(`[webhook] Call ${call_id} already processed, skipping`);
+        return NextResponse.json({ status: 'already_processed', call_id });
+      }
+    }
+
+    // Upsert call_log (insert or update if call_id already exists from pre-dispatch)
+    await supabaseAdmin.from('call_logs').upsert({
       company_id: companyId,
       contact_id: contactId || null,
       call_id: call_id as string,
@@ -151,7 +164,7 @@ export async function POST(request: NextRequest) {
       summary: summary || null,
       error_message: error_message || null,
       metadata: body as unknown as Json,
-    });
+    }, { onConflict: 'call_id', ignoreDuplicates: false });
 
     // GA4 server-side event: call completed
     trackServerEvent(
@@ -174,7 +187,7 @@ export async function POST(request: NextRequest) {
       completed: completed || false,
     }, { company: companyId });
 
-    // Lock the contact during processing to prevent user edits
+    // Lock the contact during processing to prevent user edits (5-min TTL)
     if (contactId) {
       const { data: lockContact } = await supabaseAdmin
         .from('contacts')
@@ -182,13 +195,27 @@ export async function POST(request: NextRequest) {
         .eq('id', contactId)
         .single();
       const lockCf = (lockContact?.custom_fields as Record<string, unknown>) || {};
+
+      // Strip any existing lock fields before setting our new lock
+      // This handles stale locks from crashed webhooks
+      const { _locked, _locked_at, _locked_by, _lock_call_id, _lock_expires_at: _expiry, ...cleanFields } = lockCf;
+
+      if (_locked && _locked_at) {
+        const lockAge = Date.now() - new Date(_locked_at as string).getTime();
+        if (lockAge > 5 * 60 * 1000) {
+          console.warn(`[webhook] Stale lock cleared on contact ${contactId} (${Math.round(lockAge / 1000)}s old)`);
+        }
+      }
+
+      const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       await supabaseAdmin
         .from('contacts')
         .update({
           custom_fields: JSON.parse(JSON.stringify({
-            ...lockCf,
+            ...cleanFields,
             _locked: true,
             _locked_at: new Date().toISOString(),
+            _lock_expires_at: lockExpiry,
             _locked_by: 'webhook_processing',
             _lock_call_id: call_id,
           })),
@@ -885,7 +912,7 @@ export async function POST(request: NextRequest) {
           .single();
         const unlockCf = (unlockContact?.custom_fields as Record<string, unknown>) || {};
         // Remove lock fields
-        const { _locked, _locked_at, _locked_by, _lock_call_id, ...restFields } = unlockCf;
+        const { _locked, _locked_at, _locked_by, _lock_call_id, _lock_expires_at, ...restFields } = unlockCf;
         await supabaseAdmin
           .from('contacts')
           .update({ custom_fields: JSON.parse(JSON.stringify(restFields)) })

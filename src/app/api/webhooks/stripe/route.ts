@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase/service';
+import { supabaseAdmin as supabase, supabaseAdminRaw } from '@/lib/supabase/service';
 import { verifyWebhookSignature, stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { trackServerEvent } from '@/lib/analytics';
@@ -18,6 +18,7 @@ import {
   handlePlanUpgradeCredits,
   deactivateBlandSubAccount,
 } from '@/lib/bland/subaccount-manager';
+import { resetUsageForNewPeriod } from '@/lib/billing/usage-tracker';
 
 // Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';
@@ -136,6 +137,53 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   const companyId = session.metadata?.company_id;
   const planId = session.metadata?.plan_id;
   const billingCycle = session.metadata?.billing_cycle || 'monthly';
+  const isAddon = session.metadata?.is_addon === 'true';
+  const productType = session.metadata?.product_type;
+
+  // Handle add-on purchases (don't require plan_id)
+  if (companyId && isAddon) {
+    const addonType = session.metadata?.addon_type;
+    const addonQuantity = parseInt(session.metadata?.quantity || '1', 10);
+    console.log(`📦 Add-on checkout completed: ${addonType} x${addonQuantity} for company ${companyId}`);
+
+    try {
+      await supabaseAdminRaw.from('company_addons').insert({
+        company_id: companyId,
+        addon_type: addonType,
+        quantity: addonQuantity,
+        status: 'active',
+        stripe_subscription_id: session.subscription as string || null,
+      });
+    } catch (addonError) {
+      console.error('Failed to record add-on purchase:', addonError);
+    }
+    return;
+  }
+
+  // Handle extra seat purchases (don't require plan_id)
+  if (companyId && productType === 'extra_seat') {
+    const seatQuantity = parseInt(session.metadata?.quantity || '1', 10);
+    console.log(`💺 Seat checkout completed: ${seatQuantity} seats for company ${companyId}`);
+
+    try {
+      // Fetch current seat count and increment
+      const { data: currentSub } = await supabase
+        .from('company_subscriptions')
+        .select('extra_users')
+        .eq('company_id', companyId)
+        .single();
+
+      if (currentSub) {
+        await supabase
+          .from('company_subscriptions')
+          .update({ extra_users: (currentSub.extra_users || 0) + seatQuantity })
+          .eq('company_id', companyId);
+      }
+    } catch (seatError) {
+      console.error('Failed to record seat purchase:', seatError);
+    }
+    return;
+  }
 
   if (!companyId || !planId) {
     console.error('Missing metadata in checkout session');
@@ -223,7 +271,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  const { error: usageUpdateError } = await supabase
+  // Update existing usage record, or insert if none exists
+  const { data: updatedUsage } = await supabase
     .from('usage_tracking')
     .update({
       subscription_id: subId,
@@ -232,10 +281,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       minutes_used: 0,
       minutes_included: plan.minutes_included,
     })
-    .eq('company_id', companyId);
+    .eq('company_id', companyId)
+    .select('id');
 
-  // If no existing usage record, insert one
-  if (usageUpdateError && usageUpdateError.code === 'PGRST116') {
+  // If no rows were updated (no existing record), insert one
+  if (!updatedUsage || updatedUsage.length === 0) {
     await supabase.from('usage_tracking').insert({
       company_id: companyId,
       subscription_id: subId,
@@ -514,21 +564,47 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     return;
   }
 
-  // Update to canceled status
+  // Downgrade to free plan instead of just marking canceled
+  // This ensures feature-gating by plan_id works correctly
+  const { data: freePlan } = await supabase
+    .from('subscription_plans')
+    .select('id, minutes_included')
+    .eq('slug', 'free')
+    .single();
+
+  const now = new Date();
+  const freeExpiry = new Date();
+  freeExpiry.setDate(freeExpiry.getDate() + 90);
+
   await supabase
     .from('company_subscriptions')
     .update({
       status: 'canceled',
+      ...(freePlan ? {
+        plan_id: freePlan.id,
+        overage_enabled: false,
+        overage_budget: 0,
+        overage_spent: 0,
+        current_period_start: now.toISOString(),
+        current_period_end: freeExpiry.toISOString(),
+        stripe_subscription_id: null,
+        stripe_subscription_item_id: null,
+      } : {}),
     })
     .eq('stripe_subscription_id', subscription.id);
 
   // Log event
+  const canceledAt = subscription.canceled_at
+    ? new Date(subscription.canceled_at * 1000).toISOString()
+    : new Date().toISOString();
+
   await supabase.from('billing_events').insert({
     company_id: existingSub.company_id,
     subscription_id: existingSub.id,
     event_type: 'subscription_canceled',
     event_data: {
-      canceled_at: new Date(subscription.canceled_at! * 1000).toISOString(),
+      canceled_at: canceledAt,
+      downgraded_to: 'free',
     },
     minutes_consumed: 0,
     cost_usd: 0,
@@ -627,9 +703,18 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice & Record<st
       .eq('id', subscription.id);
 
     // ================================================================
-    // AUDIT FIX: Reclaim old Bland credits and allocate fresh for new cycle
+    // AUDIT FIX: Reset usage tracking for the new billing period
+    // Creates a fresh usage_tracking record with minutes_used=0
     // ================================================================
     if (invoice.billing_reason === 'subscription_cycle') {
+      try {
+        await resetUsageForNewPeriod(subscription.company_id);
+        console.log(`✅ Usage reset for new billing cycle: company ${subscription.company_id}`);
+      } catch (resetError) {
+        console.error('⚠️ Usage reset failed (non-fatal):', resetError);
+      }
+
+      // Reclaim old Bland credits and allocate fresh for new cycle
       try {
         const { data: plan } = await supabase
           .from('subscription_plans')
@@ -721,7 +806,7 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
 
   const { data: existingSub } = await supabase
     .from('company_subscriptions')
-    .select('company_id')
+    .select('id, company_id')
     .eq('stripe_subscription_id', subscription.id)
     .single();
 
@@ -730,7 +815,7 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
   // Log event for notification system
   await supabase.from('billing_events').insert({
     company_id: existingSub.company_id,
-    subscription_id: subscription.id,
+    subscription_id: existingSub.id,
     event_type: 'trial_ending',
     event_data: {
       trial_end: new Date(subscription.trial_end! * 1000).toISOString(),

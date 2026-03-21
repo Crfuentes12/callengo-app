@@ -11,6 +11,7 @@
 import { supabaseAdmin } from '@/lib/supabase/service';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import { CAMPAIGN_FEATURE_ACCESS } from '@/config/plan-features';
+import { checkGlobalHourlyCap } from '@/lib/rate-limit';
 
 export interface ThrottleCheckResult {
   allowed: boolean;
@@ -81,6 +82,15 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
     };
   }
 
+  // Check if subscription period has expired (critical for free plan 90-day trial)
+  if (subscription.current_period_end && new Date(subscription.current_period_end) < new Date()) {
+    return {
+      allowed: false,
+      reason: 'Your subscription period has expired. Please upgrade to continue making calls.',
+      reasonCode: 'subscription_inactive',
+    };
+  }
+
   const planSlug = subscription.subscription_plans.slug as string;
   const planFeatures = CAMPAIGN_FEATURE_ACCESS[planSlug] || CAMPAIGN_FEATURE_ACCESS.free;
   const maxConcurrent = planFeatures.maxConcurrentCalls;
@@ -108,7 +118,7 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
   if (dailyCalls >= dailyCap) {
     return {
       allowed: false,
-      reason: `Daily call limit reached (${dailyCap} calls/day on ${subscription.subscription_plans.name}). Remaining calls will be queued for tomorrow.${nextPlan ? ` Upgrade to ${nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1)} for higher daily limits.` : ''}`,
+      reason: `Daily call limit reached (${dailyCap} calls/day on ${subscription.subscription_plans.name}). Please try again tomorrow.${nextPlan ? ` Upgrade to ${nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1)} for higher daily limits.` : ''}`,
       reasonCode: 'daily_cap',
       dailyCallsToday: dailyCalls,
       dailyCap,
@@ -129,7 +139,19 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
     };
   }
 
-  // 5. Check usage limits (minutes remaining + overage)
+  // 5. Check global hourly cap (protect Bland master account — 1000 calls/hr limit)
+  const globalCap = await checkGlobalHourlyCap();
+  if (!globalCap.allowed) {
+    console.warn(`[throttle] Global hourly cap reached: ${globalCap.current}/${globalCap.cap}`);
+    return {
+      allowed: false,
+      reason: 'Platform is experiencing high demand. Please try again in a few minutes.',
+      reasonCode: 'hourly_cap',
+      planSlug,
+    };
+  }
+
+  // 6. Check usage limits (minutes remaining + overage)
   const usageCheck = await checkMinutesAvailable(companyId, subscription);
   if (!usageCheck.allowed) {
     return {
@@ -210,7 +232,7 @@ async function checkMinutesAvailable(
   const plan = subscription.subscription_plans;
   const isFreePlan = plan.slug === 'free';
 
-  // Get current usage
+  // Get current usage (most recent period first to handle overlapping records)
   const now = new Date().toISOString();
   const { data: usage } = await supabaseAdmin
     .from('usage_tracking')
@@ -219,8 +241,9 @@ async function checkMinutesAvailable(
     .eq('subscription_id', subscription.id)
     .lte('period_start', now)
     .gte('period_end', now)
+    .order('period_start', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   const minutesUsed = usage?.minutes_used || 0;
 

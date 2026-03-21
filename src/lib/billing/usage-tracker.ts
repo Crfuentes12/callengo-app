@@ -37,13 +37,14 @@ export async function trackCallUsage(params: UsageReport): Promise<void> {
   const { companyId, minutes, callId, metadata = {} } = params;
 
   try {
-    // Call the report-usage API endpoint
+    // Call the report-usage API endpoint with internal service token
     const response = await fetch(
       `${getAppUrl()}/api/billing/report-usage`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-service-key': process.env.INTERNAL_API_SECRET || '',
         },
         body: JSON.stringify({
           companyId,
@@ -115,6 +116,26 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
           overageEnabled: subscription.overage_enabled,
           overageBudget: subscription.overage_budget,
           overageSpent: subscription.overage_spent || 0,
+        },
+      };
+    }
+
+    // Check if subscription period has expired (enforces 90-day free trial)
+    if (subscription.current_period_end && new Date(subscription.current_period_end) < new Date()) {
+      return {
+        allowed: false,
+        reason: 'Subscription period has expired. Please upgrade to continue.',
+        usage: {
+          minutesUsed: 0,
+          minutesIncluded: 0,
+          overageMinutes: 0,
+          overageCost: 0,
+        },
+        subscription: {
+          status: 'expired',
+          overageEnabled: false,
+          overageBudget: null,
+          overageSpent: 0,
         },
       };
     }
@@ -280,8 +301,24 @@ export async function getUsageStats(companyId: string) {
       .limit(1)
       .single();
 
+    // Include Calls Booster add-on minutes (same logic as checkUsageLimit)
+    let boosterMinutes = 0;
+    const { data: activeAddons } = await supabaseAdminRaw
+      .from('company_addons')
+      .select('addon_type, quantity')
+      .eq('company_id', companyId)
+      .eq('status', 'active')
+      .eq('addon_type', 'calls_booster');
+
+    if (activeAddons && activeAddons.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      boosterMinutes = (activeAddons as any[]).reduce(
+        (sum: number, addon: { quantity?: number }) => sum + ((addon.quantity || 1) * 225), 0
+      );
+    }
+
     const minutesUsed = usage?.minutes_used || 0;
-    const minutesIncluded = subscription.subscription_plans?.minutes_included || 0;
+    const minutesIncluded = (subscription.subscription_plans?.minutes_included || 0) + boosterMinutes;
     const overageMinutes = Math.max(0, minutesUsed - minutesIncluded);
     const pricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;
     const overageCost = overageMinutes * pricePerMinute;
@@ -291,7 +328,7 @@ export async function getUsageStats(companyId: string) {
       minutesIncluded,
       overageMinutes,
       overageCost,
-      percentageUsed: (minutesUsed / minutesIncluded) * 100,
+      percentageUsed: minutesIncluded > 0 ? (minutesUsed / minutesIncluded) * 100 : 0,
       overageEnabled: subscription.overage_enabled,
       overageBudget: subscription.overage_budget,
       overageSpent: subscription.overage_spent || 0,
@@ -322,16 +359,29 @@ export async function resetUsageForNewPeriod(companyId: string): Promise<void> {
     const periodStart = new Date(subscription.current_period_start);
     const periodEnd = new Date(subscription.current_period_end);
 
-    // Create new usage tracking record
-    await supabase.from('usage_tracking').insert({
-      company_id: companyId,
-      subscription_id: subscription.id,
-      period_start: periodStart.toISOString(),
-      period_end: periodEnd.toISOString(),
-      minutes_used: 0,
-      minutes_included: subscription.subscription_plans?.minutes_included || 0,
-      total_cost: 0,
-    });
+    // Check if a record for this period already exists (prevent duplicates)
+    const { data: existingUsage } = await supabase
+      .from('usage_tracking')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('subscription_id', subscription.id)
+      .eq('period_start', periodStart.toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    if (existingUsage) {
+      console.log(`[usage-tracker] Usage record already exists for period ${periodStart.toISOString()}, skipping insert`);
+    } else {
+      await supabase.from('usage_tracking').insert({
+        company_id: companyId,
+        subscription_id: subscription.id,
+        period_start: periodStart.toISOString(),
+        period_end: periodEnd.toISOString(),
+        minutes_used: 0,
+        minutes_included: subscription.subscription_plans?.minutes_included || 0,
+        total_cost: 0,
+      });
+    }
 
     // Reset overage tracking in subscription
     await supabase

@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
+import { deactivateBlandSubAccount } from '@/lib/bland/subaccount-manager';
 
 // Tables to DELETE when cleaning up an orphaned company (operational data only)
 const OPERATIONAL_TABLES = [
@@ -71,7 +72,7 @@ async function verifyAdmin(supabase: Awaited<ReturnType<typeof createServerClien
     .eq('id', user.id)
     .single();
 
-  if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) return null;
+  if (!userData || userData.role !== 'admin') return null;
   return user;
 }
 
@@ -88,8 +89,14 @@ async function findOrphans() {
     (usersWithCompanies || []).map(u => u.company_id).filter(Boolean)
   );
 
+  // Only flag companies as orphans if they were created more than 1 hour ago
+  // to avoid a race condition with onboarding (company created before user row)
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
   return (allCompanies || []).filter(
-    c => !activeCompanyIds.has(c.id) && !c.name.startsWith(ARCHIVED_PREFIX)
+    c => !activeCompanyIds.has(c.id)
+      && !c.name.startsWith(ARCHIVED_PREFIX)
+      && c.created_at < oneHourAgo
   );
 }
 
@@ -131,6 +138,15 @@ export async function DELETE() {
     }
 
     const results: { table: string; deleted: number; error?: string }[] = [];
+
+    // 0. Deactivate Bland sub-accounts and reclaim credits BEFORE deleting settings
+    for (const orphan of orphans) {
+      try {
+        await deactivateBlandSubAccount(orphan.id);
+      } catch (blandError) {
+        console.error(`[cleanup] Failed to deactivate Bland sub-account for ${orphan.id}:`, blandError);
+      }
+    }
 
     // 1. Delete operational data for orphaned companies
     for (const table of OPERATIONAL_TABLES) {

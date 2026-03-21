@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting: max 10 calls per minute per user
-    const { success: rateLimitOk } = expensiveLimiter.check(10, user.id);
+    const { success: rateLimitOk } = await expensiveLimiter.check(10, user.id);
     if (!rateLimitOk) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
@@ -99,21 +99,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get company-specific API key (sub-account key) or fall back to master key
+    // Get company-specific API key (sub-account key) — never fall back to master key
     const { data: settings } = await supabaseAdmin
       .from('company_settings')
       .select('bland_api_key, bland_subaccount_id')
       .eq('company_id', company_id)
       .single();
 
-    const apiKey = settings?.bland_api_key || process.env.BLAND_API_KEY;
-
-    if (!apiKey) {
+    if (!settings?.bland_api_key) {
       return NextResponse.json(
-        { error: 'Bland API key not configured' },
+        { error: 'Bland sub-account not configured for this company. Please contact support.' },
         { status: 500 }
       );
     }
+
+    const apiKey = settings.bland_api_key;
 
     // AUDIT FIX: Enforce plan-specific max call duration
     // The client can request a duration, but it's capped by the plan's max
@@ -142,6 +142,17 @@ export async function POST(request: NextRequest) {
     if (webhook) blandPayload.webhook = webhook;
     if (metadata) blandPayload.metadata = metadata;
 
+    // Pre-register call_log with 'queued' status BEFORE dispatching to Bland.
+    // This ensures concurrent call counting is accurate (fixes TOCTOU race).
+    const preCallId = `pre_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const { data: preLog } = await supabaseAdmin.from('call_logs').insert({
+      company_id: company_id,
+      contact_id: metadata?.contact_id as string || null,
+      call_id: preCallId,
+      status: 'queued',
+      completed: false,
+    }).select('id').single();
+
     const response = await fetch('https://api.bland.ai/v1/calls', {
       method: 'POST',
       headers: {
@@ -154,10 +165,21 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
 
     if (!response.ok) {
+      // Remove pre-registered call_log on failure
+      if (preLog?.id) {
+        await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+      }
       return NextResponse.json(
         { error: data.message || 'Failed to initiate call', details: data },
         { status: response.status }
       );
+    }
+
+    // Update pre-registered call_log with actual Bland call_id
+    if (preLog?.id && data.call_id) {
+      await supabaseAdmin.from('call_logs')
+        .update({ call_id: data.call_id, status: 'in_progress' })
+        .eq('id', preLog.id);
     }
 
     return NextResponse.json({

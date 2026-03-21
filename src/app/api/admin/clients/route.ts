@@ -130,7 +130,7 @@ export async function GET() {
           const settings = settingsByCompany.get(c.id);
           if (!settings?.bland_subaccount_id) return { companyId: c.id, balance: 0 };
           try {
-            const res = await fetch(`${BLAND_API_URL}/accounts/${settings.bland_subaccount_id}`, {
+            const res = await fetch(`${BLAND_API_URL}/subaccounts/${settings.bland_subaccount_id}`, {
               method: 'GET',
               headers: { 'Authorization': BLAND_MASTER_KEY },
             });

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limit: 5 requests per minute per IP
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-    const rateLimitResult = expensiveLimiter.check(5, `ensure-free-plan:${ip}`);
+    const rateLimitResult = await expensiveLimiter.check(5, `ensure-free-plan:${ip}`);
     if (!rateLimitResult.success) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
@@ -111,9 +111,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Create the subscription using admin client (bypasses RLS)
+    // Handle race condition: if UNIQUE constraint on company_id rejects, treat as already_exists
     const now = new Date();
     const periodEnd = new Date();
-    periodEnd.setFullYear(periodEnd.getFullYear() + 10);
+    periodEnd.setDate(periodEnd.getDate() + 90); // 90-day free trial
 
     const { data: newSub, error: subError } = await supabaseAdmin
       .from('company_subscriptions')
@@ -132,12 +133,22 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (subError) {
+      // Unique constraint violation (23505) = another request created it first
+      if (subError.code === '23505') {
+        console.log(`[ensure-free-plan] Subscription already exists (race condition handled) for company ${company_id}`);
+        const { data: raceSub } = await supabaseAdmin
+          .from('company_subscriptions')
+          .select('id')
+          .eq('company_id', company_id)
+          .single();
+        return NextResponse.json({ status: 'already_exists', subscription_id: raceSub?.id });
+      }
       console.error('[ensure-free-plan] Error creating subscription:', subError);
       return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
     }
 
     // Create usage tracking record using admin client
-    await supabaseAdmin.from('usage_tracking').insert({
+    const { error: usageError } = await supabaseAdmin.from('usage_tracking').insert({
       company_id,
       subscription_id: newSub.id,
       period_start: now.toISOString(),
@@ -145,6 +156,10 @@ export async function POST(req: NextRequest) {
       minutes_used: 0,
       minutes_included: freePlan.minutes_included,
     });
+
+    if (usageError) {
+      console.error('[ensure-free-plan] Failed to create usage tracking:', usageError);
+    }
 
     // Create Bland sub-account and allocate credits ONLY if email is verified.
     // This prevents spam signups from draining the Bland master balance.
@@ -154,14 +169,25 @@ export async function POST(req: NextRequest) {
 
     if (emailVerified) {
       try {
-        const { data: company } = await supabaseAdmin
-          .from('companies')
-          .select('name')
-          .eq('id', company_id)
+        // Idempotency: check if sub-account already exists before creating
+        const { data: existingSettings } = await supabaseAdmin
+          .from('company_settings')
+          .select('bland_subaccount_id')
+          .eq('company_id', company_id)
           .single();
 
-        await createBlandSubAccount(company_id, company?.name || `Company ${company_id}`);
-        await allocateBlandCredits(company_id, freePlan.minutes_included);
+        if (existingSettings?.bland_subaccount_id) {
+          console.log(`[ensure-free-plan] Bland sub-account already exists for company ${company_id}, skipping`);
+        } else {
+          const { data: company } = await supabaseAdmin
+            .from('companies')
+            .select('name')
+            .eq('id', company_id)
+            .single();
+
+          await createBlandSubAccount(company_id, company?.name || `Company ${company_id}`);
+          await allocateBlandCredits(company_id, freePlan.minutes_included);
+        }
         console.log(`[ensure-free-plan] Bland sub-account + $${(freePlan.minutes_included * 0.11 * 1.05).toFixed(2)} credits allocated for free trial`);
       } catch (blandError) {
         // Non-fatal: subscription is created, Bland setup can be retried

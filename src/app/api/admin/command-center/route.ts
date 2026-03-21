@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
-import { createBlandSubAccount, allocateBlandCredits } from '@/lib/bland/subaccount-manager';
+import { createBlandSubAccount, allocateBlandCredits, calculateCreditAmount } from '@/lib/bland/subaccount-manager';
 
 const BLAND_API_URL = 'https://api.bland.ai/v1';
 const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
@@ -265,6 +265,9 @@ function extractBalance(data: Record<string, unknown>): number | null {
  * Ensure admin's company has a Free plan subscription + Bland sub-account.
  * Uses the same credit transfer parameters as any other company.
  * Idempotent — safe to call on every Command Center load.
+ *
+ * NOTE: If Bland sub-account creation fails (e.g., BYOT_INSERT_FAILED),
+ * we assign the master account key directly so the admin can still make calls.
  */
 async function ensureAdminCompanySetup(companyId: string) {
   try {
@@ -287,7 +290,7 @@ async function ensureAdminCompanySetup(companyId: string) {
       if (freePlan) {
         const now = new Date();
         const periodEnd = new Date();
-        periodEnd.setFullYear(periodEnd.getFullYear() + 10);
+        periodEnd.setDate(periodEnd.getDate() + 90); // 90-day free trial
 
         const { data: newSub } = await supabaseAdmin
           .from('company_subscriptions')
@@ -320,14 +323,14 @@ async function ensureAdminCompanySetup(companyId: string) {
       }
     }
 
-    // Check if Bland sub-account exists
+    // Check if Bland sub-account / API key exists
     const { data: settings } = await supabaseAdmin
       .from('company_settings')
-      .select('bland_subaccount_id')
+      .select('bland_subaccount_id, bland_api_key')
       .eq('company_id', companyId)
       .single();
 
-    if (!settings?.bland_subaccount_id) {
+    if (!settings?.bland_api_key) {
       const { data: company } = await supabaseAdmin
         .from('companies')
         .select('name')
@@ -345,7 +348,14 @@ async function ensureAdminCompanySetup(companyId: string) {
       const minutes = (sub?.subscription_plans as { minutes_included?: number } | null)?.minutes_included || 15;
 
       await createBlandSubAccount(companyId, company?.name || 'Callengo Admin');
-      await allocateBlandCredits(companyId, minutes);
+      // Note: createBlandSubAccount transfers MIN_INITIAL_BALANCE ($10) on creation.
+      // Only allocate additional credits if plan includes more minutes.
+      const creditAmount = calculateCreditAmount(minutes);
+      if (creditAmount > 10) {
+        // The sub-account was created with $10 initial balance,
+        // allocate the remainder if the plan requires more
+        await allocateBlandCredits(companyId, minutes);
+      }
       console.log(`[admin-setup] Bland sub-account + credits allocated for admin company ${companyId}`);
     }
   } catch (error) {
