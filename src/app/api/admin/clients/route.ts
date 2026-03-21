@@ -1,12 +1,9 @@
 // app/api/admin/clients/route.ts
-// Admin Clients List — all companies with usage, sub-accounts, unit economics
+// Admin Clients List — all companies with usage and unit economics (master key architecture)
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import { BLAND_COST_PER_MINUTE } from '@/lib/bland/master-client';
-
-const BLAND_API_URL = 'https://api.bland.ai/v1';
-const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
 
 // Add-on prices (monthly) — source of truth from pricing model V4
 const ADDON_PRICES: Record<string, number> = {
@@ -66,7 +63,6 @@ export async function GET() {
     // Parallel queries for all data
     const [
       subscriptionsResult,
-      settingsResult,
       usageResult,
       addonsResult,
     ] = await Promise.all([
@@ -74,12 +70,6 @@ export async function GET() {
       supabaseAdmin
         .from('company_subscriptions')
         .select('*, subscription_plans(*)')
-        .in('company_id', companyIds),
-
-      // Company settings (bland sub-account info)
-      supabaseAdmin
-        .from('company_settings')
-        .select('company_id, bland_subaccount_id, bland_api_key')
         .in('company_id', companyIds),
 
       // Current usage tracking
@@ -102,9 +92,6 @@ export async function GET() {
     const subsByCompany = new Map<string, SubscriptionRow>();
     (subscriptionsResult.data || []).forEach(s => subsByCompany.set(s.company_id, s));
 
-    const settingsByCompany = new Map<string, { bland_subaccount_id: string | null; bland_api_key: string | null }>();
-    (settingsResult.data || []).forEach(s => settingsByCompany.set(s.company_id, s));
-
     // Get latest usage per company (first one since ordered desc)
     const usageByCompany = new Map<string, { minutes_used: number; minutes_included: number; total_cost: number; period_start: string; period_end: string }>();
     (usageResult.data || []).forEach(u => {
@@ -122,43 +109,11 @@ export async function GET() {
       addonsByCompany.set(a.company_id, existing);
     });
 
-    // Fetch Bland sub-account balances in batches (max 10 concurrent)
-    const companiesWithSubAccounts = companies.filter(c => {
-      const settings = settingsByCompany.get(c.id);
-      return settings?.bland_subaccount_id;
-    });
-
-    const blandBalances = new Map<string, number>();
-    const batchSize = 10;
-    for (let i = 0; i < companiesWithSubAccounts.length; i += batchSize) {
-      const batch = companiesWithSubAccounts.slice(i, i + batchSize);
-      const results = await Promise.all(
-        batch.map(async (c) => {
-          const settings = settingsByCompany.get(c.id);
-          if (!settings?.bland_subaccount_id) return { companyId: c.id, balance: 0 };
-          try {
-            const res = await fetch(`${BLAND_API_URL}/subaccounts/${settings.bland_subaccount_id}`, {
-              method: 'GET',
-              headers: { 'Authorization': BLAND_MASTER_KEY },
-            });
-            if (!res.ok) return { companyId: c.id, balance: 0 };
-            const data = await res.json();
-            return { companyId: c.id, balance: data.credits || data.balance || 0 };
-          } catch {
-            return { companyId: c.id, balance: 0 };
-          }
-        })
-      );
-      results.forEach(r => blandBalances.set(r.companyId, r.balance));
-    }
-
     // Build client list
     const clients = companies.map(company => {
       const sub = subsByCompany.get(company.id);
-      const settings = settingsByCompany.get(company.id);
       const usage = usageByCompany.get(company.id);
       const addons = addonsByCompany.get(company.id) || [];
-      const blandBalance = blandBalances.get(company.id) || 0;
 
       const plan = sub?.subscription_plans as { slug?: string; name?: string; price_monthly?: number; minutes_included?: number; price_per_extra_minute?: number } | null;
       const minutesUsed = usage?.minutes_used || 0;
@@ -192,9 +147,9 @@ export async function GET() {
           overageBudget: sub?.overage_budget,
         },
         bland: {
-          subAccountId: settings?.bland_subaccount_id || null,
-          apiKeyMasked: settings?.bland_api_key ? `${settings.bland_api_key.substring(0, 8)}...` : null,
-          creditBalance: blandBalance,
+          subAccountId: null,
+          apiKeyMasked: null,
+          creditBalance: 0,
         },
         usage: {
           minutesUsed,

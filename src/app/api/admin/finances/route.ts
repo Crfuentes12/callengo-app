@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
-import { BLAND_COST_PER_MINUTE } from '@/lib/bland/subaccount-manager';
+import { BLAND_COST_PER_MINUTE } from '@/lib/bland/master-client';
 
 const BLAND_API_URL = 'https://api.bland.ai/v1';
 const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch finances from DB + Bland master account info + admin config in parallel
-    const [financeResult, blandMasterInfo, subaccountCount, adminConfigResult] = await Promise.all([
+    const [financeResult, blandMasterInfo, adminConfigResult] = await Promise.all([
       supabase
         .from('admin_finances')
         .select('*')
@@ -60,11 +60,6 @@ export async function GET(request: NextRequest) {
         .order('period_start', { ascending: false }),
 
       fetchBlandMasterAccountInfo(),
-
-      supabaseAdmin
-        .from('company_settings')
-        .select('company_id', { count: 'exact', head: true })
-        .not('bland_subaccount_id', 'is', null),
 
       // Admin platform config (persisted Bland plan selection)
       supabaseAdmin
@@ -118,7 +113,7 @@ export async function GET(request: NextRequest) {
       bland_plan_cost: blandMasterInfo.planCost ?? f.bland_plan_cost ?? 0,
       bland_concurrent_limit: blandMasterInfo.concurrentLimit || f.bland_concurrent_limit || '∞',
       bland_daily_limit: blandMasterInfo.dailyLimit || f.bland_daily_limit || '∞',
-      active_subaccounts: subaccountCount.count || 0,
+      active_subaccounts: 0,
       // Master account info for admin display
       bland_master_balance: blandMasterInfo.balance,
       bland_master_subscription: blandMasterInfo.subscription,
@@ -133,7 +128,7 @@ export async function GET(request: NextRequest) {
         bland_plan_cost: blandMasterInfo.planCost ?? 0,
         bland_concurrent_limit: blandMasterInfo.concurrentLimit || '∞',
         bland_daily_limit: blandMasterInfo.dailyLimit || '∞',
-        active_subaccounts: subaccountCount.count || 0,
+        active_subaccounts: 0,
         bland_master_balance: blandMasterInfo.balance,
         bland_master_subscription: blandMasterInfo.subscription,
         revenue_total: 0,
