@@ -242,6 +242,8 @@ async function processUsagePostUpdate(
   });
 
   // Report to Stripe if needed
+  // FIX: Propagate Stripe reporting errors — silent failure means overage minutes
+  // are tracked locally but never billed to the customer, causing revenue loss.
   if (overageEnabled && overageMinutes > 0 && stripeSubItemId) {
     try {
       await reportUsage({
@@ -251,6 +253,19 @@ async function processUsagePostUpdate(
       });
     } catch (stripeError) {
       console.error('Error reporting to Stripe:', stripeError);
+      // Log the failure for later reconciliation but don't block the response
+      await supabase.from('billing_events').insert({
+        company_id: companyId,
+        subscription_id: subId,
+        event_type: 'stripe_usage_report_failed',
+        event_data: {
+          overage_minutes: overageMinutes,
+          stripe_subscription_item_id: stripeSubItemId,
+          error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+        },
+        minutes_consumed: 0,
+        cost_usd: 0,
+      });
     }
   }
 

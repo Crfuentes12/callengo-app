@@ -310,7 +310,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         .single();
 
       await createBlandSubAccount(companyId, company?.name || `Company ${companyId}`);
-      await allocateBlandCredits(companyId, plan.minutes_included || 0);
+      // FIX: Pass idempotency key to prevent double credit allocation on webhook retry
+      await allocateBlandCredits(companyId, plan.minutes_included || 0, `checkout_${session.id}`);
     } catch (blandError) {
       // Log but don't fail the webhook — subscription is already active
       // The credits can be allocated manually or on next renewal
@@ -723,7 +724,8 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice & Record<st
           .single();
 
         if (plan && plan.slug !== 'free') {
-          await handleCycleRenewalCredits(subscription.company_id, plan.minutes_included || 0);
+          // FIX: Pass idempotency key to prevent double credits on webhook retry
+          await handleCycleRenewalCredits(subscription.company_id, plan.minutes_included || 0, `renewal_${invoice.id}`);
         }
       } catch (blandError) {
         console.error('⚠️ Bland credit renewal failed (non-fatal):', blandError);

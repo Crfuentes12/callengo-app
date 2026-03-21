@@ -2,6 +2,7 @@
 // Server-side campaign batch dispatch — processes contacts sequentially
 // with throttling to avoid overwhelming Bland and bypassing per-company limits.
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
@@ -109,22 +110,10 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < contacts.length; i++) {
       const contact = contacts[i];
 
-      // Re-check throttle before each call
-      if (i > 0) {
-        const throttleCheck = await checkCallAllowed(company_id);
-        if (!throttleCheck.allowed) {
-          // Mark remaining contacts as throttled
-          for (let j = i; j < contacts.length; j++) {
-            results.push({ contact_id: contacts[j].contact_id, status: 'throttled', error: throttleCheck.reason });
-            throttled++;
-          }
-          break;
-        }
-      }
-
       try {
-        // Pre-register call_log
-        const preCallId = `pre_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        // FIX: Pre-register call_log BEFORE throttle re-check to prevent TOCTOU race.
+        // The 'queued' entry is visible to concurrent getActiveCalls() queries.
+        const preCallId = `pre_${Date.now()}_${crypto.randomUUID()}`;
         const { data: preLog } = await supabaseAdmin.from('call_logs').insert({
           company_id,
           contact_id: contact.contact_id,
@@ -132,6 +121,25 @@ export async function POST(request: NextRequest) {
           status: 'queued',
           completed: false,
         }).select('id').single();
+
+        // Re-check throttle AFTER pre-registration (entry is already counted)
+        if (i > 0) {
+          const throttleRecheck = await checkCallAllowed(company_id);
+          if (!throttleRecheck.allowed) {
+            // Clean up pre-registered entry
+            if (preLog?.id) {
+              await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+            }
+            // Mark remaining contacts as throttled
+            results.push({ contact_id: contact.contact_id, status: 'throttled', error: throttleRecheck.reason });
+            throttled++;
+            for (let j = i + 1; j < contacts.length; j++) {
+              results.push({ contact_id: contacts[j].contact_id, status: 'throttled', error: throttleRecheck.reason });
+              throttled++;
+            }
+            break;
+          }
+        }
 
         // Dispatch to Bland
         const blandPayload: Record<string, unknown> = {
