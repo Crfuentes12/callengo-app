@@ -1,14 +1,15 @@
 // app/api/admin/command-center/route.ts
 // Admin Command Center — real-time health metrics with single master key architecture
 // Shows: Bland plan info, concurrency, daily/hourly usage, limits, Redis state
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
-import { getBlandAccountInfo, BLAND_COST_PER_MINUTE } from '@/lib/bland/master-client';
+import { getBlandAccountInfo, BLAND_COST_PER_MINUTE, BLAND_PLAN_LIMITS } from '@/lib/bland/master-client';
 import {
   getConcurrencySnapshot,
   cacheBlandLimits,
   resetStaleConcurrency,
+  REDIS_AVAILABLE,
 } from '@/lib/redis/concurrency-manager';
 import { getCompanyNumbers } from '@/lib/bland/phone-numbers';
 
@@ -417,6 +418,13 @@ export async function GET() {
       // === Architecture info ===
       architecture: 'single_master_key',
 
+      // === Bland AI Plan Catalog (for dropdown selector) ===
+      blandPlanCatalog: Object.entries(BLAND_PLAN_LIMITS).map(([slug, limits]) => ({
+        slug,
+        label: slug.charAt(0).toUpperCase() + slug.slice(1),
+        ...limits,
+      })),
+
       // === Bland AI Account ===
       blandAccount: {
         plan: blandAccountResult.plan,
@@ -442,7 +450,8 @@ export async function GET() {
         globalHourly: concurrencySnapshot.globalHourly,
         activeCallCount: concurrencySnapshot.activeCallCount,
         topCompanies: concurrencySnapshot.topCompanies,
-        redisConnected: concurrencySnapshot.blandLimits.plan !== 'start' || concurrencySnapshot.globalConcurrent > 0,
+        redisAvailable: REDIS_AVAILABLE,
+        redisConnected: REDIS_AVAILABLE && (concurrencySnapshot.blandLimits.plan !== 'start' || concurrencySnapshot.globalConcurrent >= 0),
       },
 
       // === Usage Gauges (percentage of Bland limits used) ===
@@ -625,5 +634,67 @@ async function ensureAdminCompanySetup(companyId: string) {
     }
   } catch (error) {
     console.error('[admin-setup] Admin company setup error (non-fatal):', error);
+  }
+}
+
+// ================================================================
+// POST: Admin selects Bland AI plan → cache limits in Redis
+// ================================================================
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { plan } = body;
+
+    if (!plan || !BLAND_PLAN_LIMITS[plan]) {
+      return NextResponse.json(
+        { error: 'Invalid plan. Valid options: ' + Object.keys(BLAND_PLAN_LIMITS).join(', ') },
+        { status: 400 }
+      );
+    }
+
+    const limits = BLAND_PLAN_LIMITS[plan];
+
+    // Cache selected plan limits in Redis
+    await cacheBlandLimits({
+      dailyCap: limits.dailyCap,
+      hourlyCap: limits.hourlyCap,
+      concurrentCap: limits.concurrentCap,
+      plan,
+    });
+
+    // Reset stale concurrency counters to sync with new limits
+    await resetStaleConcurrency();
+
+    return NextResponse.json({
+      success: true,
+      plan,
+      limits: {
+        dailyCap: limits.dailyCap,
+        hourlyCap: limits.hourlyCap,
+        concurrentCap: limits.concurrentCap,
+        costPerMinute: limits.costPerMinute,
+        transferRate: limits.transferRate,
+        voiceClones: limits.voiceClones,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating Bland plan:', error);
+    return NextResponse.json({ error: 'Failed to update Bland plan' }, { status: 500 });
   }
 }

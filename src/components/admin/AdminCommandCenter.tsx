@@ -8,10 +8,18 @@ import {
 } from 'recharts';
 
 // ─── Types ───────────────────────────────────────────────────────────
+interface BlandPlanOption {
+  slug: string;
+  label: string;
+  dailyCap: number;
+  hourlyCap: number;
+  concurrentCap: number;
+  voiceClones: number;
+  costPerMinute: number;
+  transferRate: number;
+}
+
 interface CommandCenterData {
-  blandBalance: number;
-  blandBalanceError?: string;
-  blandApiKeyMasked?: string | null;
   callsToday: number;
   callsThisHour: number;
   activeCalls: number;
@@ -28,7 +36,38 @@ interface CommandCenterData {
   recentBillingEvents: BillingEvent[];
   alerts: { level: string; message: string; time: string }[];
   timestamp: string;
-  // New: Revenue & Business Metrics
+  // Bland AI Account
+  blandAccount?: {
+    plan: string | null;
+    balance: number;
+    totalCalls: number;
+    costPerMinute: number;
+    transferRate: number;
+    voiceClones: number;
+    apiKeyMasked: string | null;
+  };
+  blandLimits?: {
+    dailyCap: number;
+    hourlyCap: number;
+    concurrentCap: number;
+  };
+  blandPlanCatalog?: BlandPlanOption[];
+  // Redis concurrency
+  concurrency?: {
+    globalConcurrent: number;
+    globalDaily: number;
+    globalHourly: number;
+    activeCallCount: number;
+    topCompanies: { companyId: string; concurrent: number; daily: number }[];
+    redisAvailable: boolean;
+    redisConnected: boolean;
+  };
+  gauges?: {
+    concurrentPercent: number;
+    dailyPercent: number;
+    hourlyPercent: number;
+  };
+  // Revenue & Business Metrics
   revenue?: {
     mrr: number;
     arr: number;
@@ -191,6 +230,7 @@ export default function AdminCommandCenter() {
   const [clientSort, setClientSort] = useState<'usage' | 'profit' | 'cost' | 'name'>('usage');
   const [clientSearch, setClientSearch] = useState('');
   const [cleaningUp, setCleaningUp] = useState(false);
+  const [savingBlandPlan, setSavingBlandPlan] = useState(false);
 
   // Auto-refresh health data every 30 seconds
   const fetchHealth = useCallback(async () => {
@@ -198,11 +238,7 @@ export default function AdminCommandCenter() {
       const res = await fetch('/api/admin/command-center');
       if (res.ok) {
         const raw = await res.json();
-        // Map nested API response to flat component interface
         setHealthData({
-          blandBalance: raw.blandAccount?.balance ?? raw.blandBalance ?? 0,
-          blandBalanceError: raw.blandAccount?.error ?? raw.blandBalanceError,
-          blandApiKeyMasked: raw.blandAccount?.apiKeyMasked ?? raw.blandApiKeyMasked,
           callsToday: raw.callsToday ?? 0,
           callsThisHour: raw.callsThisHour ?? 0,
           activeCalls: raw.activeCalls ?? 0,
@@ -219,7 +255,14 @@ export default function AdminCommandCenter() {
           recentBillingEvents: raw.recentBillingEvents ?? [],
           alerts: raw.alerts ?? [],
           timestamp: raw.timestamp ?? new Date().toISOString(),
-          // New metrics
+          // Bland AI
+          blandAccount: raw.blandAccount,
+          blandLimits: raw.blandLimits,
+          blandPlanCatalog: raw.blandPlanCatalog,
+          // Redis concurrency
+          concurrency: raw.concurrency,
+          gauges: raw.gauges,
+          // Business metrics
           revenue: raw.revenue,
           subscriptionHealth: raw.subscriptionHealth,
           blandEconomics: raw.blandEconomics,
@@ -231,6 +274,30 @@ export default function AdminCommandCenter() {
       console.error('Failed to fetch health data:', e);
     }
   }, []);
+
+  // Save selected Bland AI plan and refresh
+  const handleBlandPlanChange = useCallback(async (planSlug: string) => {
+    if (!planSlug) return;
+    setSavingBlandPlan(true);
+    try {
+      const res = await fetch('/api/admin/command-center', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planSlug }),
+      });
+      if (res.ok) {
+        await fetchHealth();
+      } else {
+        const data = await res.json();
+        alert(`Error: ${data.error}`);
+      }
+    } catch (e) {
+      console.error('Failed to update Bland plan:', e);
+      alert('Failed to update Bland plan');
+    } finally {
+      setSavingBlandPlan(false);
+    }
+  }, [fetchHealth]);
 
   const fetchClients = useCallback(async () => {
     try {
@@ -417,14 +484,8 @@ export default function AdminCommandCenter() {
          ════════════════════════════════════════════════════════════════ */}
       {tab === 'health' && healthData && (
         <div className="space-y-6">
-          {/* KPI Cards — always show Inactive card for symmetric layout */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            <KPICard
-              label="Bland AI Balance"
-              value={`$${fmt(healthData.blandBalance)}`}
-              color={healthData.blandBalanceError ? 'amber' : healthData.blandBalance < 1 ? 'red' : healthData.blandBalance < 5 ? 'amber' : 'emerald'}
-              sub={healthData.blandBalanceError ? 'API error' : healthData.blandApiKeyMasked || 'Auto-recharge enabled'}
-            />
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <KPICard label="Active Calls" value={String(healthData.activeCalls)} color="blue" sub="Right now" />
             <KPICard label="Calls / Hour" value={fmtInt(healthData.callsThisHour)} color="indigo" sub="Last 60 min" />
             <KPICard label="Calls Today" value={fmtInt(healthData.callsToday)} color="violet" sub="Since midnight" />
@@ -436,6 +497,178 @@ export default function AdminCommandCenter() {
               color={healthData.orphanedCompanies > 0 ? 'amber' : 'slate'}
               sub={`${healthData.orphanedCompanies} orphaned · ${healthData.archivedCompanies} archived`}
             />
+          </div>
+
+          {/* ─── Bland AI Plan Selector + Limits ─── */}
+          <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Bland AI Plan Configuration</h3>
+              {healthData.blandAccount?.apiKeyMasked && (
+                <span className="text-xs text-[var(--color-neutral-400)] font-mono">{healthData.blandAccount.apiKeyMasked}</span>
+              )}
+            </div>
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Plan Dropdown */}
+              <div className="w-full md:w-64">
+                <label className="block text-xs font-medium text-[var(--color-neutral-500)] mb-1.5">Active Plan</label>
+                <select
+                  value={healthData.blandAccount?.plan || ''}
+                  onChange={(e) => handleBlandPlanChange(e.target.value)}
+                  disabled={savingBlandPlan}
+                  className="w-full px-3 py-2.5 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-lg text-sm font-semibold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 disabled:opacity-50"
+                >
+                  {(healthData.blandPlanCatalog || []).map(plan => (
+                    <option key={plan.slug} value={plan.slug}>
+                      {plan.label} — ${plan.costPerMinute}/min · {plan.concurrentCap >= 999999 ? 'Unlimited' : plan.concurrentCap} concurrent
+                    </option>
+                  ))}
+                </select>
+                {savingBlandPlan && <p className="text-xs text-[var(--color-primary)] mt-1">Saving...</p>}
+              </div>
+
+              {/* Plan Limits Grid */}
+              <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div>
+                  <div className="text-lg font-bold text-[var(--color-ink)]">
+                    ${healthData.blandAccount?.costPerMinute ?? '—'}
+                  </div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Cost / Min</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-[var(--color-ink)]">
+                    {(healthData.blandLimits?.concurrentCap ?? 0) >= 999999 ? '∞' : fmtInt(healthData.blandLimits?.concurrentCap ?? 0)}
+                  </div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Max Concurrent</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-[var(--color-ink)]">
+                    {(healthData.blandLimits?.dailyCap ?? 0) >= 999999 ? '∞' : fmtInt(healthData.blandLimits?.dailyCap ?? 0)}
+                  </div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Daily Cap</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-[var(--color-ink)]">
+                    {(healthData.blandLimits?.hourlyCap ?? 0) >= 999999 ? '∞' : fmtInt(healthData.blandLimits?.hourlyCap ?? 0)}
+                  </div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Hourly Cap</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-[var(--color-ink)]">
+                    ${healthData.blandAccount?.transferRate ?? '—'}
+                  </div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Transfer Rate</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── Redis / Real-Time Concurrency Panel ─── */}
+          <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Real-Time Concurrency (Redis)</h3>
+              <div className="flex items-center gap-2">
+                <div className={`w-2.5 h-2.5 rounded-full ${healthData.concurrency?.redisAvailable ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                <span className={`text-xs font-medium ${healthData.concurrency?.redisAvailable ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {healthData.concurrency?.redisAvailable ? 'Redis Connected' : 'Redis Disconnected'}
+                </span>
+              </div>
+            </div>
+
+            {!healthData.concurrency?.redisAvailable ? (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                Redis is not configured. Set <code className="font-mono bg-red-100 px-1 rounded">UPSTASH_REDIS_REST_URL</code> and <code className="font-mono bg-red-100 px-1 rounded">UPSTASH_REDIS_REST_TOKEN</code> to enable real-time concurrency tracking.
+              </div>
+            ) : (
+              <>
+                {/* Concurrency Gauges */}
+                <div className="grid grid-cols-3 gap-6 mb-6">
+                  {/* Concurrent */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-medium text-[var(--color-neutral-600)]">Concurrent</span>
+                      <span className="text-xs font-bold text-[var(--color-ink)]">
+                        {healthData.concurrency?.globalConcurrent ?? 0} / {(healthData.blandLimits?.concurrentCap ?? 0) >= 999999 ? '∞' : healthData.blandLimits?.concurrentCap ?? 0}
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          (healthData.gauges?.concurrentPercent ?? 0) >= 90 ? 'bg-red-500' :
+                          (healthData.gauges?.concurrentPercent ?? 0) >= 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(healthData.gauges?.concurrentPercent ?? 0, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[var(--color-neutral-400)]">{healthData.gauges?.concurrentPercent ?? 0}%</span>
+                  </div>
+                  {/* Daily */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-medium text-[var(--color-neutral-600)]">Daily</span>
+                      <span className="text-xs font-bold text-[var(--color-ink)]">
+                        {healthData.concurrency?.globalDaily ?? 0} / {(healthData.blandLimits?.dailyCap ?? 0) >= 999999 ? '∞' : healthData.blandLimits?.dailyCap ?? 0}
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          (healthData.gauges?.dailyPercent ?? 0) >= 90 ? 'bg-red-500' :
+                          (healthData.gauges?.dailyPercent ?? 0) >= 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(healthData.gauges?.dailyPercent ?? 0, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[var(--color-neutral-400)]">{healthData.gauges?.dailyPercent ?? 0}%</span>
+                  </div>
+                  {/* Hourly */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-medium text-[var(--color-neutral-600)]">Hourly</span>
+                      <span className="text-xs font-bold text-[var(--color-ink)]">
+                        {healthData.concurrency?.globalHourly ?? 0} / {(healthData.blandLimits?.hourlyCap ?? 0) >= 999999 ? '∞' : healthData.blandLimits?.hourlyCap ?? 0}
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          (healthData.gauges?.hourlyPercent ?? 0) >= 90 ? 'bg-red-500' :
+                          (healthData.gauges?.hourlyPercent ?? 0) >= 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(healthData.gauges?.hourlyPercent ?? 0, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[var(--color-neutral-400)]">{healthData.gauges?.hourlyPercent ?? 0}%</span>
+                  </div>
+                </div>
+
+                {/* Active Calls + Per-Company Breakdown */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Active Call Slots</h4>
+                    <div className="text-3xl font-bold text-blue-600">{healthData.concurrency?.activeCallCount ?? 0}</div>
+                    <p className="text-xs text-[var(--color-neutral-400)] mt-1">Tracked in Redis with 30min TTL auto-expiry</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Top Companies (by concurrent)</h4>
+                    {(healthData.concurrency?.topCompanies || []).length === 0 ? (
+                      <p className="text-xs text-[var(--color-neutral-400)]">No active calls right now</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                        {(healthData.concurrency?.topCompanies || []).map((c, i) => (
+                          <div key={i} className="flex items-center justify-between text-xs bg-[var(--color-neutral-50)] p-2 rounded">
+                            <span className="text-[var(--color-neutral-600)] font-mono truncate max-w-[50%]">{c.companyId.substring(0, 8)}...</span>
+                            <div className="flex gap-3">
+                              <span className="text-blue-600 font-bold">{c.concurrent} live</span>
+                              <span className="text-[var(--color-neutral-400)]">{c.daily} today</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Usage Gauge */}
@@ -622,7 +855,7 @@ export default function AdminCommandCenter() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className={`text-2xl font-bold ${(healthData.blandEconomics?.projectedRunwayDays ?? 999) < 7 ? 'text-red-600' : (healthData.blandEconomics?.projectedRunwayDays ?? 999) < 30 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                    ${fmt(healthData.blandBalance)}
+                    ${fmt(healthData.blandAccount?.balance ?? 0)}
                   </div>
                   <div className="text-xs text-[var(--color-neutral-500)]">Current Balance</div>
                 </div>
