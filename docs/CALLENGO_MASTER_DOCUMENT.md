@@ -1,7 +1,7 @@
 # CALLENGO — Complete Platform Master Document
 
-> **Version:** 1.3.0
-> **Last Updated:** March 2026 (V4 Pricing — Bland AI sub-accounts, Growth plan, add-ons, billing audit)
+> **Version:** 1.4.0
+> **Last Updated:** March 2026 (Single master key architecture, Command Center v2 with Operations tab, billing audit fixes)
 > **Purpose:** Comprehensive reference for the entire Callengo platform — business strategy, target market, architecture, features, pricing, database schema, API endpoints, integrations, and business logic.
 
 ---
@@ -440,7 +440,7 @@ Free Trial (15 min) → Starter ($99/mo) → Growth ($179/mo) → Business ($299
 
 | Add-on | Price/mo | Description |
 |---|---|---|
-| **Dedicated Number** | $15 | Own dedicated outbound phone number via Bland sub-account |
+| **Dedicated Number** | $15 | Own dedicated outbound phone number via Bland AI |
 | **Recording Vault** | $12 | Extends call recording retention from 30 days → 12 months |
 | **Calls Booster** | $35 | +150 calls (~+225 min) per month. Stackable. |
 
@@ -821,45 +821,53 @@ The system recognizes 88+ field name patterns for automatic column mapping from 
 ### Call Provider
 Bland AI is the underlying call engine. Calls are initiated via the Bland AI API and results are received via webhook.
 
-### Bland AI Sub-Account Architecture
+### Bland AI Architecture — Single Master Key
 
-Each Callengo company gets an **isolated Bland AI sub-account** for call execution and tracking.
+All calls go through **one master Bland API key**. There are no sub-accounts. Company isolation is handled entirely in Supabase via `company_id` on every record. Bland sees a single flat pool of calls — correlation is done via metadata UUIDs.
 
 **Key Principle: Stripe and Bland are completely independent systems.**
 - **Stripe** only handles customer payments. It never interacts with Bland.
-- **Bland** master account is funded manually by the platform owner (independent of Stripe).
-- When Stripe webhooks confirm a payment, the system **redistributes credits within Bland** (master → sub-account). No money flows between Stripe and Bland.
+- **Bland** master account is funded by the platform owner (auto-recharge or manual top-up).
+- The platform owner selects their Bland plan in the Command Center admin dropdown, and all limits auto-configure.
 
-**Sub-Account Lifecycle:**
-1. **Creation:** On `checkout.session.completed` webhook (after first payment), a sub-account is created via `POST /v1/accounts` using the master API key. The sub-account ID and API key are stored in `company_settings`.
-2. **Credit Redistribution:** Credits are moved from the master Bland account to the sub-account via `POST /v1/accounts/{id}/credits/add`. This happens on:
-   - Initial subscription activation
-   - Monthly cycle renewal (old credits reclaimed first, then fresh allocation)
-   - Plan upgrade (pro-rated differential credits for remaining period)
-   - Calls Booster add-on activation
-3. **Call Execution:** Calls use the sub-account's own API key, ensuring isolation of call history, analytics, and concurrency.
-4. **Credit Reclamation:** On cycle renewal or cancellation, unused credits are returned to the master account via `POST /v1/accounts/{id}/credits/remove`.
-5. **Deactivation:** On subscription cancellation, credits are reclaimed and sub-account credentials are cleared from `company_settings`.
+**Bland AI Plan Tiers (configurable in Command Center):**
 
-**Credit Calculation Formula:**
-```
-credits = (plan_minutes × $0.11/min) × 1.05 (5% buffer)
-```
-Example: Starter (300 min) → $33 × 1.05 = $34.65 redistributed to sub-account.
+| Plan | Cost/min | Concurrent | Daily Cap | Hourly Cap | Voice Clones |
+|------|----------|-----------|-----------|-----------|-------------|
+| Start | $0.14 | 10 | 100 | 100 | 1 |
+| Build | $0.12 | 50 | 2,000 | 1,000 | 5 |
+| Scale | $0.11 | 100 | 5,000 | 1,000 | 15 |
+| Enterprise | $0.09 | ∞ | ∞ | ∞ | 999 |
 
-**Important:** Sub-accounts do NOT automatically draw from the parent balance. Each sub-account has its own isolated balance. If a sub-account runs out of credits, calls fail — there is no fallback to the master account. The automated redistribution system ensures credits are always allocated when customers pay.
+**Concurrency Management (Redis / Upstash):**
+- Global counters: concurrent (TTL 30min), daily (TTL 24h), hourly (TTL 2h)
+- Per-company counters: concurrent, daily, hourly
+- Active call slots: `callengo:active_call:{callId}` with 30min TTL auto-expiry
+- Contact cooldown: 5min between calls to same contact
+- Bland plan limits cached in Redis with 1h TTL
+- Safety margin: 90% of Bland limits enforced to prevent overruns
+- Implementation: `src/lib/redis/concurrency-manager.ts`
 
-**Implementation:** `src/lib/bland/subaccount-manager.ts` — handles creation, credit redistribution, reclamation, deactivation, and plan upgrade pro-rating.
+**Call Dispatch Flow:**
+1. Campaign dispatched → `checkCallAllowed()` validates Callengo per-plan limits + Bland global limits
+2. Pre-register call_log entry (TOCTOU race prevention)
+3. `acquireCallSlot()` atomically reserves Redis slot
+4. Call sent via master API key with `company_id` in metadata
+5. On failure: pre-log cleaned up (wrapped in try-catch, non-fatal)
+6. Webhook receives result → slot released → usage tracked
+
+**Implementation:** `src/lib/bland/master-client.ts` — plan limits (`BLAND_PLAN_LIMITS`), account info, dispatch, plan detection.
 
 ### Call Flow
-1. Campaign started → contacts queued in `call_queue`
-2. Queue processor picks up contacts based on concurrency limits
-3. Call sent to Bland AI via `/api/bland/send-call` (using company's sub-account API key)
-4. Bland AI executes call with configured voice, prompt, and settings (credits deducted from sub-account in real-time)
+1. Campaign started → contacts dispatched via `/api/campaigns/dispatch`
+2. Per-contact: pre-register call_log → check throttle → acquire Redis slot
+3. Call sent to Bland AI via master API key (metadata includes company_id, contact_id)
+4. Bland AI executes call with configured voice, prompt, and settings
 5. Webhook received at `/api/bland/webhook` on call completion
-6. Call log created, contact status updated, analysis stored
-7. Follow-ups scheduled if applicable
-8. Usage tracked for billing (Callengo-side minute tracking in `usage_tracking` table)
+6. Call log updated (upsert by call_id), contact status updated, Redis slot released
+7. CRM outbound sync (Salesforce, HubSpot, Pipedrive, Clio) if integration active
+8. Follow-ups scheduled if applicable
+9. Usage tracked for Stripe metered billing (`usage_tracking` table)
 
 ### Call Statuses
 | Status | Description |
@@ -1147,21 +1155,28 @@ Stripe and Bland AI operate as **completely independent financial systems**:
 
 **How they connect (indirectly):**
 1. Customer pays via Stripe → Stripe webhook fires
-2. Webhook triggers Bland credit **redistribution** (master → sub-account)
-3. Credits are moved **within Bland's own system** — no money flows from Stripe to Bland
-4. Platform owner funds the Bland master account independently
+2. Webhook updates subscription in Supabase (plan, period, status)
+3. Usage tracking reset for new period with fresh minute allocation
+4. Platform owner funds Bland master account independently (auto-recharge or manual)
+5. Bland deducts credits per-minute during calls — no money flows between Stripe and Bland
 
-**Webhook-Triggered Bland Operations:**
+**Webhook-Triggered Operations:**
 
-| Stripe Event | Bland Action |
+| Stripe Event | Action |
 |---|---|
-| `checkout.session.completed` | Create sub-account + allocate initial credits |
-| `invoice.payment_succeeded` (cycle renewal) | Reclaim old credits → allocate fresh credits |
-| `customer.subscription.updated` (plan upgrade) | Allocate pro-rated differential credits |
-| `customer.subscription.deleted` | Reclaim credits → deactivate sub-account |
+| `checkout.session.completed` | Create subscription + usage tracking |
+| `invoice.payment_succeeded` | Update period, reset usage counters |
+| `customer.subscription.updated` | Update plan, adjust limits |
+| `customer.subscription.deleted` | Mark canceled, clear overage |
 
-**Admin Monitoring:**
-The admin dashboard (`/admin`) shows Bland infrastructure costs, sub-account count, per-minute rates, and margin analysis — all for the platform owner's visibility. The platform owner manages their Bland account balance independently through Bland's own dashboard.
+**Admin Monitoring (Command Center):**
+The Command Center (`/admin/command-center`) provides real-time monitoring with 6 tabs:
+- **Health:** KPIs, Bland plan dropdown selector, Redis concurrency gauges, call charts
+- **Operations:** MRR/ARR, churn rate, trial conversion, burn rate, unit economics, failed calls analysis
+- **Clients:** Per-company usage, profit, cost breakdown
+- **Billing Events:** Paginated event log
+- **Reconciliation:** Minutes actual vs tracked discrepancy detection
+- **Finances:** P&L with Bland master account info
 
 ---
 
@@ -1248,8 +1263,8 @@ The admin dashboard (`/admin`) shows Bland infrastructure costs, sub-account cou
 | Column | Type | Notes |
 |---|---|---|
 | company_id | uuid (PK, FK) | |
-| bland_subaccount_id | text? | Bland AI sub-account ID (cleared on deactivation) |
-| bland_api_key | text? | Bland sub-account API key (encrypted, cleared on deactivation) |
+| bland_subaccount_id | text? | Set to `'master'` for admin company (legacy field, no sub-accounts) |
+| bland_api_key | text? | Bland API key (master key for admin, legacy for others) |
 | openai_api_key | text? | Encrypted |
 | default_voice | text | maya, josh, matt, nat |
 | default_max_duration | number | Minutes |
@@ -1641,9 +1656,9 @@ The admin dashboard (`/admin`) shows Bland infrastructure costs, sub-account cou
 **Event Types:**
 - `payment_succeeded`, `payment_failed` — Stripe payment events
 - `subscription_updated`, `subscription_canceled`, `trial_ending` — Subscription lifecycle
-- `bland_credits_allocated` — Credits redistributed from master → sub-account
-- `bland_credits_reclaimed` — Credits returned from sub-account → master
-- `bland_subaccount_deactivated` — Sub-account credentials cleared on cancellation
+- `bland_credits_allocated` — Credits tracking event (legacy, master key architecture)
+- `bland_credits_reclaimed` — Credits tracking event (legacy)
+- `bland_subaccount_deactivated` — Legacy event type (no sub-accounts in current architecture)
 - `overage_alert`, `overage_budget_exceeded`, `overage_enabled`, `overage_disabled` — Overage events
 
 #### `notifications`
@@ -1757,17 +1772,25 @@ Each CRM has an integration table + sync log table + contact mapping table:
 | POST | `/api/billing/update-overage` | Update overage settings |
 | POST | `/api/billing/verify-session` | Verify Stripe session |
 
-### Bland AI Sub-Account Management
+### Bland AI Master Client (`src/lib/bland/master-client.ts`)
+| Function | Purpose |
+|---|---|
+| `getBlandAccountInfo()` | Fetches plan, balance, limits from Bland `/v1/me` or `/v1/org` |
+| `getBlandPlanLimits(plan)` | Returns limits for a given plan slug |
+| `dispatchCall(config)` | Sends call via master API key |
+| `inferPlanFromOrgData(data)` | Infers plan from Bland API response fields |
+| `BLAND_PLAN_LIMITS` | Exported config with all 4 plan tiers (Start/Build/Scale/Enterprise) |
+
+### Admin Command Center API
 | Method | Endpoint | Purpose |
 |---|---|---|
-| — | (internal) `createBlandSubAccount()` | Creates sub-account on checkout completion |
-| — | (internal) `allocateBlandCredits()` | Redistributes credits master → sub-account |
-| — | (internal) `reclaimBlandCredits()` | Returns unused credits sub-account → master |
-| — | (internal) `handleCycleRenewalCredits()` | Reclaims + reallocates on monthly renewal |
-| — | (internal) `handlePlanUpgradeCredits()` | Allocates pro-rated differential on upgrade |
-| — | (internal) `deactivateBlandSubAccount()` | Reclaims credits + clears sub-account on cancel |
-
-> These are internal functions in `src/lib/bland/subaccount-manager.ts`, triggered by Stripe webhooks. Not exposed as API endpoints.
+| GET | `/api/admin/command-center` | Health metrics, concurrency, MRR, burn rate, failed calls |
+| POST | `/api/admin/command-center` | Save selected Bland plan → cache limits in Redis |
+| GET | `/api/admin/clients` | Per-company usage, profit, cost breakdown |
+| GET | `/api/admin/finances` | P&L with Bland master account info |
+| GET | `/api/admin/billing-events` | Paginated billing event log |
+| GET | `/api/admin/reconcile` | Minutes actual vs tracked comparison |
+| DELETE | `/api/admin/cleanup-orphans` | Archive orphaned companies |
 
 ### Bland AI / Calls (4 endpoints)
 | Method | Endpoint | Purpose |
@@ -2095,8 +2118,10 @@ Each CRM has an integration table + sync log table + contact mapping table:
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `NEXT_PUBLIC_APP_URL` | Application URL |
 | `OPENAI_API_KEY` | OpenAI API key |
-| `BLAND_API_KEY` | Bland AI master account API key (used for sub-account management) |
-| `BLAND_COST_PER_MINUTE` | Bland per-minute rate override (default: $0.11 — Scale plan) |
+| `BLAND_API_KEY` | Bland AI master API key (single key for all calls) |
+| `BLAND_COST_PER_MINUTE` | Bland per-minute rate override (default: $0.14 — Start plan; set to match your Bland plan) |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis URL for concurrency tracking |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis auth token |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth |
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | Microsoft OAuth |
 | `SALESFORCE_CLIENT_ID` / `SALESFORCE_CLIENT_SECRET` | Salesforce OAuth |
@@ -2654,15 +2679,15 @@ Slack messages include rich formatting with:
 **What it does:**
 All plans use auto-rotated phone numbers from Callengo's pool to minimize spam flags and ensure number freshness. A Dedicated Number add-on ($15/mo) is available on Starter+ for companies needing a branded caller ID.
 
-> **Note:** Twilio BYOP is NOT supported. Bland AI's BYOP feature requires Enterprise-level parent account access and cannot be isolated per sub-account, which would break Callengo's multi-tenancy architecture.
+> **Note:** Twilio BYOP is NOT supported. All calls go through Bland AI's auto-rotated number pool or dedicated numbers purchased as add-ons.
 
 **Auto-Rotated Numbers (all plans):**
-- Numbers sourced from Callengo's Bland AI sub-account pool
+- Numbers sourced from Callengo's Bland AI number pool
 - Automatically rotated to prevent spam flagging
 - No setup required — available immediately
 
 **Dedicated Number Add-on ($15/mo, Starter+):**
-- Own dedicated outbound phone number via Bland sub-account number transfer
+- Own dedicated outbound phone number via Bland AI
 - Consistent caller ID for brand recognition
 - Available on Starter, Growth, Business, Teams, and Enterprise plans
 
