@@ -1,12 +1,16 @@
 // app/api/admin/command-center/route.ts
-// Admin Command Center — aggregates real-time health metrics
+// Admin Command Center — real-time health metrics with single master key architecture
+// Shows: Bland plan info, concurrency, daily/hourly usage, limits, Redis state
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/service';
-import { createBlandSubAccount, allocateBlandCredits, calculateCreditAmount } from '@/lib/bland/subaccount-manager';
-
-const BLAND_API_URL = 'https://api.bland.ai/v1';
-const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
+import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
+import { getBlandAccountInfo, BLAND_COST_PER_MINUTE } from '@/lib/bland/master-client';
+import {
+  getConcurrencySnapshot,
+  cacheBlandLimits,
+  resetStaleConcurrency,
+} from '@/lib/redis/concurrency-manager';
+import { getCompanyNumbers } from '@/lib/bland/phone-numbers';
 
 export async function GET() {
   try {
@@ -28,7 +32,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    // Ensure admin's company has a subscription + Bland sub-account (runs once, idempotent)
+    // Ensure admin's company has a subscription + master key
     if (userData.company_id) {
       await ensureAdminCompanySetup(userData.company_id);
     }
@@ -38,7 +42,7 @@ export async function GET() {
     const hourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    // Get active company IDs (companies with at least one user, not archived)
+    // Get active company IDs
     const { data: usersWithCompanies } = await supabaseAdmin
       .from('users')
       .select('company_id');
@@ -59,14 +63,10 @@ export async function GET() {
         .map(c => c.id)
     );
 
-    // Mask the Bland API key for admin display (e.g., "org_abc1...def9")
-    const maskedBlandKey = BLAND_MASTER_KEY
-      ? `${BLAND_MASTER_KEY.substring(0, 8)}...${BLAND_MASTER_KEY.slice(-4)}`
-      : null;
-
     // Run all queries in parallel
     const [
-      blandBalanceResult,
+      blandAccountResult,
+      concurrencySnapshot,
       callsTodayResult,
       callsThisHourResult,
       activeCallsResult,
@@ -74,56 +74,89 @@ export async function GET() {
       minutesThisMonthResult,
       companiesResult,
       recentEventsResult,
+      dedicatedNumbersResult,
     ] = await Promise.all([
-      // 1. Bland AI master account balance
-      fetchBlandMasterBalance(),
+      // 1. Bland AI master account info (plan, balance, limits)
+      getBlandAccountInfo().catch(err => ({
+        status: 'error',
+        balance: 0,
+        totalCalls: 0,
+        plan: null as string | null,
+        dailyCap: 100,
+        hourlyCap: 100,
+        concurrentCap: 10,
+        voiceClones: 0,
+        costPerMinute: BLAND_COST_PER_MINUTE,
+        transferRate: 0.05,
+        error: String(err),
+      })),
 
-      // 2. Calls today (across all companies)
+      // 2. Redis concurrency snapshot
+      getConcurrencySnapshot(),
+
+      // 3. Calls today (across all companies)
       supabaseAdmin
         .from('call_logs')
         .select('id', { count: 'exact', head: true })
         .gte('created_at', todayStart),
 
-      // 3. Calls in the last hour
+      // 4. Calls in the last hour
       supabaseAdmin
         .from('call_logs')
         .select('id', { count: 'exact', head: true })
         .gte('created_at', hourAgo),
 
-      // 4. Active/in-progress calls right now
+      // 5. Active/in-progress calls right now
       supabaseAdmin
         .from('call_logs')
         .select('id', { count: 'exact', head: true })
         .in('status', ['in_progress', 'ringing', 'queued']),
 
-      // 5. Total calls this month
+      // 6. Total calls this month
       supabaseAdmin
         .from('call_logs')
         .select('id', { count: 'exact', head: true })
         .gte('created_at', monthStart),
 
-      // 6. Total minutes this month (from usage_tracking)
+      // 7. Total minutes this month (from usage_tracking)
       supabaseAdmin
         .from('usage_tracking')
         .select('company_id, minutes_used, minutes_included')
         .gte('period_start', monthStart),
 
-      // 7. Active companies with subscriptions
+      // 8. Active companies with subscriptions
       supabaseAdmin
         .from('company_subscriptions')
         .select('id, company_id, status, subscription_plans(slug)')
         .in('status', ['active', 'trialing']),
 
-      // 8. Recent billing events (last 24h)
+      // 9. Recent billing events (last 24h)
       supabaseAdmin
         .from('billing_events')
         .select('*')
         .gte('created_at', new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString())
         .order('created_at', { ascending: false })
         .limit(20),
+
+      // 10. Dedicated numbers across all companies
+      supabaseAdminRaw
+        .from('company_addons')
+        .select('id, company_id, dedicated_phone_number, status')
+        .eq('addon_type', 'dedicated_number')
+        .eq('status', 'active'),
     ]);
 
-    // Filter subscriptions & usage to only active (non-orphan) companies
+    // Cache Bland plan limits in Redis for concurrency manager
+    if (blandAccountResult.plan) {
+      await cacheBlandLimits({
+        dailyCap: blandAccountResult.dailyCap,
+        hourlyCap: blandAccountResult.hourlyCap,
+        concurrentCap: blandAccountResult.concurrentCap,
+        plan: blandAccountResult.plan,
+      }).catch(() => {}); // Non-fatal
+    }
+
+    // Filter to active companies
     const activeSubscriptions = (companiesResult.data || []).filter(
       sub => activeCompanyIds.has(sub.company_id)
     );
@@ -131,7 +164,7 @@ export async function GET() {
       row => activeCompanyIds.has(row.company_id)
     );
 
-    // Aggregate minutes (only active companies)
+    // Aggregate minutes
     const totalMinutesUsed = activeUsage.reduce(
       (sum, row) => sum + (row.minutes_used || 0), 0
     );
@@ -139,7 +172,7 @@ export async function GET() {
       (sum, row) => sum + (row.minutes_included || 0), 0
     );
 
-    // Plan distribution (only active companies)
+    // Plan distribution
     const planDistribution: Record<string, number> = {};
     activeSubscriptions.forEach((sub) => {
       const slug = (sub.subscription_plans as { slug?: string } | null)?.slug || 'unknown';
@@ -184,27 +217,45 @@ export async function GET() {
       dailyBuckets.push({ date: dateStr, calls: count });
     }
 
-    // Usage alerts (recent)
+    // Alerts
     const alerts: { level: string; message: string; time: string }[] = [];
 
-    // Thresholds calibrated for auto-recharge setup (threshold $10, refill $10)
-    // Critical = auto-recharge likely failed, Warning = approaching recharge threshold
-    if (blandBalanceResult.error) {
+    // Bland balance alerts
+    const blandError = (blandAccountResult as Record<string, unknown>).error as string | undefined;
+    if (blandError) {
       alerts.push({
         level: 'warning',
-        message: `Bland AI balance check failed: ${blandBalanceResult.error}`,
+        message: `Bland AI account check failed: ${blandError}`,
         time: now.toISOString(),
       });
-    } else if (blandBalanceResult.balance < 1) {
+    } else if (blandAccountResult.balance < 1) {
       alerts.push({
         level: 'critical',
-        message: `Bland AI master balance depleted: $${blandBalanceResult.balance.toFixed(2)} — auto-recharge may have failed`,
+        message: `Bland AI balance depleted: $${blandAccountResult.balance.toFixed(2)}`,
         time: now.toISOString(),
       });
-    } else if (blandBalanceResult.balance < 5) {
+    } else if (blandAccountResult.balance < 5) {
       alerts.push({
         level: 'warning',
-        message: `Bland AI master balance low: $${blandBalanceResult.balance.toFixed(2)} — approaching auto-recharge threshold`,
+        message: `Bland AI balance low: $${blandAccountResult.balance.toFixed(2)}`,
+        time: now.toISOString(),
+      });
+    }
+
+    // Concurrency alerts
+    if (concurrencySnapshot.globalConcurrent > concurrencySnapshot.blandLimits.concurrentCap * 0.8) {
+      alerts.push({
+        level: 'warning',
+        message: `Concurrent calls at ${Math.round((concurrencySnapshot.globalConcurrent / concurrencySnapshot.blandLimits.concurrentCap) * 100)}% capacity (${concurrencySnapshot.globalConcurrent}/${concurrencySnapshot.blandLimits.concurrentCap})`,
+        time: now.toISOString(),
+      });
+    }
+
+    // Daily cap alert
+    if (concurrencySnapshot.globalDaily > concurrencySnapshot.blandLimits.dailyCap * 0.8) {
+      alerts.push({
+        level: 'warning',
+        message: `Daily calls at ${Math.round((concurrencySnapshot.globalDaily / concurrencySnapshot.blandLimits.dailyCap) * 100)}% of Bland limit (${concurrencySnapshot.globalDaily}/${concurrencySnapshot.blandLimits.dailyCap})`,
         time: now.toISOString(),
       });
     }
@@ -213,9 +264,57 @@ export async function GET() {
       ? (totalMinutesUsed / totalMinutesIncluded) * 100
       : 0;
 
+    // Mask the Bland API key for display
+    const maskedBlandKey = process.env.BLAND_API_KEY
+      ? `${process.env.BLAND_API_KEY.substring(0, 8)}...${process.env.BLAND_API_KEY.slice(-4)}`
+      : null;
+
     return NextResponse.json({
-      blandBalance: blandBalanceResult.balance,
-      blandBalanceError: blandBalanceResult.error,
+      // === Architecture info ===
+      architecture: 'single_master_key',
+
+      // === Bland AI Account ===
+      blandAccount: {
+        plan: blandAccountResult.plan,
+        balance: blandAccountResult.balance,
+        totalCalls: blandAccountResult.totalCalls,
+        costPerMinute: blandAccountResult.costPerMinute,
+        transferRate: blandAccountResult.transferRate,
+        voiceClones: blandAccountResult.voiceClones,
+        apiKeyMasked: maskedBlandKey,
+      },
+
+      // === Real-Time Limits (from Bland plan) ===
+      blandLimits: {
+        dailyCap: blandAccountResult.dailyCap,
+        hourlyCap: blandAccountResult.hourlyCap,
+        concurrentCap: blandAccountResult.concurrentCap,
+      },
+
+      // === Real-Time Concurrency (from Redis) ===
+      concurrency: {
+        globalConcurrent: concurrencySnapshot.globalConcurrent,
+        globalDaily: concurrencySnapshot.globalDaily,
+        globalHourly: concurrencySnapshot.globalHourly,
+        activeCallCount: concurrencySnapshot.activeCallCount,
+        topCompanies: concurrencySnapshot.topCompanies,
+        redisConnected: concurrencySnapshot.blandLimits.plan !== 'start' || concurrencySnapshot.globalConcurrent > 0,
+      },
+
+      // === Usage Gauges (percentage of Bland limits used) ===
+      gauges: {
+        concurrentPercent: blandAccountResult.concurrentCap > 0
+          ? Math.round((concurrencySnapshot.globalConcurrent / blandAccountResult.concurrentCap) * 100)
+          : 0,
+        dailyPercent: blandAccountResult.dailyCap > 0
+          ? Math.round(((callsTodayResult.count || 0) / blandAccountResult.dailyCap) * 100)
+          : 0,
+        hourlyPercent: blandAccountResult.hourlyCap > 0
+          ? Math.round(((callsThisHourResult.count || 0) / blandAccountResult.hourlyCap) * 100)
+          : 0,
+      },
+
+      // === Call Metrics ===
       callsToday: callsTodayResult.count || 0,
       callsThisHour: callsThisHourResult.count || 0,
       activeCalls: activeCallsResult.count || 0,
@@ -223,13 +322,28 @@ export async function GET() {
       totalMinutesUsed,
       totalMinutesIncluded,
       usagePercent: Math.round(usagePercent * 10) / 10,
+
+      // === Company Metrics ===
       activeCompanies: activeSubscriptions.length,
       orphanedCompanies: orphanedCompanies.length,
       archivedCompanies: archivedCompanies.length,
-      blandApiKeyMasked: maskedBlandKey,
       planDistribution,
+
+      // === Dedicated Numbers ===
+      dedicatedNumbers: {
+        total: dedicatedNumbersResult.data?.length || 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        numbers: (dedicatedNumbersResult.data || []).map((n: any) => ({
+          companyId: n.company_id,
+          phoneNumber: n.dedicated_phone_number,
+        })),
+      },
+
+      // === Charts ===
       hourlyCallsChart: hourlyBuckets,
       dailyCallsChart: dailyBuckets,
+
+      // === Events & Alerts ===
       recentBillingEvents: recentEventsResult.data || [],
       alerts,
       timestamp: now.toISOString(),
@@ -240,34 +354,9 @@ export async function GET() {
   }
 }
 
-function extractBalance(data: Record<string, unknown>): number | null {
-  // Check top-level fields
-  for (const key of ['credits', 'balance', 'current_balance', 'available_credits']) {
-    if (typeof data[key] === 'number' && data[key] !== 0) return data[key] as number;
-  }
-  // Check nested billing/account objects
-  for (const parent of ['billing', 'account', 'org', 'organization']) {
-    if (data[parent] && typeof data[parent] === 'object') {
-      const nested = data[parent] as Record<string, unknown>;
-      for (const key of ['credits', 'balance', 'current_balance', 'available_credits']) {
-        if (typeof nested[key] === 'number' && nested[key] !== 0) return nested[key] as number;
-      }
-    }
-  }
-  // If all fields are explicitly 0, return 0 (not null)
-  for (const key of ['credits', 'balance', 'current_balance']) {
-    if (typeof data[key] === 'number') return data[key] as number;
-  }
-  return null;
-}
-
 /**
- * Ensure admin's company has a Free plan subscription + Bland sub-account.
- * Uses the same credit transfer parameters as any other company.
+ * Ensure admin's company has a Free plan subscription + master API key.
  * Idempotent — safe to call on every Command Center load.
- *
- * NOTE: If Bland sub-account creation fails (e.g., BYOT_INSERT_FAILED),
- * we assign the master account key directly so the admin can still make calls.
  */
 async function ensureAdminCompanySetup(companyId: string) {
   try {
@@ -290,7 +379,7 @@ async function ensureAdminCompanySetup(companyId: string) {
       if (freePlan) {
         const now = new Date();
         const periodEnd = new Date();
-        periodEnd.setDate(periodEnd.getDate() + 90); // 90-day free trial
+        periodEnd.setDate(periodEnd.getDate() + 90);
 
         const { data: newSub } = await supabaseAdmin
           .from('company_subscriptions')
@@ -317,105 +406,30 @@ async function ensureAdminCompanySetup(companyId: string) {
             minutes_used: 0,
             minutes_included: freePlan.minutes_included,
           });
-
-          console.log(`[admin-setup] Free plan subscription created for admin company ${companyId}`);
         }
       }
     }
 
-    // Check if Bland sub-account / API key exists
-    const { data: settings } = await supabaseAdmin
-      .from('company_settings')
-      .select('bland_subaccount_id, bland_api_key')
-      .eq('company_id', companyId)
-      .single();
-
-    if (!settings?.bland_api_key) {
-      const { data: company } = await supabaseAdmin
-        .from('companies')
-        .select('name')
-        .eq('id', companyId)
-        .single();
-
-      // Get plan minutes for credit allocation
-      const { data: sub } = await supabaseAdmin
-        .from('company_subscriptions')
-        .select('subscription_plans(minutes_included)')
+    // Ensure master API key is stored
+    const masterKey = process.env.BLAND_API_KEY;
+    if (masterKey) {
+      const { data: settings } = await supabaseAdmin
+        .from('company_settings')
+        .select('bland_api_key')
         .eq('company_id', companyId)
-        .limit(1)
         .single();
 
-      const minutes = (sub?.subscription_plans as { minutes_included?: number } | null)?.minutes_included || 15;
-
-      try {
-        await createBlandSubAccount(companyId, company?.name || 'Callengo Admin');
-        // Note: createBlandSubAccount transfers MIN_INITIAL_BALANCE ($10) on creation.
-        // Only allocate additional credits if plan includes more minutes.
-        const creditAmount = calculateCreditAmount(minutes);
-        if (creditAmount > 10) {
-          await allocateBlandCredits(companyId, minutes);
-        }
-        console.log(`[admin-setup] Bland sub-account + credits allocated for admin company ${companyId}`);
-      } catch (subAccountError) {
-        // If sub-account creation fails (e.g., route deprecated), assign master key
-        // so admin can still make calls using the master account directly.
-        console.warn(`[admin-setup] Sub-account creation failed, assigning master key as fallback:`, subAccountError);
-        const masterKey = process.env.BLAND_API_KEY;
-        if (masterKey) {
-          await supabaseAdmin
-            .from('company_settings')
-            .update({
-              bland_api_key: masterKey,
-              bland_subaccount_id: 'master',
-            })
-            .eq('company_id', companyId);
-          console.log(`[admin-setup] Master API key assigned to admin company ${companyId} as fallback`);
-        }
+      if (!settings?.bland_api_key) {
+        await supabaseAdmin
+          .from('company_settings')
+          .update({
+            bland_api_key: masterKey,
+            bland_subaccount_id: 'master',
+          })
+          .eq('company_id', companyId);
       }
     }
   } catch (error) {
-    // Non-fatal — don't block Command Center loading
     console.error('[admin-setup] Admin company setup error (non-fatal):', error);
   }
-}
-
-async function fetchBlandMasterBalance(): Promise<{ balance: number; error?: string }> {
-  if (!BLAND_MASTER_KEY) {
-    return { balance: 0, error: 'BLAND_API_KEY not configured' };
-  }
-
-  // Try multiple endpoints — org_ keys may use different paths than sk- keys
-  const endpoints = [
-    `${BLAND_API_URL}/org`,
-    `${BLAND_API_URL}/me`,
-    `${BLAND_API_URL}/billing`,
-  ];
-
-  const errors: string[] = [];
-
-  for (const url of endpoints) {
-    try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { 'Authorization': BLAND_MASTER_KEY },
-      });
-
-      if (!response.ok) {
-        errors.push(`${url.split('/v1/')[1]}: HTTP ${response.status}`);
-        continue;
-      }
-
-      const data = await response.json();
-      const balance = extractBalance(data);
-      if (balance !== null) {
-        return { balance };
-      }
-      // Got a 200 but couldn't find balance — log what we received
-      errors.push(`${url.split('/v1/')[1]}: 200 OK but no balance field (keys: ${Object.keys(data).join(',')})`);
-    } catch (err) {
-      errors.push(`${url.split('/v1/')[1]}: ${String(err)}`);
-    }
-  }
-
-  return { balance: 0, error: `Could not read balance. Tried: ${errors.join(' | ')}` };
 }

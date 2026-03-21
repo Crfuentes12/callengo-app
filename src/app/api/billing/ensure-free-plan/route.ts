@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
-import { createBlandSubAccount, allocateBlandCredits } from '@/lib/bland/subaccount-manager';
 import { expensiveLimiter } from '@/lib/rate-limit';
 
 /**
  * Ensures a company has a Free trial plan subscription.
  * Called during onboarding and as a fallback from the dashboard.
- * Uses supabaseAdmin (service role) to bypass RLS for INSERT operations.
+ *
+ * Single master API key architecture — no sub-account creation needed.
+ * The master API key is stored in company_settings for all companies.
  *
  * Free trial: 15 minutes included, no overage allowed.
  * Users must upgrade to a paid plan after trial minutes are exhausted.
- *
- * Security: Rate-limited (5 req/min per IP) + requires verified email
- * to prevent spam signups from draining Bland master balance.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -42,7 +40,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'company_id is required' }, { status: 400 });
     }
 
-    // Verify user belongs to this company (using authenticated client for auth check)
+    // Verify user belongs to this company
     const { data: userData } = await supabase
       .from('users')
       .select('company_id')
@@ -53,7 +51,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Check if company already has a subscription (using admin to bypass RLS)
+    // Check if company already has a subscription
     const { data: existingSub } = await supabaseAdmin
       .from('company_subscriptions')
       .select('id, plan_id')
@@ -62,39 +60,8 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (existingSub) {
-      // Subscription exists, but Bland sub-account might be missing
-      // (e.g., email wasn't verified at signup, or Bland setup failed)
-      const { data: settings } = await supabaseAdmin
-        .from('company_settings')
-        .select('bland_subaccount_id')
-        .eq('company_id', company_id)
-        .single();
-
-      const emailVerified = !!user.email_confirmed_at || user.app_metadata?.provider !== 'email';
-
-      if (!settings?.bland_subaccount_id && emailVerified) {
-        // Get the free plan minutes to allocate
-        const { data: plan } = await supabaseAdmin
-          .from('subscription_plans')
-          .select('minutes_included')
-          .eq('id', existingSub.plan_id)
-          .single();
-
-        try {
-          const { data: company } = await supabaseAdmin
-            .from('companies')
-            .select('name')
-            .eq('id', company_id)
-            .single();
-
-          await createBlandSubAccount(company_id, company?.name || `Company ${company_id}`);
-          await allocateBlandCredits(company_id, plan?.minutes_included || 15);
-          console.log(`[ensure-free-plan] Deferred Bland sub-account created for company ${company_id} (email now verified)`);
-        } catch (blandError) {
-          console.error('[ensure-free-plan] Deferred Bland setup failed (non-fatal):', blandError);
-        }
-      }
-
+      // Ensure company has the master API key stored
+      await ensureMasterKeyStored(company_id);
       return NextResponse.json({ status: 'already_exists', subscription_id: existingSub.id });
     }
 
@@ -110,8 +77,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Free plan not found in database' }, { status: 500 });
     }
 
-    // Create the subscription using admin client (bypasses RLS)
-    // Handle race condition: if UNIQUE constraint on company_id rejects, treat as already_exists
+    // Create the subscription
     const now = new Date();
     const periodEnd = new Date();
     periodEnd.setDate(periodEnd.getDate() + 90); // 90-day free trial
@@ -133,7 +99,6 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (subError) {
-      // Unique constraint violation (23505) = another request created it first
       if (subError.code === '23505') {
         console.log(`[ensure-free-plan] Subscription already exists (race condition handled) for company ${company_id}`);
         const { data: raceSub } = await supabaseAdmin
@@ -147,7 +112,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
     }
 
-    // Create usage tracking record using admin client
+    // Create usage tracking record
     const { error: usageError } = await supabaseAdmin.from('usage_tracking').insert({
       company_id,
       subscription_id: newSub.id,
@@ -161,41 +126,8 @@ export async function POST(req: NextRequest) {
       console.error('[ensure-free-plan] Failed to create usage tracking:', usageError);
     }
 
-    // Create Bland sub-account and allocate credits ONLY if email is verified.
-    // This prevents spam signups from draining the Bland master balance.
-    // OAuth users (Google, GitHub) are always verified. Email/password users
-    // must confirm their email first — Bland setup happens on next dashboard load.
-    const emailVerified = !!user.email_confirmed_at || user.app_metadata?.provider !== 'email';
-
-    if (emailVerified) {
-      try {
-        // Idempotency: check if sub-account already exists before creating
-        const { data: existingSettings } = await supabaseAdmin
-          .from('company_settings')
-          .select('bland_subaccount_id')
-          .eq('company_id', company_id)
-          .single();
-
-        if (existingSettings?.bland_subaccount_id) {
-          console.log(`[ensure-free-plan] Bland sub-account already exists for company ${company_id}, skipping`);
-        } else {
-          const { data: company } = await supabaseAdmin
-            .from('companies')
-            .select('name')
-            .eq('id', company_id)
-            .single();
-
-          await createBlandSubAccount(company_id, company?.name || `Company ${company_id}`);
-          await allocateBlandCredits(company_id, freePlan.minutes_included);
-        }
-        console.log(`[ensure-free-plan] Bland sub-account + $${(freePlan.minutes_included * 0.11 * 1.05).toFixed(2)} credits allocated for free trial`);
-      } catch (blandError) {
-        // Non-fatal: subscription is created, Bland setup can be retried
-        console.error('[ensure-free-plan] Bland sub-account setup failed (non-fatal):', blandError);
-      }
-    } else {
-      console.log(`[ensure-free-plan] Email not verified yet — Bland sub-account deferred for company ${company_id}`);
-    }
+    // Store master API key for this company (single-key architecture)
+    await ensureMasterKeyStored(company_id);
 
     console.log(`[ensure-free-plan] Free trial plan (${freePlan.minutes_included} min) assigned to company ${company_id}`);
 
@@ -206,5 +138,30 @@ export async function POST(req: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Ensure the company has the master Bland API key stored.
+ * In single-key architecture, all companies share the same API key.
+ */
+async function ensureMasterKeyStored(companyId: string) {
+  const masterKey = process.env.BLAND_API_KEY;
+  if (!masterKey) return;
+
+  const { data: settings } = await supabaseAdmin
+    .from('company_settings')
+    .select('bland_api_key')
+    .eq('company_id', companyId)
+    .single();
+
+  if (!settings?.bland_api_key) {
+    await supabaseAdmin
+      .from('company_settings')
+      .update({
+        bland_api_key: masterKey,
+        bland_subaccount_id: 'master',
+      })
+      .eq('company_id', companyId);
   }
 }

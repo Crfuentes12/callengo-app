@@ -1,157 +1,73 @@
 /**
- * Bland AI Sub-Account Manager
- * Handles creation, credit redistribution, recovery, and lifecycle of Bland sub-accounts.
+ * Bland AI — Single Master API Key Architecture (V2)
  *
- * KEY ARCHITECTURE PRINCIPLE:
- * - The Bland master account is funded manually (independent of Stripe).
- * - This module redistributes credits WITHIN Bland (master → sub-accounts).
- * - Stripe only handles customer payments. No money flows from Stripe to Bland.
- * - When a Stripe webhook confirms payment, we redistribute Bland credits internally.
+ * REPLACES the old sub-account architecture. No more sub-accounts.
+ * All calls go through ONE master Bland API key.
+ * Company isolation is handled entirely in Supabase (company_id).
  *
- * IMPORTANT: Uses /v1/subaccounts endpoints (NOT /v1/accounts which is for Twilio BYOP).
+ * This file now exports compatibility wrappers that:
+ * - No-op where sub-account operations were needed
+ * - Log billing events for audit trail
+ * - Preserve the same export interface for backward compatibility
+ *
+ * Credit management is now internal bookkeeping only — Bland master
+ * account balance is managed manually, not redistributed.
  */
 
 import { supabaseAdmin } from '@/lib/supabase/service';
 
-const BLAND_API_URL = 'https://api.bland.ai/v1';
-const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
-
-// Cost per minute from Bland — should match the actual Bland plan (Start/Build/Scale)
-// Default to Scale plan ($0.11/min). Override via env var if on a different plan.
-const BLAND_COST_PER_MINUTE = Number(process.env.BLAND_COST_PER_MINUTE || '0.11');
-
-// Buffer percentage for credit allocation (5% extra to absorb rounding)
-const CREDIT_BUFFER_PERCENT = 0.05;
-
-// Minimum initial balance required by Bland API for sub-account creation
-const MIN_INITIAL_BALANCE = 10;
-
-interface SubAccountCreateResult {
-  subAccountId: string;
-  apiKey: string;
-}
-
-interface CreditAllocationResult {
-  allocated: number;
-  minutesCovered: number;
-}
-
-/**
- * Create a Bland AI sub-account for a company.
- * Uses POST /v1/subaccounts (NOT /v1/accounts which is Twilio BYOP).
- * Should be called AFTER Stripe confirms payment (webhook: checkout.session.completed).
- */
-export async function createBlandSubAccount(
-  companyId: string,
-  companyName: string
-): Promise<SubAccountCreateResult> {
-  // Check if sub-account already exists
-  const { data: settings } = await supabaseAdmin
-    .from('company_settings')
-    .select('bland_subaccount_id, bland_api_key')
-    .eq('company_id', companyId)
-    .single();
-
-  if (settings?.bland_subaccount_id && settings?.bland_api_key) {
-    console.log(`Sub-account already exists for company ${companyId}`);
-    return {
-      subAccountId: settings.bland_subaccount_id,
-      apiKey: settings.bland_api_key,
-    };
-  }
-
-  try {
-    // Split company name into first/last for Bland API requirement
-    const nameParts = companyName.trim().split(/\s+/);
-    const firstName = nameParts[0] || 'Company';
-    const lastName = nameParts.slice(1).join(' ') || companyId.substring(0, 8);
-
-    const response = await fetch(`${BLAND_API_URL}/subaccounts`, {
-      method: 'POST',
-      headers: {
-        'Authorization': BLAND_MASTER_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        first_name: firstName,
-        last_name: lastName,
-        balance: MIN_INITIAL_BALANCE,
-        login_enabled: false,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Bland sub-account creation failed: ${JSON.stringify(error)}`);
-    }
-
-    const data = await response.json();
-    // Bland API returns subaccount_id and subaccount_key
-    const subAccountId = data.subaccount_id || data.account_id || data.id;
-    const apiKey = data.subaccount_key || data.api_key || data.key;
-
-    if (!subAccountId || !apiKey) {
-      throw new Error(`Bland API returned incomplete sub-account data: ${JSON.stringify(data)}`);
-    }
-
-    // Save to company_settings
-    await supabaseAdmin
-      .from('company_settings')
-      .update({
-        bland_subaccount_id: subAccountId,
-        bland_api_key: apiKey,
-      })
-      .eq('company_id', companyId);
-
-    console.log(`✅ Bland sub-account created for company ${companyId}: ${subAccountId}`);
-
-    return { subAccountId, apiKey };
-  } catch (error) {
-    console.error(`❌ Failed to create Bland sub-account for company ${companyId}:`, error);
-    throw error;
-  }
-}
+// Re-export from master-client for backward compatibility
+export { BLAND_COST_PER_MINUTE } from './master-client';
 
 /**
  * Calculate credit amount for a given plan's minutes.
- * Formula: credits = (minutes × cost_per_minute) × (1 + buffer)
+ * Now used for internal bookkeeping / unit economics only.
  */
 export function calculateCreditAmount(minutesIncluded: number): number {
-  const baseCost = minutesIncluded * BLAND_COST_PER_MINUTE;
+  const costPerMinute = Number(process.env.BLAND_COST_PER_MINUTE || '0.14');
+  const CREDIT_BUFFER_PERCENT = 0.05;
+  const baseCost = minutesIncluded * costPerMinute;
   const withBuffer = baseCost * (1 + CREDIT_BUFFER_PERCENT);
-  // Round up to nearest cent
   return Math.ceil(withBuffer * 100) / 100;
 }
 
 /**
- * Redistribute Bland credits from master account to a company's sub-account.
- * This is an internal Bland operation — no external money movement.
- * Called on:
- *  - Initial subscription (checkout.session.completed)
- *  - Monthly renewal (invoice.payment_succeeded with billing_reason=subscription_cycle)
- *  - Plan upgrade (differential credits for remaining period)
- *  - Calls Booster activation (additional 225 minutes worth of credits)
+ * NO-OP: Sub-accounts are no longer used.
+ * Now simply ensures the company has the master API key stored for compatibility.
+ * The `bland_api_key` field in company_settings stores the master key for all companies.
+ */
+export async function createBlandSubAccount(
+  companyId: string,
+  _companyName: string
+): Promise<{ subAccountId: string; apiKey: string }> {
+  const masterKey = process.env.BLAND_API_KEY!;
+
+  // Store master key for this company (all companies share the same key)
+  await supabaseAdmin
+    .from('company_settings')
+    .update({
+      bland_api_key: masterKey,
+      bland_subaccount_id: 'master', // Marker indicating single-key architecture
+    })
+    .eq('company_id', companyId);
+
+  console.log(`[bland] Company ${companyId} configured with master API key (single-key architecture)`);
+
+  return { subAccountId: 'master', apiKey: masterKey };
+}
+
+/**
+ * NO-OP: Credits are no longer redistributed between sub-accounts.
+ * Now just logs a billing event for bookkeeping purposes.
  */
 export async function allocateBlandCredits(
   companyId: string,
   minutesIncluded: number,
   idempotencyKey?: string
-): Promise<CreditAllocationResult> {
-  const { data: settings } = await supabaseAdmin
-    .from('company_settings')
-    .select('bland_subaccount_id')
-    .eq('company_id', companyId)
-    .single();
-
-  if (!settings?.bland_subaccount_id) {
-    console.warn(`No Bland sub-account for company ${companyId} — skipping credit allocation`);
-    return { allocated: 0, minutesCovered: 0 };
-  }
-
-  // FIX: Idempotency check — prevent double credit allocation on webhook retries.
-  // If an idempotency key is provided, check if we already allocated for this event.
+): Promise<{ allocated: number; minutesCovered: number }> {
+  // Idempotency check
   if (idempotencyKey) {
-    const { data: existingAllocation } = await supabaseAdmin
+    const { data: existing } = await supabaseAdmin
       .from('billing_events')
       .select('id')
       .eq('company_id', companyId)
@@ -160,231 +76,117 @@ export async function allocateBlandCredits(
       .limit(1)
       .maybeSingle();
 
-    if (existingAllocation) {
-      console.log(`⏭️  Credits already allocated for company ${companyId} (key: ${idempotencyKey}), skipping`);
+    if (existing) {
+      console.log(`[bland] Credits already logged for company ${companyId} (key: ${idempotencyKey}), skipping`);
       return { allocated: 0, minutesCovered: minutesIncluded };
     }
   }
 
   const creditAmount = calculateCreditAmount(minutesIncluded);
 
-  try {
-    const response = await fetch(
-      `${BLAND_API_URL}/subaccounts/${settings.bland_subaccount_id}/credits/add`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': BLAND_MASTER_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: creditAmount,
-        }),
-      }
-    );
+  // Log for bookkeeping only — no actual Bland API call
+  await supabaseAdmin.from('billing_events').insert({
+    company_id: companyId,
+    event_type: 'bland_credits_allocated',
+    event_data: {
+      amount: creditAmount,
+      minutes_covered: minutesIncluded,
+      architecture: 'single_master_key',
+      note: 'Bookkeeping only — no sub-account credit transfer',
+      ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+    },
+    minutes_consumed: 0,
+    cost_usd: creditAmount,
+  });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Bland credit allocation failed: ${JSON.stringify(error)}`);
-    }
+  console.log(`[bland] Logged ${minutesIncluded} min allocation for company ${companyId} (bookkeeping, no sub-account transfer)`);
 
-    // Log the allocation (include idempotency key for dedup on retry)
-    await supabaseAdmin.from('billing_events').insert({
-      company_id: companyId,
-      event_type: 'bland_credits_allocated',
-      event_data: {
-        amount: creditAmount,
-        minutes_covered: minutesIncluded,
-        cost_per_minute: BLAND_COST_PER_MINUTE,
-        buffer_percent: CREDIT_BUFFER_PERCENT,
-        ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
-      },
-      minutes_consumed: 0,
-      cost_usd: creditAmount,
-    });
-
-    console.log(`✅ Allocated $${creditAmount} Bland credits for company ${companyId} (${minutesIncluded} min)`);
-
-    return { allocated: creditAmount, minutesCovered: minutesIncluded };
-  } catch (error) {
-    console.error(`❌ Failed to allocate Bland credits for company ${companyId}:`, error);
-    throw error;
-  }
+  return { allocated: creditAmount, minutesCovered: minutesIncluded };
 }
 
 /**
- * Get the current Bland credit balance for a company's sub-account.
+ * NO-OP: No credits to reclaim without sub-accounts.
+ * Returns 0 for backward compatibility.
  */
-export async function getBlandCreditBalance(companyId: string): Promise<number> {
-  const { data: settings } = await supabaseAdmin
-    .from('company_settings')
-    .select('bland_subaccount_id')
-    .eq('company_id', companyId)
-    .single();
-
-  if (!settings?.bland_subaccount_id) {
-    return 0;
-  }
-
-  try {
-    const response = await fetch(
-      `${BLAND_API_URL}/subaccounts/${settings.bland_subaccount_id}`,
-      {
-        method: 'GET',
-        headers: { 'Authorization': BLAND_MASTER_KEY },
-      }
-    );
-
-    if (!response.ok) return 0;
-
-    const data = await response.json();
-    return data.credits || data.balance || 0;
-  } catch {
-    return 0;
-  }
+export async function getBlandCreditBalance(_companyId: string): Promise<number> {
+  // In single-key architecture, balance is on the master account (shared)
+  // Use getBlandAccountInfo() from master-client.ts for actual balance
+  return 0;
 }
 
 /**
- * Return unused Bland credits from a sub-account back to the master account.
- * Internal Bland redistribution — credits return to your master balance.
- * Called before:
- *  - Monthly renewal top-up (reclaim leftover, then redistribute fresh)
- *  - Cancellation
- *  - Downgrade
+ * NO-OP: No credits to reclaim without sub-accounts.
  */
-export async function reclaimBlandCredits(companyId: string): Promise<number> {
-  const { data: settings } = await supabaseAdmin
-    .from('company_settings')
-    .select('bland_subaccount_id')
-    .eq('company_id', companyId)
-    .single();
-
-  if (!settings?.bland_subaccount_id) {
-    return 0;
-  }
-
-  try {
-    // Get current balance
-    const balance = await getBlandCreditBalance(companyId);
-    if (balance <= 0) return 0;
-
-    // Reclaim credits back to master account
-    const response = await fetch(
-      `${BLAND_API_URL}/subaccounts/${settings.bland_subaccount_id}/credits/remove`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': BLAND_MASTER_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: balance,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      console.warn(`Failed to reclaim credits for company ${companyId}`);
-      return 0;
-    }
-
-    // Log the reclaim
-    await supabaseAdmin.from('billing_events').insert({
-      company_id: companyId,
-      event_type: 'bland_credits_reclaimed',
-      event_data: {
-        amount: balance,
-        reason: 'cycle_renewal_or_lifecycle',
-      },
-      minutes_consumed: 0,
-      cost_usd: balance,
-    });
-
-    console.log(`✅ Reclaimed $${balance} Bland credits from company ${companyId}`);
-    return balance;
-  } catch (error) {
-    console.error(`❌ Failed to reclaim Bland credits for company ${companyId}:`, error);
-    return 0;
-  }
+export async function reclaimBlandCredits(_companyId: string): Promise<number> {
+  return 0;
 }
 
 /**
- * Deactivate a company's Bland sub-account.
- * Called on subscription cancellation or company deletion.
+ * NO-OP: No sub-account to deactivate.
+ * Clears the company's API key reference for cleanliness.
  */
 export async function deactivateBlandSubAccount(companyId: string): Promise<void> {
-  // Reclaim any remaining credits first
-  await reclaimBlandCredits(companyId);
-
-  const { data: settings } = await supabaseAdmin
+  await supabaseAdmin
     .from('company_settings')
-    .select('bland_subaccount_id')
-    .eq('company_id', companyId)
-    .single();
+    .update({
+      bland_api_key: null,
+      bland_subaccount_id: null,
+    })
+    .eq('company_id', companyId);
 
-  if (!settings?.bland_subaccount_id) return;
+  await supabaseAdmin.from('billing_events').insert({
+    company_id: companyId,
+    event_type: 'bland_subaccount_deactivated',
+    event_data: {
+      architecture: 'single_master_key',
+      note: 'Company API key reference cleared',
+    },
+    minutes_consumed: 0,
+    cost_usd: 0,
+  });
 
-  try {
-    // Zero out credits and mark the sub-account as inactive in our DB
-    await supabaseAdmin
-      .from('company_settings')
-      .update({
-        bland_subaccount_id: null,
-        bland_api_key: null,
-      })
-      .eq('company_id', companyId);
-
-    await supabaseAdmin.from('billing_events').insert({
-      company_id: companyId,
-      event_type: 'bland_subaccount_deactivated',
-      event_data: {
-        subaccount_id: settings.bland_subaccount_id,
-      },
-      minutes_consumed: 0,
-      cost_usd: 0,
-    });
-
-    console.log(`✅ Deactivated Bland sub-account for company ${companyId}`);
-  } catch (error) {
-    console.error(`❌ Failed to deactivate Bland sub-account for company ${companyId}:`, error);
-  }
+  console.log(`[bland] Company ${companyId} API key reference cleared`);
 }
 
 /**
- * Handle plan upgrade: allocate differential credits for remaining period.
+ * NO-OP: No credits to redistribute on upgrade.
+ * Logs the event for bookkeeping.
  */
 export async function handlePlanUpgradeCredits(
   companyId: string,
   oldMinutesIncluded: number,
   newMinutesIncluded: number,
-  daysRemainingInPeriod: number,
-  totalDaysInPeriod: number
-): Promise<CreditAllocationResult> {
+  _daysRemainingInPeriod: number,
+  _totalDaysInPeriod: number
+): Promise<{ allocated: number; minutesCovered: number }> {
   if (newMinutesIncluded <= oldMinutesIncluded) {
     return { allocated: 0, minutesCovered: 0 };
   }
 
-  const extraMinutes = newMinutesIncluded - oldMinutesIncluded;
-  // Pro-rate the extra minutes for remaining period
-  const proRatedMinutes = Math.ceil(extraMinutes * (daysRemainingInPeriod / totalDaysInPeriod));
+  await supabaseAdmin.from('billing_events').insert({
+    company_id: companyId,
+    event_type: 'plan_upgrade_credits',
+    event_data: {
+      old_minutes: oldMinutesIncluded,
+      new_minutes: newMinutesIncluded,
+      architecture: 'single_master_key',
+      note: 'Bookkeeping only — usage tracked in usage_tracking table',
+    },
+    minutes_consumed: 0,
+    cost_usd: 0,
+  });
 
-  return await allocateBlandCredits(companyId, proRatedMinutes);
+  return { allocated: 0, minutesCovered: newMinutesIncluded - oldMinutesIncluded };
 }
 
 /**
- * Cycle renewal: reclaim old credits, allocate fresh for new period.
+ * NO-OP: No credits to cycle.
+ * Usage reset is handled by resetUsageForNewPeriod() in usage-tracker.ts.
  */
 export async function handleCycleRenewalCredits(
   companyId: string,
   minutesIncluded: number,
   idempotencyKey?: string
-): Promise<CreditAllocationResult> {
-  // Step 1: Reclaim any unused credits from the previous cycle
-  await reclaimBlandCredits(companyId);
-
-  // Step 2: Allocate fresh credits for the new cycle
+): Promise<{ allocated: number; minutesCovered: number }> {
   return await allocateBlandCredits(companyId, minutesIncluded, idempotencyKey);
 }
-
-// Export the cost per minute for use in unit economics calculations
-export { BLAND_COST_PER_MINUTE };

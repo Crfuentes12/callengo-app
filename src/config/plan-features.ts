@@ -129,9 +129,9 @@ export const PLAN_SPECIFIC_FEATURES: Record<string, string[]> = {
 
 /**
  * Phone number feature availability per plan
- * Note: Twilio BYOP is NOT supported — Bland BYOP requires Enterprise parent account
- * and cannot be isolated per sub-account. All plans use auto-rotated numbers from pool.
- * Dedicated numbers are available as a paid add-on ($15/mo) for Starter+.
+ * All plans use auto-rotated numbers from the Callengo pool by default.
+ * Dedicated numbers are available as a paid add-on ($25/mo per number, max 3) for Starter+.
+ * Numbers are purchased on the master Bland account and assigned per company.
  */
 export const PHONE_NUMBER_FEATURES: Record<string, {
   autoRotation: boolean;
@@ -304,9 +304,13 @@ export const CAMPAIGN_FEATURE_ACCESS: Record<string, {
 
 /**
  * Add-on availability per plan
+ *
+ * Dedicated Number: $25/mo to customer ($15/mo cost from Bland).
+ * Up to 3 numbers per company for custom rotation.
+ * Numbers purchased on master Bland account, assigned logically per company.
  */
 export const ADDON_AVAILABILITY: Record<string, {
-  dedicatedNumber: boolean; // $15/mo — own phone number via Bland transfer
+  dedicatedNumber: boolean; // $25/mo — own phone number(s) via Bland, max 3
   recordingVault: boolean;  // $12/mo — 12-month recording retention (default 30 days)
   callsBooster: boolean;    // $35/mo — +150 calls / +225 min
 }> = {

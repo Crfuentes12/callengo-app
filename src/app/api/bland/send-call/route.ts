@@ -1,4 +1,5 @@
 // app/api/bland/send-call/route.ts
+// Single master API key architecture — all calls go through one Bland account
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { z } from 'zod';
@@ -6,6 +7,9 @@ import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 import { expensiveLimiter } from '@/lib/rate-limit';
 import { checkCallAllowed, getMaxCallDuration } from '@/lib/billing/call-throttle';
+import { dispatchCall } from '@/lib/bland/master-client';
+import { getCompanyCallerNumber } from '@/lib/bland/phone-numbers';
+import { acquireCallSlot } from '@/lib/redis/concurrency-manager';
 
 // ALTA-006 + ALTA-007: Zod schema for input validation
 const sendCallSchema = z.object({
@@ -77,22 +81,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized for this company' }, { status: 403 });
     }
 
-    // Get company-specific API key (sub-account key) — never fall back to master key
-    const { data: settings } = await supabaseAdmin
-      .from('company_settings')
-      .select('bland_api_key, bland_subaccount_id')
-      .eq('company_id', company_id)
-      .single();
-
-    if (!settings?.bland_api_key) {
-      return NextResponse.json(
-        { error: 'Bland sub-account not configured for this company. Please contact support.' },
-        { status: 500 }
-      );
-    }
-
-    const apiKey = settings.bland_api_key;
-
     // ================================================================
     // AUDIT FIX: Pre-register call_log BEFORE throttle check to prevent
     // TOCTOU race condition. The pre-registered 'queued' entry is counted
@@ -131,65 +119,77 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Acquire Redis call slot (atomic increment of all counters)
+    const slot = await acquireCallSlot(
+      company_id,
+      preCallId,
+      metadata?.contact_id as string | undefined
+    );
+    if (!slot.acquired) {
+      if (preLog?.id) {
+        await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+      }
+      return NextResponse.json(
+        { error: slot.error || 'Call slot unavailable', code: 'concurrent_limit' },
+        { status: 429 }
+      );
+    }
+
     // Enforce plan-specific max call duration
     const planMaxDuration = getMaxCallDuration(throttleCheck.planSlug || 'free');
     const effectiveMaxDuration = max_duration
       ? Math.min(max_duration, planMaxDuration)
       : planMaxDuration;
 
-    const blandPayload: Record<string, unknown> = {
+    // Get dedicated number if company has one (for caller ID)
+    const dedicatedNumber = await getCompanyCallerNumber(company_id);
+
+    // Dispatch via master API key
+    const result = await dispatchCall({
       phone_number,
       task,
       voice,
+      first_sentence,
       wait_for_greeting,
       record,
       max_duration: effectiveMaxDuration,
       voicemail_action,
+      voicemail_message,
       answered_by_enabled,
-      model: 'enhanced',
-      language: 'en',
-      temperature: 0.7,
-      background_track: 'office',
-    };
-
-    if (first_sentence) blandPayload.first_sentence = first_sentence;
-    if (voicemail_message) blandPayload.voicemail_message = voicemail_message;
-    if (webhook) blandPayload.webhook = webhook;
-    if (metadata) blandPayload.metadata = metadata;
-
-    const response = await fetch('https://api.bland.ai/v1/calls', {
-      method: 'POST',
-      headers: {
-        'Authorization': apiKey,
-        'Content-Type': 'application/json',
+      webhook,
+      metadata: {
+        ...metadata,
+        company_id,
       },
-      body: JSON.stringify(blandPayload),
+      from: dedicatedNumber || undefined,
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (!result.success) {
       // Remove pre-registered call_log on failure
       if (preLog?.id) {
         await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
       }
+      // Release the Redis slot since call failed
+      const { releaseCallSlot } = await import('@/lib/redis/concurrency-manager');
+      await releaseCallSlot(company_id, preCallId);
+
       return NextResponse.json(
-        { error: data.message || 'Failed to initiate call', details: data },
-        { status: response.status }
+        { error: result.error || 'Failed to initiate call', details: result },
+        { status: result.statusCode || 500 }
       );
     }
 
     // Update pre-registered call_log with actual Bland call_id
-    if (preLog?.id && data.call_id) {
+    if (preLog?.id && result.callId) {
       await supabaseAdmin.from('call_logs')
-        .update({ call_id: data.call_id, status: 'in_progress' })
+        .update({ call_id: result.callId, status: 'in_progress' })
         .eq('id', preLog.id);
     }
 
     return NextResponse.json({
       status: 'success',
-      call_id: data.call_id,
-      message: data.message || 'Call initiated successfully',
+      call_id: result.callId,
+      message: result.message || 'Call initiated successfully',
       limits: {
         concurrent: `${(throttleCheck.currentConcurrent || 0) + 1}/${throttleCheck.maxConcurrent || '∞'}`,
         dailyCalls: `${(throttleCheck.dailyCallsToday || 0) + 1}/${throttleCheck.dailyCap || '∞'}`,

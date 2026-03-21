@@ -41,6 +41,7 @@ import { autoAssignEvent } from '@/lib/calendar/resource-routing';
 import { trackCallUsage } from '@/lib/billing/usage-tracker';
 import { trackServerEvent } from '@/lib/analytics';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { releaseCallSlot } from '@/lib/redis/concurrency-manager';
 
 interface WebhookMetadata {
   company_id?: string;
@@ -165,6 +166,15 @@ export async function POST(request: NextRequest) {
       error_message: error_message || null,
       metadata: body as unknown as Json,
     }, { onConflict: 'call_id', ignoreDuplicates: false });
+
+    // Release Redis concurrency slot when call completes
+    if (call_id && companyId && (completed || status === 'completed' || status === 'failed' || status === 'error' || status === 'no-answer')) {
+      try {
+        await releaseCallSlot(companyId, call_id);
+      } catch (releaseError) {
+        console.error('[webhook] Failed to release call slot (non-fatal):', releaseError);
+      }
+    }
 
     // GA4 server-side event: call completed
     trackServerEvent(
