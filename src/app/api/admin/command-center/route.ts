@@ -63,6 +63,9 @@ export async function GET() {
         .map(c => c.id)
     );
 
+    // Time boundaries
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
     // Run all queries in parallel
     const [
       blandAccountResult,
@@ -75,6 +78,14 @@ export async function GET() {
       companiesResult,
       recentEventsResult,
       dedicatedNumbersResult,
+      // New: MRR & subscription analytics
+      allSubscriptionsResult,
+      // New: Failed calls this month
+      failedCallsResult,
+      // New: Stripe revenue from billing_history
+      billingHistoryResult,
+      // New: Call duration stats this month
+      callDurationStatsResult,
     ] = await Promise.all([
       // 1. Bland AI master account info (plan, balance, limits)
       getBlandAccountInfo().catch(err => ({
@@ -144,6 +155,34 @@ export async function GET() {
         .select('id, company_id, dedicated_phone_number, status')
         .eq('addon_type', 'dedicated_number')
         .eq('status', 'active'),
+
+      // 11. All subscriptions (for MRR, churn, trial conversion)
+      supabaseAdmin
+        .from('company_subscriptions')
+        .select('id, company_id, status, billing_cycle, created_at, current_period_end, subscription_plans(slug, name, price_monthly, price_yearly)'),
+
+      // 12. Failed/error calls this month
+      supabaseAdmin
+        .from('call_logs')
+        .select('id, status, error_message, company_id, created_at')
+        .in('status', ['failed', 'error', 'no_answer'])
+        .gte('created_at', monthStart)
+        .order('created_at', { ascending: false })
+        .limit(200),
+
+      // 13. Billing history (Stripe payments) for revenue tracking
+      supabaseAdmin
+        .from('billing_history')
+        .select('id, company_id, amount, currency, status, created_at')
+        .gte('created_at', thirtyDaysAgo)
+        .eq('status', 'paid'),
+
+      // 14. Call duration stats (for avg duration + burn rate)
+      supabaseAdmin
+        .from('call_logs')
+        .select('call_length, created_at, status')
+        .gte('created_at', monthStart)
+        .not('call_length', 'is', null),
     ]);
 
     // Cache Bland plan limits in Redis for concurrency manager
@@ -264,6 +303,111 @@ export async function GET() {
       ? (totalMinutesUsed / totalMinutesIncluded) * 100
       : 0;
 
+    // ════════════════════════════════════════════════════════════════
+    // NEW: MRR, Churn, Trial Conversion, Burn Rate, Failed Calls
+    // ════════════════════════════════════════════════════════════════
+
+    const allSubs = allSubscriptionsResult.data || [];
+
+    // MRR calculation: sum of monthly revenue from active subscriptions
+    let mrr = 0;
+    let trialCount = 0;
+    let activeCount = 0;
+    let canceledCount = 0;
+    let pastDueCount = 0;
+    let expiredCount = 0;
+
+    // Revenue by plan for breakdown
+    const revenueByPlan: Record<string, { count: number; mrr: number }> = {};
+
+    for (const sub of allSubs) {
+      const plan = sub.subscription_plans as { slug?: string; name?: string; price_monthly?: number; price_yearly?: number } | null;
+      const slug = plan?.slug || 'unknown';
+      const monthlyPrice = plan?.price_monthly || 0;
+      const yearlyPrice = plan?.price_yearly || 0;
+
+      if (!revenueByPlan[slug]) revenueByPlan[slug] = { count: 0, mrr: 0 };
+
+      if (sub.status === 'active') {
+        activeCount++;
+        const monthlyRevenue = sub.billing_cycle === 'annual'
+          ? yearlyPrice / 12
+          : monthlyPrice;
+        mrr += monthlyRevenue;
+        revenueByPlan[slug].count++;
+        revenueByPlan[slug].mrr += monthlyRevenue;
+      } else if (sub.status === 'trialing') {
+        trialCount++;
+        revenueByPlan[slug].count++;
+      } else if (sub.status === 'canceled') {
+        canceledCount++;
+      } else if (sub.status === 'past_due') {
+        pastDueCount++;
+      } else if (sub.status === 'expired') {
+        expiredCount++;
+      }
+    }
+
+    // Trial conversion rate (trials that became active / total ever trialing)
+    const totalTrialAndActive = trialCount + activeCount;
+    const trialConversionRate = totalTrialAndActive > 0
+      ? Math.round((activeCount / totalTrialAndActive) * 100)
+      : 0;
+
+    // Churn rate: canceled in last 30 days / (active + canceled)
+    const recentCanceled = allSubs.filter(s =>
+      s.status === 'canceled' &&
+      s.current_period_end &&
+      new Date(s.current_period_end) >= new Date(thirtyDaysAgo)
+    ).length;
+    const churnRate = (activeCount + recentCanceled) > 0
+      ? Math.round((recentCanceled / (activeCount + recentCanceled)) * 1000) / 10
+      : 0;
+
+    // Bland credit burn rate (cost per day based on last 7 days usage)
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const recentCallDurations = (callDurationStatsResult.data || []).filter(
+      c => new Date(c.created_at) >= sevenDaysAgo
+    );
+    const recentMinutes = recentCallDurations.reduce(
+      (sum, c) => sum + Math.ceil((c.call_length || 0) / 60), 0
+    );
+    const burnRatePerDay = recentMinutes > 0
+      ? (recentMinutes / 7) * blandAccountResult.costPerMinute
+      : 0;
+    const projectedRunwayDays = burnRatePerDay > 0
+      ? Math.round(blandAccountResult.balance / burnRatePerDay)
+      : null;
+
+    // Failed calls analysis
+    const failedCalls = failedCallsResult.data || [];
+    const failedByReason: Record<string, number> = {};
+    for (const call of failedCalls) {
+      const reason = call.status === 'no_answer' ? 'no_answer'
+        : call.error_message ? String(call.error_message).substring(0, 50)
+        : call.status || 'unknown';
+      failedByReason[reason] = (failedByReason[reason] || 0) + 1;
+    }
+
+    // Avg call duration this month
+    const allCallDurations = callDurationStatsResult.data || [];
+    const completedDurations = allCallDurations.filter(c => c.status === 'completed' && c.call_length);
+    const avgCallDurationSec = completedDurations.length > 0
+      ? Math.round(completedDurations.reduce((s, c) => s + (c.call_length || 0), 0) / completedDurations.length)
+      : 0;
+
+    // Stripe revenue (last 30 days from billing_history)
+    const billingHistory = billingHistoryResult.data || [];
+    const stripeRevenue30d = billingHistory.reduce(
+      (sum, b) => sum + ((b.amount || 0) / 100), 0 // Stripe amounts in cents
+    );
+
+    // Bland cost this month (from actual call durations)
+    const totalMinutesThisMonth = allCallDurations.reduce(
+      (sum, c) => sum + Math.ceil((c.call_length || 0) / 60), 0
+    );
+    const blandCostThisMonth = totalMinutesThisMonth * blandAccountResult.costPerMinute;
+
     // Mask the Bland API key for display
     const maskedBlandKey = process.env.BLAND_API_KEY
       ? `${process.env.BLAND_API_KEY.substring(0, 8)}...${process.env.BLAND_API_KEY.slice(-4)}`
@@ -347,6 +491,56 @@ export async function GET() {
       recentBillingEvents: recentEventsResult.data || [],
       alerts,
       timestamp: now.toISOString(),
+
+      // === NEW: Revenue & Business Metrics ===
+      revenue: {
+        mrr: Math.round(mrr * 100) / 100,
+        arr: Math.round(mrr * 12 * 100) / 100,
+        stripeRevenue30d: Math.round(stripeRevenue30d * 100) / 100,
+        revenueByPlan,
+      },
+
+      // === NEW: Subscription Health ===
+      subscriptionHealth: {
+        active: activeCount,
+        trialing: trialCount,
+        canceled: canceledCount,
+        pastDue: pastDueCount,
+        expired: expiredCount,
+        churnRate,
+        trialConversionRate,
+      },
+
+      // === NEW: Bland Credit Economics ===
+      blandEconomics: {
+        burnRatePerDay: Math.round(burnRatePerDay * 100) / 100,
+        projectedRunwayDays,
+        blandCostThisMonth: Math.round(blandCostThisMonth * 100) / 100,
+        totalMinutesThisMonth,
+        avgCallDurationSec,
+        costPerMinute: blandAccountResult.costPerMinute,
+      },
+
+      // === NEW: Failed Calls Analysis ===
+      failedCalls: {
+        totalThisMonth: failedCalls.length,
+        byReason: Object.entries(failedByReason)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 10)
+          .map(([reason, count]) => ({ reason, count })),
+      },
+
+      // === NEW: Unit Economics Summary ===
+      unitEconomics: {
+        grossRevenue: Math.round(mrr * 100) / 100,
+        grossCost: Math.round(blandCostThisMonth * 100) / 100,
+        grossProfit: Math.round((mrr - blandCostThisMonth) * 100) / 100,
+        grossMarginPercent: mrr > 0 ? Math.round(((mrr - blandCostThisMonth) / mrr) * 1000) / 10 : 0,
+        arpc: activeCount > 0 ? Math.round((mrr / activeCount) * 100) / 100 : 0,
+        costPerCall: (callsThisMonthResult.count || 0) > 0
+          ? Math.round((blandCostThisMonth / (callsThisMonthResult.count || 1)) * 100) / 100
+          : 0,
+      },
     });
   } catch (error) {
     console.error('Error in command-center:', error);

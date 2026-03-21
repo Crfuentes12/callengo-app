@@ -120,9 +120,13 @@ export async function POST(request: NextRequest) {
         if (i > 0) {
           const throttleRecheck = await checkCallAllowed(company_id);
           if (!throttleRecheck.allowed) {
-            // Clean up pre-registered entry
-            if (preLog?.id) {
-              await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+            // Clean up pre-registered entry (non-fatal if delete fails)
+            try {
+              if (preLog?.id) {
+                await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+              }
+            } catch (cleanupErr) {
+              console.error('[dispatch] Failed to cleanup pre-log on throttle:', cleanupErr);
             }
             // Mark remaining contacts as throttled
             results.push({ contact_id: contact.contact_id, status: 'throttled', error: throttleRecheck.reason });
@@ -138,8 +142,12 @@ export async function POST(request: NextRequest) {
         // Acquire Redis call slot (checks contact cooldown + all limits)
         const slot = await acquireCallSlot(company_id, preCallId, contact.contact_id);
         if (!slot.acquired) {
-          if (preLog?.id) {
-            await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+          try {
+            if (preLog?.id) {
+              await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+            }
+          } catch (cleanupErr) {
+            console.error('[dispatch] Failed to cleanup pre-log on slot reject:', cleanupErr);
           }
           results.push({ contact_id: contact.contact_id, status: 'cooldown', error: slot.error || 'Call slot unavailable' });
           continue; // Skip this contact but try next

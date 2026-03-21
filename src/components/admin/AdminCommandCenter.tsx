@@ -28,6 +28,42 @@ interface CommandCenterData {
   recentBillingEvents: BillingEvent[];
   alerts: { level: string; message: string; time: string }[];
   timestamp: string;
+  // New: Revenue & Business Metrics
+  revenue?: {
+    mrr: number;
+    arr: number;
+    stripeRevenue30d: number;
+    revenueByPlan: Record<string, { count: number; mrr: number }>;
+  };
+  subscriptionHealth?: {
+    active: number;
+    trialing: number;
+    canceled: number;
+    pastDue: number;
+    expired: number;
+    churnRate: number;
+    trialConversionRate: number;
+  };
+  blandEconomics?: {
+    burnRatePerDay: number;
+    projectedRunwayDays: number | null;
+    blandCostThisMonth: number;
+    totalMinutesThisMonth: number;
+    avgCallDurationSec: number;
+    costPerMinute: number;
+  };
+  failedCalls?: {
+    totalThisMonth: number;
+    byReason: { reason: string; count: number }[];
+  };
+  unitEconomics?: {
+    grossRevenue: number;
+    grossCost: number;
+    grossProfit: number;
+    grossMarginPercent: number;
+    arpc: number;
+    costPerCall: number;
+  };
 }
 
 interface ClientData {
@@ -103,7 +139,7 @@ interface FinanceData {
   [key: string]: unknown;
 }
 
-type Tab = 'health' | 'clients' | 'events' | 'reconcile' | 'finances';
+type Tab = 'health' | 'operations' | 'clients' | 'events' | 'reconcile' | 'finances';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -161,8 +197,35 @@ export default function AdminCommandCenter() {
     try {
       const res = await fetch('/api/admin/command-center');
       if (res.ok) {
-        const data = await res.json();
-        setHealthData(data);
+        const raw = await res.json();
+        // Map nested API response to flat component interface
+        setHealthData({
+          blandBalance: raw.blandAccount?.balance ?? raw.blandBalance ?? 0,
+          blandBalanceError: raw.blandAccount?.error ?? raw.blandBalanceError,
+          blandApiKeyMasked: raw.blandAccount?.apiKeyMasked ?? raw.blandApiKeyMasked,
+          callsToday: raw.callsToday ?? 0,
+          callsThisHour: raw.callsThisHour ?? 0,
+          activeCalls: raw.activeCalls ?? 0,
+          callsThisMonth: raw.callsThisMonth ?? 0,
+          totalMinutesUsed: raw.totalMinutesUsed ?? 0,
+          totalMinutesIncluded: raw.totalMinutesIncluded ?? 0,
+          usagePercent: raw.usagePercent ?? 0,
+          activeCompanies: raw.activeCompanies ?? 0,
+          orphanedCompanies: raw.orphanedCompanies ?? 0,
+          archivedCompanies: raw.archivedCompanies ?? 0,
+          planDistribution: raw.planDistribution ?? {},
+          hourlyCallsChart: raw.hourlyCallsChart ?? [],
+          dailyCallsChart: raw.dailyCallsChart ?? [],
+          recentBillingEvents: raw.recentBillingEvents ?? [],
+          alerts: raw.alerts ?? [],
+          timestamp: raw.timestamp ?? new Date().toISOString(),
+          // New metrics
+          revenue: raw.revenue,
+          subscriptionHealth: raw.subscriptionHealth,
+          blandEconomics: raw.blandEconomics,
+          failedCalls: raw.failedCalls,
+          unitEconomics: raw.unitEconomics,
+        });
       }
     } catch (e) {
       console.error('Failed to fetch health data:', e);
@@ -329,6 +392,7 @@ export default function AdminCommandCenter() {
       <div className="flex gap-1 p-1 bg-[var(--color-neutral-100)] rounded-lg w-fit">
         {([
           { id: 'health' as Tab, label: t.admin.commandCenter?.tabHealth || 'Health Dashboard' },
+          { id: 'operations' as Tab, label: 'Operations' },
           { id: 'clients' as Tab, label: t.admin.commandCenter?.tabClients || 'Clients' },
           { id: 'events' as Tab, label: t.admin.commandCenter?.tabEvents || 'Billing Events' },
           { id: 'reconcile' as Tab, label: t.admin.commandCenter?.tabReconcile || 'Reconciliation' },
@@ -467,6 +531,229 @@ export default function AdminCommandCenter() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════
+          TAB: OPERATIONS — Revenue, Costs, Unit Economics, Health
+         ════════════════════════════════════════════════════════════════ */}
+      {tab === 'operations' && healthData && (
+        <div className="space-y-6">
+          {/* Row 1: Revenue KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <KPICard
+              label="MRR"
+              value={`$${fmt(healthData.revenue?.mrr || 0)}`}
+              color="emerald"
+              sub={`ARR: $${fmtInt(Math.round(healthData.revenue?.arr || 0))}`}
+            />
+            <KPICard
+              label="Stripe Rev (30d)"
+              value={`$${fmt(healthData.revenue?.stripeRevenue30d || 0)}`}
+              color="blue"
+              sub="Paid invoices"
+            />
+            <KPICard
+              label="Gross Profit"
+              value={`$${fmt(healthData.unitEconomics?.grossProfit || 0)}`}
+              color={((healthData.unitEconomics?.grossMarginPercent || 0) >= 50) ? 'emerald' : 'amber'}
+              sub={`${healthData.unitEconomics?.grossMarginPercent || 0}% margin`}
+            />
+            <KPICard
+              label="ARPC"
+              value={`$${fmt(healthData.unitEconomics?.arpc || 0)}`}
+              color="indigo"
+              sub="Avg Rev / Company"
+            />
+            <KPICard
+              label="Bland Cost/mo"
+              value={`$${fmt(healthData.blandEconomics?.blandCostThisMonth || 0)}`}
+              color="red"
+              sub={`$${healthData.blandEconomics?.costPerMinute || 0}/min`}
+            />
+            <KPICard
+              label="Cost / Call"
+              value={`$${fmt(healthData.unitEconomics?.costPerCall || 0)}`}
+              color="violet"
+              sub={`${fmtInt(healthData.blandEconomics?.totalMinutesThisMonth || 0)} min total`}
+            />
+          </div>
+
+          {/* Row 2: Subscription Health + Bland Economics */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Subscription Health */}
+            <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+              <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Subscription Health</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-2xl font-bold text-emerald-600">{healthData.subscriptionHealth?.active || 0}</div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Active</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-blue-600">{healthData.subscriptionHealth?.trialing || 0}</div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Trialing</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-amber-600">{healthData.subscriptionHealth?.pastDue || 0}</div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Past Due</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-red-600">{healthData.subscriptionHealth?.canceled || 0}</div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Canceled</div>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-[var(--border-default)] grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-lg font-bold text-[var(--color-ink)]">{healthData.subscriptionHealth?.trialConversionRate || 0}%</div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Trial Conversion Rate</div>
+                </div>
+                <div>
+                  <div className={`text-lg font-bold ${(healthData.subscriptionHealth?.churnRate || 0) > 5 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {healthData.subscriptionHealth?.churnRate || 0}%
+                  </div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Monthly Churn Rate</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bland Credit Economics */}
+            <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+              <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Bland Credit Economics</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className={`text-2xl font-bold ${(healthData.blandEconomics?.projectedRunwayDays ?? 999) < 7 ? 'text-red-600' : (healthData.blandEconomics?.projectedRunwayDays ?? 999) < 30 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    ${fmt(healthData.blandBalance)}
+                  </div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Current Balance</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-[var(--color-ink)]">
+                    ${fmt(healthData.blandEconomics?.burnRatePerDay || 0)}
+                  </div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Burn Rate / Day</div>
+                </div>
+                <div>
+                  <div className={`text-2xl font-bold ${(healthData.blandEconomics?.projectedRunwayDays ?? 999) < 7 ? 'text-red-600' : (healthData.blandEconomics?.projectedRunwayDays ?? 999) < 30 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    {healthData.blandEconomics?.projectedRunwayDays != null ? `${healthData.blandEconomics.projectedRunwayDays}d` : '--'}
+                  </div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Projected Runway</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-[var(--color-ink)]">
+                    {healthData.blandEconomics?.avgCallDurationSec ? `${Math.round(healthData.blandEconomics.avgCallDurationSec / 60 * 10) / 10}m` : '--'}
+                  </div>
+                  <div className="text-xs text-[var(--color-neutral-500)]">Avg Call Duration</div>
+                </div>
+              </div>
+              {/* Runway warning */}
+              {healthData.blandEconomics?.projectedRunwayDays != null && healthData.blandEconomics.projectedRunwayDays < 14 && (
+                <div className={`mt-4 p-3 rounded-lg text-sm font-medium ${
+                  healthData.blandEconomics.projectedRunwayDays < 7
+                    ? 'bg-red-50 text-red-800 border border-red-200'
+                    : 'bg-amber-50 text-amber-800 border border-amber-200'
+                }`}>
+                  {healthData.blandEconomics.projectedRunwayDays < 7
+                    ? `!! Critical: Bland credits will run out in ~${healthData.blandEconomics.projectedRunwayDays} days. Top up immediately.`
+                    : `! Warning: Bland credits projected to last ~${healthData.blandEconomics.projectedRunwayDays} days. Consider topping up.`
+                  }
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Row 3: Revenue by Plan + Failed Calls */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Revenue by Plan */}
+            <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+              <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">MRR by Plan</h3>
+              <div className="space-y-3">
+                {Object.entries(healthData.revenue?.revenueByPlan || {})
+                  .sort(([, a], [, b]) => b.mrr - a.mrr)
+                  .map(([slug, data]) => (
+                    <div key={slug} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${planColors[slug] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                          {slug.charAt(0).toUpperCase() + slug.slice(1)}
+                        </span>
+                        <span className="text-xs text-[var(--color-neutral-500)]">{data.count} companies</span>
+                      </div>
+                      <span className="text-sm font-bold text-[var(--color-ink)]">${fmt(data.mrr)}/mo</span>
+                    </div>
+                  ))}
+                {Object.keys(healthData.revenue?.revenueByPlan || {}).length === 0 && (
+                  <p className="text-sm text-[var(--color-neutral-400)]">No subscription data</p>
+                )}
+              </div>
+            </div>
+
+            {/* Failed Calls Analysis */}
+            <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+              <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">
+                Failed Calls This Month ({healthData.failedCalls?.totalThisMonth || 0})
+              </h3>
+              <div className="space-y-2">
+                {(healthData.failedCalls?.byReason || []).map((item, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <span className="text-xs text-[var(--color-neutral-600)] truncate max-w-[70%]">{item.reason}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 h-2 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-red-400 rounded-full"
+                          style={{ width: `${Math.min(100, (item.count / Math.max(1, healthData.failedCalls?.totalThisMonth || 1)) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-[var(--color-neutral-700)] w-8 text-right">{item.count}</span>
+                    </div>
+                  </div>
+                ))}
+                {(healthData.failedCalls?.byReason || []).length === 0 && (
+                  <p className="text-sm text-[var(--color-neutral-400)]">No failed calls this month</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Row 4: Unit Economics Summary Bar */}
+          <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+            <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Unit Economics — This Month</h3>
+            <div className="flex items-center gap-6">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-[var(--color-neutral-500)]">Revenue (MRR)</span>
+                  <span className="text-sm font-bold text-emerald-600">${fmt(healthData.unitEconomics?.grossRevenue || 0)}</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-[var(--color-neutral-500)]">Bland Cost</span>
+                  <span className="text-sm font-bold text-red-600">-${fmt(healthData.unitEconomics?.grossCost || 0)}</span>
+                </div>
+                <div className="border-t border-[var(--border-default)] pt-2 flex items-center justify-between">
+                  <span className="text-xs font-bold text-[var(--color-neutral-700)]">Gross Profit</span>
+                  <span className={`text-sm font-bold ${(healthData.unitEconomics?.grossProfit || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    ${fmt(healthData.unitEconomics?.grossProfit || 0)}
+                  </span>
+                </div>
+              </div>
+              {/* Margin gauge */}
+              <div className="flex flex-col items-center">
+                <div className="relative w-20 h-20">
+                  <svg viewBox="0 0 36 36" className="w-20 h-20 transform -rotate-90">
+                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--color-neutral-100)" strokeWidth="3" />
+                    <circle
+                      cx="18" cy="18" r="15.5" fill="none"
+                      stroke={(healthData.unitEconomics?.grossMarginPercent || 0) >= 50 ? '#10b981' : (healthData.unitEconomics?.grossMarginPercent || 0) >= 20 ? '#f59e0b' : '#ef4444'}
+                      strokeWidth="3"
+                      strokeDasharray={`${(healthData.unitEconomics?.grossMarginPercent || 0) * 0.974} 97.4`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-sm font-bold text-[var(--color-ink)]">{healthData.unitEconomics?.grossMarginPercent || 0}%</span>
+                  </div>
+                </div>
+                <span className="text-xs text-[var(--color-neutral-500)] mt-1">Margin</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
