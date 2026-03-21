@@ -11,6 +11,7 @@ import {
 interface CommandCenterData {
   blandBalance: number;
   blandBalanceError?: string;
+  blandApiKeyMasked?: string | null;
   callsToday: number;
   callsThisHour: number;
   activeCalls: number;
@@ -19,6 +20,8 @@ interface CommandCenterData {
   totalMinutesIncluded: number;
   usagePercent: number;
   activeCompanies: number;
+  orphanedCompanies: number;
+  archivedCompanies: number;
   planDistribution: Record<string, number>;
   hourlyCallsChart: { hour: string; calls: number }[];
   dailyCallsChart: { date: string; calls: number }[];
@@ -346,13 +349,21 @@ export default function AdminCommandCenter() {
               label="Bland AI Balance"
               value={`$${fmt(healthData.blandBalance)}`}
               color={healthData.blandBalanceError ? 'amber' : healthData.blandBalance < 1 ? 'red' : healthData.blandBalance < 5 ? 'amber' : 'emerald'}
-              sub={healthData.blandBalanceError ? 'API error' : 'Auto-recharge enabled'}
+              sub={healthData.blandBalanceError ? 'API error' : healthData.blandApiKeyMasked || 'Auto-recharge enabled'}
             />
             <KPICard label="Active Calls" value={String(healthData.activeCalls)} color="blue" sub="Right now" />
             <KPICard label="Calls / Hour" value={fmtInt(healthData.callsThisHour)} color="indigo" sub="Last 60 min" />
             <KPICard label="Calls Today" value={fmtInt(healthData.callsToday)} color="violet" sub="Since midnight" />
             <KPICard label="Calls This Month" value={fmtInt(healthData.callsThisMonth)} color="purple" sub={`${fmtInt(healthData.totalMinutesUsed)} min used`} />
             <KPICard label="Companies" value={String(healthData.activeCompanies)} color="fuchsia" sub="Active subs" />
+            {(healthData.orphanedCompanies > 0 || healthData.archivedCompanies > 0) && (
+              <KPICard
+                label="Inactive"
+                value={String(healthData.orphanedCompanies + healthData.archivedCompanies)}
+                color={healthData.orphanedCompanies > 0 ? 'amber' : 'slate'}
+                sub={`${healthData.orphanedCompanies} orphaned · ${healthData.archivedCompanies} archived`}
+              />
+            )}
           </div>
 
           {/* Usage Gauge */}
@@ -485,7 +496,7 @@ export default function AdminCommandCenter() {
             >
               {cleaningUp ? 'Cleaning...' : 'Cleanup Orphans'}
             </button>
-            <span className="text-xs text-[var(--color-neutral-400)]">{sortedClients.length} companies</span>
+            <span className="text-xs text-[var(--color-neutral-400)]">{sortedClients.length} {sortedClients.length === 1 ? 'company' : 'companies'}</span>
           </div>
 
           {/* Clients Table */}
@@ -788,15 +799,13 @@ export default function AdminCommandCenter() {
             </select>
           </div>
 
-          {financeData ? (
-            <>
-              {/* Key Metrics */}
-              {(() => {
-                const addonRevenue = (financeData.addon_revenue as number) || 0;
-                const totalRevenue = (financeData.revenue_total || 0) + addonRevenue;
-                const blandInfrastructureCost = (financeData.bland_infrastructure_cost as number) || 0;
-                const activeSubaccounts = (financeData.active_subaccounts as number) || 0;
-                const marginColor = (p: number | null) => !p ? 'text-[var(--color-neutral-600)]' : p >= 50 ? 'text-emerald-600' : p >= 35 ? 'text-amber-600' : 'text-red-600';
+          {(() => {
+              const fd = financeData || {} as FinanceData;
+              const addonRevenue = (fd.addon_revenue as number) || 0;
+              const totalRevenue = (fd.revenue_total || 0) + addonRevenue;
+              const blandInfrastructureCost = (fd.bland_infrastructure_cost as number) || 0;
+              const activeSubaccounts = (fd.active_subaccounts as number) || 0;
+              const marginColor = (p: number | null) => !p ? 'text-[var(--color-neutral-600)]' : p >= 50 ? 'text-emerald-600' : p >= 35 ? 'text-amber-600' : 'text-red-600';
 
                 return (
                   <>
@@ -805,33 +814,33 @@ export default function AdminCommandCenter() {
                         <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Total Revenue</p>
                         <p className="text-2xl font-bold text-emerald-900">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                         <div className="mt-2 space-y-0.5 text-xs text-emerald-700">
-                          <div className="flex justify-between"><span>Subscriptions</span><span>${financeData.revenue_subscriptions?.toLocaleString() || 0}</span></div>
-                          <div className="flex justify-between"><span>Overages</span><span>${financeData.revenue_overages?.toLocaleString() || 0}</span></div>
+                          <div className="flex justify-between"><span>Subscriptions</span><span>${fd.revenue_subscriptions?.toLocaleString() || 0}</span></div>
+                          <div className="flex justify-between"><span>Overages</span><span>${fd.revenue_overages?.toLocaleString() || 0}</span></div>
                           {addonRevenue > 0 && <div className="flex justify-between font-semibold"><span>Add-ons</span><span>${addonRevenue.toLocaleString()}</span></div>}
                         </div>
                       </div>
 
                       <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-5">
                         <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-1">Total Costs</p>
-                        <p className="text-2xl font-bold text-red-900">${financeData.cost_total?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}</p>
+                        <p className="text-2xl font-bold text-red-900">${fd.cost_total?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}</p>
                         <div className="mt-2 space-y-0.5 text-xs text-red-700">
-                          <div className="flex justify-between"><span>Bland per-min</span><span>${financeData.cost_bland?.toLocaleString() || 0}</span></div>
+                          <div className="flex justify-between"><span>Bland per-min</span><span>${fd.cost_bland?.toLocaleString() || 0}</span></div>
                           {blandInfrastructureCost > 0 && <div className="flex justify-between"><span>Bland infra</span><span>${blandInfrastructureCost.toLocaleString()}</span></div>}
-                          <div className="flex justify-between"><span>Other</span><span>${((financeData.cost_openai || 0) + (financeData.cost_supabase || 0)).toLocaleString()}</span></div>
+                          <div className="flex justify-between"><span>Other</span><span>${((fd.cost_openai || 0) + (fd.cost_supabase || 0)).toLocaleString()}</span></div>
                         </div>
                       </div>
 
                       <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5">
                         <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Gross Margin</p>
-                        <p className="text-2xl font-bold text-[var(--color-ink)]">${financeData.gross_margin?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}</p>
-                        <p className={`mt-2 text-xl font-bold ${marginColor(financeData.gross_margin_percent)}`}>{financeData.gross_margin_percent?.toFixed(1) || '0.0'}%</p>
+                        <p className="text-2xl font-bold text-[var(--color-ink)]">${fd.gross_margin?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}</p>
+                        <p className={`mt-2 text-xl font-bold ${marginColor(fd.gross_margin_percent)}`}>{fd.gross_margin_percent?.toFixed(1) || '0.0'}%</p>
                         <p className="text-xs text-[var(--color-neutral-500)]">Target: 55-67%</p>
                       </div>
 
                       <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-xl p-5">
                         <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Companies</p>
-                        <p className="text-2xl font-bold text-[var(--color-ink)]">{financeData.total_companies_active || 0}</p>
-                        <p className="mt-2 text-sm text-violet-700">${financeData.avg_revenue_per_company?.toFixed(2) || '0.00'} ARPC</p>
+                        <p className="text-2xl font-bold text-[var(--color-ink)]">{fd.total_companies_active || 0}</p>
+                        <p className="mt-2 text-sm text-violet-700">${fd.avg_revenue_per_company?.toFixed(2) || '0.00'} ARPC</p>
                         {activeSubaccounts > 0 && <p className="text-xs text-[var(--color-neutral-500)]">{activeSubaccounts} Bland sub-accounts</p>}
                       </div>
                     </div>
@@ -840,19 +849,19 @@ export default function AdminCommandCenter() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
                         <p className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Total Calls</p>
-                        <p className="text-3xl font-bold text-[var(--color-ink)]">{financeData.total_calls_made?.toLocaleString() || 0}</p>
-                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">{financeData.total_minutes_used?.toLocaleString() || 0} minutes used</p>
-                        <p className="text-xs text-[var(--color-neutral-500)] mt-1">Avg: {financeData.avg_minutes_per_call?.toFixed(2) || '0.00'} min/call (target: ~1.5)</p>
+                        <p className="text-3xl font-bold text-[var(--color-ink)]">{fd.total_calls_made?.toLocaleString() || 0}</p>
+                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">{fd.total_minutes_used?.toLocaleString() || 0} minutes used</p>
+                        <p className="text-xs text-[var(--color-neutral-500)] mt-1">Avg: {fd.avg_minutes_per_call?.toFixed(2) || '0.00'} min/call (target: ~1.5)</p>
                       </div>
                       <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
                         <p className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Overage Revenue</p>
-                        <p className="text-3xl font-bold text-[var(--color-ink)]">${financeData.revenue_overages?.toLocaleString() || '0'}</p>
-                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">{financeData.overage_revenue_percent?.toFixed(1) || '0.0'}% of subscription revenue</p>
+                        <p className="text-3xl font-bold text-[var(--color-ink)]">${fd.revenue_overages?.toLocaleString() || '0'}</p>
+                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">{fd.overage_revenue_percent?.toFixed(1) || '0.0'}% of subscription revenue</p>
                       </div>
                       <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
                         <p className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Active Users</p>
-                        <p className="text-3xl font-bold text-[var(--color-ink)]">{financeData.total_users_active || 0}</p>
-                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">across {financeData.total_companies_active || 0} companies</p>
+                        <p className="text-3xl font-bold text-[var(--color-ink)]">{fd.total_users_active || 0}</p>
+                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">across {fd.total_companies_active || 0} companies</p>
                       </div>
                     </div>
 
@@ -862,13 +871,13 @@ export default function AdminCommandCenter() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
                           <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Parent Plan</p>
-                          <p className="text-lg font-bold text-[var(--color-ink)]">{financeData.bland_plan || 'Scale'}</p>
-                          <p className="text-xs text-[var(--color-neutral-600)]">${financeData.bland_plan_cost || 0}/mo</p>
+                          <p className="text-lg font-bold text-[var(--color-ink)]">{fd.bland_plan || 'Scale'}</p>
+                          <p className="text-xs text-[var(--color-neutral-600)]">${fd.bland_plan_cost || 0}/mo</p>
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
                           <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Per-Min Rate</p>
-                          <p className="text-lg font-bold text-[var(--color-ink)]">${financeData.bland_talk_rate?.toFixed(4) || '0.1100'}/min</p>
-                          <p className="text-xs text-[var(--color-neutral-600)]">Transfer: ${financeData.bland_transfer_rate?.toFixed(4) || '0.0000'}/min</p>
+                          <p className="text-lg font-bold text-[var(--color-ink)]">${fd.bland_talk_rate?.toFixed(4) || '0.1100'}/min</p>
+                          <p className="text-xs text-[var(--color-neutral-600)]">Transfer: ${fd.bland_transfer_rate?.toFixed(4) || '0.0000'}/min</p>
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
                           <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Sub-accounts</p>
@@ -877,8 +886,8 @@ export default function AdminCommandCenter() {
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
                           <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Parent Limits</p>
-                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{financeData.bland_concurrent_limit || '\u221E'}</strong> concurrent</p>
-                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{financeData.bland_daily_limit || '\u221E'}</strong> per day</p>
+                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{fd.bland_concurrent_limit || '\u221E'}</strong> concurrent</p>
+                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{fd.bland_daily_limit || '\u221E'}</strong> per day</p>
                         </div>
                       </div>
                     </div>
@@ -923,18 +932,14 @@ export default function AdminCommandCenter() {
                       <p className="text-xs text-[var(--color-neutral-500)] mt-2">* Bland cost @ $0.11/min (Scale plan). Effective avg: 1.5 min/call attempt.</p>
                     </div>
 
-                    {financeData.notes && (
+                    {fd.notes && (
                       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-                        <strong>Notes:</strong> {financeData.notes}
+                        <strong>Notes:</strong> {fd.notes}
                       </div>
                     )}
                   </>
                 );
               })()}
-            </>
-          ) : (
-            <div className="text-center py-12 text-[var(--color-neutral-400)]">No financial data available</div>
-          )}
         </div>
       )}
     </div>
@@ -953,6 +958,7 @@ function KPICard({ label, value, color, sub }: { label: string; value: string; c
     purple: 'from-purple-50 to-purple-100 border-purple-200',
     fuchsia: 'from-fuchsia-50 to-fuchsia-100 border-fuchsia-200',
     orange: 'from-orange-50 to-orange-100 border-orange-200',
+    slate: 'from-slate-50 to-slate-100 border-slate-200',
   };
   return (
     <div className={`bg-gradient-to-br ${colorMap[color] || colorMap.blue} border rounded-xl p-4`}>
