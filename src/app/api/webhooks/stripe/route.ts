@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase/service';
+import { supabaseAdmin as supabase, supabaseAdminRaw } from '@/lib/supabase/service';
 import { verifyWebhookSignature, stripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { trackServerEvent } from '@/lib/analytics';
@@ -147,7 +147,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     console.log(`📦 Add-on checkout completed: ${addonType} x${addonQuantity} for company ${companyId}`);
 
     try {
-      await supabase.from('company_addons').insert({
+      await supabaseAdminRaw.from('company_addons').insert({
         company_id: companyId,
         addon_type: addonType,
         quantity: addonQuantity,
@@ -166,14 +166,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     console.log(`💺 Seat checkout completed: ${seatQuantity} seats for company ${companyId}`);
 
     try {
-      await supabase
-        .from('company_subscriptions')
-        .update({
-          extra_users: supabase.rpc ? seatQuantity : seatQuantity, // Increment handled below
-        })
-        .eq('company_id', companyId);
-
-      // Actually increment: fetch current value and add
+      // Fetch current seat count and increment
       const { data: currentSub } = await supabase
         .from('company_subscriptions')
         .select('extra_users')
