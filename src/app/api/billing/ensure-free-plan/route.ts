@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create usage tracking record using admin client
-    await supabaseAdmin.from('usage_tracking').insert({
+    const { error: usageError } = await supabaseAdmin.from('usage_tracking').insert({
       company_id,
       subscription_id: newSub.id,
       period_start: now.toISOString(),
@@ -145,6 +145,10 @@ export async function POST(req: NextRequest) {
       minutes_used: 0,
       minutes_included: freePlan.minutes_included,
     });
+
+    if (usageError) {
+      console.error('[ensure-free-plan] Failed to create usage tracking:', usageError);
+    }
 
     // Create Bland sub-account and allocate credits ONLY if email is verified.
     // This prevents spam signups from draining the Bland master balance.

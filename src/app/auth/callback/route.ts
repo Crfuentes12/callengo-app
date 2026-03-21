@@ -144,15 +144,11 @@ export async function GET(request: NextRequest) {
         }
 
         // Sync new user to HubSpot (fire-and-forget, never blocks signup)
-        try {
-          await syncUserToHubSpot({
-            email: user.email!,
-            fullName: user.user_metadata?.full_name || user.user_metadata?.name,
-            userId: user.id,
-          });
-        } catch (e) {
-          console.error('[Auth Callback] HubSpot sync failed:', e);
-        }
+        void syncUserToHubSpot({
+          email: user.email || '',
+          fullName: user.user_metadata?.full_name || user.user_metadata?.name,
+          userId: user.id,
+        }).catch(e => console.error('[Auth Callback] HubSpot sync failed:', e));
 
         // New user without invite - redirect to onboarding
         return NextResponse.redirect(`${origin}/onboarding`);

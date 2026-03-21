@@ -34,6 +34,7 @@ export default function OnboardingPage() {
   const { t } = useLanguage();
   const supabase = createClient();
   const onboardingStartedRef = useRef(false);
+  const setupInProgressRef = useRef(false);
 
   const [step, setStep] = useState<OnboardingStep>('form');
   const [progress, setProgress] = useState(0);
@@ -79,6 +80,7 @@ export default function OnboardingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (setupInProgressRef.current) return; // Prevent double-submit
     setError('');
 
     if (!formData.companyName) {
@@ -86,6 +88,7 @@ export default function OnboardingPage() {
       return;
     }
 
+    setupInProgressRef.current = true;
     onboardingStartedRef.current = true;
     onboardingEvents.started();
     phOnboardingEvents.started();
