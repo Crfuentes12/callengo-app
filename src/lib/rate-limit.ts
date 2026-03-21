@@ -1,4 +1,11 @@
 // lib/rate-limit.ts — In-memory rate limiter using LRU cache
+//
+// ⚠️ LIMITATION: This rate limiter is IN-MEMORY and resets on every serverless cold start.
+// On Vercel, each function instance has its own LRU cache, so limits are per-instance,
+// not global. This provides best-effort protection but is NOT a hard guarantee.
+// For strict rate limiting (e.g., preventing billing abuse), use an external store
+// like Upstash Redis (@upstash/ratelimit) or Vercel KV.
+//
 import { LRUCache } from 'lru-cache';
 
 interface RateLimitResult {

@@ -108,7 +108,7 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
   if (dailyCalls >= dailyCap) {
     return {
       allowed: false,
-      reason: `Daily call limit reached (${dailyCap} calls/day on ${subscription.subscription_plans.name}). Remaining calls will be queued for tomorrow.${nextPlan ? ` Upgrade to ${nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1)} for higher daily limits.` : ''}`,
+      reason: `Daily call limit reached (${dailyCap} calls/day on ${subscription.subscription_plans.name}). Please try again tomorrow.${nextPlan ? ` Upgrade to ${nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1)} for higher daily limits.` : ''}`,
       reasonCode: 'daily_cap',
       dailyCallsToday: dailyCalls,
       dailyCap,

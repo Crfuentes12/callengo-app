@@ -69,6 +69,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Only the owner can remove admin members' }, { status: 403 });
     }
 
+    // Guard: don't allow removal if it would leave the company with 0 members
+    // (Owner can never be removed, but this protects against edge cases)
+    const { count: memberCount } = await supabaseAdmin
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', currentUserData.company_id);
+
+    if ((memberCount || 0) <= 1) {
+      return NextResponse.json(
+        { error: 'Cannot remove the last member of the company' },
+        { status: 400 }
+      );
+    }
+
     // Remove the user from the company by setting company_id to null
     // and resetting their role (use untyped client because typed client doesn't allow null for company_id)
     const { error: updateError } = await supabaseAdminRaw

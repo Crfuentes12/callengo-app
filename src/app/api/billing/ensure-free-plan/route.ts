@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     // Create the subscription using admin client (bypasses RLS)
     const now = new Date();
     const periodEnd = new Date();
-    periodEnd.setFullYear(periodEnd.getFullYear() + 10);
+    periodEnd.setDate(periodEnd.getDate() + 90); // 90-day free trial
 
     const { data: newSub, error: subError } = await supabaseAdmin
       .from('company_subscriptions')

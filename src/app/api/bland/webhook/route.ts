@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
       completed: completed || false,
     }, { company: companyId });
 
-    // Lock the contact during processing to prevent user edits
+    // Lock the contact during processing to prevent user edits (5-min TTL)
     if (contactId) {
       const { data: lockContact } = await supabaseAdmin
         .from('contacts')
@@ -182,6 +182,19 @@ export async function POST(request: NextRequest) {
         .eq('id', contactId)
         .single();
       const lockCf = (lockContact?.custom_fields as Record<string, unknown>) || {};
+
+      // Auto-clear stale locks older than 5 minutes (crash recovery)
+      if (lockCf._locked && lockCf._locked_at) {
+        const lockAge = Date.now() - new Date(lockCf._locked_at as string).getTime();
+        if (lockAge > 5 * 60 * 1000) {
+          console.warn(`[webhook] Stale lock detected on contact ${contactId} (${Math.round(lockAge / 1000)}s old), clearing`);
+          const { _locked, _locked_at, _locked_by, _lock_call_id, ...staleCleared } = lockCf;
+          lockCf._locked = undefined;
+          Object.assign(lockCf, staleCleared);
+        }
+      }
+
+      const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5-min TTL
       await supabaseAdmin
         .from('contacts')
         .update({
@@ -189,6 +202,7 @@ export async function POST(request: NextRequest) {
             ...lockCf,
             _locked: true,
             _locked_at: new Date().toISOString(),
+            _lock_expires_at: lockExpiry,
             _locked_by: 'webhook_processing',
             _lock_call_id: call_id,
           })),
@@ -885,7 +899,7 @@ export async function POST(request: NextRequest) {
           .single();
         const unlockCf = (unlockContact?.custom_fields as Record<string, unknown>) || {};
         // Remove lock fields
-        const { _locked, _locked_at, _locked_by, _lock_call_id, ...restFields } = unlockCf;
+        const { _locked, _locked_at, _locked_by, _lock_call_id, _lock_expires_at, ...restFields } = unlockCf;
         await supabaseAdmin
           .from('contacts')
           .update({ custom_fields: JSON.parse(JSON.stringify(restFields)) })

@@ -290,7 +290,7 @@ async function ensureAdminCompanySetup(companyId: string) {
       if (freePlan) {
         const now = new Date();
         const periodEnd = new Date();
-        periodEnd.setFullYear(periodEnd.getFullYear() + 10);
+        periodEnd.setDate(periodEnd.getDate() + 90); // 90-day free trial
 
         const { data: newSub } = await supabaseAdmin
           .from('company_subscriptions')

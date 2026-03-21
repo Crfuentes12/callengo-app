@@ -102,85 +102,43 @@ export default function OnboardingPage() {
         return;
       }
 
-      const fullName = user.user_metadata?.full_name || '';
+      // 1. Bootstrap company + user via API (uses admin client to bypass RLS)
+      setStep('creating_company');
+      setProgress(30);
 
-      // 1. Check if user already has a company (prevent duplicates)
-      const { data: existingUserRecord } = await supabase
-        .from('users')
-        .select('company_id')
-        .eq('id', user.id)
-        .maybeSingle();
+      const bootstrapRes = await fetch('/api/company/bootstrap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: formData.companyName,
+          companyWebsite: formData.companyWebsite || null,
+        }),
+      });
 
-      if (existingUserRecord?.company_id) {
+      const bootstrapData = await bootstrapRes.json();
+
+      if (!bootstrapRes.ok) {
+        throw new Error(bootstrapData.error || 'Failed to create company');
+      }
+
+      if (bootstrapData.status === 'already_exists') {
         router.push('/home');
         return;
       }
 
-      // 2. Create company
-      setStep('creating_company');
-      setProgress(30);
+      const createdCompanyId = bootstrapData.company_id;
+      setCompanyId(createdCompanyId);
 
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name: formData.companyName,
-          website: formData.companyWebsite || null,
-        })
-        .select()
-        .single();
-
-      if (companyError) {
-        console.error('Company creation error:', companyError);
-        throw new Error(`Failed to create company: ${companyError.message}`);
-      }
-
-      setCompanyId(companyData.id);
-
-      setProgress(50);
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 3. Create user record
       setStep('setting_up_account');
-      setProgress(60);
-
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: user.id,
-          company_id: companyData.id,
-          email: user.email!,
-          full_name: fullName,
-          role: 'owner',
-        });
-
-      if (userError) {
-        console.error('User record creation error:', userError);
-        throw new Error(`Failed to create user record: ${userError.message}`);
-      }
-
       setProgress(70);
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 4. Create company settings
-      const { error: settingsError } = await supabase
-        .from('company_settings')
-        .insert({
-          company_id: companyData.id,
-        });
-
-      if (settingsError) {
-        console.error('Settings creation error:', settingsError);
-      }
-
-      setProgress(75);
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 5. Assign Free plan to new user
+      // 2. Assign Free plan to new user
       try {
         const planRes = await fetch('/api/billing/ensure-free-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ company_id: companyData.id }),
+          body: JSON.stringify({ company_id: createdCompanyId }),
         });
         if (!planRes.ok) {
           console.error('Failed to assign free plan:', await planRes.text());
@@ -202,7 +160,7 @@ export default function OnboardingPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              company_id: companyData.id,
+              company_id: createdCompanyId,
               website: formData.companyWebsite,
               auto_save: true,
             }),
