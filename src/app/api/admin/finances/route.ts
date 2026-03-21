@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       // Override with actual values from Bland master account / config
       bland_talk_rate: BLAND_COST_PER_MINUTE,
       bland_transfer_rate: blandMasterInfo.transferRate,
-      bland_plan: blandMasterInfo.plan || f.bland_plan || 'Scale',
+      bland_plan: blandMasterInfo.plan || f.bland_plan || null,
       bland_plan_cost: blandMasterInfo.planCost ?? f.bland_plan_cost ?? 0,
       bland_concurrent_limit: blandMasterInfo.concurrentLimit || f.bland_concurrent_limit || '∞',
       bland_daily_limit: blandMasterInfo.dailyLimit || f.bland_daily_limit || '∞',
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       enrichedFinances.push({
         bland_talk_rate: BLAND_COST_PER_MINUTE,
         bland_transfer_rate: blandMasterInfo.transferRate,
-        bland_plan: blandMasterInfo.plan || 'Scale',
+        bland_plan: blandMasterInfo.plan || null,
         bland_plan_cost: blandMasterInfo.planCost ?? 0,
         bland_concurrent_limit: blandMasterInfo.concurrentLimit || '∞',
         bland_daily_limit: blandMasterInfo.dailyLimit || '∞',
@@ -198,7 +198,7 @@ async function fetchBlandMasterAccountInfo(): Promise<BlandMasterInfo> {
           dailyLimit: dailyLimit ? String(dailyLimit) : null,
           transferRate: typeof transferRate === 'number' ? transferRate : 0,
           subscription: {
-            plan: plan ? String(plan) : 'Scale',
+            plan: plan ? String(plan) : 'Unknown',
             status: 'active',
             perMinRate: typeof talkRate === 'number' ? talkRate : BLAND_COST_PER_MINUTE,
             transferRate: typeof transferRate === 'number' ? transferRate : 0,

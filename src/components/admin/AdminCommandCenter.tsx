@@ -884,7 +884,7 @@ export default function AdminCommandCenter() {
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
                           <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Master Plan</p>
-                          <p className="text-lg font-bold text-[var(--color-ink)]">{fd.bland_plan || 'Scale'}</p>
+                          <p className="text-lg font-bold text-[var(--color-ink)]">{fd.bland_plan || 'Unknown'}</p>
                           <p className="text-xs text-[var(--color-neutral-600)]">${fd.bland_plan_cost || 0}/mo</p>
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
@@ -974,7 +974,7 @@ export default function AdminCommandCenter() {
                             </table>
                           </div>
                           <p className="text-xs text-[var(--color-neutral-500)] mt-2">
-                            * Bland cost @ ${rate.toFixed(2)}/min ({fd.bland_plan || 'Scale'} plan). Credits include 5% buffer. Effective avg: 1.5 min/call attempt.
+                            * Bland cost @ ${rate.toFixed(2)}/min ({fd.bland_plan || 'Unknown'} plan). Credits include 5% buffer. Effective avg: 1.5 min/call attempt.
                           </p>
                         </div>
                       );
