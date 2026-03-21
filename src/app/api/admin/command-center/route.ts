@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
-import { createBlandSubAccount, allocateBlandCredits } from '@/lib/bland/subaccount-manager';
+import { createBlandSubAccount, allocateBlandCredits, calculateCreditAmount } from '@/lib/bland/subaccount-manager';
 
 const BLAND_API_URL = 'https://api.bland.ai/v1';
 const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
@@ -347,27 +347,16 @@ async function ensureAdminCompanySetup(companyId: string) {
 
       const minutes = (sub?.subscription_plans as { minutes_included?: number } | null)?.minutes_included || 15;
 
-      try {
-        await createBlandSubAccount(companyId, company?.name || 'Callengo Admin');
+      await createBlandSubAccount(companyId, company?.name || 'Callengo Admin');
+      // Note: createBlandSubAccount transfers MIN_INITIAL_BALANCE ($10) on creation.
+      // Only allocate additional credits if plan includes more minutes.
+      const creditAmount = calculateCreditAmount(minutes);
+      if (creditAmount > 10) {
+        // The sub-account was created with $10 initial balance,
+        // allocate the remainder if the plan requires more
         await allocateBlandCredits(companyId, minutes);
-        console.log(`[admin-setup] Bland sub-account + credits allocated for admin company ${companyId}`);
-      } catch (blandError) {
-        // Sub-account creation may fail (e.g., BYOT_INSERT_FAILED on certain Bland plans).
-        // Fallback: assign the master API key directly so admin can still use Bland.
-        console.warn(`[admin-setup] Sub-account creation failed, assigning master key as fallback:`, blandError);
-
-        if (BLAND_MASTER_KEY) {
-          await supabaseAdmin
-            .from('company_settings')
-            .update({
-              bland_api_key: BLAND_MASTER_KEY,
-              bland_subaccount_id: 'master',
-            })
-            .eq('company_id', companyId);
-
-          console.log(`[admin-setup] Assigned master Bland API key to admin company ${companyId}`);
-        }
       }
+      console.log(`[admin-setup] Bland sub-account + credits allocated for admin company ${companyId}`);
     }
   } catch (error) {
     // Non-fatal — don't block Command Center loading

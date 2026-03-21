@@ -7,6 +7,8 @@
  * - This module redistributes credits WITHIN Bland (master → sub-accounts).
  * - Stripe only handles customer payments. No money flows from Stripe to Bland.
  * - When a Stripe webhook confirms payment, we redistribute Bland credits internally.
+ *
+ * IMPORTANT: Uses /v1/subaccounts endpoints (NOT /v1/accounts which is for Twilio BYOP).
  */
 
 import { supabaseAdmin } from '@/lib/supabase/service';
@@ -21,6 +23,9 @@ const BLAND_COST_PER_MINUTE = Number(process.env.BLAND_COST_PER_MINUTE || '0.11'
 // Buffer percentage for credit allocation (5% extra to absorb rounding)
 const CREDIT_BUFFER_PERCENT = 0.05;
 
+// Minimum initial balance required by Bland API for sub-account creation
+const MIN_INITIAL_BALANCE = 10;
+
 interface SubAccountCreateResult {
   subAccountId: string;
   apiKey: string;
@@ -33,6 +38,7 @@ interface CreditAllocationResult {
 
 /**
  * Create a Bland AI sub-account for a company.
+ * Uses POST /v1/subaccounts (NOT /v1/accounts which is Twilio BYOP).
  * Should be called AFTER Stripe confirms payment (webhook: checkout.session.completed).
  */
 export async function createBlandSubAccount(
@@ -55,15 +61,22 @@ export async function createBlandSubAccount(
   }
 
   try {
-    const response = await fetch(`${BLAND_API_URL}/accounts`, {
+    // Split company name into first/last for Bland API requirement
+    const nameParts = companyName.trim().split(/\s+/);
+    const firstName = nameParts[0] || 'Company';
+    const lastName = nameParts.slice(1).join(' ') || companyId.substring(0, 8);
+
+    const response = await fetch(`${BLAND_API_URL}/subaccounts`, {
       method: 'POST',
       headers: {
         'Authorization': BLAND_MASTER_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: companyName,
-        // Bland sub-accounts inherit the parent's per-minute rate
+        first_name: firstName,
+        last_name: lastName,
+        balance: MIN_INITIAL_BALANCE,
+        login_enabled: false,
       }),
     });
 
@@ -73,8 +86,9 @@ export async function createBlandSubAccount(
     }
 
     const data = await response.json();
-    const subAccountId = data.account_id || data.id;
-    const apiKey = data.api_key || data.key;
+    // Bland API returns subaccount_id and subaccount_key
+    const subAccountId = data.subaccount_id || data.account_id || data.id;
+    const apiKey = data.subaccount_key || data.api_key || data.key;
 
     if (!subAccountId || !apiKey) {
       throw new Error(`Bland API returned incomplete sub-account data: ${JSON.stringify(data)}`);
@@ -137,7 +151,7 @@ export async function allocateBlandCredits(
 
   try {
     const response = await fetch(
-      `${BLAND_API_URL}/accounts/${settings.bland_subaccount_id}/credits/add`,
+      `${BLAND_API_URL}/subaccounts/${settings.bland_subaccount_id}/credits/add`,
       {
         method: 'POST',
         headers: {
@@ -194,7 +208,7 @@ export async function getBlandCreditBalance(companyId: string): Promise<number> 
 
   try {
     const response = await fetch(
-      `${BLAND_API_URL}/accounts/${settings.bland_subaccount_id}`,
+      `${BLAND_API_URL}/subaccounts/${settings.bland_subaccount_id}`,
       {
         method: 'GET',
         headers: { 'Authorization': BLAND_MASTER_KEY },
@@ -236,7 +250,7 @@ export async function reclaimBlandCredits(companyId: string): Promise<number> {
 
     // Reclaim credits back to master account
     const response = await fetch(
-      `${BLAND_API_URL}/accounts/${settings.bland_subaccount_id}/credits/remove`,
+      `${BLAND_API_URL}/subaccounts/${settings.bland_subaccount_id}/credits/remove`,
       {
         method: 'POST',
         headers: {
@@ -291,8 +305,7 @@ export async function deactivateBlandSubAccount(companyId: string): Promise<void
   if (!settings?.bland_subaccount_id) return;
 
   try {
-    // Bland doesn't have a "deactivate" endpoint — we zero out credits
-    // and mark the sub-account as inactive in our DB
+    // Zero out credits and mark the sub-account as inactive in our DB
     await supabaseAdmin
       .from('company_settings')
       .update({
