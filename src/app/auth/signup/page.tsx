@@ -1,13 +1,16 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Script from 'next/script';
 import { useAuth } from '@/contexts/AuthContext';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import { useTranslation } from '@/i18n';
 import { authEvents } from '@/lib/analytics';
 import { phAuthEvents } from '@/lib/posthog';
+
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
 const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
   if (!password) return { score: 0, label: '', color: '' };
@@ -34,9 +37,21 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '', fullName: '' });
+  const [recaptchaReady, setRecaptchaReady] = useState(!RECAPTCHA_SITE_KEY); // true if no key (dev mode)
 
   const strength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
   const passwordsMatch = formData.confirmPassword.length === 0 || formData.password === formData.confirmPassword;
+
+  const onRecaptchaLoad = useCallback(() => {
+    setRecaptchaReady(true);
+  }, []);
+
+  // Ensure recaptchaReady is set if grecaptcha is already loaded (e.g., cached script)
+  useEffect(() => {
+    if (RECAPTCHA_SITE_KEY && typeof window !== 'undefined' && window.grecaptcha) {
+      setRecaptchaReady(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +61,21 @@ export default function SignupPage() {
     if (formData.password !== formData.confirmPassword) { setError(t.auth.signup.errorPasswordMismatch || 'Passwords do not match'); return; }
     setLoading(true);
     try {
+      // reCAPTCHA v3 verification (invisible — no user interaction)
+      if (RECAPTCHA_SITE_KEY && window.grecaptcha) {
+        const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'signup' });
+        const verifyRes = await fetch('/api/auth/verify-recaptcha', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+
+        if (!verifyRes.ok) {
+          const verifyData = await verifyRes.json();
+          throw new Error(verifyData.error || 'reCAPTCHA verification failed');
+        }
+      }
+
       const { error: signUpError } = await signUp(formData.email, formData.password, formData.fullName);
       if (signUpError) throw signUpError;
       authEvents.signUp('email');
@@ -58,6 +88,15 @@ export default function SignupPage() {
 
   return (
     <div className="animate-fade-in">
+      {/* reCAPTCHA v3 — invisible, no UI */}
+      {RECAPTCHA_SITE_KEY && (
+        <Script
+          src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`}
+          onLoad={onRecaptchaLoad}
+          strategy="lazyOnload"
+        />
+      )}
+
       <h1 className="text-2xl font-bold text-white tracking-tight">{t.auth.signup.title}</h1>
       <p className="text-white/40 text-sm mt-1 mb-6">{t.auth.signup.subtitle}</p>
 
