@@ -137,6 +137,60 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   const companyId = session.metadata?.company_id;
   const planId = session.metadata?.plan_id;
   const billingCycle = session.metadata?.billing_cycle || 'monthly';
+  const isAddon = session.metadata?.is_addon === 'true';
+  const productType = session.metadata?.product_type;
+
+  // Handle add-on purchases (don't require plan_id)
+  if (companyId && isAddon) {
+    const addonType = session.metadata?.addon_type;
+    const addonQuantity = parseInt(session.metadata?.quantity || '1', 10);
+    console.log(`📦 Add-on checkout completed: ${addonType} x${addonQuantity} for company ${companyId}`);
+
+    try {
+      await supabase.from('company_addons').insert({
+        company_id: companyId,
+        addon_type: addonType,
+        quantity: addonQuantity,
+        status: 'active',
+        stripe_subscription_id: session.subscription as string || null,
+      });
+    } catch (addonError) {
+      console.error('Failed to record add-on purchase:', addonError);
+    }
+    return;
+  }
+
+  // Handle extra seat purchases (don't require plan_id)
+  if (companyId && productType === 'extra_seat') {
+    const seatQuantity = parseInt(session.metadata?.quantity || '1', 10);
+    console.log(`💺 Seat checkout completed: ${seatQuantity} seats for company ${companyId}`);
+
+    try {
+      await supabase
+        .from('company_subscriptions')
+        .update({
+          extra_users: supabase.rpc ? seatQuantity : seatQuantity, // Increment handled below
+        })
+        .eq('company_id', companyId);
+
+      // Actually increment: fetch current value and add
+      const { data: currentSub } = await supabase
+        .from('company_subscriptions')
+        .select('extra_users')
+        .eq('company_id', companyId)
+        .single();
+
+      if (currentSub) {
+        await supabase
+          .from('company_subscriptions')
+          .update({ extra_users: (currentSub.extra_users || 0) + seatQuantity })
+          .eq('company_id', companyId);
+      }
+    } catch (seatError) {
+      console.error('Failed to record seat purchase:', seatError);
+    }
+    return;
+  }
 
   if (!companyId || !planId) {
     console.error('Missing metadata in checkout session');
@@ -517,21 +571,47 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     return;
   }
 
-  // Update to canceled status
+  // Downgrade to free plan instead of just marking canceled
+  // This ensures feature-gating by plan_id works correctly
+  const { data: freePlan } = await supabase
+    .from('subscription_plans')
+    .select('id, minutes_included')
+    .eq('slug', 'free')
+    .single();
+
+  const now = new Date();
+  const freeExpiry = new Date();
+  freeExpiry.setDate(freeExpiry.getDate() + 90);
+
   await supabase
     .from('company_subscriptions')
     .update({
       status: 'canceled',
+      ...(freePlan ? {
+        plan_id: freePlan.id,
+        overage_enabled: false,
+        overage_budget: 0,
+        overage_spent: 0,
+        current_period_start: now.toISOString(),
+        current_period_end: freeExpiry.toISOString(),
+        stripe_subscription_id: null,
+        stripe_subscription_item_id: null,
+      } : {}),
     })
     .eq('stripe_subscription_id', subscription.id);
 
   // Log event
+  const canceledAt = subscription.canceled_at
+    ? new Date(subscription.canceled_at * 1000).toISOString()
+    : new Date().toISOString();
+
   await supabase.from('billing_events').insert({
     company_id: existingSub.company_id,
     subscription_id: existingSub.id,
     event_type: 'subscription_canceled',
     event_data: {
-      canceled_at: new Date(subscription.canceled_at! * 1000).toISOString(),
+      canceled_at: canceledAt,
+      downgraded_to: 'free',
     },
     minutes_consumed: 0,
     cost_usd: 0,

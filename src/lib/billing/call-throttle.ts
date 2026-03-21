@@ -81,6 +81,15 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
     };
   }
 
+  // Check if subscription period has expired (critical for free plan 90-day trial)
+  if (subscription.current_period_end && new Date(subscription.current_period_end) < new Date()) {
+    return {
+      allowed: false,
+      reason: 'Your subscription period has expired. Please upgrade to continue making calls.',
+      reasonCode: 'subscription_inactive',
+    };
+  }
+
   const planSlug = subscription.subscription_plans.slug as string;
   const planFeatures = CAMPAIGN_FEATURE_ACCESS[planSlug] || CAMPAIGN_FEATURE_ACCESS.free;
   const maxConcurrent = planFeatures.maxConcurrentCalls;

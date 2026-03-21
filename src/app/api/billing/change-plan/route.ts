@@ -1,4 +1,7 @@
 // app/api/billing/change-plan/route.ts
+// ⚠️ ADMIN-ONLY: This endpoint modifies subscriptions directly in the DB without Stripe.
+// Regular plan changes MUST go through Stripe checkout (create-checkout-session).
+// This is only for admin overrides (e.g., granting a plan to a partner).
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 
@@ -21,9 +24,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No company found' }, { status: 404 });
     }
 
-    // Only owners and admins can change plans
-    if (userData.role !== 'owner' && userData.role !== 'admin') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    // ADMIN ONLY — this bypasses Stripe payment. Regular users must use Stripe checkout.
+    if (userData.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'This endpoint is admin-only. Use Stripe checkout to change plans.' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -112,7 +118,7 @@ export async function POST(request: NextRequest) {
           amount,
           currency: 'USD',
           description: `${plan.name} - ${billingCycle === 'monthly' ? 'Mensual' : 'Anual'}`,
-          status: 'paid',
+          status: 'admin_override',
           billing_date: currentDate.toISOString()
         });
 
@@ -167,7 +173,7 @@ export async function POST(request: NextRequest) {
           amount,
           currency: 'USD',
           description: `${plan.name} - ${billingCycle === 'monthly' ? 'Mensual' : 'Anual'}`,
-          status: 'paid',
+          status: 'admin_override',
           billing_date: currentDate.toISOString()
         });
 

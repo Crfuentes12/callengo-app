@@ -70,7 +70,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Apply budget for paid plans
+    // Validate budget: must be a non-negative number within reason
+    if (budget !== undefined && budget !== null) {
+      if (typeof budget !== 'number' || isNaN(budget) || budget < 0 || budget > 50000) {
+        return NextResponse.json(
+          { error: 'Budget must be a number between 0 and 50,000' },
+          { status: 400 }
+        );
+      }
+    }
     const finalBudget = budget || 0;
 
     // Use Stripe integration to enable/disable overage
