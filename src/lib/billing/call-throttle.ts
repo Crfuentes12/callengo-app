@@ -210,7 +210,7 @@ async function checkMinutesAvailable(
   const plan = subscription.subscription_plans;
   const isFreePlan = plan.slug === 'free';
 
-  // Get current usage
+  // Get current usage (most recent period first to handle overlapping records)
   const now = new Date().toISOString();
   const { data: usage } = await supabaseAdmin
     .from('usage_tracking')
@@ -219,8 +219,9 @@ async function checkMinutesAvailable(
     .eq('subscription_id', subscription.id)
     .lte('period_start', now)
     .gte('period_end', now)
+    .order('period_start', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   const minutesUsed = usage?.minutes_used || 0;
 

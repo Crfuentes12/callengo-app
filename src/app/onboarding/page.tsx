@@ -174,11 +174,14 @@ export default function OnboardingPage() {
 
       // 5. Assign Free plan to new user
       try {
-        await fetch('/api/billing/ensure-free-plan', {
+        const planRes = await fetch('/api/billing/ensure-free-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ company_id: companyData.id }),
         });
+        if (!planRes.ok) {
+          console.error('Failed to assign free plan:', await planRes.text());
+        }
       } catch (planError) {
         console.error('Error assigning free plan:', planError);
       }

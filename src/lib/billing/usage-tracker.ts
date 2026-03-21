@@ -37,13 +37,14 @@ export async function trackCallUsage(params: UsageReport): Promise<void> {
   const { companyId, minutes, callId, metadata = {} } = params;
 
   try {
-    // Call the report-usage API endpoint
+    // Call the report-usage API endpoint with internal service token
     const response = await fetch(
       `${getAppUrl()}/api/billing/report-usage`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-service-key': process.env.INTERNAL_API_SECRET || '',
         },
         body: JSON.stringify({
           companyId,

@@ -18,6 +18,7 @@ import {
   handlePlanUpgradeCredits,
   deactivateBlandSubAccount,
 } from '@/lib/bland/subaccount-manager';
+import { resetUsageForNewPeriod } from '@/lib/billing/usage-tracker';
 
 // Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';
@@ -223,7 +224,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  const { error: usageUpdateError } = await supabase
+  // Update existing usage record, or insert if none exists
+  const { data: updatedUsage } = await supabase
     .from('usage_tracking')
     .update({
       subscription_id: subId,
@@ -232,10 +234,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       minutes_used: 0,
       minutes_included: plan.minutes_included,
     })
-    .eq('company_id', companyId);
+    .eq('company_id', companyId)
+    .select('id');
 
-  // If no existing usage record, insert one
-  if (usageUpdateError && usageUpdateError.code === 'PGRST116') {
+  // If no rows were updated (no existing record), insert one
+  if (!updatedUsage || updatedUsage.length === 0) {
     await supabase.from('usage_tracking').insert({
       company_id: companyId,
       subscription_id: subId,
@@ -627,9 +630,18 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice & Record<st
       .eq('id', subscription.id);
 
     // ================================================================
-    // AUDIT FIX: Reclaim old Bland credits and allocate fresh for new cycle
+    // AUDIT FIX: Reset usage tracking for the new billing period
+    // Creates a fresh usage_tracking record with minutes_used=0
     // ================================================================
     if (invoice.billing_reason === 'subscription_cycle') {
+      try {
+        await resetUsageForNewPeriod(subscription.company_id);
+        console.log(`✅ Usage reset for new billing cycle: company ${subscription.company_id}`);
+      } catch (resetError) {
+        console.error('⚠️ Usage reset failed (non-fatal):', resetError);
+      }
+
+      // Reclaim old Bland credits and allocate fresh for new cycle
       try {
         const { data: plan } = await supabase
           .from('subscription_plans')
@@ -721,7 +733,7 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
 
   const { data: existingSub } = await supabase
     .from('company_subscriptions')
-    .select('company_id')
+    .select('id, company_id')
     .eq('stripe_subscription_id', subscription.id)
     .single();
 
@@ -730,7 +742,7 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
   // Log event for notification system
   await supabase.from('billing_events').insert({
     company_id: existingSub.company_id,
-    subscription_id: subscription.id,
+    subscription_id: existingSub.id,
     event_type: 'trial_ending',
     event_data: {
       trial_end: new Date(subscription.trial_end! * 1000).toISOString(),
