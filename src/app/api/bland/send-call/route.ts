@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting: max 10 calls per minute per user
-    const { success: rateLimitOk } = expensiveLimiter.check(10, user.id);
+    const { success: rateLimitOk } = await expensiveLimiter.check(10, user.id);
     if (!rateLimitOk) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }

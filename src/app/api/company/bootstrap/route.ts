@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limit
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-    const rateLimitResult = expensiveLimiter.check(3, `company-bootstrap:${ip}`);
+    const rateLimitResult = await expensiveLimiter.check(3, `company-bootstrap:${ip}`);
     if (!rateLimitResult.success) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }

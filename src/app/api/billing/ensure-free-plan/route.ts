@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limit: 5 requests per minute per IP
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-    const rateLimitResult = expensiveLimiter.check(5, `ensure-free-plan:${ip}`);
+    const rateLimitResult = await expensiveLimiter.check(5, `ensure-free-plan:${ip}`);
     if (!rateLimitResult.success) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }

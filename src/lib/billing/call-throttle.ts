@@ -11,6 +11,7 @@
 import { supabaseAdmin } from '@/lib/supabase/service';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import { CAMPAIGN_FEATURE_ACCESS } from '@/config/plan-features';
+import { checkGlobalHourlyCap } from '@/lib/rate-limit';
 
 export interface ThrottleCheckResult {
   allowed: boolean;
@@ -138,7 +139,19 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
     };
   }
 
-  // 5. Check usage limits (minutes remaining + overage)
+  // 5. Check global hourly cap (protect Bland master account — 1000 calls/hr limit)
+  const globalCap = await checkGlobalHourlyCap();
+  if (!globalCap.allowed) {
+    console.warn(`[throttle] Global hourly cap reached: ${globalCap.current}/${globalCap.cap}`);
+    return {
+      allowed: false,
+      reason: 'Platform is experiencing high demand. Please try again in a few minutes.',
+      reasonCode: 'hourly_cap',
+      planSlug,
+    };
+  }
+
+  // 6. Check usage limits (minutes remaining + overage)
   const usageCheck = await checkMinutesAvailable(companyId, subscription);
   if (!usageCheck.allowed) {
     return {
