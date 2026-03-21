@@ -15,7 +15,7 @@ import { GoogleSheetsIcon } from '@/components/icons/BrandIcons';
 import { FaSalesforce, FaHubspot } from 'react-icons/fa';
 import Link from 'next/link';
 import { contactEvents } from '@/lib/analytics';
-import { phContactEvents } from '@/lib/posthog';
+import { phContactEvents, phDecisionEvents } from '@/lib/posthog';
 
 interface ContactsManagerProps {
   initialContacts: Record<string, unknown>[];
@@ -408,9 +408,11 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     setImportType(type);
     setShowImportModal(true);
     setShowAddContactsDropdown(false);
+    phDecisionEvents.importMethodChosen(type === 'google' ? 'google_sheets' : 'csv');
     if (type === 'csv') {
       contactEvents.csvImportStarted();
       phContactEvents.csvImportStarted();
+      phContactEvents.csvImportFlowStarted();
     }
   };
 
@@ -418,6 +420,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     setShowAddContactsDropdown(false);
     contactEvents.googleSheetsImportStarted();
     phContactEvents.googleSheetsImportStarted();
+    phDecisionEvents.importMethodChosen('google_sheets');
     if (gsConnected) {
       // Connected: open picker to browse sheets
       setShowGSheetsPicker(true);
@@ -437,6 +440,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
   const handleManualAdd = () => {
     setShowManualAddModal(true);
     setShowAddContactsDropdown(false);
+    phDecisionEvents.importMethodChosen('manual');
   };
 
   const handleExport = async (format: 'csv' | 'json' | 'xlsx' | 'gsheets' = 'csv') => {

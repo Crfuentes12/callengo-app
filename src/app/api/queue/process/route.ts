@@ -55,18 +55,43 @@ export async function POST(request: NextRequest) {
 /**
  * GET /api/queue/process
  * Returns queue stats (for monitoring dashboards).
+ * Also serves as the Vercel Cron endpoint — triggers batch processing on cron hits.
  */
 export async function GET(request: NextRequest) {
   if (!QUEUE_SECRET) {
     return NextResponse.json({ error: 'Queue processing not configured' }, { status: 500 });
   }
+
+  // Accept both QUEUE_PROCESSING_SECRET and CRON_SECRET for authorization.
+  // Vercel Cron sends Authorization: Bearer <CRON_SECRET> automatically.
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${QUEUE_SECRET}`) {
+  const cronHeader = request.headers.get('x-cron-secret');
+  const cronSecret = process.env.CRON_SECRET;
+
+  const authorized =
+    (authHeader === `Bearer ${QUEUE_SECRET}`) ||
+    (cronSecret && authHeader === `Bearer ${cronSecret}`) ||
+    (cronHeader === QUEUE_SECRET);
+
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    // If called by Vercel Cron (no company_id param), process the queue batch
     const companyId = request.nextUrl.searchParams.get('company_id') || undefined;
+
+    if (!companyId) {
+      // Cron hit — process pending jobs
+      const result = await processBatch(10);
+      return NextResponse.json({
+        success: true,
+        ...result,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Manual monitoring call — return stats
     const stats = await getQueueStats(companyId);
 
     return NextResponse.json({

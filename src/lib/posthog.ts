@@ -333,6 +333,27 @@ export const phOnboardingEvents = {
   companyReviewed() {
     capture('onboarding_company_reviewed')
   },
+
+  painPointSelected(painPoint: string) {
+    capture('onboarding_pain_point_selected', { pain_point: painPoint })
+  },
+
+  agentTestStarted(agentType: string) {
+    capture('onboarding_agent_test_started', { agent_type: agentType })
+    phFlowEvents.startFlow('onboarding_agent_test')
+  },
+
+  agentTestCompleted(agentType: string, durationSeconds: number) {
+    capture('onboarding_agent_test_completed', {
+      agent_type: agentType,
+      duration_seconds: durationSeconds,
+    })
+    phFlowEvents.completeFlow('onboarding_agent_test')
+  },
+
+  agentTestSkipped(agentType: string) {
+    capture('onboarding_agent_test_skipped', { agent_type: agentType })
+  },
 }
 
 // ============================================================
@@ -468,6 +489,23 @@ export const phBillingEvents = {
   invoiceViewed() {
     capture('invoice_viewed')
   },
+
+  planComparisonTimeSpent(durationSeconds: number) {
+    capture('plan_comparison_time_spent', { duration_seconds: durationSeconds })
+  },
+
+  featureDetailsViewed(featureName: string, planName: string) {
+    capture('feature_details_viewed', { feature_name: featureName, plan_name: planName })
+  },
+
+  checkoutAbandoned(plan: string, atStep: string, durationSeconds: number) {
+    capture('checkout_abandoned', { plan, at_step: atStep, duration_seconds: durationSeconds })
+    tagSession('checkout_abandoned')
+  },
+
+  cancellationReasonSubmitted(reason: string, feedback?: string) {
+    capture('cancellation_reason_submitted', { reason, feedback })
+  },
 }
 
 // ============================================================
@@ -551,6 +589,29 @@ export const phAgentEvents = {
     capture('agent_integration_connected', {
       agent_type: agentType,
       integration_provider: integrationProvider,
+    })
+  },
+
+  /** User started configuring an agent (timer for how long config takes) */
+  configFlowStarted(agentType: string) {
+    phFlowEvents.startFlow('agent_config', agentType)
+  },
+
+  /** User completed agent config flow */
+  configFlowCompleted(agentType: string, stepsCompleted: number) {
+    phFlowEvents.completeFlow('agent_config', agentType, { steps_completed: stepsCompleted })
+  },
+
+  /** User abandoned agent config without saving */
+  configFlowAbandoned(agentType: string, atStep: string) {
+    phFlowEvents.abandonFlow('agent_config', agentType, atStep)
+  },
+
+  /** User listened to multiple voices in a comparison session */
+  voiceComparisonSession(voicesListened: number, durationSeconds: number) {
+    capture('voice_comparison_session', {
+      voices_listened: voicesListened,
+      duration_seconds: durationSeconds,
     })
   },
 }
@@ -653,6 +714,35 @@ export const phCampaignEvents = {
 
   searched(queryLength: number) {
     capture('campaigns_searched', { query_length: queryLength })
+  },
+
+  /** Track campaign creation flow timing */
+  creationFlowStarted() {
+    phFlowEvents.startFlow('campaign_creation')
+  },
+
+  creationFlowCompleted(contactCount: number, agentType: string) {
+    phFlowEvents.completeFlow('campaign_creation', undefined, {
+      contact_count: contactCount,
+      agent_type: agentType,
+    })
+  },
+
+  creationFlowAbandoned(atStep: string) {
+    phFlowEvents.abandonFlow('campaign_creation', undefined, atStep)
+  },
+
+  /** User viewed the estimated cost before launching */
+  estimatedCostViewed(estimatedMinutes: number, estimatedCost: number) {
+    capture('campaign_estimated_cost_viewed', {
+      estimated_minutes: estimatedMinutes,
+      estimated_cost: estimatedCost,
+    })
+  },
+
+  /** Campaign settings changed after creation */
+  settingsChangedPostCreation(settingName: string) {
+    capture('campaign_settings_changed_post_creation', { setting_name: settingName })
   },
 }
 
@@ -795,6 +885,32 @@ export const phContactEvents = {
   crmContactsImported(provider: string, count: number) {
     capture('crm_contacts_imported', { provider, count })
   },
+
+  /** Track CSV import flow timing */
+  csvImportFlowStarted() {
+    phFlowEvents.startFlow('csv_import')
+  },
+
+  csvImportFlowCompleted(rowCount: number, durationSeconds: number) {
+    phFlowEvents.completeFlow('csv_import', undefined, {
+      row_count: rowCount,
+      duration_seconds: durationSeconds,
+    })
+  },
+
+  /** Import validation errors */
+  importValidationError(errorType: string, rowIndex?: number) {
+    capture('contact_import_validation_error', { error_type: errorType, row_index: rowIndex })
+  },
+
+  /** AI segmentation result */
+  aiSegmentationCompleted(segmentCount: number, contactsAssigned: number, durationSeconds: number) {
+    capture('ai_segmentation_completed', {
+      segment_count: segmentCount,
+      contacts_assigned: contactsAssigned,
+      duration_seconds: durationSeconds,
+    })
+  },
 }
 
 // ============================================================
@@ -851,6 +967,40 @@ export const phIntegrationEvents = {
 
   feedbackSubmitted(feedbackType: string) {
     capture('integration_feedback_submitted', { feedback_type: feedbackType })
+  },
+
+  /** Track integration connection flow timing */
+  connectionFlowStarted(provider: string) {
+    phFlowEvents.startFlow('integration_connect', provider)
+  },
+
+  connectionFlowCompleted(provider: string) {
+    phFlowEvents.completeFlow('integration_connect', provider)
+  },
+
+  connectionFlowAbandoned(provider: string, atStep: string) {
+    phFlowEvents.abandonFlow('integration_connect', provider, atStep)
+  },
+
+  /** CRM sync errors */
+  crmSyncError(provider: string, errorType: string) {
+    capture('crm_sync_error', { provider, error_type: errorType })
+    tagSession('crm_sync_error')
+  },
+
+  /** Field mapping completed */
+  fieldMappingCompleted(provider: string, fieldsCount: number) {
+    capture('field_mapping_completed', { provider, fields_count: fieldsCount })
+  },
+
+  /** Webhook URL copied */
+  webhookUrlCopied() {
+    capture('webhook_url_copied')
+  },
+
+  /** Webhook secret copied */
+  webhookSecretCopied() {
+    capture('webhook_secret_copied')
   },
 }
 
@@ -1122,6 +1272,16 @@ export const phAiChatEvents = {
   conversationDeleted() {
     capture('ai_chat_conversation_deleted')
   },
+
+  /** AI response received — track latency */
+  responseReceived(responseTimeMs: number) {
+    capture('ai_chat_response_received', { response_time_ms: responseTimeMs })
+  },
+
+  /** User clicked a suggestion from the AI */
+  suggestionClicked(suggestionType: string) {
+    capture('ai_chat_suggestion_clicked', { suggestion_type: suggestionType })
+  },
 }
 
 // ============================================================
@@ -1142,6 +1302,22 @@ export const phErrorEvents = {
   paymentFailed(plan: string, errorType: string) {
     capture('payment_failed', { plan, error_type: errorType })
     tagSession('payment_error')
+  },
+
+  /** User retried after an error */
+  userRetried(originalError: string, retryCount: number) {
+    capture('user_retried_after_error', { original_error: originalError, retry_count: retryCount })
+  },
+
+  /** Error boundary triggered */
+  errorBoundaryTriggered(component: string, errorMessage: string) {
+    capture('error_boundary_triggered', { component, error_message: errorMessage })
+    tagSession('error_boundary')
+  },
+
+  /** Rate limit hit by user */
+  rateLimitHit(endpoint: string) {
+    capture('rate_limit_hit', { endpoint })
   },
 }
 
@@ -1169,10 +1345,353 @@ export const phEngagementEvents = {
   sessionDuration(durationMinutes: number) {
     capture('session_duration_tracked', { duration_minutes: durationMinutes })
   },
+
+  /** First time user uses a feature */
+  firstTimeFeatureUsed(featureName: string) {
+    capture('first_time_feature_used', { feature_name: featureName })
+    updateUserProperties({ [`first_used_${featureName}_at`]: new Date().toISOString() })
+  },
+
+  /** User returned to a feature repeatedly (engagement signal) */
+  featureRevisited(featureName: string, visitCount: number) {
+    capture('feature_revisited', { feature_name: featureName, visit_count: visitCount })
+  },
 }
 
 // ============================================================
-// 20. SERVER-SIDE TRACKING
+// 20. TIMING & FLOW TRACKING
+// ============================================================
+// Tracks how long critical user flows take (onboarding, campaign setup,
+// contact import, agent config) and where users abandon.
+
+const flowTimers: Record<string, number> = {}
+
+export const phFlowEvents = {
+  /** Start timing a user flow. Call with a unique flowId. */
+  startFlow(flowName: string, flowId?: string) {
+    const key = flowId ? `${flowName}:${flowId}` : flowName
+    flowTimers[key] = Date.now()
+    capture(`${flowName}_flow_started`, { flow_id: flowId })
+  },
+
+  /** Complete a flow — captures duration in seconds. */
+  completeFlow(flowName: string, flowId?: string, extra?: Record<string, string | number | boolean>) {
+    const key = flowId ? `${flowName}:${flowId}` : flowName
+    const startTime = flowTimers[key]
+    const durationSeconds = startTime ? Math.round((Date.now() - startTime) / 1000) : undefined
+    delete flowTimers[key]
+    capture(`${flowName}_flow_completed`, {
+      flow_id: flowId,
+      duration_seconds: durationSeconds,
+      ...extra,
+    })
+  },
+
+  /** Abandon a flow — captures where and when the user dropped off. */
+  abandonFlow(flowName: string, flowId?: string, atStep?: string, reason?: string) {
+    const key = flowId ? `${flowName}:${flowId}` : flowName
+    const startTime = flowTimers[key]
+    const durationSeconds = startTime ? Math.round((Date.now() - startTime) / 1000) : undefined
+    delete flowTimers[key]
+    capture(`${flowName}_flow_abandoned`, {
+      flow_id: flowId,
+      at_step: atStep,
+      reason,
+      duration_seconds: durationSeconds,
+    })
+    tagSession(`abandoned_${flowName}`)
+  },
+}
+
+// ============================================================
+// 21. DECISION TRACKING
+// ============================================================
+// Tracks critical user decisions — plan selection, agent type choice,
+// voice selection, integration choice, etc.
+
+export const phDecisionEvents = {
+  /** User chose plan X over plan Y on the pricing page */
+  planSelected(selectedPlan: string, previousPlan?: string, trigger?: string) {
+    capture('plan_selected', {
+      selected_plan: selectedPlan,
+      previous_plan: previousPlan,
+      trigger: trigger, // 'pricing_page' | 'upgrade_cta' | 'limit_reached' | 'settings'
+    })
+  },
+
+  /** User chose monthly vs annual billing */
+  billingCycleChosen(cycle: 'monthly' | 'annual', planSlug: string) {
+    capture('billing_cycle_chosen', { cycle, plan_slug: planSlug })
+  },
+
+  /** User selected an agent type */
+  agentTypeChosen(agentType: string, isFirstAgent: boolean) {
+    capture('agent_type_chosen', { agent_type: agentType, is_first_agent: isFirstAgent })
+  },
+
+  /** User chose a specific voice for their agent */
+  voiceChosen(voiceId: string, voiceName: string, previewsListened: number) {
+    capture('voice_chosen', {
+      voice_id: voiceId,
+      voice_name: voiceName,
+      previews_listened: previewsListened,
+    })
+  },
+
+  /** User chose a specific CRM integration */
+  integrationChosen(provider: string, trigger: string) {
+    capture('integration_chosen', { provider, trigger })
+  },
+
+  /** User chose contact import method */
+  importMethodChosen(method: 'csv' | 'google_sheets' | 'crm' | 'manual') {
+    capture('import_method_chosen', { method })
+  },
+
+  /** User chose campaign contacts (how many, from which list) */
+  campaignContactsChosen(contactCount: number, sourceType: string) {
+    capture('campaign_contacts_chosen', { contact_count: contactCount, source_type: sourceType })
+  },
+
+  /** User toggled overage on/off — a critical billing decision */
+  overageDecision(enabled: boolean, budget?: number) {
+    capture('overage_decision', { enabled, budget })
+  },
+}
+
+// ============================================================
+// 22. QUICK START & TUTORIAL TRACKING
+// ============================================================
+
+export const phQuickStartEvents = {
+  /** Quick start guide became visible on dashboard */
+  guideViewed() {
+    capture('quick_start_guide_viewed')
+  },
+
+  /** User completed a quick start task */
+  taskCompleted(taskName: string, taskIndex: number) {
+    capture('quick_start_task_completed', { task_name: taskName, task_index: taskIndex })
+  },
+
+  /** User dismissed the quick start guide */
+  guideDismissed(tasksCompleted: number, totalTasks: number) {
+    capture('quick_start_guide_dismissed', {
+      tasks_completed: tasksCompleted,
+      total_tasks: totalTasks,
+      completion_percent: Math.round((tasksCompleted / totalTasks) * 100),
+    })
+  },
+
+  /** User clicked "watch video" or tutorial link */
+  tutorialClicked(tutorialName: string, tutorialType: 'video' | 'article' | 'interactive') {
+    capture('tutorial_clicked', { tutorial_name: tutorialName, tutorial_type: tutorialType })
+  },
+
+  /** User completed watching/reading a tutorial */
+  tutorialCompleted(tutorialName: string, durationSeconds: number) {
+    capture('tutorial_completed', { tutorial_name: tutorialName, duration_seconds: durationSeconds })
+  },
+}
+
+// ============================================================
+// 23. TEST CALL TRACKING
+// ============================================================
+
+export const phTestCallEvents = {
+  /** User initiated a test call */
+  initiated(agentType: string, voiceId: string) {
+    capture('test_call_initiated', { agent_type: agentType, voice_id: voiceId })
+    phFlowEvents.startFlow('test_call')
+  },
+
+  /** Test call connected */
+  connected(ringDurationSeconds: number) {
+    capture('test_call_connected', { ring_duration_seconds: ringDurationSeconds })
+  },
+
+  /** Test call completed */
+  completed(durationSeconds: number, outcome: string) {
+    capture('test_call_completed', { duration_seconds: durationSeconds, outcome })
+    phFlowEvents.completeFlow('test_call', undefined, { duration_seconds: durationSeconds, outcome })
+  },
+
+  /** Test call failed */
+  failed(errorType: string, atStage: string) {
+    capture('test_call_failed', { error_type: errorType, at_stage: atStage })
+    tagSession('test_call_failed')
+  },
+
+  /** User replayed their test call recording */
+  recordingReplayed() {
+    capture('test_call_recording_replayed')
+  },
+
+  /** User rated test call quality */
+  qualityRated(rating: number, feedback?: string) {
+    capture('test_call_quality_rated', { rating, feedback })
+  },
+}
+
+// ============================================================
+// 24. COPY & SHARE ACTIONS
+// ============================================================
+
+export const phCopyShareEvents = {
+  /** User copied an API key or webhook URL */
+  copied(itemType: string, context: string) {
+    capture('item_copied', { item_type: itemType, context })
+  },
+
+  /** User shared a campaign or report link */
+  shared(itemType: string, shareMethod: string) {
+    capture('item_shared', { item_type: itemType, share_method: shareMethod })
+  },
+
+  /** User downloaded a file (recording, transcript, export) */
+  downloaded(fileType: string, context: string) {
+    capture('file_downloaded', { file_type: fileType, context })
+  },
+}
+
+// ============================================================
+// 25. ABANDONMENT & PAGE ENGAGEMENT
+// ============================================================
+
+export const phPageEvents = {
+  /** User spent significant time on a page (tracked at intervals) */
+  timeOnPage(pageName: string, seconds: number) {
+    capture('time_on_page', { page_name: pageName, seconds })
+  },
+
+  /** User scrolled to a specific depth on a page */
+  scrollDepth(pageName: string, percentDepth: number) {
+    capture('scroll_depth', { page_name: pageName, percent_depth: percentDepth })
+  },
+
+  /** User left a form without submitting */
+  formAbandoned(formName: string, fieldsFilledCount: number, totalFields: number) {
+    capture('form_abandoned', {
+      form_name: formName,
+      fields_filled: fieldsFilledCount,
+      total_fields: totalFields,
+      completion_percent: Math.round((fieldsFilledCount / totalFields) * 100),
+    })
+  },
+
+  /** User encountered a paywall or plan limit */
+  limitReached(limitType: string, currentPlan: string, suggestedUpgrade?: string) {
+    capture('plan_limit_reached', {
+      limit_type: limitType,
+      current_plan: currentPlan,
+      suggested_upgrade: suggestedUpgrade,
+    })
+    tagSession('hit_plan_limit')
+  },
+
+  /** User saw an upgrade prompt and what they did */
+  upgradePromptResponse(promptType: string, action: 'clicked' | 'dismissed' | 'later', currentPlan: string) {
+    capture('upgrade_prompt_response', {
+      prompt_type: promptType,
+      action,
+      current_plan: currentPlan,
+    })
+  },
+}
+
+// ============================================================
+// 26. REPORTS & ANALYTICS PAGE EVENTS
+// ============================================================
+
+export const phReportsEvents = {
+  /** User viewed a specific report */
+  reportViewed(reportType: string) {
+    capture('report_viewed', { report_type: reportType })
+  },
+
+  /** User changed the date range in a report */
+  dateRangeChanged(reportType: string, range: string) {
+    capture('report_date_range_changed', { report_type: reportType, range })
+  },
+
+  /** User exported a report */
+  reportExported(reportType: string, format: string, rowCount: number) {
+    capture('report_exported', { report_type: reportType, format, row_count: rowCount })
+  },
+
+  /** User drilled down into a metric */
+  metricDrilldown(metricName: string, dimension: string) {
+    capture('metric_drilldown', { metric_name: metricName, dimension })
+  },
+}
+
+// ============================================================
+// 27. CALI AI (AI ASSISTANT) DEEP TRACKING
+// ============================================================
+
+export const phCaliAiEvents = {
+  /** AI panel opened — track the trigger source */
+  panelOpened(trigger: 'keyboard_shortcut' | 'sidebar' | 'help_button' | 'command_palette' | 'auto') {
+    capture('cali_ai_panel_opened', { trigger })
+  },
+
+  /** AI panel closed */
+  panelClosed(messagesInSession: number, durationSeconds: number) {
+    capture('cali_ai_panel_closed', {
+      messages_in_session: messagesInSession,
+      duration_seconds: durationSeconds,
+    })
+  },
+
+  /** User asked a question — categorize the intent */
+  questionAsked(intent: string, messageLength: number) {
+    capture('cali_ai_question_asked', { intent, message_length: messageLength })
+  },
+
+  /** AI suggested a navigation action and user followed it */
+  suggestionFollowed(suggestionType: string, destination: string) {
+    capture('cali_ai_suggestion_followed', { suggestion_type: suggestionType, destination })
+  },
+
+  /** AI suggestion was ignored */
+  suggestionIgnored(suggestionType: string) {
+    capture('cali_ai_suggestion_ignored', { suggestion_type: suggestionType })
+  },
+}
+
+// ============================================================
+// 28. SECURITY EVENTS
+// ============================================================
+
+export const phSecurityEvents = {
+  passwordChanged() {
+    capture('password_changed')
+  },
+
+  passwordChangeFailed(reason: string) {
+    capture('password_change_failed', { reason })
+    tagSession('password_change_failed')
+  },
+
+  mfaEnrollmentStarted() {
+    capture('mfa_enrollment_started')
+  },
+
+  mfaEnrollmentCompleted() {
+    capture('mfa_enrollment_completed')
+  },
+
+  mfaEnrollmentCancelled() {
+    capture('mfa_enrollment_cancelled')
+  },
+
+  mfaDisabled() {
+    capture('mfa_disabled')
+  },
+}
+
+// ============================================================
+// 29. SERVER-SIDE TRACKING
 // ============================================================
 // Server-side tracking lives in src/lib/posthog-server.ts
 // to avoid bundling posthog-node (which uses node:fs) in client code.

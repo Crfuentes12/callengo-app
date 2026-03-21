@@ -271,6 +271,14 @@ const nl: TranslationKeys = {
     upcomingEvents: 'Aankomende evenementen',
     pendingFollowUps: 'Openstaande opvolgingen',
     of: 'van',
+    quickStartTitle: 'Snelstartgids',
+    quickStartSubtitle: 'Voltooi deze stappen om het meeste uit Callengo te halen',
+    quickStartDismiss: 'Gids sluiten',
+    quickStartCompleted: 'voltooid',
+    taskImportContacts: 'Importeer je contacten',
+    taskCreateAgent: 'Maak je eerste agent aan',
+    taskLaunchCampaign: 'Start je eerste campagne',
+    taskReviewCalls: 'Bekijk de belresultaten',
   },
 
   // ============================================================

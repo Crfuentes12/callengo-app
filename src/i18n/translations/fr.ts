@@ -271,6 +271,14 @@ const fr: TranslationKeys = {
     upcomingEvents: 'Événements à venir',
     pendingFollowUps: 'Relances en attente',
     of: 'sur',
+    quickStartTitle: 'Guide de démarrage rapide',
+    quickStartSubtitle: 'Complétez ces étapes pour tirer le meilleur parti de Callengo',
+    quickStartDismiss: 'Fermer le guide',
+    quickStartCompleted: 'terminés',
+    taskImportContacts: 'Importez vos contacts',
+    taskCreateAgent: 'Créez votre premier agent',
+    taskLaunchCampaign: 'Lancez votre première campagne',
+    taskReviewCalls: 'Consultez les résultats des appels',
   },
 
   // ============================================================

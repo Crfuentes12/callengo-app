@@ -1,7 +1,7 @@
 // components/dashboard/DashboardOverview.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useTranslation } from '@/i18n';
 import { Company, AgentTemplate, AgentRun, ContactList } from '@/types/supabase';
@@ -11,6 +11,7 @@ import AgentSelectionModal from '@/components/agents/AgentSelectionModal';
 import BillingAlertBanner from '@/components/billing/BillingAlertBanner';
 import AgentConfigModal from '@/components/agents/AgentConfigModal';
 import CallDetailModal from '@/components/calls/CallDetailModal';
+import { phPageEvents, phQuickStartEvents } from '@/lib/posthog';
 
 interface CallLog {
   id: string;
@@ -63,6 +64,7 @@ interface SubscriptionWithPlan {
   current_period_end: string;
   subscription_plans: {
     name: string;
+    slug: string;
     minutes_included: number;
     max_call_duration: number;
     price_monthly: number;
@@ -111,6 +113,39 @@ export default function DashboardOverview({
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentTemplate | null>(null);
   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
+  const [quickStartDismissed, setQuickStartDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('callengo_quick_start_dismissed') === 'true';
+  });
+
+  // Quick Start tasks derived from actual data
+  const quickStartTasks = useMemo(() => [
+    { name: 'import_contacts', label: 'taskImportContacts' as const, href: '/contacts', completed: contacts.length > 0 },
+    { name: 'create_agent', label: 'taskCreateAgent' as const, href: '/agents', completed: companyAgents.length > 0 },
+    { name: 'launch_campaign', label: 'taskLaunchCampaign' as const, href: '/campaigns', completed: agentRuns.length > 0 },
+    { name: 'review_calls', label: 'taskReviewCalls' as const, href: '/calls', completed: recentCalls.length > 0 },
+  ], [contacts.length, companyAgents.length, agentRuns.length, recentCalls.length]);
+
+  const quickStartCompleted = quickStartTasks.filter(t => t.completed).length;
+  const showQuickStart = !quickStartDismissed && quickStartCompleted < quickStartTasks.length;
+
+  // Track quick start guide viewed
+  const quickStartViewedRef = useRef(false);
+  useEffect(() => {
+    if (quickStartViewedRef.current || !showQuickStart) return;
+    phQuickStartEvents.guideViewed();
+    quickStartViewedRef.current = true;
+  }, [showQuickStart]);
+
+  const handleQuickStartDismiss = () => {
+    phQuickStartEvents.guideDismissed(quickStartCompleted, quickStartTasks.length);
+    setQuickStartDismissed(true);
+    localStorage.setItem('callengo_quick_start_dismissed', 'true');
+  };
+
+  const handleQuickStartTaskClick = (taskName: string, taskIndex: number) => {
+    phQuickStartEvents.taskCompleted(taskName, taskIndex);
+  };
 
   const handleAgentSelect = (agent: AgentTemplate) => {
     setSelectedAgent(agent);
@@ -157,6 +192,19 @@ export default function DashboardOverview({
       totalCampaignCalls,
     };
   }, [contacts, recentCalls, agentRuns, serverStats]);
+
+  // Track when usage exceeds 80% of plan minutes
+  const limitTrackedRef = useRef(false);
+  useEffect(() => {
+    if (limitTrackedRef.current) return;
+    if (!usageTracking || !subscription?.subscription_plans) return;
+    const { minutes_used } = usageTracking;
+    const { minutes_included, slug } = subscription.subscription_plans;
+    if (minutes_included > 0 && minutes_used / minutes_included > 0.8) {
+      phPageEvents.limitReached('minutes', slug);
+      limitTrackedRef.current = true;
+    }
+  }, [usageTracking, subscription]);
 
   const getStatusStyles = (status: string) => {
     switch (status) {
@@ -247,6 +295,7 @@ export default function DashboardOverview({
               </p>
               <a
                 href="/settings?tab=billing"
+                onClick={() => phPageEvents.upgradePromptResponse('dashboard_trial_expired', 'clicked', subscription?.subscription_plans?.slug || 'free')}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-red-600 to-orange-600 text-white text-sm font-semibold hover:opacity-90 transition-all shadow-md"
               >
                 {t.billing.upgradePlan}
@@ -277,6 +326,7 @@ export default function DashboardOverview({
               </p>
               <a
                 href="/settings?tab=billing"
+                onClick={() => phPageEvents.upgradePromptResponse('dashboard_usage_card', 'clicked', subscription.subscription_plans?.slug || 'free')}
                 className="btn-primary text-sm"
               >
                 {t.billing.changePlan}
@@ -284,6 +334,73 @@ export default function DashboardOverview({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Start Guide */}
+      {showQuickStart && (
+        <div className="bg-white rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-sm">
+          <div className="flex items-center justify-between p-6 border-b border-[var(--border-subtle)]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--color-ink)]">{t.dashboard.quickStartTitle}</h3>
+                <p className="text-sm text-[var(--color-neutral-500)]">
+                  {quickStartCompleted}/{quickStartTasks.length} {t.dashboard.quickStartCompleted}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleQuickStartDismiss}
+              className="text-sm text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] transition-colors"
+              aria-label={t.dashboard.quickStartDismiss}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="p-6">
+            <div className="grid sm:grid-cols-2 gap-3">
+              {quickStartTasks.map((task, index) => (
+                <a
+                  key={task.name}
+                  href={task.href}
+                  onClick={() => handleQuickStartTaskClick(task.name, index)}
+                  className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${
+                    task.completed
+                      ? 'bg-emerald-50 border-emerald-200'
+                      : 'bg-[var(--color-neutral-50)] border-[var(--border-default)] hover:border-[var(--color-primary-200)] hover:shadow-sm'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    task.completed
+                      ? 'bg-emerald-500'
+                      : 'bg-[var(--color-neutral-200)]'
+                  }`}>
+                    {task.completed ? (
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    ) : (
+                      <span className="text-xs font-bold text-[var(--color-neutral-500)]">{index + 1}</span>
+                    )}
+                  </div>
+                  <span className={`text-sm font-medium ${
+                    task.completed
+                      ? 'text-emerald-700 line-through'
+                      : 'text-[var(--color-ink)]'
+                  }`}>
+                    {t.dashboard[task.label]}
+                  </span>
+                </a>
+              ))}
             </div>
           </div>
         </div>

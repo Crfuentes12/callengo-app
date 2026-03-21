@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { agentEvents } from '@/lib/analytics';
-import { phAgentEvents, phCampaignEvents } from '@/lib/posthog';
+import { phAgentEvents, phCampaignEvents, phDecisionEvents } from '@/lib/posthog';
 import { AgentTemplate, Company, ContactList } from '@/types/supabase';
 import VoiceSelector from '@/components/voice/VoiceSelector';
 import { BLAND_VOICES } from '@/lib/voices/bland-voices';
@@ -85,6 +85,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const [callData, setCallData] = useState<Record<string, unknown> | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Use ref instead of state
   const hasAnalyzedRef = useRef(false); // Track if call has been analyzed
+  const voicePreviewCountRef = useRef(0); // Track how many voices the user listened to
   const [callAnalysis, setCallAnalysis] = useState<Record<string, unknown> | null>(null);
   const [analyzingCall, setAnalyzingCall] = useState(false);
   const [listContactCounts, setListContactCounts] = useState<Record<string, number>>({});
@@ -163,6 +164,8 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   useEffect(() => {
     agentEvents.configModalOpened(getAgentType());
     phAgentEvents.configModalOpened(getAgentType());
+    phAgentEvents.configFlowStarted(getAgentType());
+    phDecisionEvents.agentTypeChosen(getAgentType(), false);
     loadContactLists();
     // Fetch plan limits and overage data
     fetch('/api/billing/subscription')
@@ -269,6 +272,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     if (voice) {
       agentEvents.voiceSelected(newVoice, voice.name, determineGender(voice));
       phAgentEvents.voiceSelected(newVoice, voice.name, determineGender(voice));
+      phDecisionEvents.voiceChosen(newVoice, voice.name, voicePreviewCountRef.current);
     }
     if (settings.voice && settings.voice !== newVoice) {
       setPreviousVoice(settings.voice);
@@ -546,6 +550,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
       agentEvents.created(getAgentType(), agentName || agent.name);
       phAgentEvents.created(getAgentType(), agentName || agent.name);
+      phAgentEvents.configFlowCompleted(getAgentType(), getStepNumber());
+      phCampaignEvents.creationFlowCompleted(contactCount, getAgentType());
       phCampaignEvents.created({
         agentType: getAgentType(),
         contactCount: contactCount,
@@ -639,6 +645,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   const handleClose = () => {
     agentEvents.configModalClosed(getAgentType(), getStepNumber() - 1);
     phAgentEvents.configModalClosed(getAgentType(), getStepNumber() - 1);
+    phAgentEvents.configFlowAbandoned(getAgentType(), step);
     onClose();
   };
 

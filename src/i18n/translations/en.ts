@@ -269,6 +269,14 @@ const en = {
     upcomingEvents: 'Upcoming Events',
     pendingFollowUps: 'Pending Follow-ups',
     of: 'of',
+    quickStartTitle: 'Quick Start Guide',
+    quickStartSubtitle: 'Complete these steps to get the most out of Callengo',
+    quickStartDismiss: 'Dismiss guide',
+    quickStartCompleted: 'completed',
+    taskImportContacts: 'Import your contacts',
+    taskCreateAgent: 'Create your first agent',
+    taskLaunchCampaign: 'Launch your first campaign',
+    taskReviewCalls: 'Review call results',
   },
 
   // ============================================================

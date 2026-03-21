@@ -13,7 +13,7 @@ import { useTranslation, useLanguage } from '@/i18n';
 import LanguageSelector from '@/components/LanguageSelector';
 import type { SupportedLanguage } from '@/i18n/translations';
 import { settingsEvents, navigationEvents } from '@/lib/analytics';
-import { phSettingsEvents, phNavigationEvents } from '@/lib/posthog';
+import { phSettingsEvents, phNavigationEvents, phSecurityEvents } from '@/lib/posthog';
 
 type Company = Database['public']['Tables']['companies']['Row'];
 type CompanySettings = Database['public']['Tables']['company_settings']['Row'];
@@ -111,11 +111,14 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
+      phSecurityEvents.passwordChanged();
       setPasswordSuccess('Password updated successfully.');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
       setTimeout(() => setPasswordSuccess(''), 4000);
     } catch (err: unknown) {
-      setPasswordError((err as Error).message || 'Failed to update password.');
+      const reason = (err as Error).message || 'Failed to update password.';
+      phSecurityEvents.passwordChangeFailed(reason);
+      setPasswordError(reason);
     } finally {
       setSavingPassword(false);
     }
