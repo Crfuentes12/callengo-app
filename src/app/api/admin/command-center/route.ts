@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
+import { createBlandSubAccount, allocateBlandCredits } from '@/lib/bland/subaccount-manager';
 
 const BLAND_API_URL = 'https://api.bland.ai/v1';
 const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
@@ -19,12 +20,17 @@ export async function GET() {
     // Verify admin
     const { data: userData } = await supabase
       .from('users')
-      .select('role')
+      .select('role, company_id')
       .eq('id', user.id)
       .single();
 
     if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    // Ensure admin's company has a subscription + Bland sub-account (runs once, idempotent)
+    if (userData.company_id) {
+      await ensureAdminCompanySetup(userData.company_id);
     }
 
     const now = new Date();
@@ -253,6 +259,99 @@ function extractBalance(data: Record<string, unknown>): number | null {
     if (typeof data[key] === 'number') return data[key] as number;
   }
   return null;
+}
+
+/**
+ * Ensure admin's company has a Free plan subscription + Bland sub-account.
+ * Uses the same credit transfer parameters as any other company.
+ * Idempotent — safe to call on every Command Center load.
+ */
+async function ensureAdminCompanySetup(companyId: string) {
+  try {
+    // Check if subscription exists
+    const { data: existingSub } = await supabaseAdmin
+      .from('company_subscriptions')
+      .select('id, plan_id')
+      .eq('company_id', companyId)
+      .limit(1)
+      .single();
+
+    if (!existingSub) {
+      // Create free plan subscription for admin
+      const { data: freePlan } = await supabaseAdmin
+        .from('subscription_plans')
+        .select('id, minutes_included')
+        .eq('slug', 'free')
+        .single();
+
+      if (freePlan) {
+        const now = new Date();
+        const periodEnd = new Date();
+        periodEnd.setFullYear(periodEnd.getFullYear() + 10);
+
+        const { data: newSub } = await supabaseAdmin
+          .from('company_subscriptions')
+          .insert({
+            company_id: companyId,
+            plan_id: freePlan.id,
+            billing_cycle: 'monthly',
+            status: 'active',
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            overage_enabled: false,
+            overage_budget: 0,
+            overage_spent: 0,
+          })
+          .select()
+          .single();
+
+        if (newSub) {
+          await supabaseAdmin.from('usage_tracking').insert({
+            company_id: companyId,
+            subscription_id: newSub.id,
+            period_start: now.toISOString(),
+            period_end: periodEnd.toISOString(),
+            minutes_used: 0,
+            minutes_included: freePlan.minutes_included,
+          });
+
+          console.log(`[admin-setup] Free plan subscription created for admin company ${companyId}`);
+        }
+      }
+    }
+
+    // Check if Bland sub-account exists
+    const { data: settings } = await supabaseAdmin
+      .from('company_settings')
+      .select('bland_subaccount_id')
+      .eq('company_id', companyId)
+      .single();
+
+    if (!settings?.bland_subaccount_id) {
+      const { data: company } = await supabaseAdmin
+        .from('companies')
+        .select('name')
+        .eq('id', companyId)
+        .single();
+
+      // Get plan minutes for credit allocation
+      const { data: sub } = await supabaseAdmin
+        .from('company_subscriptions')
+        .select('subscription_plans(minutes_included)')
+        .eq('company_id', companyId)
+        .limit(1)
+        .single();
+
+      const minutes = (sub?.subscription_plans as { minutes_included?: number } | null)?.minutes_included || 15;
+
+      await createBlandSubAccount(companyId, company?.name || 'Callengo Admin');
+      await allocateBlandCredits(companyId, minutes);
+      console.log(`[admin-setup] Bland sub-account + credits allocated for admin company ${companyId}`);
+    }
+  } catch (error) {
+    // Non-fatal — don't block Command Center loading
+    console.error('[admin-setup] Admin company setup error (non-fatal):', error);
+  }
 }
 
 async function fetchBlandMasterBalance(): Promise<{ balance: number; error?: string }> {

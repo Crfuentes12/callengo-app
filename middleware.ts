@@ -132,13 +132,18 @@ export async function middleware(request: NextRequest) {
     // Check if user has completed onboarding
     const { data: userData } = await supabase
       .from('users')
-      .select('company_id')
+      .select('company_id, role')
       .eq('id', user.id)
       .maybeSingle();
 
     if (!userData?.company_id) {
       // User hasn't completed onboarding - redirect there
       return NextResponse.redirect(new URL('/onboarding', request.url));
+    }
+
+    // Admin users go to Command Center by default
+    if (userData.role === 'admin') {
+      return NextResponse.redirect(new URL('/admin/command-center', request.url));
     }
 
     // User has completed onboarding - redirect to home
