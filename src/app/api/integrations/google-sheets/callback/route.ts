@@ -37,14 +37,14 @@ export async function GET(request: NextRequest) {
     }
 
     const { user_id, company_id, return_to } = stateData;
-    const redirectBase = return_to || '/contacts';
+    const safeReturnTo = (return_to && return_to.startsWith('/') && !return_to.startsWith('//')) ? return_to : '/contacts';
+    const redirectBase = safeReturnTo;
 
     // ALTA-005: Verify authenticated user matches the OAuth state
     const supabaseAuth = await createServerClient();
     const { data: { user: currentUser } } = await supabaseAuth.auth.getUser();
     if (!currentUser || currentUser.id !== user_id) {
-      const errorRedirect = return_to || '/integrations';
-      return NextResponse.redirect(new URL(`${errorRedirect}?error=user_mismatch`, request.url));
+      return NextResponse.redirect(new URL(`${safeReturnTo}?error=user_mismatch`, request.url));
     }
 
     // Exchange code for tokens

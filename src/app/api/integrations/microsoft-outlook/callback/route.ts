@@ -20,13 +20,15 @@ export async function GET(request: NextRequest) {
 
     const state = JSON.parse(Buffer.from(stateB64, 'base64url').toString());
     const { userId, companyId, returnTo } = state;
+    // Sanitize returnTo to prevent open redirect
+    const safeReturnTo = (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//'))
+      ? returnTo : '/calendar';
 
     // ALTA-005: Verify authenticated user matches the OAuth state
     const supabaseAuth = await createServerClient();
     const { data: { user: currentUser } } = await supabaseAuth.auth.getUser();
     if (!currentUser || currentUser.id !== userId) {
-      const errorRedirect = returnTo || '/integrations';
-      return NextResponse.redirect(new URL(`${errorRedirect}?error=user_mismatch`, request.url));
+      return NextResponse.redirect(new URL(`${safeReturnTo}?error=user_mismatch`, request.url));
     }
 
     const clientId = process.env.MICROSOFT_CLIENT_ID!;
@@ -52,7 +54,7 @@ export async function GET(request: NextRequest) {
     if (!tokenRes.ok) {
       const tokenError = await tokenRes.text();
       console.error('Microsoft token exchange failed:', tokenError);
-      return NextResponse.redirect(new URL(`${returnTo}?error=token_exchange_failed`, request.url));
+      return NextResponse.redirect(new URL(`${safeReturnTo}?error=token_exchange_failed`, request.url));
     }
 
     const tokens = await tokenRes.json();
@@ -90,11 +92,11 @@ export async function GET(request: NextRequest) {
 
     if (dbError) {
       console.error('Failed to save Microsoft integration:', dbError);
-      return NextResponse.redirect(new URL(`${returnTo}?error=save_failed`, request.url));
+      return NextResponse.redirect(new URL(`${safeReturnTo}?error=save_failed`, request.url));
     }
 
     return NextResponse.redirect(
-      new URL(`${returnTo}?integration=microsoft_outlook&status=connected`, request.url)
+      new URL(`${safeReturnTo}?integration=microsoft_outlook&status=connected`, request.url)
     );
   } catch (error) {
     console.error('Microsoft callback error:', error);
