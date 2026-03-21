@@ -200,11 +200,13 @@ export async function refreshZohoToken(
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
   const apiDomain = (data.api_domain as string) || integration.zoho_domain;
 
-  // Update tokens in DB
+  // Update tokens in DB (store new refresh_token if Zoho returns one)
+  const newRefreshToken = data.refresh_token as string | undefined;
   await supabaseAdmin
     .from('zoho_integrations')
     .update({
       access_token: newAccessToken,
+      ...(newRefreshToken ? { refresh_token: newRefreshToken } : {}),
       token_expires_at: expiresAt,
       zoho_domain: apiDomain,
       token_issued_at: new Date().toISOString(),

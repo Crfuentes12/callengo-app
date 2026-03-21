@@ -97,17 +97,20 @@ async function getRedisState() {
     const limits = await getBlandLimits();
     const snapshot = await getConcurrencySnapshot();
 
-    // Scan all callengo keys
+    // Scan all callengo keys (limit iterations to prevent timeouts on large keyspaces)
     const allKeys: { key: string; value: unknown; ttl: number }[] = [];
     let cursor = 0;
+    let iterations = 0;
+    const MAX_SCAN_ITERATIONS = 5;
     do {
       const [nextCursor, keys] = await redis.scan(cursor, {
         match: 'callengo:*',
         count: 200,
       });
       cursor = typeof nextCursor === 'number' ? nextCursor : parseInt(nextCursor as string, 10);
+      iterations++;
 
-      for (const key of keys.slice(0, 50)) { // Limit to 50 keys for performance
+      for (const key of keys.slice(0, 50)) { // Limit to 50 keys per batch
         try {
           const [value, ttl] = await Promise.all([
             redis.get(key),
@@ -116,7 +119,7 @@ async function getRedisState() {
           allKeys.push({ key, value, ttl });
         } catch { /* skip */ }
       }
-    } while (cursor !== 0 && allKeys.length < 50);
+    } while (cursor !== 0 && allKeys.length < 50 && iterations < MAX_SCAN_ITERATIONS);
 
     // Categorize keys
     const concurrent = allKeys.filter(k => k.key.includes('concurrent'));

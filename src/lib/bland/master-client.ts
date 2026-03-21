@@ -12,6 +12,8 @@ const BLAND_API_URL = 'https://api.bland.ai/v1';
 const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
 
 // Cost per minute from Bland — depends on your plan (Start=$0.14, Build=$0.12, Scale=$0.11)
+// Default to highest tier cost ($0.14) for conservative cost estimates when env var not set.
+// Set BLAND_COST_PER_MINUTE in production to match your actual Bland plan rate.
 export const BLAND_COST_PER_MINUTE = Number(process.env.BLAND_COST_PER_MINUTE || '0.14');
 
 // ================================================================

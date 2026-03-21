@@ -246,6 +246,10 @@ async function processUsagePostUpdate(
   // are tracked locally but never billed to the customer, causing revenue loss.
   if (overageEnabled && overageMinutes > 0 && stripeSubItemId) {
     try {
+      // FIX: Use 'set' with the TOTAL overage minutes (not incremental delta).
+      // This is correct because newMinutesUsed is already the cumulative total,
+      // so overageMinutes = max(0, totalUsed - included) is the full overage.
+      // Using 'set' with the total is idempotent and safe on webhook retry.
       await reportUsage({
         subscriptionItemId: stripeSubItemId,
         quantity: Math.ceil(overageMinutes),
@@ -320,8 +324,11 @@ async function processUsagePostUpdate(
     else if (usagePercent >= 70) usageAlertLevel = 1;
 
     // Only emit alert if level increased (avoid duplicate alerts)
-    const currentAlertLevel = overageAlertLevel || 0;
-    if (usageAlertLevel > currentAlertLevel && !overageEnabled) {
+    // NOTE: For non-overage users, we reuse overage_alert_level to track usage alerts
+    // (they don't have overage budget alerts, so the field serves double duty).
+    // For overage users, budget alerts are handled in the block above — skip usage alerts here.
+    const currentUsageAlertLevel = overageEnabled ? 999 : (overageAlertLevel || 0);
+    if (usageAlertLevel > currentUsageAlertLevel) {
       // Only alert non-overage users about plan usage (overage users get budget alerts instead)
       await supabase
         .from('company_subscriptions')

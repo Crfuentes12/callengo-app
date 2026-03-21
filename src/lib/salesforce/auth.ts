@@ -140,12 +140,14 @@ export async function refreshSalesforceToken(
   const newAccessToken = data.access_token as string;
   const newInstanceUrl = (data.instance_url as string) || integration.instance_url;
 
-  // Update token in DB
+  // Update token in DB (store new refresh_token if Salesforce returns one)
+  const newRefreshToken = data.refresh_token as string | undefined;
   await supabaseAdmin
     .from('salesforce_integrations')
     .update({
       access_token: newAccessToken,
       instance_url: newInstanceUrl,
+      ...(newRefreshToken ? { refresh_token: newRefreshToken } : {}),
       token_issued_at: new Date().toISOString(),
     })
     .eq('id', integration.id);

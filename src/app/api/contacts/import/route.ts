@@ -55,6 +55,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid column mapping format' }, { status: 400 });
     }
 
+    // Validate list_id belongs to this company (prevent cross-company import)
+    if (listId) {
+      const { data: list } = await supabase
+        .from('contact_lists')
+        .select('id')
+        .eq('id', listId)
+        .eq('company_id', userData.company_id)
+        .maybeSingle();
+
+      if (!list) {
+        return NextResponse.json({ error: 'Contact list not found' }, { status: 404 });
+      }
+    }
+
     const text = await file.text();
     const { headers, rows } = parseCSV(text);
 

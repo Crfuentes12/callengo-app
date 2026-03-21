@@ -72,7 +72,7 @@ async function verifyAdmin(supabase: Awaited<ReturnType<typeof createServerClien
     .eq('id', user.id)
     .single();
 
-  if (!userData || userData.role !== 'admin') return null;
+  if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) return null;
   return user;
 }
 
