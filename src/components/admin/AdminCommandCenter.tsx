@@ -1315,7 +1315,7 @@ export default function AdminCommandCenter() {
         <div className="space-y-6">
           {/* Period selector */}
           <div className="flex items-center justify-between">
-            <p className="text-sm text-[var(--color-neutral-600)]">V4 Pricing Model — Sub-accounts + Add-ons</p>
+            <p className="text-sm text-[var(--color-neutral-600)]">V4 Pricing Model — Master Key Architecture</p>
             <select
               value={financePeriod}
               onChange={(e) => { setFinancePeriod(e.target.value); fetchFinances(e.target.value); }}
@@ -1332,7 +1332,6 @@ export default function AdminCommandCenter() {
               const addonRevenue = (fd.addon_revenue as number) || 0;
               const totalRevenue = (fd.revenue_total || 0) + addonRevenue;
               const blandInfrastructureCost = (fd.bland_infrastructure_cost as number) || 0;
-              const activeSubaccounts = (fd.active_subaccounts as number) || 0;
               const marginColor = (p: number | null) => !p ? 'text-[var(--color-neutral-600)]' : p >= 50 ? 'text-emerald-600' : p >= 35 ? 'text-amber-600' : 'text-red-600';
 
                 return (
@@ -1369,7 +1368,6 @@ export default function AdminCommandCenter() {
                         <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Companies</p>
                         <p className="text-2xl font-bold text-[var(--color-ink)]">{fd.total_companies_active || 0}</p>
                         <p className="mt-2 text-sm text-violet-700">${fd.avg_revenue_per_company?.toFixed(2) || '0.00'} ARPC</p>
-                        {activeSubaccounts > 0 && <p className="text-xs text-[var(--color-neutral-500)]">{activeSubaccounts} Bland sub-accounts</p>}
                       </div>
                     </div>
 
@@ -1395,7 +1393,7 @@ export default function AdminCommandCenter() {
 
                     {/* Bland AI Infrastructure — Master Account */}
                     <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Bland AI — Master Account & Sub-account Architecture</h3>
+                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Bland AI — Master Account</h3>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                           <p className="text-xs font-semibold text-emerald-700 uppercase mb-1">Master Balance</p>
@@ -1413,9 +1411,9 @@ export default function AdminCommandCenter() {
                           <p className="text-xs text-[var(--color-neutral-600)]">Transfer: ${fd.bland_transfer_rate?.toFixed(4) || '0.0000'}/min</p>
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
-                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Sub-accounts</p>
-                          <p className="text-lg font-bold text-[var(--color-ink)]">{activeSubaccounts}</p>
-                          <p className="text-xs text-[var(--color-neutral-600)]">Isolated per company</p>
+                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Architecture</p>
+                          <p className="text-lg font-bold text-[var(--color-ink)]">Master Key</p>
+                          <p className="text-xs text-[var(--color-neutral-600)]">Single API key</p>
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
                           <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Master Limits</p>
