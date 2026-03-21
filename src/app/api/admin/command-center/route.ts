@@ -265,6 +265,9 @@ function extractBalance(data: Record<string, unknown>): number | null {
  * Ensure admin's company has a Free plan subscription + Bland sub-account.
  * Uses the same credit transfer parameters as any other company.
  * Idempotent — safe to call on every Command Center load.
+ *
+ * NOTE: If Bland sub-account creation fails (e.g., BYOT_INSERT_FAILED),
+ * we assign the master account key directly so the admin can still make calls.
  */
 async function ensureAdminCompanySetup(companyId: string) {
   try {
@@ -320,14 +323,14 @@ async function ensureAdminCompanySetup(companyId: string) {
       }
     }
 
-    // Check if Bland sub-account exists
+    // Check if Bland sub-account / API key exists
     const { data: settings } = await supabaseAdmin
       .from('company_settings')
-      .select('bland_subaccount_id')
+      .select('bland_subaccount_id, bland_api_key')
       .eq('company_id', companyId)
       .single();
 
-    if (!settings?.bland_subaccount_id) {
+    if (!settings?.bland_api_key) {
       const { data: company } = await supabaseAdmin
         .from('companies')
         .select('name')
@@ -344,9 +347,27 @@ async function ensureAdminCompanySetup(companyId: string) {
 
       const minutes = (sub?.subscription_plans as { minutes_included?: number } | null)?.minutes_included || 15;
 
-      await createBlandSubAccount(companyId, company?.name || 'Callengo Admin');
-      await allocateBlandCredits(companyId, minutes);
-      console.log(`[admin-setup] Bland sub-account + credits allocated for admin company ${companyId}`);
+      try {
+        await createBlandSubAccount(companyId, company?.name || 'Callengo Admin');
+        await allocateBlandCredits(companyId, minutes);
+        console.log(`[admin-setup] Bland sub-account + credits allocated for admin company ${companyId}`);
+      } catch (blandError) {
+        // Sub-account creation may fail (e.g., BYOT_INSERT_FAILED on certain Bland plans).
+        // Fallback: assign the master API key directly so admin can still use Bland.
+        console.warn(`[admin-setup] Sub-account creation failed, assigning master key as fallback:`, blandError);
+
+        if (BLAND_MASTER_KEY) {
+          await supabaseAdmin
+            .from('company_settings')
+            .update({
+              bland_api_key: BLAND_MASTER_KEY,
+              bland_subaccount_id: 'master',
+            })
+            .eq('company_id', companyId);
+
+          console.log(`[admin-setup] Assigned master Bland API key to admin company ${companyId}`);
+        }
+      }
     }
   } catch (error) {
     // Non-fatal — don't block Command Center loading
