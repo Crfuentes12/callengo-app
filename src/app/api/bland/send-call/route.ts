@@ -142,6 +142,17 @@ export async function POST(request: NextRequest) {
     if (webhook) blandPayload.webhook = webhook;
     if (metadata) blandPayload.metadata = metadata;
 
+    // Pre-register call_log with 'queued' status BEFORE dispatching to Bland.
+    // This ensures concurrent call counting is accurate (fixes TOCTOU race).
+    const preCallId = `pre_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const { data: preLog } = await supabaseAdmin.from('call_logs').insert({
+      company_id: company_id,
+      contact_id: metadata?.contact_id as string || null,
+      call_id: preCallId,
+      status: 'queued',
+      completed: false,
+    }).select('id').single();
+
     const response = await fetch('https://api.bland.ai/v1/calls', {
       method: 'POST',
       headers: {
@@ -154,10 +165,21 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
 
     if (!response.ok) {
+      // Remove pre-registered call_log on failure
+      if (preLog?.id) {
+        await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+      }
       return NextResponse.json(
         { error: data.message || 'Failed to initiate call', details: data },
         { status: response.status }
       );
+    }
+
+    // Update pre-registered call_log with actual Bland call_id
+    if (preLog?.id && data.call_id) {
+      await supabaseAdmin.from('call_logs')
+        .update({ call_id: data.call_id, status: 'in_progress' })
+        .eq('id', preLog.id);
     }
 
     return NextResponse.json({

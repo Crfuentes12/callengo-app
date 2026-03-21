@@ -177,7 +177,8 @@ export async function POST(req: NextRequest) {
           );
           return NextResponse.json(retryResult);
         }
-        // If still conflicting, wait briefly before next attempt
+        // Exponential backoff before next attempt
+        await new Promise(r => setTimeout(r, 50 * Math.pow(2, attempt)));
       }
       return NextResponse.json({ error: 'Usage update conflict after retries — please retry' }, { status: 409 });
     }
