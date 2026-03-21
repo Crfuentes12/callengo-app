@@ -8,6 +8,13 @@ import { BLAND_COST_PER_MINUTE } from '@/lib/bland/subaccount-manager';
 const BLAND_API_URL = 'https://api.bland.ai/v1';
 const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
 
+// Add-on prices (monthly) — source of truth from pricing model V4
+const ADDON_PRICES: Record<string, number> = {
+  dedicated_number: 15,
+  recording_vault: 12,
+  calls_booster: 35,
+};
+
 export async function GET() {
   try {
     const supabase = await createServerClient();
@@ -82,10 +89,10 @@ export async function GET() {
         .in('company_id', companyIds)
         .order('period_start', { ascending: false }),
 
-      // Active add-ons
+      // Active add-ons (no 'price' column in DB — use ADDON_PRICES map)
       supabaseAdminRaw
         .from('company_addons')
-        .select('company_id, addon_type, quantity, price')
+        .select('company_id, addon_type, quantity')
         .in('company_id', companyIds)
         .eq('status', 'active'),
     ]);
@@ -107,9 +114,9 @@ export async function GET() {
     });
 
     // Add-ons indexed by company
-    const addonsByCompany = new Map<string, { addon_type: string; quantity: number; price: number }[]>();
+    const addonsByCompany = new Map<string, { addon_type: string; quantity: number }[]>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ((addonsResult.data || []) as any[]).forEach((a: { company_id: string; addon_type: string; quantity: number; price: number }) => {
+    ((addonsResult.data || []) as any[]).forEach((a: { company_id: string; addon_type: string; quantity: number }) => {
       const existing = addonsByCompany.get(a.company_id) || [];
       existing.push(a);
       addonsByCompany.set(a.company_id, existing);
@@ -162,8 +169,7 @@ export async function GET() {
       const subscriptionRevenue = plan?.price_monthly || 0;
       const overageMinutes = Math.max(0, minutesUsed - minutesIncluded);
       const overageRevenue = overageMinutes * (plan?.price_per_extra_minute || 0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const addonRevenue = addons.reduce((sum: number, a: any) => sum + ((a.price || 0) * (a.quantity || 1)), 0);
+      const addonRevenue = addons.reduce((sum: number, a) => sum + ((ADDON_PRICES[a.addon_type] || 0) * (a.quantity || 1)), 0);
       const totalRevenue = subscriptionRevenue + overageRevenue + addonRevenue;
 
       // Cost = actual minutes used × Bland cost/min

@@ -347,16 +347,31 @@ async function ensureAdminCompanySetup(companyId: string) {
 
       const minutes = (sub?.subscription_plans as { minutes_included?: number } | null)?.minutes_included || 15;
 
-      await createBlandSubAccount(companyId, company?.name || 'Callengo Admin');
-      // Note: createBlandSubAccount transfers MIN_INITIAL_BALANCE ($10) on creation.
-      // Only allocate additional credits if plan includes more minutes.
-      const creditAmount = calculateCreditAmount(minutes);
-      if (creditAmount > 10) {
-        // The sub-account was created with $10 initial balance,
-        // allocate the remainder if the plan requires more
-        await allocateBlandCredits(companyId, minutes);
+      try {
+        await createBlandSubAccount(companyId, company?.name || 'Callengo Admin');
+        // Note: createBlandSubAccount transfers MIN_INITIAL_BALANCE ($10) on creation.
+        // Only allocate additional credits if plan includes more minutes.
+        const creditAmount = calculateCreditAmount(minutes);
+        if (creditAmount > 10) {
+          await allocateBlandCredits(companyId, minutes);
+        }
+        console.log(`[admin-setup] Bland sub-account + credits allocated for admin company ${companyId}`);
+      } catch (subAccountError) {
+        // If sub-account creation fails (e.g., route deprecated), assign master key
+        // so admin can still make calls using the master account directly.
+        console.warn(`[admin-setup] Sub-account creation failed, assigning master key as fallback:`, subAccountError);
+        const masterKey = process.env.BLAND_API_KEY;
+        if (masterKey) {
+          await supabaseAdmin
+            .from('company_settings')
+            .update({
+              bland_api_key: masterKey,
+              bland_subaccount_id: 'master',
+            })
+            .eq('company_id', companyId);
+          console.log(`[admin-setup] Master API key assigned to admin company ${companyId} as fallback`);
+        }
       }
-      console.log(`[admin-setup] Bland sub-account + credits allocated for admin company ${companyId}`);
     }
   } catch (error) {
     // Non-fatal — don't block Command Center loading
