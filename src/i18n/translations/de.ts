@@ -271,6 +271,14 @@ const de: TranslationKeys = {
     upcomingEvents: 'Bevorstehende Termine',
     pendingFollowUps: 'Ausstehende Nachfassaktionen',
     of: 'von',
+    quickStartTitle: 'Schnellstartanleitung',
+    quickStartSubtitle: 'Führen Sie diese Schritte aus, um Callengo optimal zu nutzen',
+    quickStartDismiss: 'Anleitung schließen',
+    quickStartCompleted: 'abgeschlossen',
+    taskImportContacts: 'Kontakte importieren',
+    taskCreateAgent: 'Ersten Agenten erstellen',
+    taskLaunchCampaign: 'Erste Kampagne starten',
+    taskReviewCalls: 'Anrufergebnisse überprüfen',
   },
 
   // ============================================================

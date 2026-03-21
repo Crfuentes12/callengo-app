@@ -100,12 +100,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Create company settings using admin client
+    // FIX: This is NOT non-fatal — without a company_settings record, the company
+    // cannot configure Bland sub-account or make any calls. Return 500 on failure.
     const { error: settingsError } = await supabaseAdmin
       .from('company_settings')
       .insert({ company_id: companyData.id });
 
     if (settingsError) {
-      console.error('[bootstrap] Settings creation error (non-fatal):', settingsError);
+      console.error('[bootstrap] Settings creation failed:', settingsError);
+      // Clean up: delete user record and company to allow retry
+      await supabaseAdmin.from('users').delete().eq('id', user.id);
+      await supabaseAdmin.from('companies').delete().eq('id', companyData.id);
+      return NextResponse.json({ error: 'Failed to initialize company settings' }, { status: 500 });
     }
 
     console.log(`[bootstrap] Company ${companyData.id} created for user ${user.id}`);

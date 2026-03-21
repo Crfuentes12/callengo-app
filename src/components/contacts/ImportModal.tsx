@@ -1,13 +1,14 @@
 // components/contacts/ImportModal.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '@/i18n';
 import { parseCSV, detectColumnMapping } from '@/lib/call-agent-utils';
 import { parseFile } from '@/lib/import-parsers';
 import { ColumnMapping } from '@/types/call-agent';
 import { createClient } from '@/lib/supabase/client';
 import { ContactList } from '@/types/supabase';
+import { phContactEvents } from '@/lib/posthog';
 
 interface ImportModalProps {
   companyId: string;
@@ -68,6 +69,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
   const [newListName, setNewListName] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
   const [showCreateList, setShowCreateList] = useState(false);
+  const importStartTimeRef = useRef<number>(Date.now());
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
 
   // Load contact lists on mount
@@ -172,6 +174,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
       setStep('list-select');
     } catch (error) {
       console.error('Google Sheets import error:', error);
+      phContactEvents.importValidationError('google_sheets_parse_error');
       onShowToast?.(`Failed to import from Google Sheets: ${(error as Error).message}`, 'error');
     } finally {
       setLoading(false);
@@ -213,6 +216,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
       setStep('list-select');
     } catch (error) {
       console.error('File parsing error:', error);
+      phContactEvents.importValidationError('file_parse_error');
       onShowToast?.(`Failed to parse file: ${(error as Error).message || 'Unknown error'}`, 'error');
     } finally {
       setLoading(false);
@@ -258,7 +262,10 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
 
       setResult({ imported: data.imported, skipped: data.skipped });
       setStep('complete');
+      const durationSeconds = Math.round((Date.now() - importStartTimeRef.current) / 1000);
+      phContactEvents.csvImportFlowCompleted(data.imported, durationSeconds);
     } catch (error) {
+      phContactEvents.importValidationError('import_failed');
       onShowToast?.('Failed to import contacts', 'error');
     } finally {
       setLoading(false);

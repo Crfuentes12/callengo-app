@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useStripe } from '@/hooks/useStripe';
 import { getCampaignFeatureAccess, getPhoneNumberFeatures } from '@/config/plan-features';
 import { useUserCurrency } from '@/hooks/useAutoGeolocation';
 import { useTranslation } from '@/i18n';
 import { billingEvents } from '@/lib/analytics';
-import { phBillingEvents } from '@/lib/posthog';
+import { phBillingEvents, phDecisionEvents } from '@/lib/posthog';
 
 interface Plan {
   id: string;
@@ -115,6 +115,9 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   const [retentionApplied, setRetentionApplied] = useState(false);
   const [retentionLoading, setRetentionLoading] = useState(false);
 
+  // Track time spent viewing plan comparison
+  const comparisonOpenedAt = useRef<number | null>(null);
+
   const formatPrice = (price: number) => {
     const symbol = CURRENCY_SYMBOLS[currency] || CURRENCY_SYMBOLS.USD;
     return `${symbol}${Math.round(price)}`;
@@ -217,6 +220,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           billingEvents.overageDisabled();
           phBillingEvents.overageDisabled();
         }
+        phDecisionEvents.overageDecision(enabled, enabled ? overageBudget : undefined);
         setSuccess(enabled ? `${t.billing.overageCost} ${t.common.enabled.toLowerCase()}` : `${t.billing.overageCost} ${t.common.disabled.toLowerCase()}`);
         await fetchData();
         setShowOverageModal(false);
@@ -269,6 +273,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
 
       billingEvents.subscriptionCancelled(currentPlan?.slug || 'unknown', cancelReason);
       phBillingEvents.subscriptionCancelled(currentPlan?.slug || 'unknown', cancelReason);
+      phBillingEvents.cancellationReasonSubmitted(cancelReason, cancelDetails || undefined);
 
       // If reason is "too expensive", check retention eligibility
       if (cancelReason === 'too_expensive') {
@@ -633,8 +638,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
               <p className="text-sm text-[var(--color-neutral-500)]">{higherPlans.length > 0 ? t.billing.upgradePlan : t.billing.currentPlan}</p>
             </div>
             <div className="inline-flex items-center gap-2 p-1 bg-[var(--color-neutral-100)] rounded-lg">
-              <button onClick={() => { setBillingCycle('monthly'); billingEvents.billingCycleToggled('monthly'); phBillingEvents.billingCycleToggled('monthly'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>{t.billing.monthly}</button>
-              <button onClick={() => { setBillingCycle('annual'); billingEvents.billingCycleToggled('annual'); phBillingEvents.billingCycleToggled('annual'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>
+              <button onClick={() => { setBillingCycle('monthly'); billingEvents.billingCycleToggled('monthly'); phBillingEvents.billingCycleToggled('monthly'); phDecisionEvents.billingCycleChosen('monthly', currentPlan?.slug || 'unknown'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>{t.billing.monthly}</button>
+              <button onClick={() => { setBillingCycle('annual'); billingEvents.billingCycleToggled('annual'); phBillingEvents.billingCycleToggled('annual'); phDecisionEvents.billingCycleChosen('annual', currentPlan?.slug || 'unknown'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>
                 {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">{t.billing.saveUpTo}</span>
               </button>
             </div>
@@ -753,7 +758,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
         {comparisonPlans.length > 1 && (
           <div className="border-t border-[var(--border-subtle)] pt-6">
             <button
-              onClick={() => { setShowComparison(!showComparison); if (!showComparison) { billingEvents.planComparisonViewed(); phBillingEvents.planComparisonViewed(); } }}
+              onClick={() => { if (!showComparison) { comparisonOpenedAt.current = Date.now(); billingEvents.planComparisonViewed(); phBillingEvents.planComparisonViewed(); } else if (comparisonOpenedAt.current) { const seconds = Math.round((Date.now() - comparisonOpenedAt.current) / 1000); phBillingEvents.planComparisonTimeSpent(seconds); comparisonOpenedAt.current = null; } setShowComparison(!showComparison); }}
               className="flex items-center gap-2 text-sm text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)] transition-colors"
             >
               <svg className={`w-4 h-4 transition-transform ${showComparison ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -792,7 +797,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                       <tr key={`limit-${i}`} className={i % 2 === 0 ? 'bg-[var(--color-neutral-50)]/50' : ''}>
                         <td className="py-2.5 pr-4 text-[var(--color-neutral-600)] font-medium">{row.label}</td>
                         {comparisonPlans.map(plan => (
-                          <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)]' : ''}`}>{row.render(plan)}</td>
+                          <td key={plan.id} onClick={() => phBillingEvents.featureDetailsViewed(row.label, plan.name)} className={`text-center py-2.5 px-3 cursor-pointer ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)]' : ''}`}>{row.render(plan)}</td>
                         ))}
                       </tr>
                     ))}
@@ -815,7 +820,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
                           const access = getCampaignFeatureAccess(plan.slug);
                           const val = access[row.key];
                           return (
-                            <td key={plan.id} className={`text-center py-2.5 px-3 ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)]' : ''}`}>
+                            <td key={plan.id} onClick={() => phBillingEvents.featureDetailsViewed(row.label, plan.name)} className={`text-center py-2.5 px-3 cursor-pointer ${plan.slug === currentPlan.slug ? 'bg-[var(--color-neutral-50)]' : ''}`}>
                               {typeof val === 'boolean' ? (
                                 val ? <svg className="w-4 h-4 text-green-600 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                                     : <span className="text-[var(--color-neutral-300)]">—</span>
@@ -1444,8 +1449,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
           </div>
           {plans.length > 0 && (
             <div className="inline-flex items-center gap-2 p-1 bg-[var(--color-neutral-100)] rounded-lg">
-              <button onClick={() => { setBillingCycle('monthly'); billingEvents.billingCycleToggled('monthly'); phBillingEvents.billingCycleToggled('monthly'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>{t.billing.monthly}</button>
-              <button onClick={() => { setBillingCycle('annual'); billingEvents.billingCycleToggled('annual'); phBillingEvents.billingCycleToggled('annual'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>
+              <button onClick={() => { setBillingCycle('monthly'); billingEvents.billingCycleToggled('monthly'); phBillingEvents.billingCycleToggled('monthly'); phDecisionEvents.billingCycleChosen('monthly', currentPlan?.slug || 'unknown'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'monthly' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>{t.billing.monthly}</button>
+              <button onClick={() => { setBillingCycle('annual'); billingEvents.billingCycleToggled('annual'); phBillingEvents.billingCycleToggled('annual'); phDecisionEvents.billingCycleChosen('annual', currentPlan?.slug || 'unknown'); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${billingCycle === 'annual' ? 'bg-white text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-neutral-600)] hover:text-[var(--color-ink)]'}`}>
                 {t.billing.annual}<span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">{t.billing.saveUpTo}</span>
               </button>
             </div>

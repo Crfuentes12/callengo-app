@@ -65,6 +65,7 @@ export default async function AppLayout({
     >
       <AnalyticsProvider
         userId={user.id}
+        email={user.email ?? undefined}
         planSlug={planSlug}
         billingCycle={subscription?.billing_cycle ?? 'monthly'}
         companyIndustry={company.industry ?? undefined}
@@ -74,6 +75,8 @@ export default async function AppLayout({
       />
       <PostHogProvider
         userId={user.id}
+        email={user.email ?? undefined}
+        fullName={userData.full_name ?? undefined}
         planSlug={planSlug}
         billingCycle={subscription?.billing_cycle ?? 'monthly'}
         companyId={company.id}

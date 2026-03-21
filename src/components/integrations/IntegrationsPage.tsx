@@ -597,7 +597,7 @@ function WebhooksSetupModal({
     } catch { /* ignore */ }
   };
 
-  const copySecret = (id: string, secret: string) => { navigator.clipboard.writeText(secret); setCopiedSecret(id); setTimeout(() => setCopiedSecret(null), 2000); };
+  const copySecret = (id: string, secret: string) => { navigator.clipboard.writeText(secret); setCopiedSecret(id); setTimeout(() => setCopiedSecret(null), 2000); phIntegrationEvents.webhookSecretCopied(); };
   const toggleEvent = (eventType: string) => { setNewEvents(prev => prev.includes(eventType) ? prev.filter(e => e !== eventType) : [...prev, eventType]); };
   const selectAllEvents = () => { setNewEvents(newEvents.length === availableEvents.length ? [] : availableEvents.map(e => e.type)); };
   const toggleRevealSecret = (id: string) => { setRevealedSecrets(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; }); };
@@ -1090,6 +1090,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
   const handleConnect = useCallback(async (provider: string, connectUrl: string, method?: 'redirect' | 'post' | 'webhooks_inline' | 'simplybook_inline') => {
     integrationEvents.connectStarted(provider, method || 'redirect');
     phIntegrationEvents.connectStarted(provider, method || 'redirect');
+    phIntegrationEvents.connectionFlowStarted(provider);
     if (method === 'webhooks_inline') {
       setShowWebhooksSetup(true);
       return;
@@ -1159,11 +1160,13 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
         const data = await res.json().catch(() => ({}));
         integrationEvents.syncFailed(provider, data.error || 'unknown');
         phIntegrationEvents.syncFailed(provider, data.error || 'unknown');
+        phIntegrationEvents.crmSyncError(provider, data.error || 'unknown');
         showToast(data.error || `Failed to sync ${name}`, 'error');
       }
     } catch {
       integrationEvents.syncFailed(provider, 'network_error');
       phIntegrationEvents.syncFailed(provider, 'network_error');
+      phIntegrationEvents.crmSyncError(provider, 'network_error');
       showToast(`Failed to sync ${name}`, 'error');
     } finally {
       setLoadingAction(null);

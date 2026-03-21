@@ -1,5 +1,6 @@
 // app/api/bland/send-call/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
@@ -76,29 +77,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized for this company' }, { status: 403 });
     }
 
-    // ================================================================
-    // AUDIT FIX: Pre-dispatch throttle checks
-    // Enforces concurrent limits, daily caps, hourly caps, and usage limits
-    // BEFORE calling Bland. Callengo is responsible for all plan limits.
-    // ================================================================
-    const throttleCheck = await checkCallAllowed(company_id);
-    if (!throttleCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: throttleCheck.reason,
-          code: throttleCheck.reasonCode,
-          upgrade: throttleCheck.suggestedUpgrade,
-          limits: {
-            concurrent: throttleCheck.maxConcurrent,
-            currentConcurrent: throttleCheck.currentConcurrent,
-            dailyCap: throttleCheck.dailyCap,
-            dailyCallsToday: throttleCheck.dailyCallsToday,
-          },
-        },
-        { status: 429 }
-      );
-    }
-
     // Get company-specific API key (sub-account key) — never fall back to master key
     const { data: settings } = await supabaseAdmin
       .from('company_settings')
@@ -115,8 +93,45 @@ export async function POST(request: NextRequest) {
 
     const apiKey = settings.bland_api_key;
 
-    // AUDIT FIX: Enforce plan-specific max call duration
-    // The client can request a duration, but it's capped by the plan's max
+    // ================================================================
+    // AUDIT FIX: Pre-register call_log BEFORE throttle check to prevent
+    // TOCTOU race condition. The pre-registered 'queued' entry is counted
+    // by getActiveCalls(), so concurrent requests see each other's entries.
+    // If throttle rejects, we delete the pre-registered entry.
+    // ================================================================
+    const preCallId = `pre_${Date.now()}_${crypto.randomUUID()}`;
+    const { data: preLog } = await supabaseAdmin.from('call_logs').insert({
+      company_id: company_id,
+      contact_id: metadata?.contact_id as string || null,
+      call_id: preCallId,
+      status: 'queued',
+      completed: false,
+    }).select('id').single();
+
+    // Now check throttle — the pre-registered entry is already visible to concurrent requests
+    const throttleCheck = await checkCallAllowed(company_id);
+    if (!throttleCheck.allowed) {
+      // Clean up pre-registered entry
+      if (preLog?.id) {
+        await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+      }
+      return NextResponse.json(
+        {
+          error: throttleCheck.reason,
+          code: throttleCheck.reasonCode,
+          upgrade: throttleCheck.suggestedUpgrade,
+          limits: {
+            concurrent: throttleCheck.maxConcurrent,
+            currentConcurrent: throttleCheck.currentConcurrent,
+            dailyCap: throttleCheck.dailyCap,
+            dailyCallsToday: throttleCheck.dailyCallsToday,
+          },
+        },
+        { status: 429 }
+      );
+    }
+
+    // Enforce plan-specific max call duration
     const planMaxDuration = getMaxCallDuration(throttleCheck.planSlug || 'free');
     const effectiveMaxDuration = max_duration
       ? Math.min(max_duration, planMaxDuration)
@@ -141,17 +156,6 @@ export async function POST(request: NextRequest) {
     if (voicemail_message) blandPayload.voicemail_message = voicemail_message;
     if (webhook) blandPayload.webhook = webhook;
     if (metadata) blandPayload.metadata = metadata;
-
-    // Pre-register call_log with 'queued' status BEFORE dispatching to Bland.
-    // This ensures concurrent call counting is accurate (fixes TOCTOU race).
-    const preCallId = `pre_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const { data: preLog } = await supabaseAdmin.from('call_logs').insert({
-      company_id: company_id,
-      contact_id: metadata?.contact_id as string || null,
-      call_id: preCallId,
-      status: 'queued',
-      completed: false,
-    }).select('id').single();
 
     const response = await fetch('https://api.bland.ai/v1/calls', {
       method: 'POST',

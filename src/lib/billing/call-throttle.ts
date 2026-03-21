@@ -194,13 +194,17 @@ async function getActiveCalls(companyId: string): Promise<number> {
  * Get count of calls made today for a company.
  */
 async function getDailyCallCount(companyId: string): Promise<number> {
+  // FIX: Use UTC to avoid timezone-based daily cap bypass.
+  // Previously used local setHours(0,0,0,0) which created ±12h offset
+  // depending on server timezone vs user timezone.
   const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  startOfDay.setUTCHours(0, 0, 0, 0);
 
   const { count } = await supabaseAdmin
     .from('call_logs')
     .select('id', { count: 'exact', head: true })
     .eq('company_id', companyId)
+    .not('status', 'in', '("failed","error")')
     .gte('created_at', startOfDay.toISOString());
 
   return count || 0;
@@ -212,10 +216,12 @@ async function getDailyCallCount(companyId: string): Promise<number> {
 async function getHourlyCallCount(companyId: string): Promise<number> {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
+  // FIX: Exclude failed/error calls so retries don't eat into hourly cap
   const { count } = await supabaseAdmin
     .from('call_logs')
     .select('id', { count: 'exact', head: true })
     .eq('company_id', companyId)
+    .not('status', 'in', '("failed","error")')
     .gte('created_at', oneHourAgo);
 
   return count || 0;

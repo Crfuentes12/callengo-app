@@ -134,7 +134,8 @@ export function calculateCreditAmount(minutesIncluded: number): number {
  */
 export async function allocateBlandCredits(
   companyId: string,
-  minutesIncluded: number
+  minutesIncluded: number,
+  idempotencyKey?: string
 ): Promise<CreditAllocationResult> {
   const { data: settings } = await supabaseAdmin
     .from('company_settings')
@@ -145,6 +146,24 @@ export async function allocateBlandCredits(
   if (!settings?.bland_subaccount_id) {
     console.warn(`No Bland sub-account for company ${companyId} — skipping credit allocation`);
     return { allocated: 0, minutesCovered: 0 };
+  }
+
+  // FIX: Idempotency check — prevent double credit allocation on webhook retries.
+  // If an idempotency key is provided, check if we already allocated for this event.
+  if (idempotencyKey) {
+    const { data: existingAllocation } = await supabaseAdmin
+      .from('billing_events')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('event_type', 'bland_credits_allocated')
+      .filter('event_data->>idempotency_key', 'eq', idempotencyKey)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingAllocation) {
+      console.log(`⏭️  Credits already allocated for company ${companyId} (key: ${idempotencyKey}), skipping`);
+      return { allocated: 0, minutesCovered: minutesIncluded };
+    }
   }
 
   const creditAmount = calculateCreditAmount(minutesIncluded);
@@ -169,7 +188,7 @@ export async function allocateBlandCredits(
       throw new Error(`Bland credit allocation failed: ${JSON.stringify(error)}`);
     }
 
-    // Log the allocation
+    // Log the allocation (include idempotency key for dedup on retry)
     await supabaseAdmin.from('billing_events').insert({
       company_id: companyId,
       event_type: 'bland_credits_allocated',
@@ -178,6 +197,7 @@ export async function allocateBlandCredits(
         minutes_covered: minutesIncluded,
         cost_per_minute: BLAND_COST_PER_MINUTE,
         buffer_percent: CREDIT_BUFFER_PERCENT,
+        ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
       },
       minutes_consumed: 0,
       cost_usd: creditAmount,
@@ -356,13 +376,14 @@ export async function handlePlanUpgradeCredits(
  */
 export async function handleCycleRenewalCredits(
   companyId: string,
-  minutesIncluded: number
+  minutesIncluded: number,
+  idempotencyKey?: string
 ): Promise<CreditAllocationResult> {
   // Step 1: Reclaim any unused credits from the previous cycle
   await reclaimBlandCredits(companyId);
 
   // Step 2: Allocate fresh credits for the new cycle
-  return await allocateBlandCredits(companyId, minutesIncluded);
+  return await allocateBlandCredits(companyId, minutesIncluded, idempotencyKey);
 }
 
 // Export the cost per minute for use in unit economics calculations

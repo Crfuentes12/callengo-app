@@ -166,7 +166,10 @@ export default function CampaignsOverview({
           <p className="text-[var(--color-neutral-600)] mt-1">Track and manage your AI calling campaigns</p>
         </div>
         <button
-          onClick={() => setShowAgentSelection(true)}
+          onClick={() => {
+            phCampaignEvents.creationFlowStarted();
+            setShowAgentSelection(true);
+          }}
           className="btn-primary"
         >
           + {t.campaigns.newCampaign}
@@ -394,7 +397,10 @@ export default function CampaignsOverview({
         <AgentSelectionModal
           agentTemplates={agentTemplates}
           onSelect={handleAgentSelect}
-          onClose={() => setShowAgentSelection(false)}
+          onClose={() => {
+            phCampaignEvents.creationFlowAbandoned('agent_selection');
+            setShowAgentSelection(false);
+          }}
         />
       )}
 
@@ -406,6 +412,7 @@ export default function CampaignsOverview({
           company={company}
           companySettings={companySettings}
           onClose={() => {
+            phCampaignEvents.creationFlowAbandoned('agent_config');
             setShowConfigModal(false);
             setSelectedAgent(null);
           }}
