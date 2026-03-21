@@ -10,8 +10,10 @@ import { createClient } from '@/lib/supabase/client'
 import { setUserProperties, clearUserProperties } from '@/lib/analytics'
 
 interface AnalyticsProviderProps {
-  /** Supabase user id (UUID). NEVER pass the email. */
+  /** Supabase user id (UUID) */
   userId: string
+  /** User email */
+  email?: string
   /** Subscription plan slug (free, starter, growth, business, teams, enterprise) */
   planSlug?: string
   /** Billing cycle (monthly or annual) */
@@ -28,6 +30,7 @@ interface AnalyticsProviderProps {
 
 export function AnalyticsProvider({
   userId,
+  email,
   planSlug,
   billingCycle,
   companyIndustry,
@@ -44,6 +47,7 @@ export function AnalyticsProvider({
     // Set user properties for audience segmentation
     setUserProperties({
       user_id: userId,
+      email,
       plan_slug: planSlug,
       billing_cycle: billingCycle,
       company_industry: companyIndustry,
@@ -63,7 +67,7 @@ export function AnalyticsProvider({
     })
 
     return () => subscription.unsubscribe()
-  }, [userId, planSlug, billingCycle, companyIndustry, teamSize, countryCode, currency])
+  }, [userId, email, planSlug, billingCycle, companyIndustry, teamSize, countryCode, currency])
 
   return null
 }

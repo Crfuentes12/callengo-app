@@ -40,6 +40,7 @@ function track(eventName: string, params: Record<string, string | number | boole
 
 export function setUserProperties(props: {
   user_id: string
+  email?: string
   plan_slug?: string
   billing_cycle?: string
   company_industry?: string
@@ -56,6 +57,7 @@ export function setUserProperties(props: {
   window.gtag('config', gaId, {
     user_id: props.user_id,
     user_properties: {
+      email: props.email,
       plan_slug: props.plan_slug,
       billing_cycle: props.billing_cycle,
       company_industry: props.company_industry,
