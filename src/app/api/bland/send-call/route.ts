@@ -99,21 +99,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get company-specific API key (sub-account key) or fall back to master key
+    // Get company-specific API key (sub-account key) — never fall back to master key
     const { data: settings } = await supabaseAdmin
       .from('company_settings')
       .select('bland_api_key, bland_subaccount_id')
       .eq('company_id', company_id)
       .single();
 
-    const apiKey = settings?.bland_api_key || process.env.BLAND_API_KEY;
-
-    if (!apiKey) {
+    if (!settings?.bland_api_key) {
       return NextResponse.json(
-        { error: 'Bland API key not configured' },
+        { error: 'Bland sub-account not configured for this company. Please contact support.' },
         { status: 500 }
       );
     }
+
+    const apiKey = settings.bland_api_key;
 
     // AUDIT FIX: Enforce plan-specific max call duration
     // The client can request a duration, but it's capped by the plan's max
