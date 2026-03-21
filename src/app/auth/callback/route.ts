@@ -159,6 +159,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Check if user is admin — redirect to Command Center instead of Dashboard
+    const { data: roleData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user!.id)
+      .single();
+
+    if (roleData?.role === 'admin') {
+      return NextResponse.redirect(`${origin}/admin/command-center`);
+    }
+
     // User already onboarded - redirect to dashboard
     return NextResponse.redirect(`${origin}/dashboard`);
   }

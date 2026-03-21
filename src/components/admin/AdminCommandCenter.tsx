@@ -89,6 +89,16 @@ interface FinanceData {
   bland_transfer_rate: number | null;
   bland_concurrent_limit: string | null;
   bland_daily_limit: string | null;
+  bland_master_balance: number | null;
+  bland_master_subscription: {
+    plan: string;
+    status: string;
+    perMinRate: number;
+    transferRate: number;
+    concurrentLimit: string;
+    dailyLimit: string;
+    monthlyCost: number;
+  } | null;
   notes: string | null;
   [key: string]: unknown;
 }
@@ -343,8 +353,8 @@ export default function AdminCommandCenter() {
          ════════════════════════════════════════════════════════════════ */}
       {tab === 'health' && healthData && (
         <div className="space-y-6">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* KPI Cards — always show Inactive card for symmetric layout */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <KPICard
               label="Bland AI Balance"
               value={`$${fmt(healthData.blandBalance)}`}
@@ -356,14 +366,12 @@ export default function AdminCommandCenter() {
             <KPICard label="Calls Today" value={fmtInt(healthData.callsToday)} color="violet" sub="Since midnight" />
             <KPICard label="Calls This Month" value={fmtInt(healthData.callsThisMonth)} color="purple" sub={`${fmtInt(healthData.totalMinutesUsed)} min used`} />
             <KPICard label="Companies" value={String(healthData.activeCompanies)} color="fuchsia" sub="Active subs" />
-            {(healthData.orphanedCompanies > 0 || healthData.archivedCompanies > 0) && (
-              <KPICard
-                label="Inactive"
-                value={String(healthData.orphanedCompanies + healthData.archivedCompanies)}
-                color={healthData.orphanedCompanies > 0 ? 'amber' : 'slate'}
-                sub={`${healthData.orphanedCompanies} orphaned · ${healthData.archivedCompanies} archived`}
-              />
-            )}
+            <KPICard
+              label="Inactive"
+              value={String(healthData.orphanedCompanies + healthData.archivedCompanies)}
+              color={healthData.orphanedCompanies > 0 ? 'amber' : 'slate'}
+              sub={`${healthData.orphanedCompanies} orphaned · ${healthData.archivedCompanies} archived`}
+            />
           </div>
 
           {/* Usage Gauge */}
@@ -865,12 +873,17 @@ export default function AdminCommandCenter() {
                       </div>
                     </div>
 
-                    {/* Bland AI Infrastructure */}
+                    {/* Bland AI Infrastructure — Master Account */}
                     <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Bland AI — Sub-account Architecture</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Bland AI — Master Account & Sub-account Architecture</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <p className="text-xs font-semibold text-emerald-700 uppercase mb-1">Master Balance</p>
+                          <p className="text-lg font-bold text-emerald-900">${fmt(fd.bland_master_balance || 0)}</p>
+                          <p className="text-xs text-emerald-600">Available credits</p>
+                        </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
-                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Parent Plan</p>
+                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Master Plan</p>
                           <p className="text-lg font-bold text-[var(--color-ink)]">{fd.bland_plan || 'Scale'}</p>
                           <p className="text-xs text-[var(--color-neutral-600)]">${fd.bland_plan_cost || 0}/mo</p>
                         </div>
@@ -885,52 +898,87 @@ export default function AdminCommandCenter() {
                           <p className="text-xs text-[var(--color-neutral-600)]">Isolated per company</p>
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
-                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Parent Limits</p>
+                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Master Limits</p>
                           <p className="text-xs text-[var(--color-neutral-700)]"><strong>{fd.bland_concurrent_limit || '\u221E'}</strong> concurrent</p>
                           <p className="text-xs text-[var(--color-neutral-700)]"><strong>{fd.bland_daily_limit || '\u221E'}</strong> per day</p>
                         </div>
                       </div>
+
+                      {/* Master subscription detail row */}
+                      {fd.bland_master_subscription && (
+                        <div className="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                          <p className="text-xs font-semibold text-indigo-700 uppercase mb-2">Master Subscription Details</p>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-indigo-800">
+                            <div><span className="font-medium">Plan:</span> {fd.bland_master_subscription.plan}</div>
+                            <div><span className="font-medium">Status:</span> <span className="capitalize">{fd.bland_master_subscription.status}</span></div>
+                            <div><span className="font-medium">Talk Rate:</span> ${fd.bland_master_subscription.perMinRate.toFixed(4)}/min</div>
+                            <div><span className="font-medium">Transfer Rate:</span> ${fd.bland_master_subscription.transferRate.toFixed(4)}/min</div>
+                            <div><span className="font-medium">Concurrent:</span> {fd.bland_master_subscription.concurrentLimit}</div>
+                            <div><span className="font-medium">Daily Limit:</span> {fd.bland_master_subscription.dailyLimit}</div>
+                            <div><span className="font-medium">Monthly Cost:</span> ${fd.bland_master_subscription.monthlyCost}/mo</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Unit Economics Reference */}
-                    <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Unit Economics Reference (V4)</h3>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs border-collapse">
-                          <thead>
-                            <tr className="border-b-2 border-[var(--border-default)]">
-                              <th className="text-left py-2 pr-4 text-[var(--color-neutral-500)] font-semibold">Plan</th>
-                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Price</th>
-                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Calls</th>
-                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Min</th>
-                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Bland Cost</th>
-                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Gross Margin</th>
-                              <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Overage</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {[
-                              { plan: 'Starter', price: 99, calls: 200, min: 300, blandCost: 33, margin: 66.7, overage: 0.29 },
-                              { plan: 'Growth', price: 179, calls: 400, min: 600, blandCost: 66, margin: 63.1, overage: 0.26 },
-                              { plan: 'Business', price: 299, calls: 800, min: 1200, blandCost: 132, margin: 55.9, overage: 0.23 },
-                              { plan: 'Teams', price: 649, calls: 1500, min: 2250, blandCost: 247.5, margin: 61.9, overage: 0.20 },
-                              { plan: 'Enterprise', price: 1499, calls: 4000, min: 6000, blandCost: 660, margin: 56.0, overage: 0.17 },
-                            ].map((row, i) => (
-                              <tr key={i} className={i % 2 === 0 ? 'bg-[var(--color-neutral-50)]' : ''}>
-                                <td className="py-2 pr-4 font-semibold text-[var(--color-neutral-800)]">{row.plan}</td>
-                                <td className="text-center py-2 px-3">${row.price}/mo</td>
-                                <td className="text-center py-2 px-3">~{row.calls}</td>
-                                <td className="text-center py-2 px-3">{row.min}</td>
-                                <td className="text-center py-2 px-3 text-red-600">${row.blandCost}</td>
-                                <td className={`text-center py-2 px-3 font-bold ${row.margin >= 60 ? 'text-emerald-600' : 'text-amber-600'}`}>{row.margin}%</td>
-                                <td className="text-center py-2 px-3">${row.overage}/min</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <p className="text-xs text-[var(--color-neutral-500)] mt-2">* Bland cost @ $0.11/min (Scale plan). Effective avg: 1.5 min/call attempt.</p>
-                    </div>
+                    {/* Unit Economics Reference — dynamic based on actual Bland rate */}
+                    {(() => {
+                      const rate = fd.bland_talk_rate || 0.11;
+                      const plans = [
+                        { plan: 'Free', price: 0, calls: 10, min: 15, overage: null as number | null },
+                        { plan: 'Starter', price: 99, calls: 200, min: 300, overage: 0.29 },
+                        { plan: 'Growth', price: 179, calls: 400, min: 600, overage: 0.26 },
+                        { plan: 'Business', price: 299, calls: 800, min: 1200, overage: 0.23 },
+                        { plan: 'Teams', price: 649, calls: 1500, min: 2250, overage: 0.20 },
+                        { plan: 'Enterprise', price: 1499, calls: 4000, min: 6000, overage: 0.17 },
+                      ].map(p => {
+                        const blandCost = +(p.min * rate).toFixed(2);
+                        const credits = +(blandCost * 1.05).toFixed(2);
+                        const margin = p.price > 0 ? +((1 - blandCost / p.price) * 100).toFixed(1) : 0;
+                        return { ...p, blandCost, credits, margin };
+                      });
+
+                      return (
+                        <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                          <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Unit Economics Reference (V4)</h3>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs border-collapse">
+                              <thead>
+                                <tr className="border-b-2 border-[var(--border-default)]">
+                                  <th className="text-left py-2 pr-4 text-[var(--color-neutral-500)] font-semibold">Plan</th>
+                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Price</th>
+                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Calls</th>
+                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Min</th>
+                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Bland Cost</th>
+                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Credits (5%)</th>
+                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Gross Margin</th>
+                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Overage</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {plans.map((row, i) => (
+                                  <tr key={i} className={`${i % 2 === 0 ? 'bg-[var(--color-neutral-50)]' : ''} ${row.plan === 'Free' ? 'opacity-70' : ''}`}>
+                                    <td className="py-2 pr-4 font-semibold text-[var(--color-neutral-800)]">{row.plan}</td>
+                                    <td className="text-center py-2 px-3">{row.price === 0 ? '$0' : `$${row.price}/mo`}</td>
+                                    <td className="text-center py-2 px-3">~{row.calls}</td>
+                                    <td className="text-center py-2 px-3">{row.min}</td>
+                                    <td className="text-center py-2 px-3 text-red-600">${row.blandCost}</td>
+                                    <td className="text-center py-2 px-3 text-orange-600">${row.credits}</td>
+                                    <td className={`text-center py-2 px-3 font-bold ${row.plan === 'Free' ? 'text-[var(--color-neutral-400)]' : row.margin >= 60 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                      {row.plan === 'Free' ? 'N/A' : `${row.margin}%`}
+                                    </td>
+                                    <td className="text-center py-2 px-3">{row.overage !== null ? `$${row.overage}/min` : 'Blocked'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <p className="text-xs text-[var(--color-neutral-500)] mt-2">
+                            * Bland cost @ ${rate.toFixed(2)}/min ({fd.bland_plan || 'Scale'} plan). Credits include 5% buffer. Effective avg: 1.5 min/call attempt.
+                          </p>
+                        </div>
+                      );
+                    })()}
 
                     {fd.notes && (
                       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
