@@ -144,58 +144,66 @@ export async function POST(request: NextRequest) {
     // Get dedicated number if company has one (for caller ID)
     const dedicatedNumber = await getCompanyCallerNumber(company_id);
 
-    // Dispatch via master API key
-    const result = await dispatchCall({
-      phone_number,
-      task,
-      voice,
-      first_sentence,
-      wait_for_greeting,
-      record,
-      max_duration: effectiveMaxDuration,
-      voicemail_action,
-      voicemail_message,
-      answered_by_enabled,
-      webhook,
-      metadata: {
-        ...metadata,
-        company_id,
-      },
-      from: dedicatedNumber || undefined,
-    });
+    // Dispatch via master API key — wrapped in try-catch to guarantee slot release on ANY exception
+    let dispatchSuccess = false;
+    try {
+      const result = await dispatchCall({
+        phone_number,
+        task,
+        voice,
+        first_sentence,
+        wait_for_greeting,
+        record,
+        max_duration: effectiveMaxDuration,
+        voicemail_action,
+        voicemail_message,
+        answered_by_enabled,
+        webhook,
+        metadata: {
+          ...metadata,
+          company_id,
+        },
+        from: dedicatedNumber || undefined,
+      });
 
-    if (!result.success) {
-      // Remove pre-registered call_log on failure
-      if (preLog?.id) {
-        await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || 'Failed to initiate call', details: result },
+          { status: result.statusCode || 500 }
+        );
       }
-      // Release the Redis slot since call failed
-      const { releaseCallSlot } = await import('@/lib/redis/concurrency-manager');
-      await releaseCallSlot(company_id, preCallId);
 
-      return NextResponse.json(
-        { error: result.error || 'Failed to initiate call', details: result },
-        { status: result.statusCode || 500 }
-      );
+      dispatchSuccess = true;
+
+      // Update pre-registered call_log with actual Bland call_id
+      if (preLog?.id && result.callId) {
+        await supabaseAdmin.from('call_logs')
+          .update({ call_id: result.callId, status: 'in_progress' })
+          .eq('id', preLog.id);
+      }
+
+      return NextResponse.json({
+        status: 'success',
+        call_id: result.callId,
+        message: result.message || 'Call initiated successfully',
+        limits: {
+          concurrent: `${(throttleCheck.currentConcurrent || 0) + 1}/${throttleCheck.maxConcurrent || '∞'}`,
+          dailyCalls: `${(throttleCheck.dailyCallsToday || 0) + 1}/${throttleCheck.dailyCap || '∞'}`,
+          maxDuration: `${effectiveMaxDuration} min`,
+        },
+      });
+    } finally {
+      // CRITICAL: Always clean up on failure to prevent Redis slot leaks
+      if (!dispatchSuccess) {
+        try {
+          if (preLog?.id) {
+            await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+          }
+          const { releaseCallSlot } = await import('@/lib/redis/concurrency-manager');
+          await releaseCallSlot(company_id, preCallId);
+        } catch { /* cleanup errors are non-fatal */ }
+      }
     }
-
-    // Update pre-registered call_log with actual Bland call_id
-    if (preLog?.id && result.callId) {
-      await supabaseAdmin.from('call_logs')
-        .update({ call_id: result.callId, status: 'in_progress' })
-        .eq('id', preLog.id);
-    }
-
-    return NextResponse.json({
-      status: 'success',
-      call_id: result.callId,
-      message: result.message || 'Call initiated successfully',
-      limits: {
-        concurrent: `${(throttleCheck.currentConcurrent || 0) + 1}/${throttleCheck.maxConcurrent || '∞'}`,
-        dailyCalls: `${(throttleCheck.dailyCallsToday || 0) + 1}/${throttleCheck.dailyCap || '∞'}`,
-        maxDuration: `${effectiveMaxDuration} min`,
-      },
-    });
 
   } catch (error) {
     console.error('Error in send-call route:', error);

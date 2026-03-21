@@ -145,53 +145,68 @@ export async function POST(request: NextRequest) {
           continue; // Skip this contact but try next
         }
 
-        // Dispatch via master API key
-        const result = await dispatchCall({
-          phone_number: contact.phone_number,
-          task: call_config.task,
-          voice: call_config.voice,
-          wait_for_greeting: true,
-          record: true,
-          max_duration: effectiveMaxDuration,
-          voicemail_action: call_config.voicemail_action,
-          answered_by_enabled: true,
-          webhook: webhook_url || platformWebhook,
-          metadata: {
-            company_id,
-            contact_id: contact.contact_id,
-            campaign_id: campaign_id || null,
-            agent_run_id: agent_run_id || null,
-            agent_name: call_config.agent_name || 'AI Agent',
-            agent_template_slug: call_config.agent_template_slug || null,
-            contact_name: contact.contact_name || null,
-          },
-          first_sentence: call_config.first_sentence,
-          voicemail_message: call_config.voicemail_message,
-          from: dedicatedNumber || undefined,
-        });
+        // Dispatch via master API key — wrapped in try-finally to guarantee slot release on ANY exception
+        let dispatchSuccess = false;
+        let dispatchCallId: string | undefined;
+        try {
+          const result = await dispatchCall({
+            phone_number: contact.phone_number,
+            task: call_config.task,
+            voice: call_config.voice,
+            wait_for_greeting: true,
+            record: true,
+            max_duration: effectiveMaxDuration,
+            voicemail_action: call_config.voicemail_action,
+            answered_by_enabled: true,
+            webhook: webhook_url || platformWebhook,
+            metadata: {
+              company_id,
+              contact_id: contact.contact_id,
+              campaign_id: campaign_id || null,
+              agent_run_id: agent_run_id || null,
+              agent_name: call_config.agent_name || 'AI Agent',
+              agent_template_slug: call_config.agent_template_slug || null,
+              contact_name: contact.contact_name || null,
+            },
+            first_sentence: call_config.first_sentence,
+            voicemail_message: call_config.voicemail_message,
+            from: dedicatedNumber || undefined,
+          });
 
-        if (result.success && result.callId) {
-          // Update pre-registered call_log with real call_id
-          if (preLog?.id) {
-            await supabaseAdmin.from('call_logs')
-              .update({ call_id: result.callId, status: 'in_progress' })
-              .eq('id', preLog.id);
+          if (result.success && result.callId) {
+            dispatchSuccess = true;
+            dispatchCallId = result.callId;
+            // Update pre-registered call_log with real call_id
+            if (preLog?.id) {
+              await supabaseAdmin.from('call_logs')
+                .update({ call_id: result.callId, status: 'in_progress' })
+                .eq('id', preLog.id);
+            }
+            results.push({ contact_id: contact.contact_id, status: 'dispatched', call_id: result.callId });
+            dispatched++;
+          } else {
+            results.push({ contact_id: contact.contact_id, status: 'failed', error: result.error || 'Bland API error' });
+            failed++;
           }
-          results.push({ contact_id: contact.contact_id, status: 'dispatched', call_id: result.callId });
-          dispatched++;
-        } else {
-          // Remove pre-registered call_log and release slot
-          if (preLog?.id) {
-            await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
-          }
-          await releaseCallSlot(company_id, preCallId);
-          results.push({ contact_id: contact.contact_id, status: 'failed', error: result.error || 'Bland API error' });
+        } catch (dispatchError) {
+          results.push({ contact_id: contact.contact_id, status: 'failed', error: 'Dispatch error' });
           failed++;
+          console.error(`[dispatch] Failed to dispatch call to ${contact.phone_number}:`, dispatchError);
+        } finally {
+          // CRITICAL: Always clean up on failure to prevent Redis slot leaks
+          if (!dispatchSuccess) {
+            try {
+              if (preLog?.id) {
+                await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
+              }
+              await releaseCallSlot(company_id, preCallId);
+            } catch { /* cleanup errors are non-fatal */ }
+          }
         }
       } catch (callError) {
-        results.push({ contact_id: contact.contact_id, status: 'failed', error: 'Dispatch error' });
+        results.push({ contact_id: contact.contact_id, status: 'failed', error: 'Pre-dispatch error' });
         failed++;
-        console.error(`[dispatch] Failed to dispatch call to ${contact.phone_number}:`, callError);
+        console.error(`[dispatch] Pre-dispatch error for ${contact.phone_number}:`, callError);
       }
 
       // Delay between calls (except for the last one)

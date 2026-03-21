@@ -196,16 +196,17 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
 
 /**
  * Get count of currently active (in-progress) calls for a company.
+ * Uses 30-min window to match Redis active_call TTL (1800s).
  */
 async function getActiveCalls(companyId: string): Promise<number> {
-  const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
   const { count } = await supabaseAdmin
     .from('call_logs')
     .select('id', { count: 'exact', head: true })
     .eq('company_id', companyId)
     .in('status', ['in_progress', 'ringing', 'queued'])
-    .gte('created_at', fifteenMinAgo);
+    .gte('created_at', thirtyMinAgo);
 
   return count || 0;
 }

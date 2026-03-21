@@ -256,6 +256,14 @@ export async function acquireCallSlot(
   }
 
   try {
+    // Check contact cooldown BEFORE acquiring the slot (prevents wasted slot increments)
+    if (contactId) {
+      const onCooldown = await redis.exists(KEYS.contactCooldown(contactId));
+      if (onCooldown) {
+        return { acquired: false, error: 'Contact was called recently (5-min cooldown)' };
+      }
+    }
+
     const pipeline = redis.pipeline();
 
     // Increment all counters
@@ -376,8 +384,10 @@ export async function getConcurrencySnapshot(): Promise<ConcurrencySnapshot> {
     let activeCallCount = 0;
     const companyStats: Record<string, { concurrent: number; daily: number }> = {};
 
-    // Scan active call keys
+    // Scan active call keys (max 10 iterations to prevent unbounded loops)
     let cursor = 0;
+    let scanIterations = 0;
+    const MAX_SCAN_ITERATIONS = 10;
     do {
       const [nextCursor, keys] = await redis.scan(cursor, {
         match: 'callengo:active_call:*',
@@ -385,6 +395,7 @@ export async function getConcurrencySnapshot(): Promise<ConcurrencySnapshot> {
       });
       cursor = typeof nextCursor === 'number' ? nextCursor : parseInt(nextCursor as string, 10);
       activeCallCount += keys.length;
+      scanIterations++;
 
       for (const key of keys) {
         try {
@@ -397,7 +408,7 @@ export async function getConcurrencySnapshot(): Promise<ConcurrencySnapshot> {
           }
         } catch { /* skip individual key errors */ }
       }
-    } while (cursor !== 0);
+    } while (cursor !== 0 && scanIterations < MAX_SCAN_ITERATIONS);
 
     // Get daily counts for companies with active calls
     for (const companyId of Object.keys(companyStats)) {
@@ -439,9 +450,10 @@ export async function resetStaleConcurrency(): Promise<void> {
   if (!redis) return;
 
   try {
-    // Count actual active calls from Redis
+    // Count actual active calls from Redis (max 10 iterations)
     let actualActive = 0;
     let cursor = 0;
+    let scanIterations = 0;
     do {
       const [nextCursor, keys] = await redis.scan(cursor, {
         match: 'callengo:active_call:*',
@@ -449,7 +461,8 @@ export async function resetStaleConcurrency(): Promise<void> {
       });
       cursor = typeof nextCursor === 'number' ? nextCursor : parseInt(nextCursor as string, 10);
       actualActive += keys.length;
-    } while (cursor !== 0);
+      scanIterations++;
+    } while (cursor !== 0 && scanIterations < 10);
 
     // Reset global concurrent to actual count
     await redis.set(KEYS.globalConcurrent, actualActive, { ex: 1800 });
