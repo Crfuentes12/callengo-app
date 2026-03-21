@@ -43,6 +43,13 @@ export async function GET() {
     const hourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
+    // Read persisted admin config (source of truth for Bland plan selection)
+    const { data: adminConfig } = await supabaseAdmin
+      .from('admin_platform_config')
+      .select('*')
+      .limit(1)
+      .single();
+
     // Get active company IDs
     const { data: usersWithCompanies } = await supabaseAdmin
       .from('users')
@@ -186,6 +193,23 @@ export async function GET() {
         .not('call_length', 'is', null),
     ]);
 
+    // Override Bland account info with DB-persisted config (source of truth)
+    if (adminConfig?.bland_plan && BLAND_PLAN_LIMITS[adminConfig.bland_plan]) {
+      const dbLimits = BLAND_PLAN_LIMITS[adminConfig.bland_plan];
+      blandAccountResult.plan = adminConfig.bland_plan;
+      blandAccountResult.dailyCap = dbLimits.dailyCap;
+      blandAccountResult.hourlyCap = dbLimits.hourlyCap;
+      blandAccountResult.concurrentCap = dbLimits.concurrentCap;
+      blandAccountResult.costPerMinute = dbLimits.costPerMinute;
+      blandAccountResult.transferRate = dbLimits.transferRate;
+      blandAccountResult.voiceClones = dbLimits.voiceClones;
+    }
+
+    // Also update cached balance from DB if available
+    if (adminConfig?.bland_account_balance != null && blandAccountResult.balance === 0) {
+      blandAccountResult.balance = Number(adminConfig.bland_account_balance);
+    }
+
     // Cache Bland plan limits in Redis for concurrency manager
     if (blandAccountResult.plan) {
       await cacheBlandLimits({
@@ -194,6 +218,19 @@ export async function GET() {
         concurrentCap: blandAccountResult.concurrentCap,
         plan: blandAccountResult.plan,
       }).catch(() => {}); // Non-fatal
+    }
+
+    // Sync Bland API balance back to DB (non-blocking, fire-and-forget)
+    if (blandAccountResult.balance > 0 && !(blandAccountResult as Record<string, unknown>).error) {
+      void supabaseAdmin
+        .from('admin_platform_config')
+        .update({
+          bland_account_balance: blandAccountResult.balance,
+          bland_account_plan: blandAccountResult.plan,
+          bland_account_total_calls: blandAccountResult.totalCalls,
+          bland_last_synced_at: now.toISOString(),
+        })
+        .not('id', 'is', null);
     }
 
     // Filter to active companies
@@ -670,7 +707,46 @@ export async function POST(request: NextRequest) {
 
     const limits = BLAND_PLAN_LIMITS[plan];
 
-    // Cache selected plan limits in Redis
+    // Read current config for audit log
+    const { data: currentConfig } = await supabaseAdmin
+      .from('admin_platform_config')
+      .select('bland_plan, bland_cost_per_minute, bland_daily_cap, bland_hourly_cap, bland_concurrent_cap')
+      .limit(1)
+      .single();
+
+    // Persist to DB (source of truth)
+    const { error: updateError } = await supabaseAdmin
+      .from('admin_platform_config')
+      .update({
+        bland_plan: plan,
+        bland_cost_per_minute: limits.costPerMinute,
+        bland_transfer_rate: limits.transferRate,
+        bland_daily_cap: limits.dailyCap,
+        bland_hourly_cap: limits.hourlyCap,
+        bland_concurrent_cap: limits.concurrentCap,
+        bland_voice_clones: limits.voiceClones,
+        updated_by: user.id,
+      })
+      .not('id', 'is', null); // Update the singleton row
+
+    if (updateError) {
+      console.error('Failed to update admin_platform_config:', updateError);
+      // If table doesn't exist yet, insert
+      await supabaseAdmin
+        .from('admin_platform_config')
+        .insert({
+          bland_plan: plan,
+          bland_cost_per_minute: limits.costPerMinute,
+          bland_transfer_rate: limits.transferRate,
+          bland_daily_cap: limits.dailyCap,
+          bland_hourly_cap: limits.hourlyCap,
+          bland_concurrent_cap: limits.concurrentCap,
+          bland_voice_clones: limits.voiceClones,
+          updated_by: user.id,
+        });
+    }
+
+    // Cache in Redis too (for concurrency manager fast access)
     await cacheBlandLimits({
       dailyCap: limits.dailyCap,
       hourlyCap: limits.hourlyCap,
@@ -680,6 +756,29 @@ export async function POST(request: NextRequest) {
 
     // Reset stale concurrency counters to sync with new limits
     await resetStaleConcurrency();
+
+    // Audit log
+    await supabaseAdmin
+      .from('admin_audit_log')
+      .insert({
+        user_id: user.id,
+        action: 'bland_plan_changed',
+        entity_type: 'bland_plan',
+        entity_id: plan,
+        old_value: currentConfig ? {
+          plan: currentConfig.bland_plan,
+          costPerMinute: currentConfig.bland_cost_per_minute,
+          dailyCap: currentConfig.bland_daily_cap,
+        } : null,
+        new_value: {
+          plan,
+          costPerMinute: limits.costPerMinute,
+          dailyCap: limits.dailyCap,
+          hourlyCap: limits.hourlyCap,
+          concurrentCap: limits.concurrentCap,
+        },
+      });
+    // Audit log is fire-and-forget, don't block response
 
     return NextResponse.json({
       success: true,

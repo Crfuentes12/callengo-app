@@ -50,8 +50,8 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    // Fetch finances from DB + Bland master account info in parallel
-    const [financeResult, blandMasterInfo, subaccountCount] = await Promise.all([
+    // Fetch finances from DB + Bland master account info + admin config in parallel
+    const [financeResult, blandMasterInfo, subaccountCount, adminConfigResult] = await Promise.all([
       supabase
         .from('admin_finances')
         .select('*')
@@ -65,11 +65,47 @@ export async function GET(request: NextRequest) {
         .from('company_settings')
         .select('company_id', { count: 'exact', head: true })
         .not('bland_subaccount_id', 'is', null),
+
+      // Admin platform config (persisted Bland plan selection)
+      supabaseAdmin
+        .from('admin_platform_config')
+        .select('*')
+        .limit(1)
+        .single(),
     ]);
 
     if (financeResult.error) throw financeResult.error;
 
     const finances = financeResult.data || [];
+    const adminConfig = adminConfigResult.data;
+
+    // Override blandMasterInfo with persisted config if available
+    if (adminConfig?.bland_plan) {
+      blandMasterInfo.plan = adminConfig.bland_plan;
+      blandMasterInfo.concurrentLimit = String(adminConfig.bland_concurrent_cap);
+      blandMasterInfo.dailyLimit = String(adminConfig.bland_daily_cap);
+      blandMasterInfo.transferRate = Number(adminConfig.bland_transfer_rate);
+      if (blandMasterInfo.balance === 0 && adminConfig.bland_account_balance) {
+        blandMasterInfo.balance = Number(adminConfig.bland_account_balance);
+      }
+      if (blandMasterInfo.subscription) {
+        blandMasterInfo.subscription.plan = adminConfig.bland_plan;
+        blandMasterInfo.subscription.perMinRate = Number(adminConfig.bland_cost_per_minute);
+        blandMasterInfo.subscription.transferRate = Number(adminConfig.bland_transfer_rate);
+        blandMasterInfo.subscription.concurrentLimit = String(adminConfig.bland_concurrent_cap);
+        blandMasterInfo.subscription.dailyLimit = String(adminConfig.bland_daily_cap);
+      } else {
+        blandMasterInfo.subscription = {
+          plan: adminConfig.bland_plan,
+          status: 'active',
+          perMinRate: Number(adminConfig.bland_cost_per_minute),
+          transferRate: Number(adminConfig.bland_transfer_rate),
+          concurrentLimit: String(adminConfig.bland_concurrent_cap),
+          dailyLimit: String(adminConfig.bland_daily_cap),
+          monthlyCost: 0,
+        };
+      }
+    }
 
     // Enrich each finance record with live Bland master account data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

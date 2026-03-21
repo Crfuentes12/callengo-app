@@ -1037,6 +1037,123 @@ export type Database = {
           }
         ]
       }
+      admin_platform_config: {
+        Row: {
+          id: string
+          bland_plan: string
+          bland_cost_per_minute: number
+          bland_transfer_rate: number
+          bland_daily_cap: number
+          bland_hourly_cap: number
+          bland_concurrent_cap: number
+          bland_voice_clones: number
+          bland_account_balance: number | null
+          bland_account_plan: string | null
+          bland_account_total_calls: number | null
+          bland_last_synced_at: string | null
+          platform_name: string
+          default_landing_page: string
+          maintenance_mode: boolean
+          maintenance_message: string | null
+          alert_balance_warning: number
+          alert_balance_critical: number
+          alert_concurrency_warning_pct: number
+          alert_daily_usage_warning_pct: number
+          updated_by: string | null
+          updated_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          bland_plan?: string
+          bland_cost_per_minute?: number
+          bland_transfer_rate?: number
+          bland_daily_cap?: number
+          bland_hourly_cap?: number
+          bland_concurrent_cap?: number
+          bland_voice_clones?: number
+          bland_account_balance?: number | null
+          bland_account_plan?: string | null
+          bland_account_total_calls?: number | null
+          bland_last_synced_at?: string | null
+          platform_name?: string
+          default_landing_page?: string
+          maintenance_mode?: boolean
+          maintenance_message?: string | null
+          alert_balance_warning?: number
+          alert_balance_critical?: number
+          alert_concurrency_warning_pct?: number
+          alert_daily_usage_warning_pct?: number
+          updated_by?: string | null
+          updated_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          bland_plan?: string
+          bland_cost_per_minute?: number
+          bland_transfer_rate?: number
+          bland_daily_cap?: number
+          bland_hourly_cap?: number
+          bland_concurrent_cap?: number
+          bland_voice_clones?: number
+          bland_account_balance?: number | null
+          bland_account_plan?: string | null
+          bland_account_total_calls?: number | null
+          bland_last_synced_at?: string | null
+          platform_name?: string
+          default_landing_page?: string
+          maintenance_mode?: boolean
+          maintenance_message?: string | null
+          alert_balance_warning?: number
+          alert_balance_critical?: number
+          alert_concurrency_warning_pct?: number
+          alert_daily_usage_warning_pct?: number
+          updated_by?: string | null
+          updated_at?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      admin_audit_log: {
+        Row: {
+          id: string
+          user_id: string
+          action: string
+          entity_type: string | null
+          entity_id: string | null
+          old_value: Record<string, unknown> | null
+          new_value: Record<string, unknown> | null
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          action: string
+          entity_type?: string | null
+          entity_id?: string | null
+          old_value?: Record<string, unknown> | null
+          new_value?: Record<string, unknown> | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          action?: string
+          entity_type?: string | null
+          entity_id?: string | null
+          old_value?: Record<string, unknown> | null
+          new_value?: Record<string, unknown> | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       admin_finances: {
         Row: {
           id: string

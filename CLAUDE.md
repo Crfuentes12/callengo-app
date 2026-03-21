@@ -1,7 +1,7 @@
 # CLAUDE.md — Contexto del Proyecto Callengo
 
 > Documento de contexto para Claude Code. Léelo antes de cada sesión de trabajo.
-> Última actualización: Marzo 2026
+> Última actualización: Marzo 2026 (post-auditoría billing + Command Center v2)
 
 ---
 
@@ -22,7 +22,8 @@ Callengo es una plataforma B2B SaaS de llamadas outbound automatizadas con IA. R
 | **Base de datos** | Supabase (PostgreSQL) con Row Level Security (RLS), 56 tablas |
 | **Auth** | Supabase Auth (email/password + OAuth: Google, GitHub) |
 | **Pagos** | Stripe 20.1.0 (suscripciones, metered billing para overage, add-ons) |
-| **Llamadas** | Bland AI (voz + transcripción) con arquitectura de sub-cuentas por empresa |
+| **Llamadas** | Bland AI (voz + transcripción) con arquitectura de master key única |
+| **Concurrencia** | Upstash Redis (rate limiting, concurrency tracking, call slots) |
 | **Análisis IA** | OpenAI GPT-4o-mini (temperature 0.1, JSON mode, post-call intelligence) |
 | **Charts** | Recharts 3.8.0 |
 | **i18n** | 7 idiomas: en, es, fr, de, it, nl, pt (detección por geolocalización) |
@@ -53,6 +54,7 @@ src/
 │   ├── admin/              # Vista financiera interna
 │   ├── onboarding/
 │   ├── api/                # 90+ endpoints
+│   │   ├── admin/          # Command Center, clients, finances, reconcile
 │   │   ├── billing/        # 13 endpoints
 │   │   ├── bland/          # Webhooks + API Bland AI
 │   │   ├── integrations/   # 60+ endpoints OAuth y sync CRMs
@@ -68,6 +70,7 @@ src/
 │   ├── integrations/       # IntegrationsPage (~2,300 líneas — componente grande)
 │   ├── dashboard/
 │   ├── settings/           # BillingSettings (~1,000 líneas)
+│   ├── admin/              # AdminCommandCenter (~1,200 líneas — 6 tabs)
 │   └── ui/                 # shadcn/ui components
 ├── config/
 │   └── plan-features.ts    # Fuente de verdad de features por plan (254 líneas)
@@ -79,7 +82,9 @@ src/
 ├── i18n/                   # Traducciones por idioma
 ├── lib/                    # Lógica de negocio
 │   ├── ai/                 # Intent analyzer (GPT-4o-mini)
-│   ├── billing/            # Usage tracker, overage manager
+│   ├── bland/              # master-client.ts (plan limits, dispatch), phone-numbers.ts
+│   ├── billing/            # Usage tracker, overage manager, call-throttle.ts
+│   ├── redis/              # concurrency-manager.ts (Upstash Redis, call slots, gauges)
 │   ├── calendar/           # Google, Outlook, Zoom, sync, availability
 │   ├── clio/               # Clio CRM (auth, sync)
 │   ├── dynamics/           # MS Dynamics (auth, sync)
@@ -140,27 +145,43 @@ Llama 24-48h antes de una cita. Confirma asistencia, gestiona reprogramaciones, 
 
 ---
 
-## Arquitectura Bland AI — Sub-cuentas
+## Arquitectura Bland AI — Master Key Única
 
-Cada empresa tiene una **sub-cuenta aislada en Bland AI** creada al registrarse:
-- API key propia (`bland_subaccount_id` en tabla `company_settings`)
-- Balance de créditos independiente (redistribuido desde la cuenta master)
-- Historial de llamadas y analíticas aislados
-- Sin concurrencia compartida entre empresas
+Todas las llamadas pasan por **una sola API key master de Bland AI**. No hay sub-cuentas.
+- La aislación por empresa se maneja en Supabase (`company_id` en cada registro)
+- Bland ve un pool plano de llamadas — la correlación es por UUIDs en metadata
+- El campo `bland_subaccount_id` en `company_settings` se usa como `'master'` para la cuenta admin
 
-**Modelo de créditos (Stripe y Bland son independientes):**
-- **Stripe** solo cobra a los clientes. No interactúa con Bland.
-- **Bland** se carga manualmente con créditos en la cuenta master.
-- El sistema redistribuye créditos **dentro de Bland** (master → sub-cuentas) cuando Stripe confirma pagos via webhook.
+**Planes de Bland AI (configurables en Command Center):**
+
+| Plan | $/min | Concurrent | Daily | Hourly | Voice Clones |
+|------|-------|-----------|-------|--------|-------------|
+| **Start** | $0.14 | 10 | 100 | 100 | 1 |
+| **Build** | $0.12 | 50 | 2,000 | 1,000 | 5 |
+| **Scale** | $0.11 | 100 | 5,000 | 1,000 | 15 |
+| **Enterprise** | $0.09 | ∞ | ∞ | ∞ | 999 |
+
+- El plan activo se selecciona via dropdown en el Command Center admin
+- Los límites se cachean en **Redis** (TTL 1h) y se aplican con 90% safety margin
+- Fuente de verdad: `BLAND_PLAN_LIMITS` en `src/lib/bland/master-client.ts`
+- `BLAND_COST_PER_MINUTE` env var overridea el costo por defecto
+
+**Concurrencia (Redis / Upstash):**
+- Contadores globales: concurrent, daily, hourly
+- Contadores per-company: concurrent, daily, hourly
+- Call slots activos: `callengo:active_call:{callId}` con TTL 30min
+- Contact cooldown: 5min entre llamadas al mismo contacto
+- Implementación: `src/lib/redis/concurrency-manager.ts`
 
 **Flujo operativo:**
-1. El owner carga créditos en su cuenta master de Bland (manual, independiente)
-2. Cliente paga en Stripe → webhook confirma pago
-3. Webhook redistribuye créditos de la master a la sub-cuenta del cliente en Bland
-4. Bland descuenta créditos en tiempo real por minuto usado
-5. Overage: Stripe metered billing cobra al cliente al final del período
+1. El owner carga créditos en su cuenta de Bland (auto-recharge o manual)
+2. Campaña dispatched → `checkCallAllowed()` valida límites Callengo + Bland
+3. Redis `acquireCallSlot()` reserva slot atómico
+4. Llamada enviada via master API key con metadata de company_id
+5. Webhook `/api/bland/webhook` procesa resultado, libera slot
+6. Usage tracked en `usage_tracking` para Stripe metered billing
 
-> ⚠️ Twilio BYOP NO está disponible — incompatible con arquitectura multi-tenant de sub-cuentas Bland.
+**Implementación:** `src/lib/bland/master-client.ts` (plan detection, dispatch, limits)
 
 ---
 
@@ -210,6 +231,34 @@ npm run stripe:sync:dry        # Dry-run para ver qué cambiaría
 
 ---
 
+## Admin Command Center (`/admin/command-center`)
+
+Panel de monitoreo en tiempo real para el owner de la plataforma. 6 tabs:
+
+| Tab | Contenido |
+|-----|-----------|
+| **Health** | KPIs de llamadas, Bland AI plan selector (dropdown), Redis concurrency panel (gauges + active calls + per-company), usage gauge, charts 24h/30d, plan distribution |
+| **Operations** | MRR/ARR, Stripe revenue 30d, subscription health (active/trialing/canceled/past_due), churn rate, trial conversion, Bland burn rate + runway, failed calls analysis, unit economics (gross margin, ARPC, cost per call) |
+| **Clients** | Lista de empresas con usage, profit, Bland cost, add-ons, sortable/searchable |
+| **Billing Events** | Log paginado de eventos billing (pagos, overages, créditos, cancelaciones) |
+| **Reconciliation** | Comparación minutos reales vs tracked, detección de discrepancias |
+| **Finances** | P&L con revenue, costs (Bland, OpenAI, Supabase), gross margin, Bland master account info |
+
+**API:** `GET /api/admin/command-center` (read) + `POST /api/admin/command-center` (save Bland plan)
+**Componente:** `src/components/admin/AdminCommandCenter.tsx`
+**Acceso:** Solo roles `admin` y `owner`
+
+---
+
+## Navegación por Defecto
+
+- **Root (`/`)** → redirige a `/home`
+- **Post-login** → `/home` (regular users) o `/admin/command-center` (admins)
+- **Post-onboarding** → `/home`
+- **Team join** → `/home?team_joined=true`
+
+---
+
 ## Integraciones CRM
 
 | CRM | Carpeta lib | Tipo de Auth |
@@ -248,12 +297,20 @@ Todos en la carpeta `/docs/`:
 1. **Rate limiting no aplicado** — `rate-limit.ts` definido pero no usado en endpoints
 2. **Free plan sin expiración forzada** — lógica de bloqueo post-trial incompleta
 3. **Exchange rates estáticos** — EUR/GBP hardcodeados, no se actualizan dinámicamente
-4. **Billing period edge cases** — overage tracking al cambiar de plan en mitad del período
 
 ### Media Prioridad
 - Datos demo (seed) presentes en producción: 50 contactos, 6 campañas demo
 - Componentes muy grandes que dificultan el mantenimiento (AgentConfigModal, IntegrationsPage)
 - Falta de tests automatizados
+
+### Corregidos (Marzo 2026 — sesión de auditoría billing)
+- ~~**Billing period edge cases**~~ — overage tracking al cambiar de plan: corregido
+- ~~**Dispatch loop cleanup sin try-catch**~~ — operaciones delete en `campaigns/dispatch/route.ts` ahora envueltas en try-catch non-fatal
+- ~~**billing_cycle sin validación**~~ — `verify-session/route.ts` ahora sanitiza a `'monthly'` o `'annual'` únicamente
+- ~~**Health data mapping roto**~~ — `AdminCommandCenter.tsx` ahora mapea correctamente la respuesta nested del API
+- ~~**Bland plan "unknown"**~~ — Command Center ahora tiene dropdown con los 4 planes reales de Bland
+- ~~**Redis/concurrency invisible**~~ — Panel completo de Redis con gauges, active calls, per-company breakdown
+- ~~**Landing page default /dashboard**~~ — Cambiado a `/home` en root, login y OAuth callback
 
 ---
 
@@ -263,7 +320,7 @@ Todos en la carpeta `/docs/`:
 2. **No refactorizar código no solicitado** — los componentes grandes existen intencionalmente por ahora
 3. **Respetar el sistema de i18n** — no hardcodear strings en inglés en componentes
 4. **Plan features:** La fuente de verdad es `src/config/plan-features.ts` — no duplicar lógica de planes en otros lugares
-5. **Bland AI sub-cuentas:** Cada empresa tiene su propio `bland_subaccount_id` — siempre usarlo en llamadas a Bland API, nunca usar la API key maestra
+5. **Bland AI master key:** Todas las llamadas usan la API key master (`BLAND_API_KEY`). No hay sub-cuentas. Aislación por `company_id` en Supabase. Los límites del plan se configuran en Command Center y se cachean en Redis.
 6. **Stripe:** Usar el wrapper `src/lib/stripe.ts`, no instanciar Stripe directamente en otros archivos
 7. **Supabase:** Usar `createServerSupabaseClient()` en server-side, `createBrowserSupabaseClient()` en client-side
 8. **No commitear a `main` directamente** — trabajar en branches feature
