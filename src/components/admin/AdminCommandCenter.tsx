@@ -210,7 +210,7 @@ const eventTypeLabels: Record<string, string> = {
   overage_budget_updated: 'Budget Updated',
   bland_credits_allocated: 'Credits Allocated',
   bland_credits_reclaimed: 'Credits Reclaimed',
-  bland_subaccount_deactivated: 'Sub-account Deactivated',
+  bland_subaccount_deactivated: 'Account Deactivated',
 };
 
 // ─── Component ───────────────────────────────────────────────────────
@@ -286,7 +286,9 @@ export default function AdminCommandCenter() {
         body: JSON.stringify({ plan: planSlug }),
       });
       if (res.ok) {
+        // Refresh health data + clear finance cache so it re-fetches with new plan
         await fetchHealth();
+        setFinanceData(null);
       } else {
         const data = await res.json();
         alert(`Error: ${data.error}`);
@@ -381,12 +383,11 @@ export default function AdminCommandCenter() {
     load();
   }, [fetchHealth]);
 
-  // Auto-refresh health every 30s
+  // Auto-refresh health every 30s (runs on all tabs since plan selector is global)
   useEffect(() => {
-    if (tab !== 'health') return;
     const interval = setInterval(fetchHealth, 30000);
     return () => clearInterval(interval);
-  }, [tab, fetchHealth]);
+  }, [fetchHealth]);
 
   // Load tab data on switch
   useEffect(() => {
@@ -455,28 +456,73 @@ export default function AdminCommandCenter() {
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="flex gap-1 p-1 bg-[var(--color-neutral-100)] rounded-lg w-fit">
-        {([
-          { id: 'health' as Tab, label: t.admin.commandCenter?.tabHealth || 'Health Dashboard' },
-          { id: 'operations' as Tab, label: 'Operations' },
-          { id: 'clients' as Tab, label: t.admin.commandCenter?.tabClients || 'Clients' },
-          { id: 'events' as Tab, label: t.admin.commandCenter?.tabEvents || 'Billing Events' },
-          { id: 'reconcile' as Tab, label: t.admin.commandCenter?.tabReconcile || 'Reconciliation' },
-          { id: 'finances' as Tab, label: 'Finances' },
-        ]).map(({ id, label }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              tab === id
-                ? 'bg-white text-[var(--color-ink)] shadow-sm'
-                : 'text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)]'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Global Bland AI Plan Selector + Tab Navigation */}
+      <div className="flex flex-col gap-3">
+        {/* Bland Plan Selector — visible on all tabs */}
+        {healthData && (
+          <div className="flex items-center gap-4 p-3 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[var(--color-neutral-500)] uppercase whitespace-nowrap">Bland AI Plan</span>
+              <select
+                value={healthData.blandAccount?.plan || ''}
+                onChange={(e) => handleBlandPlanChange(e.target.value)}
+                disabled={savingBlandPlan}
+                className="px-3 py-1.5 bg-white border border-[var(--border-default)] rounded-lg text-sm font-semibold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 disabled:opacity-50"
+              >
+                {(healthData.blandPlanCatalog || []).map(plan => (
+                  <option key={plan.slug} value={plan.slug}>
+                    {plan.label} — ${plan.costPerMinute}/min · {plan.concurrentCap >= 999999 ? '∞' : plan.concurrentCap} concurrent
+                  </option>
+                ))}
+              </select>
+              {savingBlandPlan && <span className="text-xs text-[var(--color-primary)] animate-pulse">Saving...</span>}
+            </div>
+            <div className="h-6 w-px bg-[var(--border-default)]" />
+            <div className="flex items-center gap-4 text-xs text-[var(--color-neutral-600)]">
+              <span><strong className="text-[var(--color-ink)]">${healthData.blandAccount?.costPerMinute ?? '—'}</strong>/min</span>
+              <span><strong className="text-[var(--color-ink)]">{(healthData.blandLimits?.concurrentCap ?? 0) >= 999999 ? '∞' : fmtInt(healthData.blandLimits?.concurrentCap ?? 0)}</strong> concurrent</span>
+              <span><strong className="text-[var(--color-ink)]">{(healthData.blandLimits?.dailyCap ?? 0) >= 999999 ? '∞' : fmtInt(healthData.blandLimits?.dailyCap ?? 0)}</strong> daily</span>
+              <span><strong className="text-[var(--color-ink)]">{(healthData.blandLimits?.hourlyCap ?? 0) >= 999999 ? '∞' : fmtInt(healthData.blandLimits?.hourlyCap ?? 0)}</strong> hourly</span>
+            </div>
+            <div className="h-6 w-px bg-[var(--border-default)]" />
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-bold ${(healthData.blandAccount?.balance ?? 0) < 5 ? 'text-red-600' : 'text-emerald-700'}`}>
+                ${fmt(healthData.blandAccount?.balance ?? 0)}
+              </span>
+              <span className="text-xs text-[var(--color-neutral-400)]">balance</span>
+            </div>
+            {healthData.blandAccount?.apiKeyMasked && (
+              <>
+                <div className="h-6 w-px bg-[var(--border-default)]" />
+                <span className="text-xs text-[var(--color-neutral-400)] font-mono">{healthData.blandAccount.apiKeyMasked}</span>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Tab Navigation */}
+        <div className="flex gap-1 p-1 bg-[var(--color-neutral-100)] rounded-lg w-fit">
+          {([
+            { id: 'health' as Tab, label: t.admin.commandCenter?.tabHealth || 'Health Dashboard' },
+            { id: 'operations' as Tab, label: 'Operations' },
+            { id: 'clients' as Tab, label: t.admin.commandCenter?.tabClients || 'Clients' },
+            { id: 'events' as Tab, label: t.admin.commandCenter?.tabEvents || 'Billing Events' },
+            { id: 'reconcile' as Tab, label: t.admin.commandCenter?.tabReconcile || 'Reconciliation' },
+            { id: 'finances' as Tab, label: 'Finances' },
+          ]).map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                tab === id
+                  ? 'bg-white text-[var(--color-ink)] shadow-sm'
+                  : 'text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ════════════════════════════════════════════════════════════════
@@ -499,67 +545,33 @@ export default function AdminCommandCenter() {
             />
           </div>
 
-          {/* ─── Bland AI Plan Selector + Limits ─── */}
-          <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Bland AI Plan Configuration</h3>
-              {healthData.blandAccount?.apiKeyMasked && (
-                <span className="text-xs text-[var(--color-neutral-400)] font-mono">{healthData.blandAccount.apiKeyMasked}</span>
-              )}
-            </div>
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Plan Dropdown */}
-              <div className="w-full md:w-64">
-                <label className="block text-xs font-medium text-[var(--color-neutral-500)] mb-1.5">Active Plan</label>
-                <select
-                  value={healthData.blandAccount?.plan || ''}
-                  onChange={(e) => handleBlandPlanChange(e.target.value)}
-                  disabled={savingBlandPlan}
-                  className="w-full px-3 py-2.5 bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-lg text-sm font-semibold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 disabled:opacity-50"
-                >
-                  {(healthData.blandPlanCatalog || []).map(plan => (
-                    <option key={plan.slug} value={plan.slug}>
-                      {plan.label} — ${plan.costPerMinute}/min · {plan.concurrentCap >= 999999 ? 'Unlimited' : plan.concurrentCap} concurrent
-                    </option>
-                  ))}
-                </select>
-                {savingBlandPlan && <p className="text-xs text-[var(--color-primary)] mt-1">Saving...</p>}
+          {/* ─── Bland AI Current Balance ─── */}
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Bland AI — Current Balance</h3>
+                <p className={`text-4xl font-bold ${(healthData.blandAccount?.balance ?? 0) < 5 ? 'text-red-600' : 'text-emerald-900'}`}>
+                  ${fmt(healthData.blandAccount?.balance ?? 0)}
+                </p>
+                <p className="text-sm text-emerald-700 mt-1">Available credits on master account</p>
               </div>
-
-              {/* Plan Limits Grid */}
-              <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div>
-                  <div className="text-lg font-bold text-[var(--color-ink)]">
-                    ${healthData.blandAccount?.costPerMinute ?? '—'}
-                  </div>
-                  <div className="text-xs text-[var(--color-neutral-500)]">Cost / Min</div>
+              <div className="text-right space-y-1">
+                <div className="text-xs text-emerald-600">
+                  <span className="font-medium">Plan:</span> <span className="font-bold capitalize">{healthData.blandAccount?.plan || 'Unknown'}</span>
                 </div>
-                <div>
-                  <div className="text-lg font-bold text-[var(--color-ink)]">
-                    {(healthData.blandLimits?.concurrentCap ?? 0) >= 999999 ? '∞' : fmtInt(healthData.blandLimits?.concurrentCap ?? 0)}
-                  </div>
-                  <div className="text-xs text-[var(--color-neutral-500)]">Max Concurrent</div>
+                <div className="text-xs text-emerald-600">
+                  <span className="font-medium">Rate:</span> <span className="font-bold">${healthData.blandAccount?.costPerMinute ?? '—'}/min</span>
                 </div>
-                <div>
-                  <div className="text-lg font-bold text-[var(--color-ink)]">
-                    {(healthData.blandLimits?.dailyCap ?? 0) >= 999999 ? '∞' : fmtInt(healthData.blandLimits?.dailyCap ?? 0)}
-                  </div>
-                  <div className="text-xs text-[var(--color-neutral-500)]">Daily Cap</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-[var(--color-ink)]">
-                    {(healthData.blandLimits?.hourlyCap ?? 0) >= 999999 ? '∞' : fmtInt(healthData.blandLimits?.hourlyCap ?? 0)}
-                  </div>
-                  <div className="text-xs text-[var(--color-neutral-500)]">Hourly Cap</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-[var(--color-ink)]">
-                    ${healthData.blandAccount?.transferRate ?? '—'}
-                  </div>
-                  <div className="text-xs text-[var(--color-neutral-500)]">Transfer Rate</div>
+                <div className="text-xs text-emerald-600">
+                  <span className="font-medium">Total Calls:</span> <span className="font-bold">{fmtInt(healthData.blandAccount?.totalCalls ?? 0)}</span>
                 </div>
               </div>
             </div>
+            {(healthData.blandAccount?.balance ?? 0) < 5 && (
+              <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-medium">
+                Low balance warning — recharge your Bland AI account to avoid call disruptions.
+              </div>
+            )}
           </div>
 
           {/* ─── Redis / Real-Time Concurrency Panel ─── */}
@@ -1037,12 +1049,10 @@ export default function AdminCommandCenter() {
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Plan</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Status</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Usage</th>
-                    <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Bland Balance</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Revenue</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Bland Cost</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Profit</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Margin</th>
-                    <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Sub-account</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1082,11 +1092,6 @@ export default function AdminCommandCenter() {
                           </span>
                         </div>
                       </td>
-                      <td className="text-center py-3 px-3">
-                        <span className={`text-xs font-semibold ${client.bland.creditBalance < 5 ? 'text-red-600' : 'text-[var(--color-neutral-700)]'}`}>
-                          ${fmt(client.bland.creditBalance)}
-                        </span>
-                      </td>
                       <td className="text-center py-3 px-3 font-medium text-emerald-700">${fmt(client.economics.totalRevenue)}</td>
                       <td className="text-center py-3 px-3 text-red-600">${fmt(client.economics.blandCost)}</td>
                       <td className="text-center py-3 px-3">
@@ -1101,16 +1106,6 @@ export default function AdminCommandCenter() {
                         }`}>
                           {client.economics.marginPercent}%
                         </span>
-                      </td>
-                      <td className="py-3 px-3">
-                        {client.bland.subAccountId ? (
-                          <div className="text-xs text-[var(--color-neutral-500)]">
-                            <div className="font-mono">{client.bland.subAccountId.substring(0, 12)}...</div>
-                            <div className="text-[var(--color-neutral-400)]">{client.bland.apiKeyMasked}</div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-[var(--color-neutral-400)]">No sub-account</span>
-                        )}
                       </td>
                     </tr>
                   ))}
@@ -1333,6 +1328,13 @@ export default function AdminCommandCenter() {
               const totalRevenue = (fd.revenue_total || 0) + addonRevenue;
               const blandInfrastructureCost = (fd.bland_infrastructure_cost as number) || 0;
               const marginColor = (p: number | null) => !p ? 'text-[var(--color-neutral-600)]' : p >= 50 ? 'text-emerald-600' : p >= 35 ? 'text-amber-600' : 'text-red-600';
+              // Use healthData as fallback for Bland account info (more reliable — already synced via command-center)
+              const blandBalance = fd.bland_master_balance || healthData?.blandAccount?.balance || 0;
+              const blandPlan = fd.bland_plan || healthData?.blandAccount?.plan || 'Unknown';
+              const blandTalkRate = fd.bland_talk_rate || healthData?.blandAccount?.costPerMinute || 0.11;
+              const blandTransferRate = fd.bland_transfer_rate || healthData?.blandAccount?.transferRate || 0;
+              const blandConcurrentLimit = fd.bland_concurrent_limit || ((healthData?.blandLimits?.concurrentCap ?? 0) >= 999999 ? '∞' : String(healthData?.blandLimits?.concurrentCap ?? '∞'));
+              const blandDailyLimit = fd.bland_daily_limit || ((healthData?.blandLimits?.dailyCap ?? 0) >= 999999 ? '∞' : String(healthData?.blandLimits?.dailyCap ?? '∞'));
 
                 return (
                   <>
@@ -1395,20 +1397,20 @@ export default function AdminCommandCenter() {
                     <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
                       <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Bland AI — Master Account</h3>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                          <p className="text-xs font-semibold text-emerald-700 uppercase mb-1">Master Balance</p>
-                          <p className="text-lg font-bold text-emerald-900">${fmt(fd.bland_master_balance || 0)}</p>
-                          <p className="text-xs text-emerald-600">Available credits</p>
+                        <div className={`p-3 rounded-lg border ${blandBalance < 5 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
+                          <p className={`text-xs font-semibold uppercase mb-1 ${blandBalance < 5 ? 'text-red-700' : 'text-emerald-700'}`}>Master Balance</p>
+                          <p className={`text-lg font-bold ${blandBalance < 5 ? 'text-red-900' : 'text-emerald-900'}`}>${fmt(blandBalance)}</p>
+                          <p className={`text-xs ${blandBalance < 5 ? 'text-red-600' : 'text-emerald-600'}`}>Available credits</p>
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
                           <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Master Plan</p>
-                          <p className="text-lg font-bold text-[var(--color-ink)]">{fd.bland_plan || 'Unknown'}</p>
+                          <p className="text-lg font-bold text-[var(--color-ink)] capitalize">{blandPlan}</p>
                           <p className="text-xs text-[var(--color-neutral-600)]">${fd.bland_plan_cost || 0}/mo</p>
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
                           <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Per-Min Rate</p>
-                          <p className="text-lg font-bold text-[var(--color-ink)]">${fd.bland_talk_rate?.toFixed(4) || '0.1100'}/min</p>
-                          <p className="text-xs text-[var(--color-neutral-600)]">Transfer: ${fd.bland_transfer_rate?.toFixed(4) || '0.0000'}/min</p>
+                          <p className="text-lg font-bold text-[var(--color-ink)]">${blandTalkRate.toFixed(4)}/min</p>
+                          <p className="text-xs text-[var(--color-neutral-600)]">Transfer: ${blandTransferRate.toFixed(4)}/min</p>
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
                           <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Architecture</p>
@@ -1417,8 +1419,8 @@ export default function AdminCommandCenter() {
                         </div>
                         <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
                           <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Master Limits</p>
-                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{fd.bland_concurrent_limit || '\u221E'}</strong> concurrent</p>
-                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{fd.bland_daily_limit || '\u221E'}</strong> per day</p>
+                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{blandConcurrentLimit}</strong> concurrent</p>
+                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{blandDailyLimit}</strong> per day</p>
                         </div>
                       </div>
 
@@ -1441,7 +1443,7 @@ export default function AdminCommandCenter() {
 
                     {/* Unit Economics Reference — dynamic based on actual Bland rate */}
                     {(() => {
-                      const rate = fd.bland_talk_rate || 0.11;
+                      const rate = blandTalkRate;
                       const plans = [
                         { plan: 'Free', price: 0, calls: 10, min: 15, overage: null as number | null },
                         { plan: 'Starter', price: 99, calls: 200, min: 300, overage: 0.29 },
@@ -1492,7 +1494,7 @@ export default function AdminCommandCenter() {
                             </table>
                           </div>
                           <p className="text-xs text-[var(--color-neutral-500)] mt-2">
-                            * Bland cost @ ${rate.toFixed(2)}/min ({fd.bland_plan || 'Unknown'} plan). Credits include 5% buffer. Effective avg: 1.5 min/call attempt.
+                            * Bland cost @ ${rate.toFixed(2)}/min ({blandPlan} plan). Credits include 5% buffer. Effective avg: 1.5 min/call attempt.
                           </p>
                         </div>
                       );
