@@ -31,7 +31,7 @@ function LoginForm() {
     }
     authEvents.login('email');
     phAuthEvents.login('email');
-    window.location.href = '/dashboard';
+    window.location.href = '/home';
   };
 
   return (

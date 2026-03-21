@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
                 .eq('id', invitation.id);
 
               console.log(`Team invitation accepted: ${user.email} joined company ${invitation.company_id}`);
-              return NextResponse.redirect(`${origin}/dashboard?team_joined=true`);
+              return NextResponse.redirect(`${origin}/home?team_joined=true`);
             }
           }
         } catch (inviteError) {
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
                 .eq('id', invitation.id);
 
               console.log(`Team invitation auto-accepted from metadata: ${user.email}`);
-              return NextResponse.redirect(`${origin}/dashboard?team_joined=true`);
+              return NextResponse.redirect(`${origin}/home?team_joined=true`);
             }
           } catch (inviteError) {
             console.error('Error auto-accepting team invite from metadata:', inviteError);
@@ -179,12 +179,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/admin/command-center`);
       }
 
-      // User already onboarded - redirect to dashboard
-      return NextResponse.redirect(`${origin}/dashboard`);
+      // User already onboarded - redirect to home
+      return NextResponse.redirect(`${origin}/home`);
     }
 
-    // User authenticated but no user object — redirect to dashboard (middleware will handle)
-    return NextResponse.redirect(`${origin}/dashboard`);
+    // User authenticated but no user object — redirect to home (middleware will handle)
+    return NextResponse.redirect(`${origin}/home`);
   }
 
   // No code - redirect to login
