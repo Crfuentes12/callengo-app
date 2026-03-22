@@ -24,6 +24,14 @@ export async function POST() {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
+    // Find the active integration to get its ID for mapping cleanup
+    const { data: integration } = await supabaseAdmin
+      .from('dynamics_integrations')
+      .select('id')
+      .eq('company_id', userData.company_id)
+      .eq('is_active', true)
+      .maybeSingle();
+
     // Soft-delete by marking inactive
     // IMPORTANT: This does NOT delete any data from Microsoft Dynamics.
     // Contacts synced to Callengo remain in Callengo, and all Dynamics contacts remain untouched.
@@ -35,6 +43,14 @@ export async function POST() {
 
     if (updateError) {
       throw new Error(`Failed to disconnect: ${updateError.message}`);
+    }
+
+    // Clean up contact mappings for this integration
+    if (integration?.id) {
+      await supabaseAdmin
+        .from('dynamics_contact_mappings')
+        .delete()
+        .eq('integration_id', integration.id);
     }
 
     return NextResponse.json({ success: true });
