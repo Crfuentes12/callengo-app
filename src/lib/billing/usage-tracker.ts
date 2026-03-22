@@ -243,7 +243,7 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
     }
 
     // Check overage budget
-    if (subscription.overage_budget && overageCost >= subscription.overage_budget) {
+    if (subscription.overage_budget && overageCost > subscription.overage_budget) {
       return {
         allowed: false,
         reason: 'Overage budget exceeded',

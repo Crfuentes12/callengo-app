@@ -229,6 +229,10 @@ export async function dispatchCall(payload: BlandCallPayload): Promise<BlandCall
     // Dedicated number: set the `from` field so Bland uses this number as caller ID
     if (payload.from) blandPayload.from = payload.from;
 
+    // 15-second timeout to prevent hanging dispatch loops if Bland API is unresponsive
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     const response = await fetch(`${BLAND_API_URL}/calls`, {
       method: 'POST',
       headers: {
@@ -236,7 +240,10 @@ export async function dispatchCall(payload: BlandCallPayload): Promise<BlandCall
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(blandPayload),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     const data = await response.json();
 

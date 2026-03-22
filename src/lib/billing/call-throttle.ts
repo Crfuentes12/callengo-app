@@ -323,7 +323,7 @@ async function checkMinutesAvailable(
     const pricePerMinute = plan.price_per_extra_minute || 0;
     const overageCost = overageMinutes * pricePerMinute;
 
-    if (overageCost >= subscription.overage_budget) {
+    if (overageCost > subscription.overage_budget) {
       return {
         allowed: false,
         reason: `Overage budget of $${subscription.overage_budget} has been reached. Increase your budget or upgrade your plan.`,

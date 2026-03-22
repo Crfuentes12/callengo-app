@@ -6,6 +6,19 @@ import type { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { syncUserToHubSpot } from '@/lib/hubspot-user-sync';
 
+/**
+ * Validate redirect_to parameter to prevent open redirects.
+ * Only allows relative paths starting with '/'.
+ */
+function safeRedirectUrl(redirectTo: string | null, origin: string): string {
+  if (!redirectTo) return `${origin}/home`;
+  // Only allow relative paths (no protocol, no double slashes, no backslashes)
+  if (redirectTo.startsWith('/') && !redirectTo.startsWith('//') && !redirectTo.includes('\\')) {
+    return `${origin}${redirectTo}`;
+  }
+  return `${origin}/home`;
+}
+
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');

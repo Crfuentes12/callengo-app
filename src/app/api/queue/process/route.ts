@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { processBatch, getQueueStats } from '@/lib/queue/analysis-queue';
+import { resetStaleConcurrency } from '@/lib/redis/concurrency-manager';
 
 const QUEUE_SECRET = process.env.QUEUE_PROCESSING_SECRET || process.env.CRON_SECRET;
 
@@ -82,8 +83,13 @@ export async function GET(request: NextRequest) {
     const companyId = request.nextUrl.searchParams.get('company_id') || undefined;
 
     if (!companyId) {
-      // Cron hit — process pending jobs
-      const result = await processBatch(10);
+      // Cron hit — process pending jobs + reconcile Redis concurrency counters
+      const [result] = await Promise.all([
+        processBatch(10),
+        resetStaleConcurrency().catch(err =>
+          console.error('[queue/process] Concurrency reconciliation failed (non-fatal):', err)
+        ),
+      ]);
       return NextResponse.json({
         success: true,
         ...result,
