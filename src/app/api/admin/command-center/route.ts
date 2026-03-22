@@ -175,7 +175,7 @@ export async function GET() {
       // 11. All subscriptions (for MRR, churn, trial conversion)
       supabaseAdmin
         .from('company_subscriptions')
-        .select('id, company_id, status, billing_cycle, created_at, current_period_end, subscription_plans(slug, name, price_monthly, price_yearly)'),
+        .select('*, subscription_plans(*)'),
 
       // 12. Failed/error calls this month
       supabaseAdmin
@@ -488,7 +488,8 @@ export async function GET() {
     } catch (err) {
       console.error('[command-center] Failed to fetch Stripe discounts:', err);
     }
-    const netMrr = Math.round((mrr - totalMonthlyDiscountImpact) * 100) / 100;
+    // Net MRR = actual revenue collected. Can never be negative — discounts can only reduce to $0.
+    const netMrr = Math.round(Math.max(0, mrr - totalMonthlyDiscountImpact) * 100) / 100;
 
     // Bland cost this month (from actual call durations)
     const totalMinutesThisMonth = allCallDurations.reduce(
@@ -647,9 +648,9 @@ export async function GET() {
         profit: Math.round((netMrr - blandCostThisMonth) * 100) / 100,
         marginPercent: netMrr > 0 ? Math.round(((netMrr - blandCostThisMonth) / netMrr) * 1000) / 10 : 0,
         // ARPC only for paying customers (excludes free and 100% promo)
-        payingCompanies: activeCount - subsWithDiscounts,
+        payingCompanies: Math.max(0, activeCount - subsWithDiscounts),
         arpc: (activeCount - subsWithDiscounts) > 0
-          ? Math.round((netMrr / (activeCount - subsWithDiscounts)) * 100) / 100
+          ? Math.round((netMrr / Math.max(1, activeCount - subsWithDiscounts)) * 100) / 100
           : 0,
         costPerCall: (callsThisMonthResult.count || 0) > 0
           ? Math.round((blandCostThisMonth / (callsThisMonthResult.count || 1)) * 100) / 100

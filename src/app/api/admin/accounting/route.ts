@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       supabaseAdmin
         .from('company_subscriptions')
-        .select('*, subscription_plans(slug, name, price_monthly, price_yearly, minutes_included, price_per_extra_minute)')
+        .select('*, subscription_plans(*)')
         .in('status', ['active', 'trialing']),
 
       supabaseAdmin
@@ -117,9 +117,16 @@ export async function GET(request: NextRequest) {
     const totalUsers = allUsers.filter(u => u.company_id && activeCompanyIds.has(u.company_id)).length;
 
     // ─── Stripe discount data ──────────────────────────
+    // Fetch company names for enrichment
+    const { data: allCompaniesData } = await supabaseAdmin
+      .from('companies')
+      .select('id, name');
+    const companyNameLookup = new Map((allCompaniesData || []).map(c => [c.id, c.name]));
+
     let totalDiscountImpact = 0;
     const discountedSubscriptions: {
       companyId: string;
+      companyName: string;
       plan: string;
       grossAmount: number;
       discountAmount: number;
@@ -165,13 +172,22 @@ export async function GET(request: NextRequest) {
           ? (typeof pcRef === 'string' ? (promoCodeIdToName.get(pcRef) || null) : pcRef.code)
           : null;
 
-        // Find plan slug from our subs
+        // Find plan slug from our subs (try DB first, then derive from Stripe price)
         const companySub = companyId ? activeSubs.find(s => s.company_id === companyId) : null;
-        const planInfo = companySub?.subscription_plans as { slug?: string } | null;
+        const planInfo = companySub?.subscription_plans as { slug?: string; name?: string } | null;
+
+        // Derive plan from Stripe price amount if DB lookup fails
+        let planSlug = planInfo?.slug || 'unknown';
+        if (planSlug === 'unknown') {
+          // Match by price: starter=$99, growth=$179, business=$299, teams=$649, enterprise=$1499
+          const priceMap: Record<number, string> = { 99: 'starter', 179: 'growth', 299: 'business', 649: 'teams', 1499: 'enterprise' };
+          planSlug = priceMap[Math.round(planAmount)] || 'unknown';
+        }
 
         discountedSubscriptions.push({
           companyId: companyId || 'unknown',
-          plan: planInfo?.slug || 'unknown',
+          companyName: companyId ? (companyNameLookup.get(companyId) || companyId.substring(0, 12) + '...') : 'Unknown',
+          plan: planSlug,
           grossAmount: Math.round(planAmount * 100) / 100,
           discountAmount: Math.round(discAmount * 100) / 100,
           netAmount: Math.round((planAmount - discAmount) * 100) / 100,
@@ -243,8 +259,8 @@ export async function GET(request: NextRequest) {
     const addonRevenue = activeAddons.reduce((sum, a) =>
       sum + (ADDON_PRICES[a.addon_type] || 0) * (a.quantity || 1), 0);
 
-    // ACTUAL REVENUE = what's really collected
-    const totalActualRevenue = actualMrr + overageRevenue + addonRevenue;
+    // ACTUAL REVENUE = what's really collected (never negative)
+    const totalActualRevenue = Math.max(0, actualMrr) + overageRevenue + addonRevenue;
 
     // Cash basis: actual Stripe payments
     const actualPaymentsReceived = billingHistory
