@@ -76,6 +76,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized for this company' }, { status: 403 });
     }
 
+    // Validate agent_run belongs to this company (prevent cross-company hijacking)
+    if (agent_run_id) {
+      const { data: agentRun } = await supabaseAdmin
+        .from('agent_runs')
+        .select('id, company_id')
+        .eq('id', agent_run_id)
+        .single();
+
+      if (!agentRun || agentRun.company_id !== company_id) {
+        return NextResponse.json({ error: 'Agent run not found or unauthorized' }, { status: 403 });
+      }
+    }
+
     // Initial throttle check before starting
     const initialCheck = await checkCallAllowed(company_id);
     if (!initialCheck.allowed) {
@@ -228,10 +241,11 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin
         .from('agent_runs')
         .update({
-          status: throttled > 0 ? 'partially_completed' : 'completed',
+          status: (failed > 0 || throttled > 0) ? 'partially_completed' : 'completed',
           completed_at: new Date().toISOString(),
         })
-        .eq('id', agent_run_id);
+        .eq('id', agent_run_id)
+        .eq('company_id', company_id);
     }
 
     return NextResponse.json({

@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
         const { error: updateError } = await supabase
           .from('contacts')
           .update({ list_id: listId })
+          .eq('company_id', userData.company_id)
           .in('id', batch);
 
         if (updateError) {

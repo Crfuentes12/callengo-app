@@ -237,7 +237,8 @@ async function handleCrossReference(companyId: string) {
     const { error } = await supabaseAdminRaw
       .from('calendar_events')
       .update({ contact_id: update.contactId })
-      .eq('id', update.eventId);
+      .eq('id', update.eventId)
+      .eq('company_id', companyId);
 
     if (!error) linkedCount++;
   }

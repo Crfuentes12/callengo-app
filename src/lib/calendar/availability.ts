@@ -5,6 +5,7 @@
 
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { listGoogleEvents } from './google';
+import { getMicrosoftCalendarClient } from './microsoft';
 import type {
   CalendarEvent,
   TimeSlot,
@@ -277,11 +278,13 @@ async function getMicrosoftBusySlots(
   endDate: string
 ): Promise<TimeSlot[]> {
   try {
+    // Use authenticated client with automatic token refresh (prevents expired token issues)
+    const client = await getMicrosoftCalendarClient(integration);
     const calendarId = integration.microsoft_calendar_id || 'me';
-    const baseUrl =
+    const viewPath =
       calendarId === 'me'
-        ? 'https://graph.microsoft.com/v1.0/me/calendarView'
-        : `https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/calendarView`;
+        ? '/me/calendarView'
+        : `/me/calendars/${calendarId}/calendarView`;
 
     const params = new URLSearchParams({
       startDateTime: new Date(startDate).toISOString(),
@@ -290,22 +293,8 @@ async function getMicrosoftBusySlots(
       $top: '250',
     });
 
-    const response = await fetch(`${baseUrl}?${params.toString()}`, {
-      headers: {
-        Authorization: `Bearer ${integration.access_token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      console.error(
-        `[availability] Microsoft Graph API error: ${response.status} ${response.statusText}`
-      );
-      return [];
-    }
-
-    const data = await response.json();
-    const events = data.value || [];
+    const response = await client.get(`${viewPath}?${params.toString()}`);
+    const events = response.data?.value || [];
 
     return events
       .filter((e: { isCancelled?: boolean }) => !e.isCancelled)

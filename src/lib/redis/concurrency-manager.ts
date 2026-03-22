@@ -143,17 +143,19 @@ export async function checkCallCapacity(
   contactId?: string
 ): Promise<ConcurrencyCheckResult> {
   if (!redis) {
-    // Without Redis, allow all (DB-based fallback in call-throttle.ts handles it)
+    // Without Redis, fail-closed: allow only 1 concurrent call per company (conservative)
+    console.warn('[concurrency-manager] Redis unavailable — applying conservative limits');
     return {
       allowed: true,
+      reason: 'Redis unavailable — conservative mode (1 concurrent per company)',
       globalConcurrent: 0,
-      globalConcurrentCap: DEFAULT_LIMITS.concurrentCap,
+      globalConcurrentCap: 1,
       companyConcurrent: 0,
-      companyConcurrentCap,
+      companyConcurrentCap: 1,
       globalDaily: 0,
-      globalDailyCap: DEFAULT_LIMITS.dailyCap,
+      globalDailyCap: 50,
       globalHourly: 0,
-      globalHourlyCap: DEFAULT_LIMITS.hourlyCap,
+      globalHourlyCap: 20,
       companyDaily: 0,
       companyHourly: 0,
     };
@@ -277,28 +279,26 @@ export async function acquireCallSlot(
     // Track active call with 30-min TTL (auto-cleanup if webhook doesn't arrive)
     pipeline.set(KEYS.activeCall(callId), JSON.stringify({ companyId, contactId, ts: Date.now() }), { ex: 1800 });
 
-    // Set contact cooldown (5 min = 300 seconds)
+    // Set contact cooldown (5 min + 20s buffer for latency = 320 seconds)
     if (contactId) {
-      pipeline.set(KEYS.contactCooldown(contactId), '1', { ex: 300 });
+      pipeline.set(KEYS.contactCooldown(contactId), '1', { ex: 320 });
     }
 
-    await pipeline.exec();
+    // Set TTLs on counters atomically in the same pipeline (prevents race window)
+    pipeline.expire(KEYS.globalConcurrent, 1800); // 30 min max (safety)
+    pipeline.expire(KEYS.companyConcurrent(companyId), 1800);
+    pipeline.expire(KEYS.globalDaily(), 86400); // 24 hours
+    pipeline.expire(KEYS.globalHourly(), 7200); // 2 hours
+    pipeline.expire(KEYS.companyDaily(companyId), 86400);
+    pipeline.expire(KEYS.companyHourly(companyId), 7200);
 
-    // Set TTLs on counters (idempotent — only sets if not already set)
-    const ttlPipeline = redis.pipeline();
-    ttlPipeline.expire(KEYS.globalConcurrent, 1800); // 30 min max (safety)
-    ttlPipeline.expire(KEYS.companyConcurrent(companyId), 1800);
-    ttlPipeline.expire(KEYS.globalDaily(), 86400); // 24 hours
-    ttlPipeline.expire(KEYS.globalHourly(), 7200); // 2 hours
-    ttlPipeline.expire(KEYS.companyDaily(companyId), 86400);
-    ttlPipeline.expire(KEYS.companyHourly(companyId), 7200);
-    await ttlPipeline.exec();
+    await pipeline.exec();
 
     return { acquired: true };
   } catch (error) {
     console.error('[concurrency-manager] acquireCallSlot error:', error);
-    // Fail open — don't block calls if Redis is temporarily down
-    return { acquired: true };
+    // Fail closed — block calls if Redis is temporarily down to prevent overloading Bland
+    return { acquired: false, error: 'Concurrency system temporarily unavailable. Please retry.' };
   }
 }
 
@@ -315,23 +315,28 @@ export async function releaseCallSlot(
   try {
     const pipeline = redis.pipeline();
 
-    // Decrement concurrent counters (don't go below 0)
+    // Decrement concurrent counters
     pipeline.decr(KEYS.globalConcurrent);
     pipeline.decr(KEYS.companyConcurrent(companyId));
 
     // Remove active call tracker
     pipeline.del(KEYS.activeCall(callId));
 
-    await pipeline.exec();
+    const results = await pipeline.exec();
 
-    // Ensure counters don't go negative
-    const globalCurrent = await redis.get<number>(KEYS.globalConcurrent);
-    if (globalCurrent !== null && globalCurrent < 0) {
-      await redis.set(KEYS.globalConcurrent, 0, { ex: 1800 });
-    }
-    const companyCurrent = await redis.get<number>(KEYS.companyConcurrent(companyId));
-    if (companyCurrent !== null && companyCurrent < 0) {
-      await redis.set(KEYS.companyConcurrent(companyId), 0, { ex: 1800 });
+    // Clamp counters to 0 minimum in a single pipeline if they went negative
+    const globalAfterDecr = (results[0] as number) ?? 0;
+    const companyAfterDecr = (results[1] as number) ?? 0;
+
+    if (globalAfterDecr < 0 || companyAfterDecr < 0) {
+      const fixPipeline = redis.pipeline();
+      if (globalAfterDecr < 0) {
+        fixPipeline.set(KEYS.globalConcurrent, 0, { ex: 1800 });
+      }
+      if (companyAfterDecr < 0) {
+        fixPipeline.set(KEYS.companyConcurrent(companyId), 0, { ex: 1800 });
+      }
+      await fixPipeline.exec();
     }
   } catch (error) {
     console.error('[concurrency-manager] releaseCallSlot error:', error);

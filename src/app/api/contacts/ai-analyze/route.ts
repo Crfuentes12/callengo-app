@@ -5,6 +5,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import OpenAI from 'openai';
 import { trackServerEvent } from '@/lib/analytics';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -15,6 +16,12 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Rate limit: 10 AI analyses per minute per user
+    const rateLimit = await expensiveLimiter.check(10, `ai_analyze_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many AI analysis requests. Please wait.' }, { status: 429 });
+    }
 
     const { data: userData } = await supabase
       .from('users')

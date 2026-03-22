@@ -136,7 +136,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   const companyId = session.metadata?.company_id;
   const planId = session.metadata?.plan_id;
-  const billingCycle = session.metadata?.billing_cycle || 'monthly';
+  const billingCycle = session.metadata?.billing_cycle === 'annual' ? 'annual' : 'monthly';
   const isAddon = session.metadata?.is_addon === 'true';
   const productType = session.metadata?.product_type;
 
@@ -271,21 +271,27 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  // Update existing usage record, or insert if none exists
-  const { data: updatedUsage } = await supabase
+  // Update existing usage record (preserve minutes_used on plan change), or insert new
+  const { data: existingUsage } = await supabase
     .from('usage_tracking')
-    .update({
-      subscription_id: subId,
-      period_start: currentPeriodStart.toISOString(),
-      period_end: currentPeriodEnd.toISOString(),
-      minutes_used: 0,
-      minutes_included: plan.minutes_included,
-    })
+    .select('id, minutes_used')
     .eq('company_id', companyId)
-    .select('id');
+    .maybeSingle();
 
-  // If no rows were updated (no existing record), insert one
-  if (!updatedUsage || updatedUsage.length === 0) {
+  if (existingUsage) {
+    // Plan change: update plan limits and period but preserve minutes already used
+    await supabase
+      .from('usage_tracking')
+      .update({
+        subscription_id: subId,
+        period_start: currentPeriodStart.toISOString(),
+        period_end: currentPeriodEnd.toISOString(),
+        minutes_included: plan.minutes_included,
+        // Do NOT reset minutes_used — preserves usage history on plan change
+      })
+      .eq('id', existingUsage.id);
+  } else {
+    // New subscription: create fresh usage record
     await supabase.from('usage_tracking').insert({
       company_id: companyId,
       subscription_id: subId,

@@ -26,6 +26,14 @@ import {
   getActiveSalesforceIntegration,
   pushCallResultToSalesforce,
 } from '@/lib/salesforce';
+import {
+  getActiveZohoIntegration,
+  pushCallResultToZoho,
+} from '@/lib/zoho';
+import {
+  getActiveDynamicsIntegration,
+  pushCallResultToDynamics,
+} from '@/lib/dynamics';
 // Google Sheets is import-only — no outbound push from webhooks
 import type { CalendarStepConfig } from '@/types/calendar';
 import type { Json } from '@/types/supabase';
@@ -199,40 +207,48 @@ export async function POST(request: NextRequest) {
 
     // Lock the contact during processing to prevent user edits (5-min TTL)
     if (contactId && companyId) {
-      const { data: lockContact } = await supabaseAdmin
-        .from('contacts')
-        .select('custom_fields')
-        .eq('id', contactId)
-        .eq('company_id', companyId)
-        .single();
-      const lockCf = (lockContact?.custom_fields as Record<string, unknown>) || {};
+      try {
+        const { data: lockContact } = await supabaseAdmin
+          .from('contacts')
+          .select('custom_fields')
+          .eq('id', contactId)
+          .eq('company_id', companyId)
+          .maybeSingle();
 
-      // Strip any existing lock fields before setting our new lock
-      // This handles stale locks from crashed webhooks
-      const { _locked, _locked_at, _locked_by, _lock_call_id, _lock_expires_at: _expiry, ...cleanFields } = lockCf;
+        if (lockContact) {
+          const lockCf = (lockContact.custom_fields as Record<string, unknown>) || {};
 
-      if (_locked && _locked_at) {
-        const lockAge = Date.now() - new Date(_locked_at as string).getTime();
-        if (lockAge > 5 * 60 * 1000) {
-          console.warn(`[webhook] Stale lock cleared on contact ${contactId} (${Math.round(lockAge / 1000)}s old)`);
+          // Strip any existing lock fields before setting our new lock
+          // This handles stale locks from crashed webhooks
+          const { _locked, _locked_at, _locked_by, _lock_call_id, _lock_expires_at: _expiry, ...cleanFields } = lockCf;
+
+          if (_locked && _locked_at) {
+            const lockAge = Date.now() - new Date(_locked_at as string).getTime();
+            if (lockAge > 5 * 60 * 1000) {
+              console.warn(`[webhook] Stale lock cleared on contact ${contactId} (${Math.round(lockAge / 1000)}s old)`);
+            }
+          }
+
+          const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          await supabaseAdmin
+            .from('contacts')
+            .update({
+              custom_fields: JSON.parse(JSON.stringify({
+                ...cleanFields,
+                _locked: true,
+                _locked_at: new Date().toISOString(),
+                _lock_expires_at: lockExpiry,
+                _locked_by: 'webhook_processing',
+                _lock_call_id: call_id,
+              })),
+            })
+            .eq('id', contactId)
+            .eq('company_id', companyId);
         }
+      } catch (lockError) {
+        // Non-fatal: continue processing even if lock fails (contact may have been deleted)
+        console.error('[webhook] Failed to lock contact (non-fatal):', lockError);
       }
-
-      const lockExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-      await supabaseAdmin
-        .from('contacts')
-        .update({
-          custom_fields: JSON.parse(JSON.stringify({
-            ...cleanFields,
-            _locked: true,
-            _locked_at: new Date().toISOString(),
-            _lock_expires_at: lockExpiry,
-            _locked_by: 'webhook_processing',
-            _lock_call_id: call_id,
-          })),
-        })
-        .eq('id', contactId)
-        .eq('company_id', companyId);
     }
 
     // If there's a contact_id, update the contact
@@ -269,7 +285,7 @@ export async function POST(request: NextRequest) {
     // ================================================================
     try {
       const contactName: string = contactId
-        ? await getContactName(contactId)
+        ? await getContactName(contactId, companyId)
         : (to as string) || 'Unknown';
 
       // If call was not answered or voicemail, schedule a callback event
@@ -287,6 +303,27 @@ export async function POST(request: NextRequest) {
           reason: answered_by === 'voicemail' ? 'voicemail' : 'no_answer',
           notes: summary || `Auto-scheduled callback after ${answered_by === 'voicemail' ? 'voicemail' : 'no answer'}`,
         });
+
+        // Create voicemail log entry so /voicemails page displays it
+        if (answered_by === 'voicemail' || status === 'voicemail') {
+          try {
+            const messageLeft = !!(call_length && (call_length as number) > 5);
+            await supabaseAdmin.from('voicemail_logs').insert({
+              company_id: companyId,
+              call_id: call_id,
+              contact_id: contactId || null,
+              agent_run_id: metadata?.agent_run_id || null,
+              detected_at: new Date().toISOString(),
+              message_left: messageLeft,
+              message_text: summary || null,
+              message_duration: call_length || null,
+              message_audio_url: recording_url || null,
+              follow_up_scheduled: true,
+            });
+          } catch (vmError) {
+            console.error('[webhook] Failed to create voicemail log (non-fatal):', vmError);
+          }
+        }
       }
 
       // If call completed and follow-up is needed (based on analysis/metadata)
@@ -304,6 +341,23 @@ export async function POST(request: NextRequest) {
           reason: metadata?.follow_up_reason || 'Follow-up scheduled after call',
           notes: summary || undefined,
         });
+
+        // Create follow_up_queue entry so /follow-ups page displays it
+        try {
+          await supabaseAdmin.from('follow_up_queue').insert({
+            company_id: companyId,
+            contact_id: contactId || null,
+            agent_run_id: metadata?.agent_run_id || null,
+            original_call_id: call_id,
+            attempt_number: 1,
+            max_attempts: 3,
+            next_attempt_at: followUpDate.toISOString(),
+            status: 'pending',
+            reason: metadata?.follow_up_reason || 'Follow-up scheduled after call',
+          });
+        } catch (fqError) {
+          console.error('[webhook] Failed to create follow-up queue entry (non-fatal):', fqError);
+        }
       }
 
       // If call completed successfully, log it as a completed event
@@ -377,7 +431,7 @@ export async function POST(request: NextRequest) {
         const callLogId = callLogData?.id;
 
         const contactName: string = contactId
-          ? await getContactName(contactId)
+          ? await getContactName(contactId, companyId)
           : (to as string) || 'Unknown';
 
         // ---- AI-POWERED INTENT ANALYSIS ----
@@ -847,6 +901,42 @@ export async function POST(request: NextRequest) {
     }
 
     // ================================================================
+    // ZOHO CRM SYNC: Push call results to Zoho
+    // ================================================================
+    if (contactId && completed && companyId) {
+      try {
+        const zohoIntegration = await getActiveZohoIntegration(companyId);
+        if (zohoIntegration) {
+          const zohoResult = await pushCallResultToZoho(zohoIntegration, contactId);
+          if (!zohoResult.success) {
+            console.warn('Zoho sync skipped:', zohoResult.error);
+          }
+        }
+      } catch (zohoError) {
+        // Don't fail the webhook if Zoho sync fails
+        console.error('Zoho outbound sync failed (non-fatal):', zohoError);
+      }
+    }
+
+    // ================================================================
+    // DYNAMICS CRM SYNC: Push call results to Dynamics
+    // ================================================================
+    if (contactId && completed && companyId) {
+      try {
+        const dynamicsIntegration = await getActiveDynamicsIntegration(companyId);
+        if (dynamicsIntegration) {
+          const dynamicsResult = await pushCallResultToDynamics(dynamicsIntegration, contactId);
+          if (!dynamicsResult.success) {
+            console.warn('Dynamics sync skipped:', dynamicsResult.error);
+          }
+        }
+      } catch (dynamicsError) {
+        // Don't fail the webhook if Dynamics sync fails
+        console.error('Dynamics outbound sync failed (non-fatal):', dynamicsError);
+      }
+    }
+
+    // ================================================================
     // OUTBOUND WEBHOOKS: Dispatch events to user-configured endpoints
     // ================================================================
     try {
@@ -921,7 +1011,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Unlock the contact after all processing is complete
+    // Unlock the contact after all processing is complete (only if we own the lock)
     if (contactId && companyId) {
       try {
         const { data: unlockContact } = await supabaseAdmin
@@ -929,15 +1019,20 @@ export async function POST(request: NextRequest) {
           .select('custom_fields')
           .eq('id', contactId)
           .eq('company_id', companyId)
-          .single();
-        const unlockCf = (unlockContact?.custom_fields as Record<string, unknown>) || {};
-        // Remove lock fields
-        const { _locked, _locked_at, _locked_by, _lock_call_id, _lock_expires_at, ...restFields } = unlockCf;
-        await supabaseAdmin
-          .from('contacts')
-          .update({ custom_fields: JSON.parse(JSON.stringify(restFields)) })
-          .eq('id', contactId)
-          .eq('company_id', companyId);
+          .maybeSingle();
+
+        if (unlockContact) {
+          const unlockCf = (unlockContact.custom_fields as Record<string, unknown>) || {};
+          // Only unlock if this webhook owns the lock (prevents clearing another webhook's lock)
+          if (!unlockCf._lock_call_id || unlockCf._lock_call_id === call_id) {
+            const { _locked, _locked_at, _locked_by, _lock_call_id, _lock_expires_at, ...restFields } = unlockCf;
+            await supabaseAdmin
+              .from('contacts')
+              .update({ custom_fields: JSON.parse(JSON.stringify(restFields)) })
+              .eq('id', contactId)
+              .eq('company_id', companyId);
+          }
+        }
       } catch (unlockErr) {
         console.error('Failed to unlock contact (non-fatal):', unlockErr);
       }
@@ -958,12 +1053,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function getContactName(contactId: string): Promise<string> {
-  const { data } = await supabaseAdmin
+async function getContactName(contactId: string, companyId?: string): Promise<string> {
+  let query = supabaseAdmin
     .from('contacts')
     .select('contact_name, phone_number')
-    .eq('id', contactId)
-    .maybeSingle();
+    .eq('id', contactId);
+  if (companyId) {
+    query = query.eq('company_id', companyId);
+  }
+  const { data } = await query.maybeSingle();
   return data?.contact_name || data?.phone_number || 'Unknown';
 }
 
