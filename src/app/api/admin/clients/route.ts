@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import { BLAND_COST_PER_MINUTE } from '@/lib/bland/master-client';
+import { stripe } from '@/lib/stripe';
 
 // Add-on prices (monthly) — source of truth from pricing model V4
 const ADDON_PRICES: Record<string, number> = {
@@ -117,6 +118,52 @@ export async function GET(request: NextRequest) {
       addonsByCompany.set(a.company_id, existing);
     });
 
+    // Fetch Stripe discounts per company (by customer metadata.company_id)
+    const discountByCompany = new Map<string, {
+      promoCode: string | null;
+      couponName: string | null;
+      percentOff: number | null;
+      amountOff: number | null;
+      duration: string;
+      durationInMonths: number | null;
+      monthlyDiscount: number;
+    }>();
+    try {
+      const stripeSubs = await stripe.subscriptions.list({
+        status: 'active',
+        limit: 100,
+        expand: ['data.discounts', 'data.customer'],
+      });
+      for (const ss of stripeSubs.data) {
+        const firstDiscount = (ss.discounts && ss.discounts.length > 0) ? ss.discounts[0] : null;
+        if (!firstDiscount || typeof firstDiscount === 'string') continue;
+        const coupon = typeof firstDiscount.source?.coupon === 'string' ? null : firstDiscount.source?.coupon;
+        if (!coupon) continue;
+        const cust = ss.customer as { metadata?: Record<string, string> } | string;
+        const cId = typeof cust === 'string' ? null : cust.metadata?.company_id;
+        if (!cId) continue;
+        const planAmt = ss.items.data.reduce((sum, item) => {
+          const ua = item.price?.unit_amount || 0;
+          return sum + (item.price?.recurring?.interval === 'year' ? ua / 12 : ua);
+        }, 0) / 100;
+        let disc = 0;
+        if (coupon.percent_off) disc = planAmt * (coupon.percent_off / 100);
+        else if (coupon.amount_off) disc = Math.min(coupon.amount_off / 100, planAmt);
+        const pc = firstDiscount.promotion_code;
+        discountByCompany.set(cId, {
+          promoCode: pc ? (typeof pc === 'string' ? pc : pc.code) : null,
+          couponName: coupon.name,
+          percentOff: coupon.percent_off,
+          amountOff: coupon.amount_off ? coupon.amount_off / 100 : null,
+          duration: coupon.duration,
+          durationInMonths: coupon.duration_in_months ?? null,
+          monthlyDiscount: Math.round(disc * 100) / 100,
+        });
+      }
+    } catch (err) {
+      console.error('[admin-clients] Failed to fetch Stripe discounts:', err);
+    }
+
     // Build client list
     const clients = companies.map(company => {
       const sub = subsByCompany.get(company.id);
@@ -133,7 +180,9 @@ export async function GET(request: NextRequest) {
       const overageMinutes = Math.max(0, minutesUsed - minutesIncluded);
       const overageRevenue = overageMinutes * (plan?.price_per_extra_minute || 0);
       const addonRevenue = addons.reduce((sum: number, a) => sum + ((ADDON_PRICES[a.addon_type] || 0) * (a.quantity || 1)), 0);
-      const totalRevenue = subscriptionRevenue + overageRevenue + addonRevenue;
+      const discount = discountByCompany.get(company.id);
+      const discountAmount = discount?.monthlyDiscount || 0;
+      const totalRevenue = subscriptionRevenue + overageRevenue + addonRevenue - discountAmount;
 
       // Cost = actual minutes used × Bland cost/min
       const blandCost = minutesUsed * BLAND_COST_PER_MINUTE;
@@ -168,14 +217,16 @@ export async function GET(request: NextRequest) {
           periodEnd: usage?.period_end || null,
         },
         economics: {
-          totalRevenue,
+          totalRevenue: Math.round(totalRevenue * 100) / 100,
           subscriptionRevenue,
           overageRevenue,
           addonRevenue,
+          discountAmount,
           blandCost: Math.round(blandCost * 100) / 100,
           profit: Math.round(profit * 100) / 100,
           marginPercent,
         },
+        discount: discount || null,
         addons: addons.map(a => ({ type: a.addon_type, quantity: a.quantity })),
       };
     });

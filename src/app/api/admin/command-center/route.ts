@@ -6,6 +6,7 @@ import { expensiveLimiter } from '@/lib/rate-limit';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import { getBlandAccountInfo, BLAND_COST_PER_MINUTE, BLAND_PLAN_LIMITS } from '@/lib/bland/master-client';
+import { stripe } from '@/lib/stripe';
 import {
   getConcurrencySnapshot,
   cacheBlandLimits,
@@ -447,6 +448,38 @@ export async function GET() {
       (sum, b) => sum + ((b.amount || 0) / 100), 0 // Stripe amounts in cents
     );
 
+    // ════════════════════════════════════════════════════════════════
+    // Stripe Discount Impact — fetch active discounts for net MRR
+    // ════════════════════════════════════════════════════════════════
+    let totalMonthlyDiscountImpact = 0;
+    let subsWithDiscounts = 0;
+    try {
+      const stripeSubs = await stripe.subscriptions.list({
+        status: 'active',
+        limit: 100,
+        expand: ['data.discounts'],
+      });
+      for (const sub of stripeSubs.data) {
+        const firstDiscount = (sub.discounts && sub.discounts.length > 0) ? sub.discounts[0] : null;
+        if (!firstDiscount || typeof firstDiscount === 'string') continue;
+        const coupon = typeof firstDiscount.source?.coupon === 'string' ? null : firstDiscount.source?.coupon;
+        if (!coupon) continue;
+        subsWithDiscounts++;
+        const planAmount = sub.items.data.reduce((sum, item) => {
+          const ua = item.price?.unit_amount || 0;
+          return sum + (item.price?.recurring?.interval === 'year' ? ua / 12 : ua);
+        }, 0) / 100;
+        if (coupon.percent_off) {
+          totalMonthlyDiscountImpact += planAmount * (coupon.percent_off / 100);
+        } else if (coupon.amount_off) {
+          totalMonthlyDiscountImpact += Math.min(coupon.amount_off / 100, planAmount);
+        }
+      }
+    } catch (err) {
+      console.error('[command-center] Failed to fetch Stripe discounts:', err);
+    }
+    const netMrr = Math.round((mrr - totalMonthlyDiscountImpact) * 100) / 100;
+
     // Bland cost this month (from actual call durations)
     const totalMinutesThisMonth = allCallDurations.reduce(
       (sum, c) => sum + Math.ceil((c.call_length || 0) / 60), 0
@@ -549,6 +582,10 @@ export async function GET() {
       revenue: {
         mrr: Math.round(mrr * 100) / 100,
         arr: Math.round(mrr * 12 * 100) / 100,
+        netMrr,
+        netArr: Math.round(netMrr * 12 * 100) / 100,
+        totalDiscountImpact: Math.round(totalMonthlyDiscountImpact * 100) / 100,
+        subsWithDiscounts,
         stripeRevenue30d: Math.round(stripeRevenue30d * 100) / 100,
         revenueByPlan,
       },
@@ -585,11 +622,13 @@ export async function GET() {
 
       // === NEW: Unit Economics Summary ===
       unitEconomics: {
-        grossRevenue: Math.round(mrr * 100) / 100,
+        grossRevenue: Math.round(netMrr * 100) / 100,
+        grossRevenueBeforeDiscounts: Math.round(mrr * 100) / 100,
+        discountImpact: Math.round(totalMonthlyDiscountImpact * 100) / 100,
         grossCost: Math.round(blandCostThisMonth * 100) / 100,
-        grossProfit: Math.round((mrr - blandCostThisMonth) * 100) / 100,
-        grossMarginPercent: mrr > 0 ? Math.round(((mrr - blandCostThisMonth) / mrr) * 1000) / 10 : 0,
-        arpc: activeCount > 0 ? Math.round((mrr / activeCount) * 100) / 100 : 0,
+        grossProfit: Math.round((netMrr - blandCostThisMonth) * 100) / 100,
+        grossMarginPercent: netMrr > 0 ? Math.round(((netMrr - blandCostThisMonth) / netMrr) * 1000) / 10 : 0,
+        arpc: activeCount > 0 ? Math.round((netMrr / activeCount) * 100) / 100 : 0,
         costPerCall: (callsThisMonthResult.count || 0) > 0
           ? Math.round((blandCostThisMonth / (callsThisMonthResult.count || 1)) * 100) / 100
           : 0,
