@@ -185,39 +185,52 @@ export async function GET(request: NextRequest) {
       console.error('[accounting] Failed to fetch Stripe discounts:', err);
     }
 
-    // ─── P&L COMPUTATION ───────────────────────────────
+    // ═══════════════════════════════════════════════════════
+    // P&L — CORRECT MODEL: Discounts are NOT losses
+    // Revenue = what's actually collected
+    // Promo users only cost their Bland usage
+    // ═══════════════════════════════════════════════════════
 
-    // REVENUE
-    // Gross subscription revenue (MRR from plan prices, before discounts)
-    let grossSubscriptionRevenue = 0;
-    const revenueByPlan: Record<string, { count: number; gross: number; net: number }> = {};
+    // Segment subscribers: paying vs promo/discounted vs free
+    const discountedCompanyIds = new Set(discountedSubscriptions.map(ds => ds.companyId));
+
+    // Categorize subscriptions
+    let catalogMrr = 0; // What everyone WOULD pay at full price
+    let actualMrr = 0;  // What's actually collected
+    let promoForegone = 0; // Informational: foregone revenue from promos
+
+    const revenueByPlan: Record<string, { count: number; paying: number; promo: number; catalogMrr: number; actualMrr: number }> = {};
+
     for (const sub of activeSubs) {
       const plan = sub.subscription_plans as { price_monthly?: number; price_yearly?: number; slug?: string; name?: string } | null;
       if (!plan || plan.slug === 'free') continue;
+
       const monthly = sub.billing_cycle === 'annual'
         ? (plan.price_yearly || 0) / 12
         : (plan.price_monthly || 0);
-      grossSubscriptionRevenue += monthly;
+
+      catalogMrr += monthly;
+
       const slug = plan.slug || 'unknown';
-      if (!revenueByPlan[slug]) revenueByPlan[slug] = { count: 0, gross: 0, net: 0 };
+      if (!revenueByPlan[slug]) revenueByPlan[slug] = { count: 0, paying: 0, promo: 0, catalogMrr: 0, actualMrr: 0 };
       revenueByPlan[slug].count++;
-      revenueByPlan[slug].gross += monthly;
-    }
+      revenueByPlan[slug].catalogMrr += monthly;
 
-    // Apply per-plan discount
-    for (const ds of discountedSubscriptions) {
-      if (revenueByPlan[ds.plan]) {
-        revenueByPlan[ds.plan].net = revenueByPlan[ds.plan].gross - ds.discountAmount;
+      // Check if this company has a discount
+      const ds = discountedSubscriptions.find(d => d.companyId === sub.company_id);
+      if (ds) {
+        actualMrr += ds.netAmount;
+        promoForegone += ds.discountAmount;
+        revenueByPlan[slug].promo++;
+        revenueByPlan[slug].actualMrr += ds.netAmount;
+      } else {
+        actualMrr += monthly;
+        revenueByPlan[slug].paying++;
+        revenueByPlan[slug].actualMrr += monthly;
       }
     }
-    // Set net = gross for plans without discounts
-    for (const slug of Object.keys(revenueByPlan)) {
-      if (revenueByPlan[slug].net === 0 && revenueByPlan[slug].gross > 0) {
-        revenueByPlan[slug].net = revenueByPlan[slug].gross;
-      }
-    }
 
-    // Overage revenue
+    // Overage revenue (only from paying users with actual overages)
     const overageRevenue = usageData.reduce((sum, u) => {
       const overageMin = Math.max(0, (u.minutes_used || 0) - (u.minutes_included || 0));
       const companySub = activeSubs.find(s => s.company_id === u.company_id);
@@ -230,10 +243,10 @@ export async function GET(request: NextRequest) {
     const addonRevenue = activeAddons.reduce((sum, a) =>
       sum + (ADDON_PRICES[a.addon_type] || 0) * (a.quantity || 1), 0);
 
-    const totalGrossRevenue = grossSubscriptionRevenue + overageRevenue + addonRevenue;
-    const totalNetRevenue = totalGrossRevenue - totalDiscountImpact;
+    // ACTUAL REVENUE = what's really collected
+    const totalActualRevenue = actualMrr + overageRevenue + addonRevenue;
 
-    // Actual payments received (from Stripe billing_history)
+    // Cash basis: actual Stripe payments
     const actualPaymentsReceived = billingHistory
       .filter(bh => bh.status === 'paid')
       .reduce((sum, bh) => sum + (bh.amount || 0), 0);
@@ -241,34 +254,46 @@ export async function GET(request: NextRequest) {
       .filter(bh => bh.status === 'failed')
       .reduce((sum, bh) => sum + (bh.amount || 0), 0);
 
-    // COSTS
+    // COSTS — all users (including promo) generate costs
     const totalMinutes = callLogs.reduce((sum, c) => sum + Math.ceil((c.call_length || 0) / 60), 0);
     const totalCalls = callLogs.length;
     const completedCalls = callLogs.filter(c => c.status === 'completed').length;
     const failedCalls = callLogs.filter(c => c.status && ['failed', 'error', 'no_answer'].includes(c.status)).length;
 
-    const costBland = totalMinutes * BLAND_COST_PER_MINUTE;
-    const costOpenAI = 0; // Not tracked per-period yet
-    const costSupabase = 0; // Fixed monthly, not tracked
-    const costStripeProcessing = actualPaymentsReceived * 0.029 + (billingHistory.filter(bh => bh.status === 'paid').length * 0.30); // ~2.9% + $0.30/txn
-    const totalCOGS = costBland + costOpenAI + costSupabase;
-    const totalOperatingCosts = totalCOGS + costStripeProcessing;
+    // Separate costs: paying users vs promo users
+    const promoCompanyIds = discountedCompanyIds;
+    const promoMinutes = callLogs
+      .filter(c => promoCompanyIds.has(c.company_id))
+      .reduce((sum, c) => sum + Math.ceil((c.call_length || 0) / 60), 0);
+    const payingMinutes = totalMinutes - promoMinutes;
 
-    // MARGINS
-    const grossProfit = totalNetRevenue - totalCOGS;
-    const grossMarginPercent = totalNetRevenue > 0 ? (grossProfit / totalNetRevenue) * 100 : 0;
-    const operatingProfit = totalNetRevenue - totalOperatingCosts;
-    const operatingMarginPercent = totalNetRevenue > 0 ? (operatingProfit / totalNetRevenue) * 100 : 0;
+    const costBlandTotal = totalMinutes * BLAND_COST_PER_MINUTE;
+    const costBlandPaying = payingMinutes * BLAND_COST_PER_MINUTE;
+    const costBlandPromo = promoMinutes * BLAND_COST_PER_MINUTE;
+    const costStripeProcessing = actualPaymentsReceived * 0.029 + (billingHistory.filter(bh => bh.status === 'paid').length * 0.30);
 
-    // UNIT ECONOMICS
-    const paidCompanies = activeSubs.filter(s => {
+    // MARGINS — based on actual revenue vs actual costs
+    const grossProfit = totalActualRevenue - costBlandTotal;
+    const grossMarginPercent = totalActualRevenue > 0 ? (grossProfit / totalActualRevenue) * 100 : 0;
+    const operatingProfit = totalActualRevenue - costBlandTotal - costStripeProcessing;
+    const operatingMarginPercent = totalActualRevenue > 0 ? (operatingProfit / totalActualRevenue) * 100 : 0;
+
+    // UNIT ECONOMICS — separate paying vs promo segments
+    const totalPaidPlans = activeSubs.filter(s => {
       const plan = s.subscription_plans as { slug?: string } | null;
       return plan && plan.slug !== 'free';
     }).length;
-    const arpc = paidCompanies > 0 ? totalNetRevenue / paidCompanies : 0;
-    const costPerCall = totalCalls > 0 ? costBland / totalCalls : 0;
+    const payingCustomers = totalPaidPlans - discountedSubscriptions.filter(ds => ds.netAmount === 0).length;
+    const promoCustomers = discountedSubscriptions.length;
+    const freeCustomers = activeSubs.filter(s => {
+      const plan = s.subscription_plans as { slug?: string } | null;
+      return !plan || plan.slug === 'free';
+    }).length;
+
+    const arpc = payingCustomers > 0 ? actualMrr / payingCustomers : 0;
+    const costPerCall = totalCalls > 0 ? costBlandTotal / totalCalls : 0;
     const avgMinPerCall = totalCalls > 0 ? totalMinutes / totalCalls : 0;
-    const ltv = arpc > 0 ? arpc * 12 : 0; // Simplified: 12-month LTV
+    const ltv = arpc > 0 ? arpc * 12 : 0;
 
     // ─── LEDGER ENTRIES ────────────────────────────────
     // Build a chronological ledger from billing_history + billing_events
@@ -386,28 +411,58 @@ export async function GET(request: NextRequest) {
       companyName: e.companyId ? (companyNameMap.get(e.companyId) || e.companyId.substring(0, 8)) : null,
     }));
 
+    // Chart data for visual displays
+    const chartData = {
+      // Revenue waterfall
+      revenueWaterfall: [
+        { name: 'Catalog MRR', value: Math.round(catalogMrr * 100) / 100, fill: '#94a3b8' },
+        { name: 'Promo Foregone', value: -Math.round(promoForegone * 100) / 100, fill: '#fb923c' },
+        { name: 'Actual MRR', value: Math.round(actualMrr * 100) / 100, fill: '#10b981' },
+        { name: 'Overages', value: Math.round(overageRevenue * 100) / 100, fill: '#6366f1' },
+        { name: 'Add-ons', value: Math.round(addonRevenue * 100) / 100, fill: '#8b5cf6' },
+      ],
+      // Cost breakdown
+      costBreakdown: [
+        { name: 'Bland (Paying)', value: Math.round(costBlandPaying * 100) / 100, fill: '#ef4444' },
+        { name: 'Bland (Promo)', value: Math.round(costBlandPromo * 100) / 100, fill: '#fb923c' },
+        { name: 'Stripe Fees', value: Math.round(costStripeProcessing * 100) / 100, fill: '#f59e0b' },
+      ].filter(c => c.value > 0),
+      // Subscriber segments
+      subscriberSegments: [
+        { name: 'Paying', value: payingCustomers, fill: '#10b981' },
+        { name: 'Promo/Tester', value: promoCustomers, fill: '#fb923c' },
+        { name: 'Free', value: freeCustomers, fill: '#94a3b8' },
+      ].filter(s => s.value > 0),
+    };
+
     return NextResponse.json({
       period: { start: periodStartISO, end: periodEndISO, label: period },
 
-      // P&L Statement
+      // P&L Statement — CORRECT MODEL
       pnl: {
         revenue: {
-          grossSubscriptions: Math.round(grossSubscriptionRevenue * 100) / 100,
-          discounts: Math.round(totalDiscountImpact * 100) / 100,
-          netSubscriptions: Math.round((grossSubscriptionRevenue - totalDiscountImpact) * 100) / 100,
+          // What everyone would pay at full price (informational)
+          catalogMrr: Math.round(catalogMrr * 100) / 100,
+          // What's actually collected monthly
+          actualMrr: Math.round(actualMrr * 100) / 100,
           overages: Math.round(overageRevenue * 100) / 100,
           addons: Math.round(addonRevenue * 100) / 100,
-          totalGross: Math.round(totalGrossRevenue * 100) / 100,
-          totalNet: Math.round(totalNetRevenue * 100) / 100,
+          totalActualRevenue: Math.round(totalActualRevenue * 100) / 100,
           byPlan: revenueByPlan,
         },
+        // Promotional context (NOT losses — informational only)
+        promotional: {
+          foregoneRevenue: Math.round(promoForegone * 100) / 100,
+          promoCustomers,
+          promoBlandCost: Math.round(costBlandPromo * 100) / 100,
+          effectivePromoCost: Math.round(costBlandPromo * 100) / 100,
+        },
         costs: {
-          bland: Math.round(costBland * 100) / 100,
-          openai: costOpenAI,
-          supabase: costSupabase,
+          blandTotal: Math.round(costBlandTotal * 100) / 100,
+          blandPaying: Math.round(costBlandPaying * 100) / 100,
+          blandPromo: Math.round(costBlandPromo * 100) / 100,
           stripeProcessing: Math.round(costStripeProcessing * 100) / 100,
-          totalCOGS: Math.round(totalCOGS * 100) / 100,
-          totalOperating: Math.round(totalOperatingCosts * 100) / 100,
+          totalCosts: Math.round((costBlandTotal + costStripeProcessing) * 100) / 100,
         },
         margins: {
           grossProfit: Math.round(grossProfit * 100) / 100,
@@ -427,11 +482,12 @@ export async function GET(request: NextRequest) {
       // Discounted Subscriptions Detail
       discountedSubscriptions,
 
-      // Unit Economics
+      // Unit Economics — segmented
       unitEconomics: {
         totalCompanies,
-        paidCompanies,
-        freeCompanies: totalCompanies - paidCompanies,
+        payingCustomers,
+        promoCustomers,
+        freeCustomers,
         totalUsers,
         arpc: Math.round(arpc * 100) / 100,
         costPerCall: Math.round(costPerCall * 100) / 100,
@@ -441,7 +497,12 @@ export async function GET(request: NextRequest) {
         completedCalls,
         failedCalls,
         totalMinutes,
+        payingMinutes,
+        promoMinutes,
       },
+
+      // Chart data
+      charts: chartData,
 
       // Ledger (chronological entries)
       ledger: enrichedLedger,
