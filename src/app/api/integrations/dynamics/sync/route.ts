@@ -13,6 +13,7 @@ import {
   syncSelectedDynamicsLeads,
   pushContactUpdatesToDynamics,
 } from '@/lib/dynamics';
+import { isPlanAllowedForIntegration } from '@/config/plan-features';
 import type { DynamicsIntegration } from '@/types/dynamics';
 
 export async function POST(request: NextRequest) {
@@ -65,6 +66,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'No active Microsoft Dynamics integration found' },
         { status: 404 }
+      );
+    }
+
+    // Verify company plan still allows Dynamics integration
+    const { data: subscription } = await supabaseAdmin
+      .from('company_subscriptions')
+      .select('subscription_plans(slug)')
+      .eq('company_id', userData.company_id)
+      .eq('status', 'active')
+      .single();
+
+    const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
+    if (!isPlanAllowedForIntegration(planSlug, 'dynamics')) {
+      return NextResponse.json(
+        { error: 'Your current plan does not include Microsoft Dynamics 365 integration. Please upgrade to Teams or higher.' },
+        { status: 403 }
       );
     }
 

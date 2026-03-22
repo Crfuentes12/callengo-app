@@ -327,14 +327,30 @@ export async function syncSelectedPipedrivePersons(
             callengoContactId = duplicateId;
             result.persons_updated++;
           } else {
+            // Use try-catch to handle race condition: concurrent syncs may insert
+            // the same contact between our SELECT check and this INSERT
             const { data: newContact, error: insertError } = await supabaseAdmin.from('contacts').insert(contactData).select('id').single();
             if (insertError || !newContact) {
-              result.errors.push(`Failed to create contact for PD Person ${person.id}: ${insertError?.message}`);
-              result.persons_skipped++;
-              continue;
+              // Insert failed — likely a concurrent insert created the contact. Try to find it.
+              const { data: existing } = await supabaseAdmin.from('contacts')
+                .select('id')
+                .eq('company_id', integration.company_id)
+                .or(`email.eq.${email || ''},phone_number.eq.${phoneNumber || ''}`)
+                .limit(1)
+                .maybeSingle();
+              if (existing) {
+                await supabaseAdmin.from('contacts').update(contactData).eq('id', existing.id);
+                callengoContactId = existing.id;
+                result.persons_updated++;
+              } else {
+                result.errors.push(`Failed to create contact for PD Person ${person.id}: ${insertError?.message}`);
+                result.persons_skipped++;
+                continue;
+              }
+            } else {
+              callengoContactId = newContact.id;
+              result.persons_created++;
             }
-            callengoContactId = newContact.id;
-            result.persons_created++;
           }
 
           await supabaseAdmin.from('pipedrive_contact_mappings').insert({
@@ -462,7 +478,8 @@ export async function syncPipedrivePersonsToCallengo(
             callengoContactId = duplicateId;
             result.persons_updated++;
           } else {
-            // Create new contact
+            // Create new contact — use try-catch to handle race condition:
+            // concurrent syncs may insert the same contact between our SELECT check and this INSERT
             const { data: newContact, error: insertError } = await supabaseAdmin
               .from('contacts')
               .insert(contactData)
@@ -470,12 +487,26 @@ export async function syncPipedrivePersonsToCallengo(
               .single();
 
             if (insertError || !newContact) {
-              result.errors.push(`Failed to create contact for PD Person ${person.id}: ${insertError?.message}`);
-              result.persons_skipped++;
-              continue;
+              // Insert failed — likely a concurrent insert created the contact. Try to find it.
+              const { data: existing } = await supabaseAdmin.from('contacts')
+                .select('id')
+                .eq('company_id', integration.company_id)
+                .or(`email.eq.${email || ''},phone_number.eq.${phoneNumber || ''}`)
+                .limit(1)
+                .maybeSingle();
+              if (existing) {
+                await supabaseAdmin.from('contacts').update(contactData).eq('id', existing.id);
+                callengoContactId = existing.id;
+                result.persons_updated++;
+              } else {
+                result.errors.push(`Failed to create contact for PD Person ${person.id}: ${insertError?.message}`);
+                result.persons_skipped++;
+                continue;
+              }
+            } else {
+              callengoContactId = newContact.id;
+              result.persons_created++;
             }
-            callengoContactId = newContact.id;
-            result.persons_created++;
           }
 
           // Create mapping

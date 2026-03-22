@@ -11,6 +11,7 @@ import {
   syncSelectedSalesforceContacts,
   syncSelectedSalesforceLeads,
 } from '@/lib/salesforce';
+import { isPlanAllowedForIntegration } from '@/config/plan-features';
 import type { SalesforceIntegration } from '@/types/salesforce';
 
 export async function POST(request: NextRequest) {
@@ -57,6 +58,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'No active Salesforce integration found' },
         { status: 404 }
+      );
+    }
+
+    // Verify company plan still allows Salesforce integration
+    const { data: subscription } = await supabaseAdmin
+      .from('company_subscriptions')
+      .select('subscription_plans(slug)')
+      .eq('company_id', userData.company_id)
+      .eq('status', 'active')
+      .single();
+
+    const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
+    if (!isPlanAllowedForIntegration(planSlug, 'salesforce')) {
+      return NextResponse.json(
+        { error: 'Your current plan does not include Salesforce integration. Please upgrade to Teams or higher.' },
+        { status: 403 }
       );
     }
 

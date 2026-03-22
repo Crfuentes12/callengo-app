@@ -477,7 +477,9 @@ export async function markEventNoShow(
 
   if (!updated) return null;
 
-  if (options.scheduleRetry) {
+  const MAX_NO_SHOW_RETRIES = 3;
+
+  if (options.scheduleRetry && (updated.rescheduled_count || 0) < MAX_NO_SHOW_RETRIES) {
     const retryStart = options.retryDate
       ? new Date(options.retryDate)
       : new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -503,10 +505,13 @@ export async function markEventNoShow(
         contact_email: updated.contact_email,
         agent_name: updated.agent_name,
         notes: options.retryNotes || `Auto-scheduled retry after no-show for: ${updated.title}`,
+        rescheduled_count: (updated.rescheduled_count || 0) + 1,
         created_by_feature: 'appointment_confirmation',
       },
       { syncToGoogle: true, syncToMicrosoft: true }
     );
+  } else if (options.scheduleRetry) {
+    console.warn(`[calendar] Max no-show retries (${MAX_NO_SHOW_RETRIES}) reached for event ${eventId}`);
   }
 
   return updated;

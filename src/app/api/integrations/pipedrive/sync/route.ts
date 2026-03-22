@@ -10,6 +10,7 @@ import {
   syncSelectedPipedrivePersons,
   pushContactUpdatesToPipedrive,
 } from '@/lib/pipedrive';
+import { isPlanAllowedForIntegration } from '@/config/plan-features';
 import type { PipedriveIntegration } from '@/types/pipedrive';
 
 export async function POST(request: NextRequest) {
@@ -58,6 +59,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'No active Pipedrive integration found' },
         { status: 404 }
+      );
+    }
+
+    // Verify company plan still allows Pipedrive integration
+    const { data: subscription } = await supabaseAdmin
+      .from('company_subscriptions')
+      .select('subscription_plans(slug)')
+      .eq('company_id', userData.company_id)
+      .eq('status', 'active')
+      .single();
+
+    const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
+    if (!isPlanAllowedForIntegration(planSlug, 'pipedrive')) {
+      return NextResponse.json(
+        { error: 'Your current plan does not include Pipedrive integration. Please upgrade to Business or higher.' },
+        { status: 403 }
       );
     }
 

@@ -24,6 +24,14 @@ export async function POST() {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
+    // Find the active integration to get its ID for mapping cleanup
+    const { data: integration } = await supabaseAdmin
+      .from('clio_integrations')
+      .select('id')
+      .eq('company_id', userData.company_id)
+      .eq('is_active', true)
+      .maybeSingle();
+
     // Soft-delete by marking inactive
     const { error: updateError } = await supabaseAdmin
       .from('clio_integrations')
@@ -33,6 +41,14 @@ export async function POST() {
 
     if (updateError) {
       throw new Error(`Failed to disconnect: ${updateError.message}`);
+    }
+
+    // Clean up contact mappings for this integration
+    if (integration?.id) {
+      await supabaseAdmin
+        .from('clio_contact_mappings')
+        .delete()
+        .eq('integration_id', integration.id);
     }
 
     return NextResponse.json({ success: true });

@@ -664,18 +664,32 @@ function microsoftEventToCallengoEvent(
 ): Partial<CalendarEvent> {
   const isAllDay = !!msEvent.isAllDay;
 
-  // Microsoft Graph returns dateTime in the event's timeZone
-  const startTime = isAllDay
-    ? new Date(msEvent.start.dateTime).toISOString()
-    : msEvent.start.dateTime.endsWith('Z')
-      ? msEvent.start.dateTime
-      : new Date(msEvent.start.dateTime + 'Z').toISOString();
+  // Microsoft Graph returns dateTime in the event's local timezone (specified
+  // in the timeZone field).  For non-all-day events we must NOT blindly append
+  // 'Z' (UTC) — instead, preserve the dateTime as-is and let the timezone
+  // field provide context.  For all-day events, use the date-only portion.
+  let startTime: string;
+  let endTime: string;
 
-  const endTime = isAllDay
-    ? new Date(msEvent.end.dateTime).toISOString()
-    : msEvent.end.dateTime.endsWith('Z')
+  if (isAllDay) {
+    // All-day events: use date-only format, normalise to midnight UTC
+    const startDateOnly = msEvent.start.dateTime.split('T')[0];
+    const endDateOnly = msEvent.end.dateTime.split('T')[0];
+    startTime = new Date(`${startDateOnly}T00:00:00Z`).toISOString();
+    endTime = new Date(`${endDateOnly}T00:00:00Z`).toISOString();
+  } else if (msEvent.start.dateTime.endsWith('Z')) {
+    // Already in UTC — use as-is
+    startTime = msEvent.start.dateTime;
+    endTime = msEvent.end.dateTime.endsWith('Z')
       ? msEvent.end.dateTime
-      : new Date(msEvent.end.dateTime + 'Z').toISOString();
+      : msEvent.end.dateTime;
+  } else {
+    // Microsoft returns local time in the event's timeZone — preserve as-is.
+    // The timezone is stored separately in the `timezone` field of the
+    // returned CalendarEvent (from msEvent.start.timeZone).
+    startTime = msEvent.start.dateTime;
+    endTime = msEvent.end.dateTime;
+  }
 
   // Determine event type and status - default to 'meeting' and 'scheduled'
   const callengoType = 'meeting';

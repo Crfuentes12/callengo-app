@@ -410,11 +410,28 @@ export async function getBusySlots(
 
 /**
  * Parse a "HH:mm" time string and apply it to a given Date to produce an
- * absolute Date instance (in UTC terms, matching the date's calendar day).
+ * absolute Date instance.
+ *
+ * When a `timezone` is provided the resulting Date represents the exact UTC
+ * instant that corresponds to the given wall-clock time in that timezone.
+ * This is critical on servers running in UTC (e.g. Vercel) so that working
+ * hours like "09:00 America/New_York" resolve to 14:00 UTC (EST) rather
+ * than 09:00 UTC.
  */
-function applyTimeToDate(dateStr: string, time: string): Date {
+function applyTimeToDate(dateStr: string, timeStr: string, timezone?: string): Date {
   const [year, month, day] = dateStr.split('-').map(Number);
-  const [hours, minutes] = time.split(':').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+
+  if (timezone) {
+    // Create a Date for the wall-clock time and compute the UTC offset for
+    // the target timezone so we can return the correct UTC instant.
+    const naive = new Date(`${dateStr}T${timeStr}:00`);
+    const utcDate = new Date(naive.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const tzDate = new Date(naive.toLocaleString('en-US', { timeZone: timezone }));
+    const offset = utcDate.getTime() - tzDate.getTime();
+    return new Date(naive.getTime() + offset);
+  }
+
   return new Date(year, month - 1, day, hours, minutes, 0, 0);
 }
 
@@ -566,9 +583,10 @@ export async function getAvailability(
   const dayEnd = `${date}T23:59:59`;
   const busySlots = await getBusySlots(companyId, dayStart, dayEnd);
 
-  // 5. Compute working window boundaries
-  const workStart = applyTimeToDate(date, workingHoursStart);
-  const workEnd = applyTimeToDate(date, workingHoursEnd);
+  // 5. Compute working window boundaries (timezone-aware)
+  const companyTimezone = companyDefaults.timezone;
+  const workStart = applyTimeToDate(date, workingHoursStart, companyTimezone);
+  const workEnd = applyTimeToDate(date, workingHoursEnd, companyTimezone);
 
   // 6. Calculate available slots
   const slotDurationMs = slotDuration * 60 * 1000;

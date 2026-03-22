@@ -27,16 +27,6 @@ export function determineCategory(voice: BlandVoice): { language: string; accent
    
   const _name = voice.name.toLowerCase();
 
-  // French accent speaking English (specific voices: Elsa, Pierre)
-  if ((tags.includes('french') || description.includes('french')) && (tags.includes('english') || description.includes('accent'))) {
-    return { language: 'English', accent: 'French', country: 'France' };
-  }
-
-  // German accent speaking English (specific voice: Karl)
-  if ((tags.includes('german') || description.includes('german')) && tags.includes('english')) {
-    return { language: 'English', accent: 'German', country: 'Germany' };
-  }
-
   // British English
   if (tags.includes('british') || description.includes('british')) {
     return { language: 'English', accent: 'British', country: 'UK' };
@@ -65,41 +55,6 @@ export function determineCategory(voice: BlandVoice): { language: string; accent
     }
     // Default Spanish
     return { language: 'Spanish', accent: 'Spanish', country: 'Spain' };
-  }
-
-  // French
-  if (tags.includes('french') || description.includes('french')) {
-    return { language: 'French', accent: 'French', country: 'France' };
-  }
-
-  // German
-  if (tags.includes('german') || description.includes('german')) {
-    return { language: 'German', accent: 'German', country: 'Germany' };
-  }
-
-  // Italian
-  if (tags.includes('italian') || description.includes('italian')) {
-    return { language: 'Italian', accent: 'Italian', country: 'Italy' };
-  }
-
-  // Dutch
-  if (tags.includes('dutch') || description.includes('dutch')) {
-    return { language: 'Dutch', accent: 'Dutch', country: 'Netherlands' };
-  }
-
-  // Filipino/Philippines
-  if (tags.includes('filipino') || tags.includes('phillipines') || description.includes('filipino') || description.includes('philippines')) {
-    return { language: 'English', accent: 'Filipino', country: 'Philippines' };
-  }
-
-  // Indian
-  if (tags.includes('indian') || description.includes('indian')) {
-    return { language: 'English', accent: 'Indian', country: 'India' };
-  }
-
-  // South African
-  if (tags.includes('south_african') || tags.includes('south african') || description.includes('south african')) {
-    return { language: 'English', accent: 'South African', country: 'South Africa' };
   }
 
   // Default to English American
@@ -187,14 +142,6 @@ export function getSampleText(voice: BlandVoice): string {
   switch (category.language) {
     case 'Spanish':
       return `Hola, ¿cómo estás? Soy ${voiceName} de Callengo. Estoy aquí para atender tu llamada como lo haría una persona real. Puedo responder preguntas, recopilar detalles importantes y asegurarme de que todo se pase correctamente. Tómate tu tiempo y dime cómo puedo ayudarte.`;
-    case 'French':
-      return `Bonjour, comment allez-vous? Je suis ${voiceName} de Callengo. Je suis là pour gérer votre appel comme le ferait une vraie personne. Je peux répondre aux questions, collecter des détails importants et m'assurer que tout est transmis correctement. Prenez votre temps et dites-moi comment je peux vous aider.`;
-    case 'German':
-      return `Hallo, wie geht es dir? Ich bin ${voiceName} von Callengo. Ich bin hier, um Ihren Anruf wie eine echte Person zu bearbeiten. Ich kann Fragen beantworten, wichtige Details sammeln und sicherstellen, dass alles ordnungsgemäß weitergegeben wird. Nehmen Sie sich Zeit und sagen Sie mir, wie ich helfen kann.`;
-    case 'Italian':
-      return `Ciao, come stai? Sono ${voiceName} da Callengo. Sono qui per gestire la tua chiamata proprio come farebbe una persona reale. Posso rispondere a domande, raccogliere dettagli importanti e assicurarmi che tutto venga trasmesso correttamente. Prenditi il tuo tempo e dimmi come posso aiutarti.`;
-    case 'Dutch':
-      return `Hallo, hoe gaat het? Ik ben ${voiceName} van Callengo. Ik ben hier om uw oproep af te handelen zoals een echte persoon dat zou doen. Ik kan vragen beantwoorden, belangrijke details verzamelen en ervoor zorgen dat alles correct wordt doorgegeven. Neem de tijd en vertel me hoe ik kan helpen.`;
     default:
       // English default
       return `Hi, how are you? I'm ${voiceName} from Callengo. I'm here to handle your call just like a real person would. I can answer questions, collect important details, and make sure everything gets passed on properly. Take your time and tell me how I can help.`;
@@ -208,14 +155,6 @@ export function getLanguageCode(voice: BlandVoice): string {
   switch (category.language) {
     case 'Spanish':
       return 'ESP';
-    case 'French':
-      return 'FRE';
-    case 'German':
-      return 'GER';
-    case 'Italian':
-      return 'ITA';
-    case 'Dutch':
-      return 'DUT';
     default:
       return 'ENG';
   }

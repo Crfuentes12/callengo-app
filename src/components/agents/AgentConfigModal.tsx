@@ -371,10 +371,8 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
 
       if (result.success) {
         setCallAnalysis(result.analysis);
-        console.log('✅ Call analysis complete:', result.analysis);
       }
     } catch (error) {
-      console.error('❌ Error analyzing call:', error);
     } finally {
       setAnalyzingCall(false);
     }
@@ -385,8 +383,6 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     try {
       const response = await fetch(`/api/bland/get-call/${callId}?company_id=${companyId}`);
       const data = await response.json();
-
-      console.log('📊 Call status poll:', data);
 
       if (response.ok && data.status) {
         const blandStatus = data.status.toLowerCase();
@@ -421,17 +417,10 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   };
 
   const handleTestAgent = async () => {
-    console.log('🔥 handleTestAgent called!');
-    console.log('testPhoneNumber:', testPhoneNumber);
-    console.log('settings.voice:', settings.voice);
-    console.log('settings.testPhoneNumber:', settings.testPhoneNumber);
-
     if (!testPhoneNumber.trim() || !settings.voice) {
-      console.error('❌ Validation failed - missing phone or voice');
       return;
     }
 
-    console.log('✅ Starting test call...');
     agentEvents.testCallInitiated(getAgentType());
     phAgentEvents.testCallInitiated(getAgentType());
     setTestingAgent(true);
@@ -449,12 +438,6 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
 This is a DEMO call to showcase your capabilities. Use the following demo data for this conversation: ${demoDataText}.
 ${agentDesc.description}
 Be natural, professional, and demonstrate your key capabilities in this brief demo call.`;
-
-      console.log('📞 Calling API with:', {
-        phone_number: testPhoneNumber,
-        voice: settings.voice,
-        company_id: companyId,
-      });
 
       const response = await fetch('/api/bland/send-call', {
         method: 'POST',
@@ -476,15 +459,12 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         }),
       });
 
-      console.log('📡 Response status:', response.status);
       const data = await response.json();
-      console.log('📡 Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to initiate call');
       }
 
-      console.log('✅ Call initiated! Call ID:', data.call_id);
       setCallId(data.call_id);
 
       // Reset analysis tracking for new call
@@ -500,8 +480,6 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       pollCallStatus(data.call_id);
 
     } catch (error) {
-      console.error('❌ Test call error:', error);
-      console.error('Error details:', error instanceof Error ? error.message : error);
       setCallStatus('ended');
       alert(`❌ Failed to initiate test call: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setTimeout(() => {
@@ -509,7 +487,6 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         setCallStatus('idle');
       }, 2000);
     } finally {
-      console.log('🏁 Setting testingAgent to false');
       setTestingAgent(false);
     }
   };
@@ -1534,7 +1511,6 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </button>
                   <button
                     onClick={() => {
-                      console.log('🚀 Start Test Call button clicked in modal!');
                       handleTestAgent();
                     }}
                     disabled={!testPhoneNumber.trim() || testingAgent}

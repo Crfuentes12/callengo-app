@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import { getAppUrl } from '@/lib/config';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 /**
  * POST /api/team/invite
@@ -16,6 +17,12 @@ export async function POST(req: NextRequest) {
 
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit: 3 invite requests per minute per user
+    const rateLimit = await expensiveLimiter.check(3, `team_invite_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const { email, role = 'member' } = await req.json();
@@ -97,7 +104,15 @@ export async function POST(req: NextRequest) {
 
       if (totalSeats >= plan.max_seats) {
         if (plan.extra_seat_price) {
-          // Teams plan allows extra seats for a fee - let it through
+          // TEA-04: Validate that the company has actually purchased enough extra seats
+          const extraSeatsAllowed = (subscription as Record<string, unknown>).extra_users as number || 0;
+          const totalAllowedSeats = plan.max_seats + extraSeatsAllowed;
+          if (totalSeats >= totalAllowedSeats) {
+            return NextResponse.json(
+              { error: `All ${totalAllowedSeats} seats are used. Purchase additional seats to invite more members.` },
+              { status: 403 }
+            );
+          }
         } else {
           return NextResponse.json(
             { error: `All ${plan.max_seats} seats are used. Upgrade your plan to add more team members.` },

@@ -10,6 +10,7 @@ import {
   syncSelectedClioContacts,
   pushContactUpdatesToClio,
 } from '@/lib/clio';
+import { isPlanAllowedForIntegration } from '@/config/plan-features';
 import type { ClioIntegration } from '@/types/clio';
 
 export async function POST(request: NextRequest) {
@@ -58,6 +59,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'No active Clio integration found' },
         { status: 404 }
+      );
+    }
+
+    // Verify company plan still allows Clio integration
+    const { data: subscription } = await supabaseAdmin
+      .from('company_subscriptions')
+      .select('subscription_plans(slug)')
+      .eq('company_id', userData.company_id)
+      .eq('status', 'active')
+      .single();
+
+    const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
+    if (!isPlanAllowedForIntegration(planSlug, 'clio')) {
+      return NextResponse.json(
+        { error: 'Your current plan does not include Clio integration. Please upgrade to Business or higher.' },
+        { status: 403 }
       );
     }
 

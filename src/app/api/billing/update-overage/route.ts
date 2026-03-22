@@ -6,6 +6,7 @@ import {
   disableOverage,
   updateOverageBudget,
 } from '@/lib/billing/overage-manager';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +17,12 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit: 3 overage update requests per minute per user
+    const rateLimit = await expensiveLimiter.check(3, `billing_update_overage_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const body = await request.json();
