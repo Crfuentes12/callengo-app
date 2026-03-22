@@ -19,6 +19,92 @@ interface BlandPlanOption {
   transferRate: number;
 }
 
+interface PromoCodeData {
+  summary: {
+    totalCoupons: number;
+    activeCoupons: number;
+    totalPromoCodes: number;
+    activePromoCodes: number;
+    totalRedemptions: number;
+    totalActiveDiscounts: number;
+    totalMonthlyDiscountImpact: number;
+  };
+  promotionCodes: {
+    id: string;
+    code: string;
+    active: boolean;
+    timesRedeemed: number;
+    maxRedemptions: number | null;
+    expiresAt: number | null;
+    createdAt: number;
+    coupon: {
+      id: string;
+      name: string | null;
+      percentOff: number | null;
+      amountOff: number | null;
+      currency: string | null;
+      duration: string;
+      durationInMonths: number | null;
+      timesRedeemed: number;
+      maxRedemptions: number | null;
+      valid: boolean;
+      createdAt: number;
+    };
+    activeRedemptions: number;
+    monthlyImpact: number;
+    customers: {
+      customerId: string;
+      customerName: string;
+      customerEmail: string;
+      companyId: string | null;
+      subscriptionId: string;
+      subscriptionStatus: string;
+      promotionCode: string | null;
+      discountStart: number | null;
+      discountEnd: number | null;
+      monthlyDiscount: number;
+      planAmount: number;
+    }[];
+  }[];
+  standaloneCoupons: {
+    id: null;
+    code: null;
+    active: boolean;
+    timesRedeemed: number;
+    maxRedemptions: number | null;
+    expiresAt: null;
+    createdAt: number;
+    coupon: {
+      id: string;
+      name: string | null;
+      percentOff: number | null;
+      amountOff: number | null;
+      currency: string | null;
+      duration: string;
+      durationInMonths: number | null;
+      timesRedeemed: number;
+      maxRedemptions: number | null;
+      valid: boolean;
+      createdAt: number;
+    };
+    activeRedemptions: number;
+    monthlyImpact: number;
+    customers: {
+      customerId: string;
+      customerName: string;
+      customerEmail: string;
+      companyId: string | null;
+      subscriptionId: string;
+      subscriptionStatus: string;
+      promotionCode: string | null;
+      discountStart: number | null;
+      discountEnd: number | null;
+      monthlyDiscount: number;
+      planAmount: number;
+    }[];
+  }[];
+}
+
 interface CommandCenterData {
   callsToday: number;
   callsThisHour: number;
@@ -71,6 +157,10 @@ interface CommandCenterData {
   revenue?: {
     mrr: number;
     arr: number;
+    netMrr: number;
+    netArr: number;
+    totalDiscountImpact: number;
+    subsWithDiscounts: number;
     stripeRevenue30d: number;
     revenueByPlan: Record<string, { count: number; mrr: number }>;
   };
@@ -97,6 +187,8 @@ interface CommandCenterData {
   };
   unitEconomics?: {
     grossRevenue: number;
+    grossRevenueBeforeDiscounts: number;
+    discountImpact: number;
     grossCost: number;
     grossProfit: number;
     grossMarginPercent: number;
@@ -113,7 +205,8 @@ interface ClientData {
   subscription: { status: string; overageEnabled: boolean; overageBudget: number | null };
   bland: { subAccountId: string | null; apiKeyMasked: string | null; creditBalance: number };
   usage: { minutesUsed: number; minutesIncluded: number; usagePercent: number; overageMinutes: number; periodStart: string | null; periodEnd: string | null };
-  economics: { totalRevenue: number; subscriptionRevenue: number; overageRevenue: number; addonRevenue: number; blandCost: number; profit: number; marginPercent: number };
+  economics: { totalRevenue: number; subscriptionRevenue: number; overageRevenue: number; addonRevenue: number; discountAmount: number; blandCost: number; profit: number; marginPercent: number };
+  discount: { promoCode: string | null; couponName: string | null; percentOff: number | null; amountOff: number | null; duration: string; durationInMonths: number | null; monthlyDiscount: number } | null;
   addons: { type: string; quantity: number }[];
 }
 
@@ -178,7 +271,7 @@ interface FinanceData {
   [key: string]: unknown;
 }
 
-type Tab = 'health' | 'operations' | 'clients' | 'events' | 'reconcile' | 'finances';
+type Tab = 'health' | 'operations' | 'clients' | 'events' | 'reconcile' | 'finances' | 'promos';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -231,6 +324,8 @@ export default function AdminCommandCenter() {
   const [clientSearch, setClientSearch] = useState('');
   const [cleaningUp, setCleaningUp] = useState(false);
   const [savingBlandPlan, setSavingBlandPlan] = useState(false);
+  const [promoData, setPromoData] = useState<PromoCodeData | null>(null);
+  const [promoExpanded, setPromoExpanded] = useState<string | null>(null);
 
   // Auto-refresh health data every 30 seconds
   const fetchHealth = useCallback(async () => {
@@ -262,8 +357,14 @@ export default function AdminCommandCenter() {
           // Redis concurrency
           concurrency: raw.concurrency,
           gauges: raw.gauges,
-          // Business metrics
-          revenue: raw.revenue,
+          // Business metrics (with discount-aware fields)
+          revenue: raw.revenue ? {
+            ...raw.revenue,
+            netMrr: raw.revenue.netMrr ?? raw.revenue.mrr,
+            netArr: raw.revenue.netArr ?? raw.revenue.arr,
+            totalDiscountImpact: raw.revenue.totalDiscountImpact ?? 0,
+            subsWithDiscounts: raw.revenue.subsWithDiscounts ?? 0,
+          } : undefined,
           subscriptionHealth: raw.subscriptionHealth,
           blandEconomics: raw.blandEconomics,
           failedCalls: raw.failedCalls,
@@ -373,6 +474,18 @@ export default function AdminCommandCenter() {
     }
   }, []);
 
+  const fetchPromos = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/promo-codes');
+      if (res.ok) {
+        const data = await res.json();
+        setPromoData(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch promo codes:', e);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     const load = async () => {
@@ -395,7 +508,8 @@ export default function AdminCommandCenter() {
     if (tab === 'events' && events.length === 0) fetchEvents(1, eventsFilter);
     if (tab === 'reconcile' && !reconcileData) fetchReconcile();
     if (tab === 'finances' && !financeData) fetchFinances(financePeriod);
-  }, [tab, clients.length, events.length, reconcileData, financeData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, eventsFilter, financePeriod]);
+    if (tab === 'promos' && !promoData) fetchPromos();
+  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, eventsFilter, financePeriod]);
 
   if (loading) {
     return (
@@ -509,6 +623,7 @@ export default function AdminCommandCenter() {
             { id: 'events' as Tab, label: t.admin.commandCenter?.tabEvents || 'Billing Events' },
             { id: 'reconcile' as Tab, label: t.admin.commandCenter?.tabReconcile || 'Reconciliation' },
             { id: 'finances' as Tab, label: 'Finances' },
+            { id: 'promos' as Tab, label: 'Promo Codes' },
           ]).map(({ id, label }) => (
             <button
               key={id}
@@ -787,10 +902,10 @@ export default function AdminCommandCenter() {
           {/* Row 1: Revenue KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             <KPICard
-              label="MRR"
-              value={`$${fmt(healthData.revenue?.mrr || 0)}`}
+              label="Net MRR"
+              value={`$${fmt(healthData.revenue?.netMrr || 0)}`}
               color="emerald"
-              sub={`ARR: $${fmtInt(Math.round(healthData.revenue?.arr || 0))}`}
+              sub={`Gross: $${fmt(healthData.revenue?.mrr || 0)} · Disc: -$${fmt(healthData.revenue?.totalDiscountImpact || 0)}`}
             />
             <KPICard
               label="Stripe Rev (30d)"
@@ -964,7 +1079,17 @@ export default function AdminCommandCenter() {
             <div className="flex items-center gap-6">
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-[var(--color-neutral-500)]">Revenue (MRR)</span>
+                  <span className="text-xs text-[var(--color-neutral-500)]">Gross Revenue (MRR)</span>
+                  <span className="text-sm font-bold text-emerald-600">${fmt(healthData.unitEconomics?.grossRevenueBeforeDiscounts || 0)}</span>
+                </div>
+                {(healthData.unitEconomics?.discountImpact || 0) > 0 && (
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-[var(--color-neutral-500)]">Discounts ({healthData.revenue?.subsWithDiscounts || 0} subs)</span>
+                    <span className="text-sm font-bold text-orange-600">-${fmt(healthData.unitEconomics?.discountImpact || 0)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-[var(--color-neutral-500)]">Net Revenue</span>
                   <span className="text-sm font-bold text-emerald-600">${fmt(healthData.unitEconomics?.grossRevenue || 0)}</span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
@@ -1050,6 +1175,7 @@ export default function AdminCommandCenter() {
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Status</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Usage</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Revenue</th>
+                    <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Discount</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Bland Cost</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Profit</th>
                     <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Margin</th>
@@ -1093,6 +1219,18 @@ export default function AdminCommandCenter() {
                         </div>
                       </td>
                       <td className="text-center py-3 px-3 font-medium text-emerald-700">${fmt(client.economics.totalRevenue)}</td>
+                      <td className="text-center py-3 px-3">
+                        {client.discount ? (
+                          <div className="flex flex-col items-center">
+                            <span className="text-xs font-semibold text-orange-600">-${fmt(client.economics.discountAmount)}</span>
+                            <span className="text-[10px] text-[var(--color-neutral-400)]" title={client.discount.couponName || ''}>
+                              {client.discount.promoCode || client.discount.couponName || (client.discount.percentOff ? `${client.discount.percentOff}% off` : `$${client.discount.amountOff} off`)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-[var(--color-neutral-300)]">—</span>
+                        )}
+                      </td>
                       <td className="text-center py-3 px-3 text-red-600">${fmt(client.economics.blandCost)}</td>
                       <td className="text-center py-3 px-3">
                         <span className={`font-semibold ${client.economics.profit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
@@ -1116,11 +1254,16 @@ export default function AdminCommandCenter() {
 
           {/* Unit Economics Summary */}
           {clients.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <SummaryCard
                 label="Total Revenue"
                 value={`$${fmt(clients.reduce((s, c) => s + c.economics.totalRevenue, 0))}`}
                 color="emerald"
+              />
+              <SummaryCard
+                label="Total Discounts"
+                value={`-$${fmt(clients.reduce((s, c) => s + c.economics.discountAmount, 0))}`}
+                color="orange"
               />
               <SummaryCard
                 label="Total Bland Cost"
@@ -1508,6 +1651,276 @@ export default function AdminCommandCenter() {
                   </>
                 );
               })()}
+        </div>
+      )}
+      {/* ════════════════════════════════════════════════════════════════
+          TAB: PROMO CODES — Stripe Promotion Codes, Coupons & Redemptions
+         ════════════════════════════════════════════════════════════════ */}
+      {tab === 'promos' && (
+        <div className="space-y-6">
+          {!promoData ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-6 h-6 border border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* Summary KPIs */}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                <KPICard label="Promo Codes" value={String(promoData.summary.totalPromoCodes)} color="violet" sub={`${promoData.summary.activePromoCodes} active`} />
+                <KPICard label="Coupons" value={String(promoData.summary.totalCoupons)} color="indigo" sub={`${promoData.summary.activeCoupons} active`} />
+                <KPICard label="Total Redemptions" value={fmtInt(promoData.summary.totalRedemptions)} color="blue" sub="All time" />
+                <KPICard label="Active Discounts" value={String(promoData.summary.totalActiveDiscounts)} color="emerald" sub="On subscriptions" />
+                <KPICard
+                  label="Monthly Impact"
+                  value={`-$${fmt(promoData.summary.totalMonthlyDiscountImpact)}`}
+                  color={promoData.summary.totalMonthlyDiscountImpact > 0 ? 'orange' : 'slate'}
+                  sub="Revenue loss/mo"
+                />
+                <KPICard
+                  label="Annual Impact"
+                  value={`-$${fmt(promoData.summary.totalMonthlyDiscountImpact * 12)}`}
+                  color={promoData.summary.totalMonthlyDiscountImpact > 0 ? 'red' : 'slate'}
+                  sub="Projected yearly"
+                />
+                <KPICard
+                  label="Discount Rate"
+                  value={`${healthData?.revenue?.mrr ? Math.round((promoData.summary.totalMonthlyDiscountImpact / healthData.revenue.mrr) * 1000) / 10 : 0}%`}
+                  color="amber"
+                  sub="% of Gross MRR"
+                />
+              </div>
+
+              {/* Promotion Codes Table */}
+              <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-[var(--border-default)]">
+                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Promotion Codes</h3>
+                  <button onClick={() => { setPromoData(null); fetchPromos(); }} className="px-3 py-1.5 bg-[var(--color-primary)] text-white rounded-lg text-xs hover:opacity-90">
+                    Refresh
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                        <th className="text-left py-3 px-4 font-semibold text-[var(--color-neutral-500)]">Code</th>
+                        <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Discount</th>
+                        <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Duration</th>
+                        <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Redemptions</th>
+                        <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Active On</th>
+                        <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Monthly Impact</th>
+                        <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {promoData.promotionCodes.length === 0 && (
+                        <tr><td colSpan={7} className="text-center py-8 text-[var(--color-neutral-400)]">No promotion codes found in Stripe</td></tr>
+                      )}
+                      {promoData.promotionCodes.map((pc) => (
+                        <>
+                          <tr
+                            key={pc.id}
+                            className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)] transition-colors cursor-pointer"
+                            onClick={() => setPromoExpanded(promoExpanded === pc.id ? null : pc.id)}
+                          >
+                            <td className="py-3 px-4">
+                              <div className="font-mono font-bold text-[var(--color-ink)]">{pc.code}</div>
+                              {pc.coupon.name && <div className="text-xs text-[var(--color-neutral-400)]">{pc.coupon.name}</div>}
+                            </td>
+                            <td className="text-center py-3 px-3">
+                              <span className="font-bold text-violet-700">
+                                {pc.coupon.percentOff ? `${pc.coupon.percentOff}% off` : `$${fmt(pc.coupon.amountOff || 0)} off`}
+                              </span>
+                            </td>
+                            <td className="text-center py-3 px-3 text-xs text-[var(--color-neutral-600)]">
+                              {pc.coupon.duration === 'forever' ? 'Forever' :
+                               pc.coupon.duration === 'once' ? 'Once' :
+                               `${pc.coupon.durationInMonths}mo`}
+                            </td>
+                            <td className="text-center py-3 px-3">
+                              <span className="font-semibold text-[var(--color-ink)]">{pc.timesRedeemed}</span>
+                              {pc.maxRedemptions && <span className="text-xs text-[var(--color-neutral-400)]"> / {pc.maxRedemptions}</span>}
+                            </td>
+                            <td className="text-center py-3 px-3">
+                              <span className={`font-semibold ${pc.activeRedemptions > 0 ? 'text-emerald-600' : 'text-[var(--color-neutral-400)]'}`}>
+                                {pc.activeRedemptions} sub{pc.activeRedemptions !== 1 ? 's' : ''}
+                              </span>
+                            </td>
+                            <td className="text-center py-3 px-3">
+                              {pc.monthlyImpact > 0 ? (
+                                <span className="font-bold text-orange-600">-${fmt(pc.monthlyImpact)}/mo</span>
+                              ) : (
+                                <span className="text-[var(--color-neutral-400)]">—</span>
+                              )}
+                            </td>
+                            <td className="text-center py-3 px-3">
+                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
+                                pc.active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                              }`}>
+                                {pc.active ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                          </tr>
+                          {/* Expanded: customer details */}
+                          {promoExpanded === pc.id && pc.customers.length > 0 && (
+                            <tr key={`${pc.id}-details`}>
+                              <td colSpan={7} className="bg-[var(--color-neutral-50)] px-6 py-3">
+                                <div className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Active Redemptions</div>
+                                <div className="space-y-2">
+                                  {pc.customers.map((c, i) => (
+                                    <div key={i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-[var(--border-default)]">
+                                      <div>
+                                        <span className="font-medium text-[var(--color-ink)]">{c.customerName || c.customerEmail || c.customerId}</span>
+                                        {c.customerEmail && c.customerName && <span className="text-xs text-[var(--color-neutral-400)] ml-2">{c.customerEmail}</span>}
+                                      </div>
+                                      <div className="flex items-center gap-4 text-xs">
+                                        <span className="text-[var(--color-neutral-500)]">Plan: <strong>${fmt(c.planAmount)}/mo</strong></span>
+                                        <span className="text-orange-600 font-bold">-${fmt(c.monthlyDiscount)}/mo</span>
+                                        <span className={`px-1.5 py-0.5 rounded font-semibold ${
+                                          c.subscriptionStatus === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                                        }`}>{c.subscriptionStatus}</span>
+                                        {c.discountEnd && (
+                                          <span className="text-[var(--color-neutral-400)]">
+                                            Ends: {new Date(c.discountEnd * 1000).toLocaleDateString()}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Standalone Coupons (no promo code wrapper — e.g., retention coupons) */}
+              {promoData.standaloneCoupons.length > 0 && (
+                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                  <div className="p-4 border-b border-[var(--border-default)]">
+                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Standalone Coupons (No Promo Code)</h3>
+                    <p className="text-xs text-[var(--color-neutral-400)] mt-1">Coupons applied directly (e.g., retention offers, manual discounts)</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                          <th className="text-left py-3 px-4 font-semibold text-[var(--color-neutral-500)]">Coupon ID / Name</th>
+                          <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Discount</th>
+                          <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Duration</th>
+                          <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Redemptions</th>
+                          <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Active On</th>
+                          <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Monthly Impact</th>
+                          <th className="text-center py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {promoData.standaloneCoupons.map((sc) => (
+                          <>
+                            <tr
+                              key={sc.coupon.id}
+                              className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)] transition-colors cursor-pointer"
+                              onClick={() => setPromoExpanded(promoExpanded === sc.coupon.id ? null : sc.coupon.id)}
+                            >
+                              <td className="py-3 px-4">
+                                <div className="font-mono text-xs text-[var(--color-ink)]">{sc.coupon.name || sc.coupon.id}</div>
+                                {sc.coupon.name && <div className="text-[10px] text-[var(--color-neutral-400)]">{sc.coupon.id}</div>}
+                              </td>
+                              <td className="text-center py-3 px-3">
+                                <span className="font-bold text-violet-700">
+                                  {sc.coupon.percentOff ? `${sc.coupon.percentOff}% off` : `$${fmt(sc.coupon.amountOff || 0)} off`}
+                                </span>
+                              </td>
+                              <td className="text-center py-3 px-3 text-xs text-[var(--color-neutral-600)]">
+                                {sc.coupon.duration === 'forever' ? 'Forever' :
+                                 sc.coupon.duration === 'once' ? 'Once' :
+                                 `${sc.coupon.durationInMonths}mo`}
+                              </td>
+                              <td className="text-center py-3 px-3 font-semibold">{sc.timesRedeemed}</td>
+                              <td className="text-center py-3 px-3">
+                                <span className={`font-semibold ${sc.activeRedemptions > 0 ? 'text-emerald-600' : 'text-[var(--color-neutral-400)]'}`}>
+                                  {sc.activeRedemptions} sub{sc.activeRedemptions !== 1 ? 's' : ''}
+                                </span>
+                              </td>
+                              <td className="text-center py-3 px-3">
+                                {sc.monthlyImpact > 0 ? (
+                                  <span className="font-bold text-orange-600">-${fmt(sc.monthlyImpact)}/mo</span>
+                                ) : (
+                                  <span className="text-[var(--color-neutral-400)]">—</span>
+                                )}
+                              </td>
+                              <td className="text-center py-3 px-3">
+                                <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
+                                  sc.active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                                }`}>
+                                  {sc.active ? 'Active' : 'Expired'}
+                                </span>
+                              </td>
+                            </tr>
+                            {promoExpanded === sc.coupon.id && sc.customers.length > 0 && (
+                              <tr key={`${sc.coupon.id}-details`}>
+                                <td colSpan={7} className="bg-[var(--color-neutral-50)] px-6 py-3">
+                                  <div className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Active Redemptions</div>
+                                  <div className="space-y-2">
+                                    {sc.customers.map((c, i) => (
+                                      <div key={i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-[var(--border-default)]">
+                                        <div>
+                                          <span className="font-medium text-[var(--color-ink)]">{c.customerName || c.customerEmail || c.customerId}</span>
+                                          {c.customerEmail && c.customerName && <span className="text-xs text-[var(--color-neutral-400)] ml-2">{c.customerEmail}</span>}
+                                        </div>
+                                        <div className="flex items-center gap-4 text-xs">
+                                          <span className="text-[var(--color-neutral-500)]">Plan: <strong>${fmt(c.planAmount)}/mo</strong></span>
+                                          <span className="text-orange-600 font-bold">-${fmt(c.monthlyDiscount)}/mo</span>
+                                          <span className={`px-1.5 py-0.5 rounded font-semibold ${
+                                            c.subscriptionStatus === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                                          }`}>{c.subscriptionStatus}</span>
+                                          {c.discountEnd && (
+                                            <span className="text-[var(--color-neutral-400)]">
+                                              Ends: {new Date(c.discountEnd * 1000).toLocaleDateString()}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Revenue Impact Summary */}
+              <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200 p-6">
+                <h3 className="text-xs font-bold text-orange-700 uppercase tracking-wide mb-4">Revenue Impact Summary</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div>
+                    <div className="text-2xl font-bold text-[var(--color-ink)]">${fmt(healthData?.revenue?.mrr || 0)}</div>
+                    <div className="text-xs text-[var(--color-neutral-500)]">Gross MRR</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-orange-600">-${fmt(promoData.summary.totalMonthlyDiscountImpact)}</div>
+                    <div className="text-xs text-[var(--color-neutral-500)]">Total Discounts/mo</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-emerald-700">${fmt(healthData?.revenue?.netMrr || 0)}</div>
+                    <div className="text-xs text-[var(--color-neutral-500)]">Net MRR</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-emerald-700">${fmt((healthData?.revenue?.netMrr || 0) * 12)}</div>
+                    <div className="text-xs text-[var(--color-neutral-500)]">Net ARR</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
