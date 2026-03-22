@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 import { reportUsage } from '@/lib/stripe';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 /**
  * API endpoint to report usage to Stripe for metered billing
@@ -41,6 +42,13 @@ export async function POST(req: NextRequest) {
         { error: 'Unauthorized' },
         { status: 401 }
       );
+    }
+
+    // Rate limit: 3 usage report requests per minute per caller
+    const rateLimitKey = user ? `billing_report_usage_${user.id}` : `billing_report_usage_service`;
+    const rateLimit = await expensiveLimiter.check(3, rateLimitKey);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const body = await req.json();
