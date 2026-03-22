@@ -1,23 +1,69 @@
 # CALLENGO — Auditoría de Seguridad Integral (Marzo 2026)
 
-> Auditoría automatizada ejecutada por 10 agentes de IA en paralelo.
+> Auditoría automatizada ejecutada por 10 agentes de IA en paralelo + 4 agentes de verificación cruzada.
 > Fecha: 22 de Marzo 2026
-> Alcance: Codebase completo de Callengo
+> Alcance: Codebase completo de Callengo + Schema de DB (56 tablas, RLS, FK, triggers)
 
 ---
 
 ## Resumen Ejecutivo
 
-Se identificaron **120+ hallazgos** distribuidos en 10 áreas del sistema. Los más críticos afectan: seguridad de autenticación, integridad de facturación, aislamiento de datos entre empresas, y concurrencia en el sistema de llamadas.
+Se identificaron **120+ hallazgos** distribuidos en 10 áreas del sistema, luego verificados por 4 agentes cruzados con acceso al schema completo de la base de datos. Tras la verificación, se descartaron **7 falsos positivos** y se reclasificaron **6 hallazgos como parcialmente ciertos**.
 
-### Conteo por Severidad
+### Conteo por Severidad (Post-Verificación)
 
 | Severidad | Total | Áreas más afectadas |
 |-----------|-------|---------------------|
-| **CRITICAL** | ~28 | Auth, Billing, Bland AI, CRM, Team, i18n |
-| **HIGH** | ~32 | Todos los módulos |
+| **CRITICAL** | ~20 | Billing, i18n, Team, Calendar |
+| **HIGH** | ~28 | Todos los módulos |
 | **MEDIUM** | ~35 | Analytics, Calendar, Admin, Contacts |
 | **LOW** | ~25 | UX, Logging, Config |
+
+---
+
+## VERIFICACIÓN CRUZADA — Resultados de 4 Agentes
+
+### Falsos Positivos Descartados
+
+| ID Original | Hallazgo | Por qué es Falso Positivo |
+|-------------|----------|---------------------------|
+| SEC-01 | `middleware.ts` no existe | **EXISTE** en `/middleware.ts` (raíz, ubicación correcta Next.js). Auditor buscó en `src/` |
+| BIL-01 | Stripe API version `.clover` inválida | `.clover` es codename válido de Stripe (como `.acacia`, `.basil`). SDK v20.1.0 lo soporta |
+| BIL-02 | Overage `>` vs `>=` | Diseño intencional: permite uso hasta budget exacto. `report-usage` usa `>=` para alertas |
+| BLA-01 | Slot leak en Redis por pre-log | `acquireCallSlot` ocurre DESPUÉS del pre-log. `try/finally` garantiza cleanup |
+| TEA-07 | `expires_at` no se setea | DB tiene default `now() + 7 days` NOT NULL — siempre se setea automáticamente |
+| ADM-01 | `change-plan` no verifica `owner` | Es endpoint de super-admin de plataforma intencionalmente. Owners usan Stripe checkout |
+| CRM-01 | SimplyBook passwords en texto plano | Password solo existe en memoria para obtener token. NUNCA se guarda en DB |
+
+### Hallazgos Reclasificados (Parcialmente Ciertos)
+
+| ID | Hallazgo | Reclasificación |
+|----|----------|-----------------|
+| SEC-02 | Rate limiting no aplicado | Aplicado en 9 endpoints críticos. ~85+ sin proteger. `authLimiter`/`callLimiter` nunca se usan |
+| BLA-08 | Contact cooldown global | Técnicamente correcto, pero UUIDs per-company hacen colisión improbable. Impacto: LOW |
+| BLA-03 | TTL 30 min corto | Suficiente para 99%+ llamadas (3-6 min). Solo afecta Enterprise >30 min |
+| TEA-02 | Auto-accept invitations | Patrón estándar con email match + token UUID + expiración. No es vulnerabilidad |
+| TEA-05 | Admin puede crear admins | Decisión de diseño. Admin no puede crear `owner`. Permisivo pero no broken |
+| CAL-01/02 | Timezone bugs calendar | **Microsoft: CONFIRMADO** (error de 8h). Google: parcial (all-day events) |
+
+### Hallazgos Confirmados como Bugs Reales
+
+| ID | Hallazgo | Severidad Verificada |
+|----|----------|---------------------|
+| BIL-03 | `stripe_subscription_item_id` null → overage no se reporta a Stripe | **HIGH** — pérdida de revenue |
+| BIL-04 | Plan downgrade no resetea minutes_used | **MEDIUM** — edge case en downgrade |
+| CRM-03 | Race condition en dedup de contactos (SELECT-then-INSERT sin ON CONFLICT) | **MEDIUM** |
+| CRM-08 | Plan-gating bypass via sync endpoints (downgrade no desactiva integraciones) | **MEDIUM** |
+| CAL-03 | Availability usa timezone del servidor (UTC), no de la empresa | **HIGH** |
+| CAL-06 | No-show retry sin límite — crea eventos infinitos | **MEDIUM** |
+| TEA-04 | Extra seats no validados contra compras (`extra_users` no se verifica) | **HIGH** |
+| AI-01 | Prompt injection en transcripts (zero sanitización) | **HIGH** |
+| I18-01/02 | i18n: `pt.ts` no existe, `SupportedLanguage` solo 2/7 idiomas | **HIGH** |
+| I18-06 | 13 console.log con emojis en producción | **MEDIUM** |
+| I18-09 | CSS class malformada `bg-[var(--color-success-50)]0` | **LOW** |
+| AI-06 | KPI success rate usa filtros inconsistentes (`completed` vs `status`) | **MEDIUM** |
+| CAM-01 | CSV injection sin sanitización de fórmulas | **HIGH** |
+| CRM-02 | Disconnect soft-delete no limpia mappings (CASCADE no aplica) | **LOW** |
 
 ---
 
