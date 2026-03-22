@@ -151,7 +151,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert call_log (insert or update if call_id already exists from pre-dispatch)
-    await supabaseAdmin.from('call_logs').upsert({
+    const isVoicemail = answered_by === 'voicemail' || status === 'voicemail';
+    const voicemailMessageLeft = isVoicemail && !!(call_length && call_length > 5);
+    const { data: upsertedCallLog } = await supabaseAdmin.from('call_logs').upsert({
       company_id: companyId,
       contact_id: contactId || null,
       call_id: call_id as string,
@@ -165,7 +167,53 @@ export async function POST(request: NextRequest) {
       summary: summary || null,
       error_message: error_message || null,
       metadata: body as unknown as Json,
-    }, { onConflict: 'call_id', ignoreDuplicates: false });
+      voicemail_detected: isVoicemail,
+      voicemail_left: voicemailMessageLeft,
+    }, { onConflict: 'call_id', ignoreDuplicates: false }).select('id').single();
+
+    const callLogId = upsertedCallLog?.id;
+
+    // Log voicemail detection to voicemail_logs and update agent_run counters
+    if (isVoicemail && callLogId) {
+      try {
+        const agentRunId = metadata?.agent_run_id as string | undefined;
+
+        await supabaseAdmin.from('voicemail_logs').insert({
+          company_id: companyId,
+          call_id: callLogId,
+          agent_run_id: agentRunId || null,
+          contact_id: contactId || null,
+          detected_at: new Date().toISOString(),
+          detection_method: 'bland_ai',
+          message_left: voicemailMessageLeft,
+          message_duration: voicemailMessageLeft ? (call_length || 0) : null,
+          message_audio_url: voicemailMessageLeft ? (recording_url || null) : null,
+          follow_up_scheduled: false,
+          metadata: JSON.parse(JSON.stringify({ call_id, answered_by, status })),
+        });
+
+        // Increment voicemail counters on agent_run
+        if (agentRunId) {
+          const { data: agentRun } = await supabaseAdmin
+            .from('agent_runs')
+            .select('voicemails_detected, voicemails_left')
+            .eq('id', agentRunId)
+            .single();
+
+          if (agentRun) {
+            await supabaseAdmin
+              .from('agent_runs')
+              .update({
+                voicemails_detected: (agentRun.voicemails_detected || 0) + 1,
+                voicemails_left: (agentRun.voicemails_left || 0) + (voicemailMessageLeft ? 1 : 0),
+              })
+              .eq('id', agentRunId);
+          }
+        }
+      } catch (vmError) {
+        console.error('[webhook] Failed to log voicemail (non-fatal):', vmError);
+      }
+    }
 
     // Release Redis concurrency slot when call completes
     if (call_id && companyId && (completed || status === 'completed' || status === 'failed' || status === 'error' || status === 'no-answer')) {
