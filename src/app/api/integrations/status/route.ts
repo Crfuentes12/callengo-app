@@ -63,6 +63,22 @@ export async function GET() {
       .eq('is_active', true)
       .maybeSingle();
 
+    // Get Zoho integration
+    const { data: zohoIntegration } = await supabaseAdmin
+      .from('zoho_integrations')
+      .select('id, zoho_user_email, zoho_user_name, zoho_org_name, zoho_org_id, last_synced_at')
+      .eq('company_id', userData.company_id)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    // Get Dynamics integration
+    const { data: dynamicsIntegration } = await supabaseAdmin
+      .from('dynamics_integrations')
+      .select('id, dynamics_user_email, dynamics_user_name, dynamics_org_name, dynamics_instance_url, last_synced_at')
+      .eq('company_id', userData.company_id)
+      .eq('is_active', true)
+      .maybeSingle();
+
     // Get company settings for Slack, Zoom, Twilio
     const { data: companySettings } = await supabaseAdmin
       .from('company_settings')
@@ -133,6 +149,24 @@ export async function GET() {
         firmId: clioIntegration?.clio_firm_id || undefined,
         lastSynced: clioIntegration?.last_synced_at || undefined,
         integrationId: clioIntegration?.id || undefined,
+      },
+      zoho: {
+        connected: !!zohoIntegration,
+        email: zohoIntegration?.zoho_user_email || undefined,
+        displayName: zohoIntegration?.zoho_user_name || undefined,
+        orgName: zohoIntegration?.zoho_org_name || undefined,
+        orgId: zohoIntegration?.zoho_org_id || undefined,
+        lastSynced: zohoIntegration?.last_synced_at || undefined,
+        integrationId: zohoIntegration?.id || undefined,
+      },
+      dynamics: {
+        connected: !!dynamicsIntegration,
+        email: dynamicsIntegration?.dynamics_user_email || undefined,
+        displayName: dynamicsIntegration?.dynamics_user_name || undefined,
+        orgName: dynamicsIntegration?.dynamics_org_name || undefined,
+        instanceUrl: dynamicsIntegration?.dynamics_instance_url || undefined,
+        lastSynced: dynamicsIntegration?.last_synced_at || undefined,
+        integrationId: dynamicsIntegration?.id || undefined,
       },
     };
 

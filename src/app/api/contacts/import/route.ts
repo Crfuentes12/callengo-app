@@ -28,6 +28,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No company found' }, { status: 404 });
     }
 
+    // Validate subscription is active (block expired, canceled, past_due)
+    const { data: subscription } = await supabase
+      .from('company_subscriptions')
+      .select('status, plan:subscription_plans(slug)')
+      .eq('company_id', userData.company_id)
+      .in('status', ['active', 'trialing'])
+      .maybeSingle();
+
+    if (!subscription) {
+      return NextResponse.json(
+        { error: 'Active subscription required to import contacts' },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const mappingJson = formData.get('mapping') as string | null;

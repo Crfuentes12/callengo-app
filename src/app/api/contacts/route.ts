@@ -45,11 +45,14 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact' })
       .eq('company_id', userData.company_id);
 
-    // Apply filters
+    // Apply filters (sanitize search to prevent filter injection)
     if (search) {
-      query = query.or(
-        `company_name.ilike.%${search}%,phone_number.ilike.%${search}%,contact_name.ilike.%${search}%,email.ilike.%${search}%,city.ilike.%${search}%`
-      );
+      const sanitized = search.replace(/[%_\\(),.']/g, '');
+      if (sanitized.length > 0) {
+        query = query.or(
+          `company_name.ilike.%${sanitized}%,phone_number.ilike.%${sanitized}%,contact_name.ilike.%${sanitized}%,email.ilike.%${sanitized}%,city.ilike.%${sanitized}%`
+        );
+      }
     }
     if (status) query = query.eq('status', status);
     if (listId === 'none') {

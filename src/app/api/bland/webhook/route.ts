@@ -26,6 +26,14 @@ import {
   getActiveSalesforceIntegration,
   pushCallResultToSalesforce,
 } from '@/lib/salesforce';
+import {
+  getActiveZohoIntegration,
+  pushCallResultToZoho,
+} from '@/lib/zoho';
+import {
+  getActiveDynamicsIntegration,
+  pushCallResultToDynamics,
+} from '@/lib/dynamics';
 // Google Sheets is import-only — no outbound push from webhooks
 import type { CalendarStepConfig } from '@/types/calendar';
 import type { Json } from '@/types/supabase';
@@ -843,6 +851,42 @@ export async function POST(request: NextRequest) {
       } catch (salesforceError) {
         // Don't fail the webhook if Salesforce sync fails
         console.error('Salesforce outbound sync failed (non-fatal):', salesforceError);
+      }
+    }
+
+    // ================================================================
+    // ZOHO CRM SYNC: Push call results to Zoho
+    // ================================================================
+    if (contactId && completed && companyId) {
+      try {
+        const zohoIntegration = await getActiveZohoIntegration(companyId);
+        if (zohoIntegration) {
+          const zohoResult = await pushCallResultToZoho(zohoIntegration, contactId);
+          if (!zohoResult.success) {
+            console.warn('Zoho sync skipped:', zohoResult.error);
+          }
+        }
+      } catch (zohoError) {
+        // Don't fail the webhook if Zoho sync fails
+        console.error('Zoho outbound sync failed (non-fatal):', zohoError);
+      }
+    }
+
+    // ================================================================
+    // DYNAMICS CRM SYNC: Push call results to Dynamics
+    // ================================================================
+    if (contactId && completed && companyId) {
+      try {
+        const dynamicsIntegration = await getActiveDynamicsIntegration(companyId);
+        if (dynamicsIntegration) {
+          const dynamicsResult = await pushCallResultToDynamics(dynamicsIntegration, contactId);
+          if (!dynamicsResult.success) {
+            console.warn('Dynamics sync skipped:', dynamicsResult.error);
+          }
+        }
+      } catch (dynamicsError) {
+        // Don't fail the webhook if Dynamics sync fails
+        console.error('Dynamics outbound sync failed (non-fatal):', dynamicsError);
       }
     }
 
