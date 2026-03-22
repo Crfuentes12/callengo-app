@@ -38,6 +38,7 @@ import {
 } from '@/lib/ai/intent-analyzer';
 import { enqueueAnalysis } from '@/lib/queue/analysis-queue';
 import { autoAssignEvent } from '@/lib/calendar/resource-routing';
+import { getNextAvailableSlot } from '@/lib/calendar/availability';
 import { trackCallUsage } from '@/lib/billing/usage-tracker';
 import { trackServerEvent } from '@/lib/analytics';
 import { captureServerEvent } from '@/lib/posthog-server';
@@ -183,11 +184,12 @@ export async function POST(request: NextRequest) {
     const callLogId = upsertedCallLog?.id;
 
     // Log voicemail detection to voicemail_logs and update agent_run counters
+    let voicemailLogId: string | null = null;
     if (isVoicemail && callLogId) {
       try {
         const agentRunId = metadata?.agent_run_id as string | undefined;
 
-        await supabaseAdmin.from('voicemail_logs').insert({
+        const { data: vmLog } = await supabaseAdmin.from('voicemail_logs').insert({
           company_id: companyId,
           call_id: callLogId,
           agent_run_id: agentRunId || null,
@@ -199,7 +201,8 @@ export async function POST(request: NextRequest) {
           message_audio_url: voicemailMessageLeft ? (recording_url || null) : null,
           follow_up_scheduled: false,
           metadata: JSON.parse(JSON.stringify({ call_id, answered_by, status })),
-        });
+        }).select('id').single();
+        voicemailLogId = vmLog?.id || null;
 
         // Increment voicemail counters on agent_run
         if (agentRunId) {
@@ -331,44 +334,93 @@ export async function POST(request: NextRequest) {
 
       // If call was not answered or voicemail, schedule a callback event
       if (answered_by === 'voicemail' || status === 'no_answer' || status === 'voicemail') {
-        // Schedule callback for next business day at 10:00 in company's timezone
-        // Use the campaign timezone from metadata if available, otherwise default to UTC
-        const campaignTimezone = (metadata?.calendar_timezone as string) || 'UTC';
-        const callbackDate = new Date();
-        callbackDate.setDate(callbackDate.getDate() + 1);
-        // Skip weekends: if callback lands on Saturday, move to Monday
-        const dayOfWeek = callbackDate.getDay();
-        if (dayOfWeek === 6) callbackDate.setDate(callbackDate.getDate() + 2); // Saturday → Monday
-        else if (dayOfWeek === 0) callbackDate.setDate(callbackDate.getDate() + 1); // Sunday → Monday
-        callbackDate.setHours(10, 0, 0, 0);
+        // Idempotency: check if a callback was already scheduled for this call
+        const { data: existingCallback } = await supabaseAdmin
+          .from('calendar_events')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('contact_id', contactId || '')
+          .in('event_type', ['callback', 'voicemail_followup'])
+          .eq('status', 'scheduled')
+          .gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+          .maybeSingle();
 
-        await createAgentCallback(companyId, {
-          contactId: contactId || undefined,
-          contactName,
-          contactPhone: to || undefined,
-          callbackDate: callbackDate.toISOString(),
-          agentName: metadata?.agent_name || 'AI Agent',
-          reason: answered_by === 'voicemail' ? 'voicemail' : 'no_answer',
-          notes: summary || `Auto-scheduled callback after ${answered_by === 'voicemail' ? 'voicemail' : 'no answer'}`,
-          timezone: campaignTimezone,
-        });
+        if (!existingCallback) {
+          // Use availability API to find next available slot respecting company working hours
+          const campaignTimezone = (metadata?.calendar_timezone as string) || 'UTC';
+          let callbackDateStr: string;
+
+          const nextSlot = await getNextAvailableSlot(
+            companyId,
+            new Date(Date.now() + 60 * 60 * 1000).toISOString(), // Start searching from 1 hour from now
+            10 // 10-minute callback slot
+          );
+
+          if (nextSlot) {
+            callbackDateStr = nextSlot.start;
+          } else {
+            // Fallback: next business day at 10 AM if no availability data
+            const callbackDate = new Date();
+            callbackDate.setDate(callbackDate.getDate() + 1);
+            const dayOfWeek = callbackDate.getDay();
+            if (dayOfWeek === 6) callbackDate.setDate(callbackDate.getDate() + 2);
+            else if (dayOfWeek === 0) callbackDate.setDate(callbackDate.getDate() + 1);
+            callbackDate.setHours(10, 0, 0, 0);
+            callbackDateStr = callbackDate.toISOString();
+          }
+
+          const callbackEvent = await createAgentCallback(companyId, {
+            contactId: contactId || undefined,
+            contactName,
+            contactPhone: to || undefined,
+            callbackDate: callbackDateStr,
+            agentName: metadata?.agent_name || 'AI Agent',
+            reason: answered_by === 'voicemail' ? 'voicemail' : 'no_answer',
+            notes: summary || `Auto-scheduled callback after ${answered_by === 'voicemail' ? 'voicemail' : 'no answer'}`,
+            timezone: campaignTimezone,
+          });
+
+          // Link voicemail log to follow-up if this was a voicemail callback
+          if (callbackEvent && voicemailLogId && isVoicemail) {
+            await supabaseAdmin
+              .from('voicemail_logs')
+              .update({
+                follow_up_scheduled: true,
+                follow_up_id: callbackEvent.id,
+              })
+              .eq('id', voicemailLogId);
+          }
+        }
       }
 
       // If call completed and follow-up is needed (based on analysis/metadata)
       if (completed && metadata?.follow_up_needed) {
-        const followUpDate = metadata?.follow_up_date
-          ? new Date(metadata.follow_up_date as string)
-          : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // Default 3 days
+        // Idempotency: check if a follow-up was already created for this call
+        const { data: existingFollowUp } = await supabaseAdmin
+          .from('calendar_events')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('contact_id', contactId || '')
+          .eq('event_type', 'follow_up')
+          .eq('status', 'scheduled')
+          .gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+          .maybeSingle();
 
-        await createAgentFollowUp(companyId, {
-          contactId: contactId || undefined,
-          contactName,
-          contactPhone: to || undefined,
-          agentName: metadata?.agent_name || 'AI Agent',
-          followUpDate: followUpDate.toISOString(),
-          reason: metadata?.follow_up_reason || 'Follow-up scheduled after call',
-          notes: summary || undefined,
-        });
+        if (!existingFollowUp) {
+          const followUpDate = metadata?.follow_up_date
+            ? new Date(metadata.follow_up_date as string)
+            : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // Default 3 days
+
+          await createAgentFollowUp(companyId, {
+            contactId: contactId || undefined,
+            contactName,
+            contactPhone: to || undefined,
+            agentName: metadata?.agent_name || 'AI Agent',
+            followUpDate: followUpDate.toISOString(),
+            reason: metadata?.follow_up_reason || 'Follow-up scheduled after call',
+            notes: summary || undefined,
+          });
+        }
       }
 
       // If call completed successfully, log it as a completed event
@@ -377,6 +429,7 @@ export async function POST(request: NextRequest) {
         const callEnd = new Date(callStart);
         callEnd.setSeconds(callEnd.getSeconds() + (call_length || 0));
 
+        const completedEventTimezone = (metadata?.calendar_timezone as string) || 'UTC';
         const { data: completedEvent } = await supabaseAdmin.from('calendar_events').insert({
           company_id: companyId,
           title: `Call Completed: ${contactName}`,
@@ -392,6 +445,7 @@ export async function POST(request: NextRequest) {
           agent_name: metadata?.agent_name || null,
           ai_notes: summary || null,
           confirmation_status: 'confirmed',
+          timezone: completedEventTimezone,
           metadata: JSON.parse(JSON.stringify({
             call_id,
             call_length,
@@ -467,6 +521,7 @@ export async function POST(request: NextRequest) {
                   ...((metadata || {}) as Record<string, unknown>),
                   contact_name: contactName,
                   calendar_event_id: metadata?.calendar_event_id,
+                  company_timezone: (metadata?.calendar_timezone as string) || 'UTC',
                 },
               });
               if (jobId) {
@@ -542,7 +597,23 @@ export async function POST(request: NextRequest) {
             || metadata?.needs_reschedule;
           const callbackRequested = apptResult?.intent === 'callback_requested' && apptResult.confidence >= 0.5;
 
-          if (appointmentConfirmed && metadata?.calendar_event_id) {
+          // Try to resolve calendar_event_id if missing — look up by contact + status
+          let resolvedEventId = metadata?.calendar_event_id as string | undefined;
+          if (!resolvedEventId && contactId && (appointmentConfirmed || needsReschedule || isNoShow)) {
+            const { data: matchedEvent } = await supabaseAdmin
+              .from('calendar_events')
+              .select('id')
+              .eq('company_id', companyId)
+              .eq('contact_id', contactId)
+              .in('status', ['scheduled', 'pending_confirmation'])
+              .in('event_type', ['appointment', 'meeting', 'callback'])
+              .order('start_time', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            resolvedEventId = matchedEvent?.id || undefined;
+          }
+
+          if (appointmentConfirmed && resolvedEventId) {
             // Update calendar event title with confirmation status
             await supabaseAdmin
               .from('calendar_events')
@@ -551,16 +622,27 @@ export async function POST(request: NextRequest) {
                 title: `Confirmed: ${contactName}`,
                 ai_notes: apptResult?.summary || summary || null,
               })
-              .eq('id', metadata.calendar_event_id);
+              .eq('id', resolvedEventId);
 
             await syncConfirmAppointment({
               companyId,
-              eventId: metadata.calendar_event_id,
+              eventId: resolvedEventId,
               contactId,
               agentRunId,
               callLogId,
               agentName: metadata?.agent_name,
             });
+
+            // Mark any pending follow-ups for this contact as completed
+            await supabaseAdmin
+              .from('follow_up_queue')
+              .update({
+                status: 'completed',
+                last_attempt_at: new Date().toISOString(),
+              })
+              .eq('company_id', companyId)
+              .eq('contact_id', contactId)
+              .eq('status', 'pending');
 
             // Store extracted data in contact custom_fields
             if (apptResult?.extractedData && Object.keys(apptResult.extractedData).length > 0) {
@@ -581,13 +663,13 @@ export async function POST(request: NextRequest) {
             }
 
             dispatchWebhookEvent(companyId, 'appointment.confirmed', {
-              event_id: metadata.calendar_event_id,
+              event_id: resolvedEventId,
               contact_id: contactId,
               contact_name: contactName,
               agent_name: metadata?.agent_name,
               ai_confidence: apptResult?.confidence,
             }).catch((err) => console.warn('Webhook dispatch failed (non-fatal):', err?.message));
-          } else if (needsReschedule && metadata?.calendar_event_id) {
+          } else if (needsReschedule && resolvedEventId) {
             // Use AI-extracted time, then metadata, then null (requires manual)
             const newStart = apptResult?.newAppointmentTime || metadata?.new_appointment_time;
             const duration = calendarConfig.defaultMeetingDuration || 30;
@@ -595,7 +677,7 @@ export async function POST(request: NextRequest) {
               const newEnd = new Date(new Date(newStart as string).getTime() + duration * 60000).toISOString();
               await syncRescheduleAppointment({
                 companyId,
-                eventId: metadata.calendar_event_id,
+                eventId: resolvedEventId,
                 contactId,
                 agentRunId,
                 callLogId,
@@ -613,10 +695,10 @@ export async function POST(request: NextRequest) {
                   title: `Rescheduled: ${contactName}`,
                   ai_notes: apptResult?.summary || null,
                 })
-                .eq('id', metadata.calendar_event_id);
+                .eq('id', resolvedEventId);
 
               dispatchWebhookEvent(companyId, 'appointment.rescheduled', {
-                event_id: metadata.calendar_event_id,
+                event_id: resolvedEventId,
                 contact_id: contactId,
                 contact_name: contactName,
                 new_start: newStart,
@@ -625,18 +707,18 @@ export async function POST(request: NextRequest) {
                 ai_confidence: apptResult?.confidence,
               }).catch((err) => console.warn('Webhook dispatch failed (non-fatal):', err?.message));
             }
-          } else if (isNoShow && metadata?.calendar_event_id) {
+          } else if (isNoShow && resolvedEventId) {
             await supabaseAdmin
               .from('calendar_events')
               .update({
                 title: `No-Show: ${contactName}`,
                 confirmation_status: 'no_response',
               })
-              .eq('id', metadata.calendar_event_id);
+              .eq('id', resolvedEventId);
 
             await syncHandleNoShow({
               companyId,
-              eventId: metadata.calendar_event_id,
+              eventId: resolvedEventId,
               contactId,
               agentRunId,
               callLogId,
@@ -644,7 +726,7 @@ export async function POST(request: NextRequest) {
               agentName: metadata?.agent_name,
             });
             dispatchWebhookEvent(companyId, 'appointment.no_show', {
-              event_id: metadata.calendar_event_id,
+              event_id: resolvedEventId,
               contact_id: contactId,
               contact_name: contactName,
               agent_name: metadata?.agent_name,
@@ -697,6 +779,17 @@ export async function POST(request: NextRequest) {
               agentName: metadata?.agent_name,
               meetingType: 'meeting',
             });
+            // Mark any pending follow-ups for this contact as completed
+            await supabaseAdmin
+              .from('follow_up_queue')
+              .update({
+                status: 'completed',
+                last_attempt_at: new Date().toISOString(),
+              })
+              .eq('company_id', companyId)
+              .eq('contact_id', contactId)
+              .eq('status', 'pending');
+
             dispatchWebhookEvent(companyId, 'appointment.scheduled', {
               contact_id: contactId,
               contact_name: contactName,

@@ -463,13 +463,13 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription & Rec
     company_id: existingSub.company_id,
     subscription_id: existingSub.id,
     event_type: 'subscription_updated',
-    event_data: {
+    event_data: JSON.parse(JSON.stringify({
       status: subscription.status,
       cancel_at_period_end: subscription.cancel_at_period_end,
       plan_changed: isPlanChange || false,
       new_plan: newPlanSlug || null,
       previous_plan: previousPlanSlug || null,
-    },
+    })),
     minutes_consumed: 0,
     cost_usd: 0,
   });
