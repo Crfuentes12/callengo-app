@@ -80,6 +80,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'No updates provided' }, { status: 400 });
     }
 
+    // Force override requires admin/owner role
+    if (force) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: forceUser } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (forceUser?.role !== 'owner' && forceUser?.role !== 'admin') {
+          return NextResponse.json({ error: 'Only admins can force-update locked contacts' }, { status: 403 });
+        }
+      }
+    }
+
     // Check if contact is locked (being processed by an active call)
     if (!force) {
       const { data: contact } = await supabase
@@ -118,6 +133,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (Object.keys(safeUpdates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+    }
+
+    // Validate email format if provided
+    if (safeUpdates.email && typeof safeUpdates.email === 'string') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(safeUpdates.email)) {
+        return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+      }
+    }
+
+    // Validate phone number if provided (minimum 7 digits)
+    if (safeUpdates.phone_number && typeof safeUpdates.phone_number === 'string') {
+      const digitsOnly = safeUpdates.phone_number.replace(/\D/g, '');
+      if (digitsOnly.length < 7) {
+        return NextResponse.json({ error: 'Invalid phone number (minimum 7 digits)' }, { status: 400 });
+      }
     }
 
     safeUpdates.updated_at = new Date().toISOString();
