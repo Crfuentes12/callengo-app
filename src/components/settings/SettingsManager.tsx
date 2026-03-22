@@ -500,7 +500,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                     </p>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-[var(--color-success-50)]0 rounded-full"></div>
+                        <div className="w-2 h-2 bg-[var(--color-success-500)] rounded-full"></div>
                         <span className="text-xs text-[var(--color-neutral-600)] font-semibold">{t.settings.company.active}</span>
                       </div>
                       <div className="h-4 w-px bg-[var(--color-neutral-300)]"></div>

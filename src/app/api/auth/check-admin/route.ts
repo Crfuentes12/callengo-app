@@ -18,9 +18,9 @@ export async function GET() {
       .eq('id', user.id)
       .single();
 
-    // MEDIA-010: Include 'owner' role as admin — owners should have admin privileges
+    // Only platform admin (founder) can access admin features — owner is a customer role
     return NextResponse.json({
-      isAdmin: userData?.role === 'admin' || userData?.role === 'owner'
+      isAdmin: userData?.role === 'admin'
     });
 
   } catch (error) {

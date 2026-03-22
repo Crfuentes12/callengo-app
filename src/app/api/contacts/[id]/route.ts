@@ -167,8 +167,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ contact: updated, syncResults });
   } catch (error) {
     console.error('Contact PATCH error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to update contact';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update contact' }, { status: 500 });
   }
 }
 

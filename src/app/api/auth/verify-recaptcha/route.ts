@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
         response: token,
         remoteip: ip,
       }),
+      signal: AbortSignal.timeout(5000),
     });
 
     const data = await response.json();

@@ -1150,10 +1150,6 @@ const es: TranslationKeys = {
   languages: {
     en: 'Inglés',
     es: 'Español',
-    de: 'Alemán',
-    nl: 'Neerlandés',
-    fr: 'Francés',
-    it: 'Italiano',
   },
 };
 

@@ -2,6 +2,7 @@
 // Admin Command Center — real-time health metrics with single master key architecture
 // Shows: Bland plan info, concurrency, daily/hourly usage, limits, Redis state
 import { NextRequest, NextResponse } from 'next/server';
+import { expensiveLimiter } from '@/lib/rate-limit';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import { getBlandAccountInfo, BLAND_COST_PER_MINUTE, BLAND_PLAN_LIMITS } from '@/lib/bland/master-client';
@@ -30,8 +31,13 @@ export async function GET() {
       .eq('id', user.id)
       .single();
 
-    if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) {
+    if (!userData || userData.role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    const rateLimit = await expensiveLimiter.check(10, `admin_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     // Ensure admin's company has a subscription + master key
@@ -692,8 +698,13 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) {
+    if (!userData || userData.role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    const rateLimit = await expensiveLimiter.check(10, `admin_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const body = await request.json();

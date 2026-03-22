@@ -193,7 +193,7 @@ export default function GoogleSheetsSyncProgress({
           <p className="text-xs font-semibold text-[var(--color-neutral-700)] group-hover:text-green-700 transition-colors">
             {isComplete ? t.contacts.importModal.success : isError ? t.contacts.importModal.error : t.contacts.importModal.importing}
           </p>
-          <p className="text-[10px] text-[var(--color-neutral-50)]0">
+          <p className="text-[10px] text-[var(--color-neutral-500)]">
             {isComplete
               ? `${progress.created + progress.updated} ${t.contacts.title}`
               : isError
@@ -237,7 +237,7 @@ export default function GoogleSheetsSyncProgress({
             <p className="text-sm font-bold text-[var(--color-ink)]">
               {isComplete ? t.contacts.importModal.success : isError ? t.contacts.importModal.error : t.contacts.importModal.importing}
             </p>
-            <p className="text-[10px] text-[var(--color-neutral-50)]0 truncate max-w-[180px]">
+            <p className="text-[10px] text-[var(--color-neutral-500)] truncate max-w-[180px]">
               {syncJob.spreadsheetName}
             </p>
           </div>
@@ -277,7 +277,7 @@ export default function GoogleSheetsSyncProgress({
               <span className="text-xs font-semibold text-[var(--color-neutral-700)]">
                 {progress.phase === 'reading' ? 'Reading sheet...' : `${percent}% complete`}
               </span>
-              <span className="text-xs text-[var(--color-neutral-50)]0">
+              <span className="text-xs text-[var(--color-neutral-500)]">
                 {progress.total > 0 ? `${progress.processed.toLocaleString()} / ${progress.total.toLocaleString()}` : '...'}
               </span>
             </div>
@@ -300,7 +300,7 @@ export default function GoogleSheetsSyncProgress({
               </svg>
             </div>
             <p className="text-sm font-bold text-[var(--color-ink)] mb-1">{t.contacts.importModal.success}</p>
-            <p className="text-xs text-[var(--color-neutral-50)]0">
+            <p className="text-xs text-[var(--color-neutral-500)]">
               A notification has been sent to your inbox
             </p>
           </div>
@@ -330,8 +330,8 @@ export default function GoogleSheetsSyncProgress({
             <p className="text-[10px] text-blue-600 font-medium">Updated</p>
           </div>
           <div className="bg-[var(--color-neutral-50)] rounded-xl p-2.5 text-center border border-[var(--border-subtle)]">
-            <p className="text-lg font-bold text-[var(--color-neutral-50)]0">{progress.skipped.toLocaleString()}</p>
-            <p className="text-[10px] text-[var(--color-neutral-50)]0 font-medium">Skipped</p>
+            <p className="text-lg font-bold text-[var(--color-neutral-500)]">{progress.skipped.toLocaleString()}</p>
+            <p className="text-[10px] text-[var(--color-neutral-500)] font-medium">Skipped</p>
           </div>
         </div>
 

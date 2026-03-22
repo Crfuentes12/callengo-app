@@ -330,7 +330,7 @@ export default function PipedriveContactsPage({
           </div>
           <div>
             <h1 className="text-xl font-bold text-[var(--color-ink)]">Pipedrive Contacts</h1>
-            <p className="text-sm text-[var(--color-neutral-50)]0">
+            <p className="text-sm text-[var(--color-neutral-500)]">
               {pdIntegration?.companyName || pdIntegration?.userName}
               {pdIntegration?.lastSynced && (
                 <> · Last synced {formatLastSynced(pdIntegration.lastSynced)}</>
@@ -370,7 +370,7 @@ export default function PipedriveContactsPage({
             {persons.length} persons from Pipedrive
           </span>
         </div>
-        <div className="text-xs text-[var(--color-neutral-50)]0">
+        <div className="text-xs text-[var(--color-neutral-500)]">
           {mappings.length} synced to Callengo
         </div>
       </div>
@@ -400,14 +400,14 @@ export default function PipedriveContactsPage({
       {!loading && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-[var(--color-neutral-50)]0">
+            <span className="text-xs font-medium text-[var(--color-neutral-500)]">
               {filteredPersons.length} total
             </span>
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {syncedCount} synced
             </span>
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 border border-[var(--border-default)] whitespace-nowrap">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] border border-[var(--border-default)] whitespace-nowrap">
               {notSyncedCount} not synced
             </span>
           </div>
@@ -520,7 +520,7 @@ export default function PipedriveContactsPage({
                             )}
                             {person.open_deals_count > 0 && person.closed_deals_count > 0 && ' · '}
                             {person.closed_deals_count > 0 && (
-                              <span className="text-[var(--color-neutral-50)]0">{person.closed_deals_count} closed</span>
+                              <span className="text-[var(--color-neutral-500)]">{person.closed_deals_count} closed</span>
                             )}
                             {person.open_deals_count === 0 && person.closed_deals_count === 0 && '\u2014'}
                           </span>
@@ -532,12 +532,12 @@ export default function PipedriveContactsPage({
                               Synced
                             </span>
                           ) : (
-                            <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 border border-[var(--border-default)]">
+                            <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] border border-[var(--border-default)]">
                               Not synced
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-[var(--color-neutral-50)]0 text-xs">{formatDate(person.update_time)}</td>
+                        <td className="px-4 py-3 text-[var(--color-neutral-500)] text-xs">{formatDate(person.update_time)}</td>
                       </tr>
                       {expandedId === person.id && (
                         <tr>

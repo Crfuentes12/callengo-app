@@ -26,7 +26,7 @@ export default function HubSpotContactsBanner({
           </div>
           <div>
             <p className="text-sm font-semibold text-[var(--color-ink)]">HubSpot Connected</p>
-            <p className="text-xs text-[var(--color-neutral-50)]0">View and sync your HubSpot contacts</p>
+            <p className="text-xs text-[var(--color-neutral-500)]">View and sync your HubSpot contacts</p>
           </div>
         </div>
         <Link
@@ -53,7 +53,7 @@ export default function HubSpotContactsBanner({
           </div>
           <div>
             <p className="text-sm font-semibold text-[var(--color-ink)]">Import from HubSpot</p>
-            <p className="text-xs text-[var(--color-neutral-50)]0">Connect your HubSpot account to import contacts</p>
+            <p className="text-xs text-[var(--color-neutral-500)]">Connect your HubSpot account to import contacts</p>
           </div>
         </div>
         <Link
@@ -76,7 +76,7 @@ export default function HubSpotContactsBanner({
         </div>
         <div>
           <p className="text-sm font-semibold text-[var(--color-ink)]">HubSpot CRM Integration</p>
-          <p className="text-xs text-[var(--color-neutral-50)]0">
+          <p className="text-xs text-[var(--color-neutral-500)]">
             Import contacts from HubSpot. Available on Business plan and above.
           </p>
         </div>

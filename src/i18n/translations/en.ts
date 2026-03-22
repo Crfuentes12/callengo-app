@@ -1161,10 +1161,6 @@ const en = {
   languages: {
     en: 'English',
     es: 'Spanish',
-    de: 'German',
-    nl: 'Dutch',
-    fr: 'French',
-    it: 'Italian',
   },
 };
 

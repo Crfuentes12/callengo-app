@@ -4,6 +4,7 @@
 // without losing billing_history, billing_events, usage_tracking, etc.
 // Instead: delete operational data, then soft-delete the company by prefixing its name.
 import { NextResponse } from 'next/server';
+import { expensiveLimiter } from '@/lib/rate-limit';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import { deactivateBlandSubAccount } from '@/lib/bland/subaccount-manager';
@@ -72,7 +73,11 @@ async function verifyAdmin(supabase: Awaited<ReturnType<typeof createServerClien
     .eq('id', user.id)
     .single();
 
-  if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) return null;
+  if (!userData || userData.role !== 'admin') return null;
+
+  const rateLimit = await expensiveLimiter.check(1, `cleanup_${user.id}`);
+  if (!rateLimit.success) return 'rate_limited' as const;
+
   return user;
 }
 
@@ -104,7 +109,11 @@ async function findOrphans() {
 export async function GET() {
   try {
     const supabase = await createServerClient();
-    if (!await verifyAdmin(supabase)) {
+    const adminResult = await verifyAdmin(supabase);
+    if (adminResult === 'rate_limited') {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+    if (!adminResult) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -126,7 +135,11 @@ export async function GET() {
 export async function DELETE() {
   try {
     const supabase = await createServerClient();
-    if (!await verifyAdmin(supabase)) {
+    const adminResult2 = await verifyAdmin(supabase);
+    if (adminResult2 === 'rate_limited') {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+    if (!adminResult2) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 

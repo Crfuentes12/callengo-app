@@ -156,6 +156,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       });
     } catch (addonError) {
       console.error('Failed to record add-on purchase:', addonError);
+      throw new Error(`Failed to record add-on purchase: ${addonError instanceof Error ? addonError.message : 'Unknown error'}`);
     }
     return;
   }

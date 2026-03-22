@@ -2,6 +2,7 @@
 // Usage Reconciliation — detects discrepancies between call_logs and usage_tracking
 // This is READ-ONLY. It NEVER moves money. It just reports discrepancies.
 import { NextResponse } from 'next/server';
+import { expensiveLimiter } from '@/lib/rate-limit';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 
@@ -20,8 +21,13 @@ export async function GET() {
       .eq('id', user.id)
       .single();
 
-    if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) {
+    if (!userData || userData.role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    const rateLimit = await expensiveLimiter.check(5, `reconcile_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const now = new Date();

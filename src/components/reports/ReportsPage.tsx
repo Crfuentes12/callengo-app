@@ -311,7 +311,7 @@ export default function ReportsPage({ campaigns, callStats, contacts, companyId:
                     </div>
                     <div className="h-2 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all ${rate >= 70 ? 'bg-[var(--color-success-500)]' : rate >= 40 ? 'bg-[var(--color-warning-50)]0' : 'bg-[var(--color-error-500)]'}`}
+                        className={`h-full rounded-full transition-all ${rate >= 70 ? 'bg-[var(--color-success-500)]' : rate >= 40 ? 'bg-[var(--color-warning-500)]' : 'bg-[var(--color-error-500)]'}`}
                         style={{ width: `${rate}%` }}
                       />
                     </div>

@@ -369,7 +369,7 @@ export default function DynamicsContactsPage({
           </div>
           <div>
             <h1 className="text-xl font-bold text-[var(--color-ink)]">Microsoft Dynamics</h1>
-            <p className="text-sm text-[var(--color-neutral-50)]0">
+            <p className="text-sm text-[var(--color-neutral-500)]">
               {dynamicsIntegration?.displayName || dynamicsIntegration?.email}
               {dynamicsIntegration?.orgName && <> · {dynamicsIntegration.orgName}</>}
               {dynamicsIntegration?.lastSynced && (
@@ -423,7 +423,7 @@ export default function DynamicsContactsPage({
             {contacts.length} contacts · {leads.length} leads from Microsoft Dynamics
           </span>
         </div>
-        <div className="text-xs text-[var(--color-neutral-50)]0">
+        <div className="text-xs text-[var(--color-neutral-500)]">
           {mappings.length} synced to Callengo
         </div>
       </div>
@@ -477,14 +477,14 @@ export default function DynamicsContactsPage({
       {!loading && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-[var(--color-neutral-50)]0">
+            <span className="text-xs font-medium text-[var(--color-neutral-500)]">
               {currentItems.length} total
             </span>
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {syncedCount} synced
             </span>
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 border border-[var(--border-default)] whitespace-nowrap">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] border border-[var(--border-default)] whitespace-nowrap">
               {notSyncedCount} not synced
             </span>
           </div>
@@ -594,12 +594,12 @@ export default function DynamicsContactsPage({
                                 Synced
                               </span>
                             ) : (
-                              <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 border border-[var(--border-default)]">
+                              <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] border border-[var(--border-default)]">
                                 Not synced
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-[var(--color-neutral-50)]0 text-xs">{formatDate(contact.modifiedon)}</td>
+                          <td className="px-4 py-3 text-[var(--color-neutral-500)] text-xs">{formatDate(contact.modifiedon)}</td>
                         </tr>
                         {expandedId === contact.contactid && (
                           <tr>
@@ -721,12 +721,12 @@ export default function DynamicsContactsPage({
                                 Synced
                               </span>
                             ) : (
-                              <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 border border-[var(--border-default)]">
+                              <span className="whitespace-nowrap inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] border border-[var(--border-default)]">
                                 Not synced
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-[var(--color-neutral-50)]0 text-xs">{formatDate(lead.modifiedon)}</td>
+                          <td className="px-4 py-3 text-[var(--color-neutral-500)] text-xs">{formatDate(lead.modifiedon)}</td>
                         </tr>
                         {expandedId === lead.leadid && (
                           <tr>

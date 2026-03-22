@@ -359,7 +359,7 @@ export default function ContactDetailDrawer({
                   </span>
                 )}
                 {contact.source && (
-                  <span className="px-2 py-0.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 text-[10px] rounded font-medium capitalize">
+                  <span className="px-2 py-0.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] text-[10px] rounded font-medium capitalize">
                     via {contact.source}
                   </span>
                 )}
@@ -367,7 +367,7 @@ export default function ContactDetailDrawer({
 
               {/* Contact Info */}
               <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 border border-[var(--border-subtle)] space-y-3">
-                <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.viewDetails}</h3>
+                <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wider">{t.contacts.viewDetails}</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <InputField label={t.contacts.company} field="company_name" />
                   <InputField label={t.contacts.name} field="contact_name" />
@@ -382,7 +382,7 @@ export default function ContactDetailDrawer({
 
               {/* Notes */}
               <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 border border-[var(--border-subtle)]">
-                <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-2">{t.contacts.notes}</h3>
+                <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wider mb-2">{t.contacts.notes}</h3>
                 {isEditing ? (
                   <textarea
                     value={editData.notes}
@@ -400,11 +400,11 @@ export default function ContactDetailDrawer({
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 text-center border border-[var(--border-subtle)]">
                   <p className="text-2xl font-bold text-[var(--color-ink)]">{contact.call_attempts}</p>
-                  <p className="text-[10px] text-[var(--color-neutral-50)]0 font-semibold uppercase mt-0.5">Attempts</p>
+                  <p className="text-[10px] text-[var(--color-neutral-500)] font-semibold uppercase mt-0.5">Attempts</p>
                 </div>
                 <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 text-center border border-[var(--border-subtle)]">
                   <p className="text-2xl font-bold text-[var(--color-ink)]">{formatDuration(contact.call_duration)}</p>
-                  <p className="text-[10px] text-[var(--color-neutral-50)]0 font-semibold uppercase mt-0.5">Duration</p>
+                  <p className="text-[10px] text-[var(--color-neutral-500)] font-semibold uppercase mt-0.5">Duration</p>
                 </div>
               </div>
 
@@ -461,7 +461,7 @@ export default function ContactDetailDrawer({
               {/* Custom Fields — Collapsable Categories */}
               {customFieldCategories.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.tags}</h3>
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wider">{t.contacts.tags}</h3>
                   {customFieldCategories.map(([catKey, cat]) => {
                     const isExpanded = expandedCategories[catKey] ?? (cat.fields.length <= 4);
                     const colorMap: Record<string, string> = {
@@ -494,7 +494,7 @@ export default function ContactDetailDrawer({
                           <div className="px-4 pb-3 space-y-2">
                             {cat.fields.map(({ key, value }) => (
                               <div key={key} className="flex justify-between items-start gap-2">
-                                <span className="text-[10px] text-[var(--color-neutral-50)]0 font-semibold uppercase tracking-wide whitespace-nowrap min-w-0 flex-shrink-0">
+                                <span className="text-[10px] text-[var(--color-neutral-500)] font-semibold uppercase tracking-wide whitespace-nowrap min-w-0 flex-shrink-0">
                                   {formatFieldName(key)}
                                 </span>
                                 <span className="text-xs text-[var(--color-neutral-800)] text-right break-words max-w-[60%]">
@@ -513,7 +513,7 @@ export default function ContactDetailDrawer({
               {/* Transcript */}
               {contact.transcript_text && (
                 <div>
-                  <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-2">Transcript</h3>
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wider mb-2">Transcript</h3>
                   <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 max-h-48 overflow-y-auto border border-[var(--border-subtle)]">
                     <pre className="text-xs whitespace-pre-wrap text-[var(--color-neutral-700)] font-mono leading-relaxed">
                       {contact.transcript_text}
@@ -525,7 +525,7 @@ export default function ContactDetailDrawer({
               {/* Recording */}
               {contact.recording_url && (
                 <div>
-                  <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-2">Recording</h3>
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wider mb-2">Recording</h3>
                   <audio controls className="w-full rounded-xl">
                     <source src={contact.recording_url} type="audio/mpeg" />
                   </audio>
@@ -536,7 +536,7 @@ export default function ContactDetailDrawer({
 
           {activeTab === 'activity' && (
             <div className="space-y-4">
-              <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.lastCall}</h3>
+              <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wider">{t.contacts.lastCall}</h3>
               {/* Call history timeline */}
               {contact.last_call_date ? (
                 <div className="space-y-3">
@@ -548,12 +548,12 @@ export default function ContactDetailDrawer({
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-[var(--color-ink)]">{t.contacts.lastCall}</p>
-                      <p className="text-xs text-[var(--color-neutral-50)]0">{new Date(contact.last_call_date).toLocaleString()}</p>
+                      <p className="text-xs text-[var(--color-neutral-500)]">{new Date(contact.last_call_date).toLocaleString()}</p>
                       {contact.call_outcome && (
                         <p className="text-xs text-[var(--color-neutral-600)] mt-1">Outcome: {contact.call_outcome}</p>
                       )}
                       {contact.call_duration && (
-                        <p className="text-xs text-[var(--color-neutral-50)]0">Duration: {formatDuration(contact.call_duration)}</p>
+                        <p className="text-xs text-[var(--color-neutral-500)]">Duration: {formatDuration(contact.call_duration)}</p>
                       )}
                     </div>
                   </div>
@@ -578,14 +578,14 @@ export default function ContactDetailDrawer({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <p className="text-sm text-[var(--color-neutral-50)]0">{t.contacts.noContacts}</p>
+                  <p className="text-sm text-[var(--color-neutral-500)]">{t.contacts.noContacts}</p>
                   <p className="text-xs text-[var(--color-neutral-400)] mt-0.5">{t.contacts.noContactsDesc}</p>
                 </div>
               )}
 
               {/* Calendar Events */}
               <div className="border-t border-[var(--border-subtle)] pt-4">
-                <h3 className="text-xs font-bold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wider mb-3 flex items-center gap-2">
                   <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                   </svg>
@@ -689,7 +689,7 @@ export default function ContactDetailDrawer({
                   <input type="checkbox" checked disabled className="w-4 h-4 text-[var(--color-primary)] rounded" />
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-[var(--color-ink)]">Callengo</p>
-                    <p className="text-xs text-[var(--color-neutral-50)]0">Always saved locally</p>
+                    <p className="text-xs text-[var(--color-neutral-500)]">Always saved locally</p>
                   </div>
                 </label>
 
@@ -703,7 +703,7 @@ export default function ContactDetailDrawer({
                     />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-[var(--color-ink)]">Salesforce</p>
-                      <p className="text-xs text-[var(--color-neutral-50)]0">Sync as {crmMappings.salesforce.sf_object_type}</p>
+                      <p className="text-xs text-[var(--color-neutral-500)]">Sync as {crmMappings.salesforce.sf_object_type}</p>
                     </div>
                   </label>
                 )}
@@ -718,7 +718,7 @@ export default function ContactDetailDrawer({
                     />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-[var(--color-ink)]">HubSpot</p>
-                      <p className="text-xs text-[var(--color-neutral-50)]0">Sync as {crmMappings.hubspot.hs_object_type}</p>
+                      <p className="text-xs text-[var(--color-neutral-500)]">Sync as {crmMappings.hubspot.hs_object_type}</p>
                     </div>
                   </label>
                 )}
@@ -733,7 +733,7 @@ export default function ContactDetailDrawer({
                     />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-[var(--color-ink)]">Pipedrive</p>
-                      <p className="text-xs text-[var(--color-neutral-50)]0">Sync as {crmMappings.pipedrive.pd_object_type}</p>
+                      <p className="text-xs text-[var(--color-neutral-500)]">Sync as {crmMappings.pipedrive.pd_object_type}</p>
                     </div>
                   </label>
                 )}

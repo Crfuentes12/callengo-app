@@ -1,6 +1,6 @@
 // app/api/admin/clients/route.ts
 // Admin Clients List — all companies with usage and unit economics (master key architecture)
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import { BLAND_COST_PER_MINUTE } from '@/lib/bland/master-client';
@@ -12,7 +12,7 @@ const ADDON_PRICES: Record<string, number> = {
   calls_booster: 35,
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -27,14 +27,19 @@ export async function GET() {
       .eq('id', user.id)
       .single();
 
-    if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) {
+    if (!userData || userData.role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
+    const searchParams = request.nextUrl.searchParams;
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '50')));
+    const offset = (page - 1) * limit;
+
     // Get all companies with subscriptions and settings
-    const { data: allCompanies } = await supabaseAdmin
+    const { data: allCompanies, count: totalCount } = await supabaseAdmin
       .from('companies')
-      .select('id, name, created_at')
+      .select('id, name, created_at', { count: 'exact' })
       .order('created_at', { ascending: false });
 
     if (!allCompanies || allCompanies.length === 0) {
@@ -50,14 +55,17 @@ export async function GET() {
       (usersWithCompanies || []).map(u => u.company_id).filter(Boolean)
     );
 
-    const companies = allCompanies.filter(c =>
+    const allActiveCompanies = allCompanies.filter(c =>
       activeCompanyIds.has(c.id) && !c.name.startsWith('[ARCHIVED] ')
     );
+    const filteredTotal = allActiveCompanies.length;
 
-    if (companies.length === 0) {
-      return NextResponse.json({ clients: [] });
+    if (filteredTotal === 0) {
+      return NextResponse.json({ clients: [], total: 0, page, limit });
     }
 
+    // Apply pagination
+    const companies = allActiveCompanies.slice(offset, offset + limit);
     const companyIds = companies.map(c => c.id);
 
     // Parallel queries for all data
@@ -172,7 +180,7 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ clients });
+    return NextResponse.json({ clients, total: filteredTotal, page, limit });
   } catch (error) {
     console.error('Error fetching admin clients:', error);
     return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 });

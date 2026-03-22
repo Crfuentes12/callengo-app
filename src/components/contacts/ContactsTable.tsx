@@ -117,7 +117,7 @@ export default function ContactsTable({
 
   const renderSortableHeader = (field: SortField, children: React.ReactNode, className = '') => (
     <th
-      className={`px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider cursor-pointer select-none group hover:bg-[var(--surface-hover)]/80 transition-colors ${className}`}
+      className={`px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider cursor-pointer select-none group hover:bg-[var(--surface-hover)]/80 transition-colors ${className}`}
       onClick={() => onSort(field)}
     >
       <span className="inline-flex items-center">
@@ -150,14 +150,14 @@ export default function ContactsTable({
               {renderSortableHeader('phone_number', t.contacts.phone)}
               {renderSortableHeader('city', t.contacts.city)}
               {visibleColumns.address && renderSortableHeader('city', t.contacts.address)}
-              {visibleColumns.zipCode && <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.zipCode}</th>}
+              {visibleColumns.zipCode && <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">{t.contacts.zipCode}</th>}
               {renderSortableHeader('status', t.contacts.status)}
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider w-14" title={t.calendar.title}>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider w-14" title={t.calendar.title}>
                 <svg className="w-4 h-4 text-[var(--color-neutral-500)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                 </svg>
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider">{t.contacts.list}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">{t.contacts.list}</th>
               {renderSortableHeader('contact_name', t.contacts.name)}
               {renderSortableHeader('email', t.contacts.email)}
               {visibleColumns.lastCallDate && renderSortableHeader('last_call_date', t.contacts.lastCall)}
@@ -254,7 +254,7 @@ export default function ContactsTable({
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${effectivelyLocked ? 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-600' : 'bg-gradient-to-br from-[var(--color-neutral-100)] to-[var(--color-neutral-200)] text-[var(--color-neutral-50)]0'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${effectivelyLocked ? 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-600' : 'bg-gradient-to-br from-[var(--color-neutral-100)] to-[var(--color-neutral-200)] text-[var(--color-neutral-500)]'}`}>
                         {effectivelyLocked ? (
                           <svg className="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -340,11 +340,11 @@ export default function ContactsTable({
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-[var(--color-neutral-600)]">
                     {contact.contact_name || <span className="text-[var(--color-neutral-300)]">—</span>}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-[var(--color-neutral-50)]0 max-w-[180px] truncate">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-[var(--color-neutral-500)] max-w-[180px] truncate">
                     {contact.email || <span className="text-[var(--color-neutral-300)]">—</span>}
                   </td>
                   {visibleColumns.lastCallDate && (
-                    <td className="px-4 py-3 whitespace-nowrap text-xs text-[var(--color-neutral-50)]0">
+                    <td className="px-4 py-3 whitespace-nowrap text-xs text-[var(--color-neutral-500)]">
                       {contact.last_call_date ? new Date(contact.last_call_date).toLocaleDateString() : <span className="text-[var(--color-neutral-300)]">—</span>}
                     </td>
                   )}
@@ -356,7 +356,7 @@ export default function ContactsTable({
                   {visibleColumns.source && (
                     <td className="px-4 py-3 whitespace-nowrap">
                       {contact.source ? (
-                        <span className="px-1.5 py-0.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0 text-[10px] rounded font-medium capitalize">{contact.source}</span>
+                        <span className="px-1.5 py-0.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] text-[10px] rounded font-medium capitalize">{contact.source}</span>
                       ) : (
                         <span className="text-[var(--color-neutral-300)] text-xs">—</span>
                       )}
@@ -380,7 +380,7 @@ export default function ContactsTable({
             </svg>
           </div>
           <p className="text-[var(--color-neutral-700)] font-semibold">{t.contacts.noContacts}</p>
-          <p className="text-sm text-[var(--color-neutral-50)]0 mt-1">{t.contacts.noContactsDesc}</p>
+          <p className="text-sm text-[var(--color-neutral-500)] mt-1">{t.contacts.noContactsDesc}</p>
         </div>
       )}
 
@@ -388,7 +388,7 @@ export default function ContactsTable({
       {total > 0 && (
         <div className="px-4 py-3 border-t border-[var(--border-subtle)] bg-[var(--color-neutral-50)]/50 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xs text-[var(--color-neutral-50)]0">
+            <span className="text-xs text-[var(--color-neutral-500)]">
               <span className="font-semibold text-[var(--color-neutral-700)]">{from.toLocaleString()}</span>–<span className="font-semibold text-[var(--color-neutral-700)]">{to.toLocaleString()}</span> {t.common.of} <span className="font-semibold text-[var(--color-neutral-700)]">{total.toLocaleString()}</span>
             </span>
             <select

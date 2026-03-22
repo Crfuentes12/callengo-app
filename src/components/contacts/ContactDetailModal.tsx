@@ -48,7 +48,7 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
           <div className="space-y-6">
             {/* Contact Info */}
             <div>
-              <h3 className="text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-3">{t.contacts.viewDetails}</h3>
+              <h3 className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider mb-3">{t.contacts.viewDetails}</h3>
               <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 border border-[var(--border-subtle)]">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -75,17 +75,17 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
 
             {/* Call Stats */}
             <div>
-              <h3 className="text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-3">{t.contacts.call}</h3>
+              <h3 className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider mb-3">{t.contacts.call}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 text-center border border-[var(--border-subtle)]">
                   <p className="text-2xl font-bold text-[var(--color-ink)]">{contact.call_attempts}</p>
-                  <p className="text-xs text-[var(--color-neutral-50)]0 mt-1 font-medium">Attempts</p>
+                  <p className="text-xs text-[var(--color-neutral-500)] mt-1 font-medium">Attempts</p>
                 </div>
                 <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 text-center border border-[var(--border-subtle)]">
                   <p className="text-2xl font-bold text-[var(--color-ink)]">
                     {formatDuration(contact.call_duration)}
                   </p>
-                  <p className="text-xs text-[var(--color-neutral-50)]0 mt-1 font-medium">Duration</p>
+                  <p className="text-xs text-[var(--color-neutral-500)] mt-1 font-medium">Duration</p>
                 </div>
               </div>
             </div>
@@ -93,7 +93,7 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
             {/* Analysis */}
             {analysis && (
               <div>
-                <h3 className="text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-3">{t.contacts.call}</h3>
+                <h3 className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider mb-3">{t.contacts.call}</h3>
                 <div className="bg-emerald-50/80 rounded-xl p-4 border border-emerald-100 space-y-4">
                   {analysis.verifiedAddress && (
                     <div>
@@ -149,7 +149,7 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
             {/* Transcript */}
             {contact.transcript_text && (
               <div>
-                <h3 className="text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-3">Transcript</h3>
+                <h3 className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider mb-3">Transcript</h3>
                 <div className="bg-[var(--color-neutral-50)]/80 rounded-xl p-4 max-h-64 overflow-y-auto border border-[var(--border-subtle)]">
                   <pre className="text-sm whitespace-pre-wrap text-[var(--color-neutral-700)] font-mono leading-relaxed">
                     {contact.transcript_text}
@@ -161,7 +161,7 @@ export default function ContactDetailModal({ contact, onClose }: ContactDetailMo
             {/* Recording */}
             {contact.recording_url && (
               <div>
-                <h3 className="text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider mb-3">Recording</h3>
+                <h3 className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider mb-3">Recording</h3>
                 <audio controls className="w-full rounded-xl">
                   <source src={contact.recording_url} type="audio/mpeg" />
                   Your browser does not support the audio element.

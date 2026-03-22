@@ -38,6 +38,15 @@ interface SimplyBookWebhookPayload {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify webhook secret if configured
+    const webhookSecret = process.env.SIMPLYBOOK_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const providedSecret = request.headers.get('x-webhook-secret') || request.nextUrl.searchParams.get('secret');
+      if (providedSecret !== webhookSecret) {
+        return NextResponse.json({ error: 'Invalid webhook secret' }, { status: 401 });
+      }
+    }
+
     const body = await request.json() as SimplyBookWebhookPayload;
 
     // Identify which company this belongs to via company login
