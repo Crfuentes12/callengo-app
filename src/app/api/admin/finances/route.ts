@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 import { BLAND_COST_PER_MINUTE } from '@/lib/bland/master-client';
+import { stripe } from '@/lib/stripe';
 
 const BLAND_API_URL = 'https://api.bland.ai/v1';
 const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!;
@@ -50,15 +51,16 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    // Fetch finances from DB + Bland master account info + admin config in parallel
-    const [financeResult, blandMasterInfo, adminConfigResult] = await Promise.all([
-      supabase
-        .from('admin_finances')
-        .select('*')
-        .gte('period_start', periodStart.toISOString())
-        .lte('period_end', periodEnd.toISOString())
-        .order('period_start', { ascending: false }),
-
+    // Fetch all data sources in parallel
+    const [
+      blandMasterInfo,
+      adminConfigResult,
+      activeSubsResult,
+      allUsersResult,
+      callLogsResult,
+      usageResult,
+      billingHistoryResult,
+    ] = await Promise.all([
       fetchBlandMasterAccountInfo(),
 
       // Admin platform config (persisted Bland plan selection)
@@ -67,11 +69,39 @@ export async function GET(request: NextRequest) {
         .select('*')
         .limit(1)
         .single(),
+
+      // Active subscriptions with plan info
+      supabaseAdmin
+        .from('company_subscriptions')
+        .select('*, subscription_plans(slug, name, price_monthly, price_yearly, minutes_included, price_per_extra_minute)')
+        .in('status', ['active', 'trialing']),
+
+      // All active users
+      supabaseAdmin
+        .from('users')
+        .select('id, company_id'),
+
+      // Call logs in period
+      supabaseAdmin
+        .from('call_logs')
+        .select('id, call_length, status, company_id')
+        .gte('created_at', periodStart.toISOString())
+        .lte('created_at', periodEnd.toISOString()),
+
+      // Usage tracking (current period)
+      supabaseAdmin
+        .from('usage_tracking')
+        .select('company_id, minutes_used, minutes_included')
+        .gte('period_end', periodStart.toISOString()),
+
+      // Billing history (payments in period)
+      supabaseAdmin
+        .from('billing_history')
+        .select('amount, currency, status, company_id')
+        .gte('created_at', periodStart.toISOString())
+        .eq('status', 'paid'),
     ]);
 
-    if (financeResult.error) throw financeResult.error;
-
-    const finances = financeResult.data || [];
     const adminConfig = adminConfigResult.data;
 
     // Override blandMasterInfo with persisted config if available
@@ -102,56 +132,126 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Enrich each finance record with live Bland master account data
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const enrichedFinances: any[] = finances.map(f => ({
-      ...f,
-      // Override with actual values from Bland master account / config
-      bland_talk_rate: BLAND_COST_PER_MINUTE,
-      bland_transfer_rate: blandMasterInfo.transferRate,
-      bland_plan: blandMasterInfo.plan || f.bland_plan || null,
-      bland_plan_cost: blandMasterInfo.planCost ?? f.bland_plan_cost ?? 0,
-      bland_concurrent_limit: blandMasterInfo.concurrentLimit || f.bland_concurrent_limit || '∞',
-      bland_daily_limit: blandMasterInfo.dailyLimit || f.bland_daily_limit || '∞',
-      active_subaccounts: 0,
-      // Master account info for admin display
-      bland_master_balance: blandMasterInfo.balance,
-      bland_master_subscription: blandMasterInfo.subscription,
-    }));
+    // ── Compute live financial data ──────────────────────────────────
 
-    // If no finance records exist, return a synthesized one with master info
-    if (enrichedFinances.length === 0) {
-      enrichedFinances.push({
-        bland_talk_rate: BLAND_COST_PER_MINUTE,
-        bland_transfer_rate: blandMasterInfo.transferRate,
-        bland_plan: blandMasterInfo.plan || null,
-        bland_plan_cost: blandMasterInfo.planCost ?? 0,
-        bland_concurrent_limit: blandMasterInfo.concurrentLimit || '∞',
-        bland_daily_limit: blandMasterInfo.dailyLimit || '∞',
-        active_subaccounts: 0,
-        bland_master_balance: blandMasterInfo.balance,
-        bland_master_subscription: blandMasterInfo.subscription,
-        revenue_total: 0,
-        revenue_subscriptions: 0,
-        revenue_overages: 0,
-        cost_total: 0,
-        cost_bland: 0,
-        cost_openai: 0,
-        cost_supabase: 0,
-        gross_margin: 0,
-        gross_margin_percent: 0,
-        total_companies_active: 0,
-        total_users_active: 0,
-        total_calls_made: 0,
-        total_minutes_used: 0,
-        avg_minutes_per_call: 0,
-        avg_revenue_per_company: 0,
-        overage_revenue_percent: 0,
-      });
+    const activeSubs = activeSubsResult.data || [];
+    const allUsers = allUsersResult.data || [];
+    const callLogs = callLogsResult.data || [];
+    const usageData = usageResult.data || [];
+    const billingHistory = billingHistoryResult.data || [];
+
+    // Active companies: companies with active subscriptions (exclude free-only if no stripe)
+    const activeCompanyIds = new Set(activeSubs.map(s => s.company_id));
+    const totalCompaniesActive = activeCompanyIds.size;
+
+    // Active users: users belonging to active companies
+    const totalUsersActive = allUsers.filter(u => u.company_id && activeCompanyIds.has(u.company_id)).length;
+
+    // Subscription revenue (MRR from plans)
+    let revenueSubscriptions = 0;
+    for (const sub of activeSubs) {
+      const plan = sub.subscription_plans as { price_monthly?: number; price_yearly?: number; slug?: string } | null;
+      if (!plan || plan.slug === 'free') continue;
+      if (sub.billing_cycle === 'annual') {
+        revenueSubscriptions += (plan.price_yearly || 0) / 12;
+      } else {
+        revenueSubscriptions += plan.price_monthly || 0;
+      }
     }
 
+    // Overage revenue from billing history (beyond subscription amounts)
+    const totalPayments = billingHistory.reduce((sum, bh) => sum + (bh.amount || 0), 0);
+    // Estimate overage: total payments minus subscription revenue (approximation)
+    const usageOverages = usageData.reduce((sum, u) => {
+      const overageMin = Math.max(0, (u.minutes_used || 0) - (u.minutes_included || 0));
+      // Find the company's plan overage rate
+      const companySub = activeSubs.find(s => s.company_id === u.company_id);
+      const plan = companySub?.subscription_plans as { price_per_extra_minute?: number } | null;
+      return sum + overageMin * (plan?.price_per_extra_minute || 0);
+    }, 0);
+
+    // Calls and minutes
+    const totalCallsMade = callLogs.length;
+    const totalMinutesUsed = callLogs.reduce(
+      (sum, c) => sum + Math.ceil((c.call_length || 0) / 60), 0
+    );
+    const avgMinutesPerCall = totalCallsMade > 0 ? totalMinutesUsed / totalCallsMade : 0;
+
+    // Costs
+    const costBland = totalMinutesUsed * BLAND_COST_PER_MINUTE;
+    const costOpenai = 0; // Would need OpenAI usage tracking
+    const costSupabase = 0; // Fixed cost, not tracked per-period
+    const costTotal = costBland + costOpenai + costSupabase;
+
+    // Revenue and margin
+    const revenueOverages = usageOverages;
+    const revenueTotal = revenueSubscriptions + revenueOverages;
+    const grossMargin = revenueTotal - costTotal;
+    const grossMarginPercent = revenueTotal > 0 ? (grossMargin / revenueTotal) * 100 : 0;
+    const avgRevenuePerCompany = totalCompaniesActive > 0 ? revenueTotal / totalCompaniesActive : 0;
+    const overageRevenuePercent = revenueSubscriptions > 0 ? (revenueOverages / revenueSubscriptions) * 100 : 0;
+
+    // Stripe discount impact
+    let totalDiscountImpact = 0;
+    try {
+      const [stripeSubs, allCoupons] = await Promise.all([
+        stripe.subscriptions.list({ status: 'active', limit: 100, expand: ['data.discounts'] }),
+        stripe.coupons.list({ limit: 100 }),
+      ]);
+      const couponMap = new Map(allCoupons.data.map(c => [c.id, c]));
+      for (const sub of stripeSubs.data) {
+        const firstDiscount = (sub.discounts && sub.discounts.length > 0) ? sub.discounts[0] : null;
+        if (!firstDiscount || typeof firstDiscount === 'string') continue;
+        const couponRef = firstDiscount.source?.coupon;
+        const coupon = typeof couponRef === 'string'
+          ? couponMap.get(couponRef) || null
+          : couponRef;
+        if (!coupon) continue;
+        const planAmount = sub.items.data.reduce((sum, item) => {
+          const ua = item.price?.unit_amount || 0;
+          return sum + (item.price?.recurring?.interval === 'year' ? ua / 12 : ua);
+        }, 0) / 100;
+        if (coupon.percent_off) {
+          totalDiscountImpact += planAmount * (coupon.percent_off / 100);
+        } else if (coupon.amount_off) {
+          totalDiscountImpact += Math.min(coupon.amount_off / 100, planAmount);
+        }
+      }
+    } catch (err) {
+      console.error('[finances] Failed to fetch Stripe discounts:', err);
+    }
+
+    const financeRecord = {
+      bland_talk_rate: BLAND_COST_PER_MINUTE,
+      bland_transfer_rate: blandMasterInfo.transferRate,
+      bland_plan: blandMasterInfo.plan || null,
+      bland_plan_cost: blandMasterInfo.planCost ?? 0,
+      bland_concurrent_limit: blandMasterInfo.concurrentLimit || '∞',
+      bland_daily_limit: blandMasterInfo.dailyLimit || '∞',
+      active_subaccounts: 0,
+      bland_master_balance: blandMasterInfo.balance,
+      bland_master_subscription: blandMasterInfo.subscription,
+      revenue_total: Math.round(revenueTotal * 100) / 100,
+      revenue_subscriptions: Math.round(revenueSubscriptions * 100) / 100,
+      revenue_overages: Math.round(revenueOverages * 100) / 100,
+      total_discount_impact: Math.round(totalDiscountImpact * 100) / 100,
+      cost_total: Math.round(costTotal * 100) / 100,
+      cost_bland: Math.round(costBland * 100) / 100,
+      cost_openai: costOpenai,
+      cost_supabase: costSupabase,
+      gross_margin: Math.round(grossMargin * 100) / 100,
+      gross_margin_percent: Math.round(grossMarginPercent * 10) / 10,
+      total_companies_active: totalCompaniesActive,
+      total_users_active: totalUsersActive,
+      total_calls_made: totalCallsMade,
+      total_minutes_used: totalMinutesUsed,
+      avg_minutes_per_call: Math.round(avgMinutesPerCall * 100) / 100,
+      avg_revenue_per_company: Math.round(avgRevenuePerCompany * 100) / 100,
+      overage_revenue_percent: Math.round(overageRevenuePercent * 10) / 10,
+    };
+
     return NextResponse.json({
-      finances: enrichedFinances,
+      finances: [financeRecord],
     });
 
   } catch (error) {

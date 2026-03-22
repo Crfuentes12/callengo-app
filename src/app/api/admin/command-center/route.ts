@@ -454,15 +454,25 @@ export async function GET() {
     let totalMonthlyDiscountImpact = 0;
     let subsWithDiscounts = 0;
     try {
-      const stripeSubs = await stripe.subscriptions.list({
-        status: 'active',
-        limit: 100,
-        expand: ['data.discounts'],
-      });
+      // Fetch subscriptions + all coupons in parallel for reliable resolution
+      const [stripeSubs, allCouponsResult] = await Promise.all([
+        stripe.subscriptions.list({
+          status: 'active',
+          limit: 100,
+          expand: ['data.discounts'],
+        }),
+        stripe.coupons.list({ limit: 100 }),
+      ]);
+      // Build coupon lookup map (handles case where source.coupon is a string ID)
+      const couponMap = new Map(allCouponsResult.data.map(c => [c.id, c]));
+
       for (const sub of stripeSubs.data) {
         const firstDiscount = (sub.discounts && sub.discounts.length > 0) ? sub.discounts[0] : null;
         if (!firstDiscount || typeof firstDiscount === 'string') continue;
-        const coupon = typeof firstDiscount.source?.coupon === 'string' ? null : firstDiscount.source?.coupon;
+        const couponRef = firstDiscount.source?.coupon;
+        const coupon = typeof couponRef === 'string'
+          ? couponMap.get(couponRef) || null
+          : couponRef;
         if (!coupon) continue;
         subsWithDiscounts++;
         const planAmount = sub.items.data.reduce((sum, item) => {
