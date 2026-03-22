@@ -198,6 +198,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
     if (initialContactLists.length === 0) {
       loadContactLists();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount; initialContactLists and loadContactLists are stable
   }, []);
 
   // Debounce search
@@ -513,7 +514,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       } else {
         showToast(`Added ${count} contact${count > 1 ? 's' : ''} to list successfully`, 'success');
       }
-    } catch (error) {
+    } catch {
       showToast('Failed to move contacts', 'error');
     }
   };
@@ -548,7 +549,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
           contactEvents.bulkDeleted(count);
           phContactEvents.bulkDeleted(count);
           showToast(`Deleted ${count} contact${count > 1 ? 's' : ''} successfully`, 'success');
-        } catch (error) {
+        } catch {
           showToast('Failed to delete contacts', 'error');
         }
       },
@@ -1020,6 +1021,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
                   {/* Integrations */}
                   <div className="border-t border-[var(--border-subtle)] px-4 py-3">
                     <p className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider mb-2 px-1">From Integrations</p>
+                    {/* eslint-disable @next/next/no-img-element */}
                     <div className="grid grid-cols-2 gap-1.5">
                       {([
                         { name: 'Salesforce', icon: <FaSalesforce className="w-4 h-4 text-[#00A1E0]" />, connected: sfConnected, hasAccess: hasSalesforceAccess, href: sfConnected ? '/contacts/salesforce' : hasSalesforceAccess ? '/api/integrations/salesforce/connect?return_to=/contacts/salesforce' : '/settings?tab=billing' },
@@ -1421,7 +1423,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
       setEditingList(null);
       onUpdate();
       onShowToast('List updated successfully', 'success');
-    } catch (error) {
+    } catch {
       onShowToast('Failed to update list', 'error');
     } finally {
       setLoading(false);
@@ -1450,7 +1452,7 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
           contactEvents.listDeleted();
           phContactEvents.listDeleted();
           onShowToast('List deleted successfully', 'success');
-        } catch (error) {
+        } catch {
           onShowToast('Failed to delete list', 'error');
         } finally {
           setLoading(false);

@@ -9,6 +9,16 @@ import { captureServerEvent } from '@/lib/posthog-server';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_ROWS = 10_000;
 
+// Contact limits per plan (prevents unbounded growth on lower tiers)
+const PLAN_CONTACT_LIMITS: Record<string, number> = {
+  free: 50,
+  starter: 5_000,
+  growth: 15_000,
+  business: 50_000,
+  teams: 100_000,
+  enterprise: 500_000,
+};
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerClient();
@@ -26,6 +36,23 @@ export async function POST(request: NextRequest) {
 
     if (!userData?.company_id) {
       return NextResponse.json({ error: 'No company found' }, { status: 404 });
+    }
+
+    // Check subscription status and plan limits before allowing import
+    const { data: subscription } = await supabase
+      .from('company_subscriptions')
+      .select('status, subscription_plans ( slug )')
+      .eq('company_id', userData.company_id)
+      .maybeSingle();
+
+    const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
+    const subStatus = subscription?.status;
+
+    if (subStatus && subStatus !== 'active' && subStatus !== 'trialing') {
+      return NextResponse.json(
+        { error: 'Your subscription is not active. Please update your payment method to import contacts.' },
+        { status: 403 }
+      );
     }
 
     const formData = await request.formData();
@@ -84,6 +111,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File contains no data rows' }, { status: 400 });
     }
 
+    // Check contact count limit per plan
+    const contactLimit = PLAN_CONTACT_LIMITS[planSlug] || PLAN_CONTACT_LIMITS.free;
+    const { count: currentCount } = await supabase
+      .from('contacts')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', userData.company_id);
+
+    if ((currentCount || 0) + rows.length > contactLimit) {
+      return NextResponse.json(
+        { error: `Contact limit exceeded. Your ${planSlug} plan allows ${contactLimit.toLocaleString()} contacts. You currently have ${(currentCount || 0).toLocaleString()} and are trying to import ${rows.length.toLocaleString()}. Please upgrade your plan or remove existing contacts.` },
+        { status: 402 }
+      );
+    }
+
     const contacts: Record<string, unknown>[] = [];
     const skipped: { row: number; reason: string }[] = [];
 
@@ -102,29 +143,89 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Deduplicate: check for existing contacts with same phone numbers in this company
     if (contacts.length > 0) {
-      const { error } = await supabase.from('contacts').insert(contacts as never);
-      if (error) throw error;
+      const phoneNumbers = contacts
+        .map(c => c.phone_number as string)
+        .filter(Boolean);
+
+      // Fetch existing phone numbers in batches to avoid query size limits
+      const existingPhones = new Set<string>();
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < phoneNumbers.length; i += BATCH_SIZE) {
+        const batch = phoneNumbers.slice(i, i + BATCH_SIZE);
+        const { data: existing } = await supabase
+          .from('contacts')
+          .select('phone_number')
+          .eq('company_id', userData.company_id)
+          .in('phone_number', batch);
+
+        if (existing) {
+          for (const e of existing) {
+            existingPhones.add(e.phone_number);
+          }
+        }
+      }
+
+      // Also deduplicate within the import file itself
+      const seenPhones = new Set<string>();
+      const uniqueContacts: Record<string, unknown>[] = [];
+      let duplicateCount = 0;
+      let inFileDuplicateCount = 0;
+
+      for (const contact of contacts) {
+        const phone = contact.phone_number as string;
+        if (existingPhones.has(phone)) {
+          duplicateCount++;
+          continue;
+        }
+        if (seenPhones.has(phone)) {
+          inFileDuplicateCount++;
+          continue;
+        }
+        seenPhones.add(phone);
+        uniqueContacts.push(contact);
+      }
+
+      if (uniqueContacts.length > 0) {
+        const { error } = await supabase.from('contacts').insert(uniqueContacts as never);
+        if (error) throw error;
+      }
+
+      // Update imported count to reflect deduplicated results
+      const totalSkippedDups = duplicateCount + inFileDuplicateCount;
+
+      trackServerEvent(user.id, user.id, 'contact_import_completed', {
+        imported_count: uniqueContacts.length,
+        skipped_count: skipped.length,
+        duplicate_count: duplicateCount,
+        in_file_duplicate_count: inFileDuplicateCount,
+        total_rows: rows.length,
+        file_type: fileName.endsWith('.csv') ? 'csv' : 'txt',
+        has_list_id: !!listId,
+      });
+      await captureServerEvent(user.id, 'contact_import_completed', {
+        imported_count: uniqueContacts.length,
+        skipped_count: skipped.length,
+        duplicate_count: duplicateCount,
+        total_rows: rows.length,
+        file_type: fileName.endsWith('.csv') ? 'csv' : 'txt',
+        has_list_id: !!listId,
+      }, { company: userData.company_id });
+
+      return NextResponse.json({
+        imported: uniqueContacts.length,
+        skipped: skipped.length + totalSkippedDups,
+        duplicatesSkipped: duplicateCount,
+        inFileDuplicatesSkipped: inFileDuplicateCount,
+        skippedReasons: skipped.slice(0, 20),
+      });
     }
 
-    trackServerEvent(user.id, user.id, 'contact_import_completed', {
-      imported_count: contacts.length,
-      skipped_count: skipped.length,
-      total_rows: rows.length,
-      file_type: fileName.endsWith('.csv') ? 'csv' : 'txt',
-      has_list_id: !!listId,
-    });
-    await captureServerEvent(user.id, 'contact_import_completed', {
-      imported_count: contacts.length,
-      skipped_count: skipped.length,
-      total_rows: rows.length,
-      file_type: fileName.endsWith('.csv') ? 'csv' : 'txt',
-      has_list_id: !!listId,
-    }, { company: userData.company_id });
-
     return NextResponse.json({
-      imported: contacts.length,
+      imported: 0,
       skipped: skipped.length,
+      duplicatesSkipped: 0,
       skippedReasons: skipped.slice(0, 20),
     });
 

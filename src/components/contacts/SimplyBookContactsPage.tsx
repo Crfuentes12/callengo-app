@@ -74,6 +74,7 @@ type ActiveTab = 'clients' | 'bookings';
 // COMPONENT
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function SimplyBookContactsPage({ companyId, planSlug, sbConnected, sbIntegration }: SimplyBookContactsPageProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>('clients');
@@ -312,6 +313,7 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
         <div className="bg-white rounded-2xl border border-[var(--border-default)] p-8 max-w-lg mx-auto">
           <div className="text-center mb-6">
             <div className="w-16 h-16 rounded-2xl bg-sky-50 flex items-center justify-center mx-auto mb-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-10 h-10 rounded" />
             </div>
             <h2 className="text-xl font-bold text-[var(--color-ink)]">Connect SimplyBook.me</h2>
@@ -382,6 +384,7 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
   // RENDER — CONNECTED
   // ============================================================================
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const unsyncedCount = clients.filter(c => !c.already_synced).length;
 
   return (
@@ -415,6 +418,7 @@ export default function SimplyBookContactsPage({ companyId, planSlug, sbConnecte
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-sky-50 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-8 h-8 rounded" />
             </div>
             <div>

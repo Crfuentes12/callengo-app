@@ -1,7 +1,7 @@
 // components/contacts/SalesforceContactsPage.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaSalesforce } from 'react-icons/fa';
 import Link from 'next/link';
@@ -125,7 +125,9 @@ function formatLastSynced(dateStr?: string | null): string {
 // ============================================================================
 
 export default function SalesforceContactsPage({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   companyId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planSlug,
   sfConnected,
   sfIntegration,

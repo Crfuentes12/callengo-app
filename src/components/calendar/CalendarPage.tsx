@@ -213,6 +213,7 @@ const SOURCE_LABELS: Record<string, string> = {
 export default function CalendarPage({
   events: initialEvents,
   integrations: initialIntegrations,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   companyId,
   workingHours,
   workingDays: initialWorkingDays,
@@ -221,6 +222,7 @@ export default function CalendarPage({
   calendarSettings: initialCalendarSettings,
   zoomConnected: initialZoomConnected = false,
   simplyBookConnected = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   simplyBookInfo,
   contacts,
 }: CalendarPageProps) {
@@ -250,13 +252,14 @@ export default function CalendarPage({
   const getHourInTz = (date: Date): number => {
     return parseInt(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(date), 10);
   };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getDayInTz = (date: Date): number => {
     const dayStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(date).toLowerCase();
     return ALL_DAYS.indexOf(dayStr);
   };
-  const getDateStringInTz = (date: Date): string => {
+  const getDateStringInTz = useCallback((date: Date): string => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date); // returns YYYY-MM-DD
-  };
+  }, [tz]);
   const getMinutesInTz = (date: Date): number => {
     const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(date);
     return parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
@@ -268,7 +271,7 @@ export default function CalendarPage({
   // Derived working hours from settings
   const workStart = parseInt(calSettings.working_hours_start.split(':')[0], 10);
   const workEnd = parseInt(calSettings.working_hours_end.split(':')[0], 10);
-  const isWorkingHour = (hour: number) => hour >= workStart && hour < workEnd;
+  const isWorkingHour = useCallback((hour: number) => hour >= workStart && hour < workEnd, [workStart, workEnd]);
   const isWorkingDay = (date: Date) => {
     const dayStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(date).toLowerCase();
     return calSettings.working_days.includes(dayStr);
@@ -382,6 +385,7 @@ export default function CalendarPage({
       showToast(`${integration === 'google_calendar' ? 'Google Calendar' : 'Microsoft Outlook'} connected successfully!`, 'success');
       refreshIntegrations();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refreshIntegrations and showToast are stable refs, only re-run on searchParams changes
   }, [searchParams]);
 
   // Update current time every minute for the day view time indicator
@@ -591,6 +595,7 @@ export default function CalendarPage({
     window.location.href = '/api/integrations/google-calendar/connect?return_to=/calendar';
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDisconnect = useCallback(async (provider: string) => {
     const endpoint = provider === 'google_calendar'
       ? '/api/integrations/google-calendar/disconnect'
@@ -847,7 +852,7 @@ export default function CalendarPage({
     } finally {
       setSchedulingEvent(false);
     }
-  }, [scheduleForm, contacts, refreshEvents, showToast, schedulingEvent]);
+  }, [scheduleForm, contacts, refreshEvents, showToast, schedulingEvent, tz]);
 
   // Open inline create panel pre-filled from a time slot click/drag
   const openScheduleFromSlot = useCallback((date: Date, startMinutes: number, endMinutes: number, x: number, y: number) => {
@@ -931,7 +936,7 @@ export default function CalendarPage({
     }
 
     return days;
-  }, [currentDate, filteredEvents]);
+  }, [currentDate, filteredEvents, getDateStringInTz]);
 
   // Week view
   const weekDays = useMemo(() => {
@@ -952,7 +957,7 @@ export default function CalendarPage({
       });
     }
     return days;
-  }, [currentDate, filteredEvents]);
+  }, [currentDate, filteredEvents, getDateStringInTz]);
 
   // Stats
   const stats = useMemo(() => {
@@ -971,7 +976,7 @@ export default function CalendarPage({
       upcomingCount: upcoming.length,
       pendingConfirmation: pendingConfirmation.length,
     };
-  }, [events]);
+  }, [events, getDateStringInTz]);
 
   // Holiday map (date string -> holiday name)
   const holidayMap = useMemo(() => {
@@ -1222,6 +1227,7 @@ export default function CalendarPage({
               {/* SimplyBook.me badge */}
               {simplyBookConnected ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-emerald-200 rounded-lg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-3.5 h-3.5 rounded-sm shrink-0" />
                   <span className="text-[11px] font-semibold text-[var(--color-neutral-700)] whitespace-nowrap">SimplyBook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
@@ -1231,6 +1237,7 @@ export default function CalendarPage({
                   onClick={() => setShowSimplyBookSetup(true)}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/80 border border-[var(--border-default)] rounded-lg hover:bg-white hover:border-[var(--border-strong)] transition-all text-[11px] font-semibold text-[var(--color-neutral-500)]"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-3.5 h-3.5 rounded-sm shrink-0" />
                   <span className="whitespace-nowrap">SimplyBook</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-neutral-300)] shrink-0"></span>
@@ -2371,6 +2378,7 @@ function SimplyBookCalendarSetup({ onClose, onSuccess }: { onClose: () => void; 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-sky-50 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-7 h-7 rounded" />
               </div>
               <div>

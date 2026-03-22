@@ -636,7 +636,8 @@ export async function pushCallResultToDynamics(
 
   const client = await getDynamicsClient(integration);
   const entityType = mapping.dynamics_entity_type === 'leads' ? 'leads' : 'contacts';
-  const entityIdField = entityType === 'leads' ? 'leadid' : 'contactid';
+   
+  const _entityIdField = entityType === 'leads' ? 'leadid' : 'contactid';
 
   // Build note content
   const callStatus = (contact.call_status as string) || 'completed';

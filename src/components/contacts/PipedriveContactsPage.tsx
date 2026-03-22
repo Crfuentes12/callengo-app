@@ -125,7 +125,9 @@ function getPrimaryPhone(person: PDPerson): string {
 // ============================================================================
 
 export default function PipedriveContactsPage({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   companyId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planSlug,
   pdConnected,
   pdIntegration,

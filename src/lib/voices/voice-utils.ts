@@ -7,7 +7,8 @@ import { BLAND_VOICES } from './bland-voices';
 export function determineGender(voice: BlandVoice): 'male' | 'female' | 'unknown' {
   const tags = voice.tags.map(t => t.toLowerCase());
   const description = (voice.description || '').toLowerCase();
-  const name = voice.name.toLowerCase();
+   
+  const _name = voice.name.toLowerCase();
 
   if (tags.includes('male') || description.includes(' male')) return 'male';
   if (tags.includes('female') || description.includes('female')) return 'female';
@@ -23,7 +24,8 @@ export function determineGender(voice: BlandVoice): 'male' | 'female' | 'unknown
 export function determineCategory(voice: BlandVoice): { language: string; accent: string; country: string } {
   const tags = voice.tags.map(t => t.toLowerCase());
   const description = (voice.description || '').toLowerCase();
-  const name = voice.name.toLowerCase();
+   
+  const _name = voice.name.toLowerCase();
 
   // French accent speaking English (specific voices: Elsa, Pierre)
   if ((tags.includes('french') || description.includes('french')) && (tags.includes('english') || description.includes('accent'))) {

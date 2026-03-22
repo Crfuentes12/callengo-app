@@ -22,7 +22,7 @@ interface ProviderMember {
   callengo_user_id?: string;
 }
 
-export default function SimplyBookOrgMembers({ companyId, planSlug, sbConnected }: SimplyBookOrgMembersProps) {
+export default function SimplyBookOrgMembers({ companyId, planSlug: _planSlug, sbConnected }: SimplyBookOrgMembersProps) {
   const [providers, setProviders] = useState<ProviderMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -58,6 +58,7 @@ export default function SimplyBookOrgMembers({ companyId, planSlug, sbConnected 
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element -- Small brand logo */}
             <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-6 h-6 rounded" />
           </div>
           <div className="text-left">

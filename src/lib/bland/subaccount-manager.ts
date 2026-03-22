@@ -38,7 +38,8 @@ export function calculateCreditAmount(minutesIncluded: number): number {
  */
 export async function createBlandSubAccount(
   companyId: string,
-  _companyName: string
+   
+  _companyName?: string
 ): Promise<{ subAccountId: string; apiKey: string }> {
   const masterKey = process.env.BLAND_API_KEY!;
 
@@ -108,6 +109,7 @@ export async function allocateBlandCredits(
  * NO-OP: No credits to reclaim without sub-accounts.
  * Returns 0 for backward compatibility.
  */
+ 
 export async function getBlandCreditBalance(_companyId: string): Promise<number> {
   // In single-key architecture, balance is on the master account (shared)
   // Use getBlandAccountInfo() from master-client.ts for actual balance
@@ -117,6 +119,7 @@ export async function getBlandCreditBalance(_companyId: string): Promise<number>
 /**
  * NO-OP: No credits to reclaim without sub-accounts.
  */
+ 
 export async function reclaimBlandCredits(_companyId: string): Promise<number> {
   return 0;
 }
@@ -156,7 +159,9 @@ export async function handlePlanUpgradeCredits(
   companyId: string,
   oldMinutesIncluded: number,
   newMinutesIncluded: number,
+   
   _daysRemainingInPeriod: number,
+   
   _totalDaysInPeriod: number
 ): Promise<{ allocated: number; minutesCovered: number }> {
   if (newMinutesIncluded <= oldMinutesIncluded) {

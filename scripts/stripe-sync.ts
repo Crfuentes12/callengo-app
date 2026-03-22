@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * ============================================================================
  * CALLENGO - UNIVERSAL STRIPE SYNCHRONIZATION SCRIPT
@@ -492,8 +493,8 @@ async function main() {
   try {
     await stripe.balance.retrieve();
     log(`Connected to Stripe account successfully`, 'success');
-  } catch (error: any) {
-    log(`Failed to connect to Stripe: ${error.message}`, 'error');
+  } catch (error: unknown) {
+    log(`Failed to connect to Stripe: ${error instanceof Error ? error.message : String(error)}`, 'error');
     process.exit(1);
   }
 
@@ -539,7 +540,7 @@ async function syncCoupons() {
       try {
         existingCoupon = await stripe.coupons.retrieve(couponConfig.id);
         log(`   Found existing coupon`, 'info');
-      } catch (error) {
+      } catch {
         // Coupon doesn't exist
       }
 
@@ -567,7 +568,7 @@ async function syncCoupons() {
 
       // Create promotion codes
       if (!CONFIG.DRY_RUN) {
-        const cfg = couponConfig as any;
+        const cfg = couponConfig as Record<string, unknown> & { promoCodes?: string[] };
         const codes: string[] = cfg.promoCodes || [couponConfig.id];
 
         for (const code of codes) {
@@ -597,8 +598,8 @@ async function syncCoupons() {
             } else {
               log(`   Promotion code created: ${data.code}`, 'success');
             }
-          } catch (promoError: any) {
-            logVerbose(`   Note: Could not create promotion code ${code}: ${promoError.message}`);
+          } catch (promoError: unknown) {
+            logVerbose(`   Note: Could not create promotion code ${code}: ${promoError instanceof Error ? promoError.message : String(promoError)}`);
           }
         }
       }
@@ -741,7 +742,7 @@ async function syncSinglePlan(plan: any) {
         try {
           const existingFeatures = await stripe.entitlements.features.list({ limit: 100 } as any);
           feature = existingFeatures.data.find((f: any) => f.lookup_key === featureLookupKey);
-        } catch (err) {
+        } catch {
           // Feature doesn't exist
         }
 
@@ -753,11 +754,12 @@ async function syncSinglePlan(plan: any) {
               metadata: { plan: plan.slug },
             } as any);
             logVerbose(`     Created feature: ${featureName}`);
-          } catch (createErr: any) {
-            if (createErr.message?.includes('lookup_key') || createErr.message?.includes('already')) {
+          } catch (createErr: unknown) {
+            const errMsg = createErr instanceof Error ? createErr.message : String(createErr);
+            if (errMsg.includes('lookup_key') || errMsg.includes('already')) {
               logVerbose(`     Feature exists: ${featureName}`);
             } else {
-              logVerbose(`     Warning: Could not create feature "${featureName}": ${createErr.message}`);
+              logVerbose(`     Warning: Could not create feature "${featureName}": ${errMsg}`);
             }
           }
         } else if (feature) {
@@ -773,14 +775,15 @@ async function syncSinglePlan(plan: any) {
               await stripe.products.createFeature(productId, { entitlement_feature: feature.id } as any);
               logVerbose(`     ✅ Attached: ${featureName}`);
             }
-          } catch (attachErr: any) {
-            if (!attachErr.message?.includes('already attached')) {
-              logVerbose(`     Note: Could not attach feature: ${attachErr.message}`);
+          } catch (attachErr: unknown) {
+            const errMsg = attachErr instanceof Error ? (attachErr as Error).message : String(attachErr);
+            if (!errMsg.includes('already attached')) {
+              logVerbose(`     Note: Could not attach feature: ${errMsg}`);
             }
           }
         }
-      } catch (error: any) {
-        logVerbose(`     Warning: Could not process feature "${featureName}": ${error.message}`);
+      } catch (error: unknown) {
+        logVerbose(`     Warning: Could not process feature "${featureName}": ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
@@ -790,7 +793,7 @@ async function syncSinglePlan(plan: any) {
   // ── Create Prices in Multiple Currencies ──
 
   if (!CONFIG.SKIP_PRICES) {
-    for (const [currencyName, currencyConfig] of Object.entries(CURRENCIES)) {
+    for (const [, currencyConfig] of Object.entries(CURRENCIES)) {
       await syncPricesForCurrency(plan, productId!, currencyConfig, priceIds);
     }
   }
@@ -873,7 +876,7 @@ async function syncPricesForCurrency(
           logVerbose(`     ${currency.code.toUpperCase()} Annual exists and is correct`);
           return;
         }
-      } catch (err) {
+      } catch {
         // Price doesn't exist or can't be retrieved
       }
     }

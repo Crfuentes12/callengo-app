@@ -12,8 +12,8 @@ import { useTranslation } from '@/i18n';
 import { integrationEvents } from '@/lib/analytics';
 import { phIntegrationEvents } from '@/lib/posthog';
 import {
-  PLAN_ORDER, planMeetsRequirement, getPlanLabel, getPlanBadgeColors,
-  formatLastSynced, Spinner, Tooltip,
+  planMeetsRequirement, getPlanLabel,
+  formatLastSynced, Spinner,
   WebhookIcon, PipedriveIcon, ZohoIcon, StripeIcon, DynamicsIcon,
 } from './integration-helpers';
 
@@ -131,6 +131,7 @@ function SimplyBookSetupModal({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-sky-50 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Small brand logo */}
                 <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-7 h-7 rounded" />
               </div>
               <div>
@@ -1121,6 +1122,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
       // Open OAuth in a new tab so the app doesn't close
       window.open(connectUrl, '_blank', 'noopener,noreferrer');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable per render cycle
   }, [router, showToast]);
 
   const handleDisconnect = useCallback(async (provider: string, name: string) => {
@@ -1171,6 +1173,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     } finally {
       setLoadingAction(null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable per render cycle
   }, [showToast, router]);
 
   // --------------------------------------------------------------------------
@@ -1310,6 +1313,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     {
       id: 'clio', provider: 'clio', name: 'Clio',
       description: 'Import contacts, matters, and calendar from your legal practice management software',
+      // eslint-disable-next-line @next/next/no-img-element -- Small brand logo
       icon: <img src="/clio-logo.png" alt="Clio" className="w-7 h-7" />, iconColor: '', iconBg: 'bg-[#1B2B5B]/5',
       category: 'crm', requiredPlan: 'business', infoUrl: 'https://callengo.com/integrations/clio',
       status: integrations.clio?.connected ? 'connected' : 'available',
@@ -1343,6 +1347,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     {
       id: 'simplybook', provider: 'simplybook', name: 'SimplyBook.me',
       description: 'Sync clients, bookings, and providers from SimplyBook.me',
+      // eslint-disable-next-line @next/next/no-img-element -- Small brand logo
       icon: <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-7 h-7 rounded" />, iconColor: '', iconBg: 'bg-sky-50',
       category: 'calendar', requiredPlan: 'starter', infoUrl: 'https://callengo.com/integrations/simplybook-me',
       status: integrations.simplybook?.connected ? 'connected' : 'available',
@@ -1394,6 +1399,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     {
       id: 'gohighlevel', provider: 'gohighlevel', name: 'GoHighLevel',
       description: 'All-in-one marketing, CRM, and automation platform for agencies',
+      // eslint-disable-next-line @next/next/no-img-element -- Small brand logo
       icon: <img src="/gohighlevel-logo.png" alt="GoHighLevel" className="w-7 h-7" />, iconColor: '', iconBg: 'bg-blue-50',
       category: 'crm', requiredPlan: 'business',
       status: 'coming_soon' as const,
@@ -1401,6 +1407,7 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
     {
       id: 'acuity-scheduling', provider: 'acuity-scheduling', name: 'Acuity Scheduling',
       description: 'Online appointment scheduling and calendar management for professionals',
+      // eslint-disable-next-line @next/next/no-img-element -- Small brand logo
       icon: <img src="/acuity-scheduling-logo.png" alt="Acuity Scheduling" className="w-7 h-7" />, iconColor: '', iconBg: 'bg-emerald-50',
       category: 'calendar', requiredPlan: 'starter',
       status: 'coming_soon' as const,

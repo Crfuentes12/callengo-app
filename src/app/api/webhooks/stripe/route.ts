@@ -430,15 +430,32 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription & Rec
   const periodStart = subscription.current_period_start || subscription.billing?.current_period_start;
   const periodEnd = subscription.current_period_end || subscription.billing?.current_period_end;
 
+  // Detect plan change by comparing plan_id from Stripe metadata
+  const newPlanSlug = subscription.metadata?.plan_slug;
+  const previousPlanSlug = subscription.metadata?.previous_plan_slug
+    || (existingSub.subscription_plans as Record<string, unknown>)?.slug;
+  const isPlanChange = newPlanSlug && previousPlanSlug && newPlanSlug !== previousPlanSlug;
+
   // Update subscription status
+  const updateData: Record<string, unknown> = {
+    status: subscription.status,
+    current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : new Date().toISOString(),
+    current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date().toISOString(),
+    stripe_subscription_item_id: meteredItem?.id || null,
+  };
+
+  // AUDIT FIX: Reset overage tracking when plan changes (upgrade/downgrade)
+  // to prevent old overage charges from persisting into the new plan period
+  if (isPlanChange) {
+    updateData.overage_spent = 0;
+    updateData.last_overage_alert_at = null;
+    updateData.overage_alert_level = 0;
+    console.log(`✅ Overage reset on plan change: ${previousPlanSlug} → ${newPlanSlug} (company ${existingSub.company_id})`);
+  }
+
   await supabase
     .from('company_subscriptions')
-    .update({
-      status: subscription.status,
-      current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : new Date().toISOString(),
-      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date().toISOString(),
-      stripe_subscription_item_id: meteredItem?.id || null,
-    })
+    .update(updateData)
     .eq('stripe_subscription_id', subscription.id);
 
   // Log billing event
@@ -446,10 +463,13 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription & Rec
     company_id: existingSub.company_id,
     subscription_id: existingSub.id,
     event_type: 'subscription_updated',
-    event_data: {
+    event_data: JSON.parse(JSON.stringify({
       status: subscription.status,
       cancel_at_period_end: subscription.cancel_at_period_end,
-    },
+      plan_changed: isPlanChange || false,
+      new_plan: newPlanSlug || null,
+      previous_plan: previousPlanSlug || null,
+    })),
     minutes_consumed: 0,
     cost_usd: 0,
   });

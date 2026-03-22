@@ -18,6 +18,7 @@ interface PipedriveContactsBannerProps {
 }
 
 export default function PipedriveContactsBanner({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planSlug,
   hasPipedriveAccess,
   pdConnected,

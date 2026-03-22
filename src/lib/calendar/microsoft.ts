@@ -288,7 +288,8 @@ export async function listMicrosoftEvents(
   }
 
   // Build calendar events endpoint
-  const basePath = calendarId
+   
+  const _basePath = calendarId
     ? `/me/calendars/${calendarId}/events`
     : '/me/calendar/events';
 

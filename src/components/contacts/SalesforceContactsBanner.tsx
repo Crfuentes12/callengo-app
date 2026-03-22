@@ -11,6 +11,7 @@ interface SalesforceContactsBannerProps {
 }
 
 export default function SalesforceContactsBanner({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planSlug,
   hasSalesforceAccess,
   sfConnected,

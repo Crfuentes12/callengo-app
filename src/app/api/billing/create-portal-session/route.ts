@@ -3,7 +3,8 @@ import { createServerClient } from '@/lib/supabase/server';
 import { createBillingPortalSession, stripe } from '@/lib/stripe';
 import { getAppUrl } from '@/lib/config';
 
-export async function POST(req: NextRequest) {
+ 
+export async function POST(_req: NextRequest) {
   try {
     const supabase = await createServerClient();
 

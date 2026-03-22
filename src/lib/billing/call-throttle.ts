@@ -85,8 +85,19 @@ export async function checkCallAllowed(companyId: string): Promise<ThrottleCheck
     };
   }
 
-  // Check if subscription period has expired
+  // Check if subscription period has expired (synchronous guard for free plan trial expiry)
   if (subscription.current_period_end && new Date(subscription.current_period_end) < new Date()) {
+    // Immediately mark subscription as expired to prevent any calls in the brief window
+    // between expiry detection and async status update
+    try {
+      await supabaseAdmin
+        .from('company_subscriptions')
+        .update({ status: 'expired' })
+        .eq('id', subscription.id)
+        .eq('status', 'active'); // Only update if still active (avoid race)
+    } catch (updateErr) {
+      console.error('[call-throttle] Failed to mark subscription as expired:', updateErr);
+    }
     return {
       allowed: false,
       reason: 'Your subscription period has expired. Please upgrade to continue making calls.',
@@ -312,7 +323,7 @@ async function checkMinutesAvailable(
     const pricePerMinute = plan.price_per_extra_minute || 0;
     const overageCost = overageMinutes * pricePerMinute;
 
-    if (overageCost >= subscription.overage_budget) {
+    if (overageCost > subscription.overage_budget) {
       return {
         allowed: false,
         reason: `Overage budget of $${subscription.overage_budget} has been reached. Increase your budget or upgrade your plan.`,

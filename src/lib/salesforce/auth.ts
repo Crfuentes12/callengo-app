@@ -112,13 +112,33 @@ export async function getSalesforceUserInfo(
 export async function refreshSalesforceToken(
   integration: SalesforceIntegration
 ): Promise<{ access_token: string; instance_url: string }> {
+  // --- Race condition guard: re-read from DB to check if another request already refreshed ---
+  const originalTokenIssuedAt = integration.token_issued_at;
+  const { data: latestRow } = await supabaseAdmin
+    .from('salesforce_integrations')
+    .select('access_token, instance_url, refresh_token, token_issued_at')
+    .eq('id', integration.id)
+    .single();
+
+  if (latestRow && latestRow.token_issued_at && originalTokenIssuedAt &&
+      latestRow.token_issued_at !== originalTokenIssuedAt) {
+    // Token was already refreshed by a concurrent request — use the latest token
+    return {
+      access_token: latestRow.access_token,
+      instance_url: latestRow.instance_url ?? integration.instance_url,
+    };
+  }
+
+  // Use the latest refresh_token from DB in case it was rotated
+  const currentRefreshToken = latestRow?.refresh_token ?? integration.refresh_token;
+
   const { clientId, clientSecret } = getSalesforceConfig();
 
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
     client_id: clientId,
     client_secret: clientSecret,
-    refresh_token: integration.refresh_token,
+    refresh_token: currentRefreshToken,
   });
 
   const res = await fetch(`${SF_LOGIN_URL}/services/oauth2/token`, {
@@ -139,18 +159,37 @@ export async function refreshSalesforceToken(
   const data = await res.json();
   const newAccessToken = data.access_token as string;
   const newInstanceUrl = (data.instance_url as string) || integration.instance_url;
+  const newTokenIssuedAt = new Date().toISOString();
 
   // Update token in DB (store new refresh_token if Salesforce returns one)
+  // Use optimistic locking on token_issued_at to prevent double-writes
   const newRefreshToken = data.refresh_token as string | undefined;
-  await supabaseAdmin
+  const { data: updateResult } = await supabaseAdmin
     .from('salesforce_integrations')
     .update({
       access_token: newAccessToken,
       instance_url: newInstanceUrl,
       ...(newRefreshToken ? { refresh_token: newRefreshToken } : {}),
-      token_issued_at: new Date().toISOString(),
+      token_issued_at: newTokenIssuedAt,
     })
-    .eq('id', integration.id);
+    .eq('id', integration.id)
+    .eq('token_issued_at', originalTokenIssuedAt ?? '')
+    .select('access_token, instance_url');
+
+  // If optimistic lock failed (another request won the race), re-read latest token
+  if (!updateResult || updateResult.length === 0) {
+    const { data: fallbackRow } = await supabaseAdmin
+      .from('salesforce_integrations')
+      .select('access_token, instance_url')
+      .eq('id', integration.id)
+      .single();
+    if (fallbackRow) {
+      return {
+        access_token: fallbackRow.access_token,
+        instance_url: fallbackRow.instance_url ?? newInstanceUrl,
+      };
+    }
+  }
 
   return { access_token: newAccessToken, instance_url: newInstanceUrl };
 }

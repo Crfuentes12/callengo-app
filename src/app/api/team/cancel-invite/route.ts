@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
+import { supabaseAdminRaw } from '@/lib/supabase/service';
 
 /**
  * POST /api/team/cancel-invite

@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           subscription_id: updatedSubscription.id,
           amount,
           currency: 'USD',
-          description: `${plan.name} - ${billingCycle === 'monthly' ? 'Mensual' : 'Anual'}`,
+          description: `${plan.name} - ${billingCycle === 'monthly' ? 'Monthly' : 'Annual'}`,
           status: 'admin_override',
           billing_date: currentDate.toISOString()
         });
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
           subscription_id: newSubscription.id,
           amount,
           currency: 'USD',
-          description: `${plan.name} - ${billingCycle === 'monthly' ? 'Mensual' : 'Anual'}`,
+          description: `${plan.name} - ${billingCycle === 'monthly' ? 'Monthly' : 'Annual'}`,
           status: 'admin_override',
           billing_date: currentDate.toISOString()
         });

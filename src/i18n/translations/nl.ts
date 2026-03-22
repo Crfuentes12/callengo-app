@@ -836,6 +836,7 @@ const nl: TranslationKeys = {
     overageRate: 'Extra tarief:',
     perMinute: '/minuut',
     overageBudget: 'Extra budget',
+    overageSpent: 'Extra uitgaven',
     cancelConfirmTitle: 'Weet u zeker dat u wilt annuleren?',
     cancelCurrentPlan: 'U zit momenteel op het',
     cancelPlanWith: 'plan met',

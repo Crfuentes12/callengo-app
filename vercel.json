@@ -2,5 +2,8 @@
   "crons": [{
     "path": "/api/queue/process",
     "schedule": "*/2 * * * *"
+  }, {
+    "path": "/api/queue/followups",
+    "schedule": "*/5 * * * *"
   }]
 }

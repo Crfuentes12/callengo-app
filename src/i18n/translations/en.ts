@@ -841,6 +841,7 @@ const en = {
     overageRate: 'Overage rate:',
     perMinute: '/minute',
     overageBudget: 'Overage Budget',
+    overageSpent: 'Overage Spent',
     // Cancellation flow
     cancelConfirmTitle: 'Are you sure you want to cancel?',
     cancelCurrentPlan: 'You\'re currently on the',

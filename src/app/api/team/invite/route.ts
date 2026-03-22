@@ -156,7 +156,8 @@ export async function POST(req: NextRequest) {
     const appUrl = getAppUrl();
     const redirectTo = `${appUrl}/auth/callback?invite_token=${invitation.token}&type=team_invite`;
 
-    const { data: inviteData, error: emailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+     
+    const { data: _inviteData, error: emailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       email.toLowerCase(),
       {
         redirectTo,

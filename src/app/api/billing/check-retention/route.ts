@@ -20,7 +20,8 @@ function getMonthsRequired(timesRedeemed: number): number {
  * GET /api/billing/check-retention
  * Checks if the current user's company is eligible for a retention offer.
  */
-export async function GET(req: NextRequest) {
+ 
+export async function GET(_req: NextRequest) {
   try {
     const supabase = await createServerClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();

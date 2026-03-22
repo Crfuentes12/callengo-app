@@ -81,8 +81,10 @@ export function generateContactLists(companyId: string) {
 
 // ─── CONTACTS (50 contacts) ─────────────────────────────────────
 
-const CONTACT_STATUSES = ['Pending', 'Verified', 'Calling', 'No Answer', 'Voicemail Left', 'For Callback', 'Completed', 'Failed'];
-const CALL_OUTCOMES = ['Interested', 'Not Interested', 'Callback Requested', 'Wrong Number', 'Voicemail', 'Information Updated', 'Appointment Confirmed', 'Appointment Rescheduled', 'Qualified Lead', 'Unqualified', null];
+ 
+const _CONTACT_STATUSES = ['Pending', 'Verified', 'Calling', 'No Answer', 'Voicemail Left', 'For Callback', 'Completed', 'Failed'];
+ 
+const _CALL_OUTCOMES = ['Interested', 'Not Interested', 'Callback Requested', 'Wrong Number', 'Voicemail', 'Information Updated', 'Appointment Confirmed', 'Appointment Rescheduled', 'Qualified Lead', 'Unqualified', null];
 
 interface ContactData {
   companyName: string;

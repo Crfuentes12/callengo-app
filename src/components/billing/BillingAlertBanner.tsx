@@ -13,7 +13,15 @@ interface BillingNotification {
 
 export default function BillingAlertBanner() {
   const [notifications, setNotifications] = useState<BillingNotification[]>([]);
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('callengo_dismissed_alerts') : null;
+      if (stored) return new Set(JSON.parse(stored));
+    } catch {
+      // Ignore
+    }
+    return new Set();
+  });
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -34,16 +42,6 @@ export default function BillingAlertBanner() {
     // Re-check every 5 minutes
     const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
-
-  // Load dismissed from localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('callengo_dismissed_alerts');
-      if (stored) setDismissed(new Set(JSON.parse(stored)));
-    } catch {
-      // Ignore
-    }
   }, []);
 
   const dismiss = (id: string) => {

@@ -148,6 +148,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- currentUser is a stable prop
   }, [companyId, supabase]);
 
   useEffect(() => {
@@ -208,7 +209,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       setSuccess('Team member removed');
       await loadTeamData();
       router.refresh();
-    } catch (err) {
+    } catch {
       setError('Failed to remove team member');
     }
   };
@@ -227,7 +228,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
       setSuccess('Invitation cancelled');
       await loadTeamData();
       router.refresh();
-    } catch (err) {
+    } catch {
       setError('Failed to cancel invitation');
     }
   };
@@ -280,9 +281,11 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
     { id: 'salesforce', name: 'Salesforce', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#00A1E0"><path d="M10.1 4.8c.9-.9 2.1-1.5 3.5-1.5 1.7 0 3.2.9 4 2.2.7-.3 1.5-.5 2.3-.5 3.1 0 5.6 2.5 5.6 5.6s-2.5 5.6-5.6 5.6c-.5 0-.9-.1-1.4-.2-.7 1.3-2.1 2.2-3.7 2.2-1.2 0-2.2-.5-3-1.3-.6.2-1.2.3-1.8.3-2.8 0-5-2.2-5-5s2.2-5 5-5c.4 0 .8 0 1.1.1.6-1 1.6-1.7 2.7-2.1-.1-.5-.2-1-.2-1.5 0-2 1.1-3.7 2.7-4.7-.3-.1-.6-.2-.9-.2-1.4 0-2.6.6-3.5 1.5-.1-.2-.3-.3-.5-.5z"/></svg>, connected: !!integrationConnections.salesforce, endpoint: '/api/integrations/salesforce/users', memberKey: 'members' },
     { id: 'hubspot', name: 'HubSpot', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#FF7A59"><path d="M17.5 8.5V6.4c.8-.4 1.3-1.2 1.3-2.1 0-1.3-1.1-2.4-2.4-2.4s-2.4 1.1-2.4 2.4c0 .9.5 1.7 1.3 2.1v2c-.8.2-1.6.5-2.2 1l-6-4.5c.1-.2.1-.5.1-.7 0-1.3-1-2.3-2.3-2.3S2.6 2.9 2.6 4.2s1 2.3 2.3 2.3c.4 0 .8-.1 1.1-.3l5.8 4.4c-.5.8-.8 1.7-.8 2.7 0 2.8 2.3 5 5 5s5-2.3 5-5-2.1-4.8-3.5-4.8z"/></svg>, connected: !!integrationConnections.hubspot, endpoint: '/api/integrations/hubspot/users', memberKey: 'members' },
     { id: 'pipedrive', name: 'Pipedrive', icon: <svg className="w-4 h-4 text-black" viewBox="0 0 32 32" fill="currentColor"><path d="M16.3 7.8c-3.6 0-5.7 1.6-6.7 2.7-.1-1-.8-2.2-3.2-2.2H1v5.6h2.2c.4 0 .5.1.5.5v25.7h6.4V30v-.7c1 .9 2.9 2.2 5.9 2.2 6.3 0 10.7-5 10.7-12.1 0-7.3-4.2-12.1-10.4-12.1m-1.3 18.6c-3.5 0-5-3.3-5-6.4 0-4.8 2.6-6.6 5.1-6.6 3 0 5.1 2.6 5.1 6.5 0 4.5-2.6 6.5-5.2 6.5" transform="scale(0.85) translate(5, 0)" /></svg>, connected: !!integrationConnections.pipedrive, endpoint: '/api/integrations/pipedrive/users', memberKey: 'members' },
+    // eslint-disable-next-line @next/next/no-img-element -- Small brand logo
     { id: 'clio', name: 'Clio', icon: <img src="/clio-logo.png" alt="Clio" className="w-4 h-4" />, connected: !!integrationConnections.clio, endpoint: '/api/integrations/clio/users', memberKey: 'members' },
     { id: 'zoho', name: 'Zoho CRM', icon: <svg className="w-4 h-4" viewBox="0 0 1024 450" fill="none"><path d="M458.1,353c-7.7,0-15.5-1.6-23-4.9l-160-71.3c-28.6-12.7-41.5-46.4-28.8-75l71.3-160c12.7-28.6,46.4-41.5,75-28.8l160,71.3c28.6,12.7,41.5,46.4,28.8,75l-71.3,160C500.6,340.5,479.8,353,458.1,353z" fill="#089949"/><path d="M960,353.1H784.8c-31.3,0-56.8-25.5-56.8-56.8V121.1c0-31.3,25.5-56.8,56.8-56.8H960c31.3,0,56.8,25.5,56.8,56.8v175.2C1016.8,327.6,991.3,353.1,960,353.1z" fill="#F9B21D"/><path d="M303.9,153.2L280.3,206l-28-173c-2.1-13.1,6.8-25.4,19.8-27.5l173-28c13.1-2.1,25.4,6.8,27.5,19.8l28,173c-5-30.9-34.2-52-65.1-47l-173,28c-30.9,5-52,34.2-47,65.1L303.9,153.2z" fill="#E42527"/></svg>, connected: !!integrationConnections.zoho, endpoint: '/api/integrations/zoho/users', memberKey: 'members' },
     { id: 'dynamics', name: 'Microsoft Dynamics', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#002050"/><path d="M6 6h5v5H6V6z" fill="#0078D4"/><path d="M13 6h5v5h-5V6z" fill="#28A8EA"/><path d="M6 13h5v5H6v-5z" fill="#50E6FF"/><path d="M13 13h5v5h-5v-5z" fill="#0078D4" opacity="0.7"/></svg>, connected: !!integrationConnections.dynamics, endpoint: '/api/integrations/dynamics/users', memberKey: 'members' },
+    // eslint-disable-next-line @next/next/no-img-element -- Small brand logo
     { id: 'simplybook', name: 'SimplyBook.me', icon: <img src="/simplybookme-logo.jpg" alt="SimplyBook.me" className="w-4 h-4 rounded-sm" />, connected: !!integrationConnections.simplybook, endpoint: '/api/integrations/simplybook/providers', memberKey: 'providers' },
   ], [integrationConnections]);
 
@@ -802,7 +805,7 @@ export default function TeamSettings({ companyId, currentUser, integrationConnec
                                   disabled={member.already_in_callengo}
                                   onChange={(e) => {
                                     const newSet = new Set(selectedMemberIds);
-                                    e.target.checked ? newSet.add(member.id) : newSet.delete(member.id);
+                                    if (e.target.checked) { newSet.add(member.id); } else { newSet.delete(member.id); }
                                     setSelectedMemberIds(newSet);
                                   }}
                                   className="rounded border-[var(--border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"

@@ -108,11 +108,35 @@ export async function getHubSpotTokenInfo(
 // ============================================================================
 
 /**
- * Refresh an expired HubSpot access token
+ * Refresh an expired HubSpot access token.
+ * Uses optimistic locking on token_issued_at to prevent race conditions
+ * when multiple concurrent requests detect an expired token simultaneously.
  */
 export async function refreshHubSpotToken(
   integration: HubSpotIntegration
 ): Promise<{ access_token: string; expires_at: string }> {
+  // Mutex guard: check if another request already refreshed the token
+  // by re-reading the integration and comparing token_issued_at
+  const { data: freshIntegration } = await supabaseAdmin
+    .from('hubspot_integrations')
+    .select('access_token, refresh_token, expires_at, token_issued_at')
+    .eq('id', integration.id)
+    .single();
+
+  if (freshIntegration) {
+    const freshExpiry = freshIntegration.expires_at ? new Date(freshIntegration.expires_at).getTime() : 0;
+    const originalExpiry = integration.expires_at ? new Date(integration.expires_at).getTime() : 0;
+    // If the token was refreshed since we last read it, use the new one
+    if (freshExpiry > originalExpiry && freshExpiry > Date.now()) {
+      return {
+        access_token: freshIntegration.access_token,
+        expires_at: freshIntegration.expires_at!,
+      };
+    }
+    // Use the latest refresh_token from DB in case another request updated it
+    integration = { ...integration, ...freshIntegration } as HubSpotIntegration;
+  }
+
   const { clientId, clientSecret } = getHubSpotConfig();
 
   const body = new URLSearchParams({
@@ -129,7 +153,7 @@ export async function refreshHubSpotToken(
   });
 
   if (!res.ok) {
-    // Mark integration as inactive if refresh fails
+    // Mark integration as needing reconnection if refresh fails
     await supabaseAdmin
       .from('hubspot_integrations')
       .update({ is_active: false })
@@ -140,19 +164,36 @@ export async function refreshHubSpotToken(
   const data = await res.json();
   const newAccessToken = data.access_token as string;
   const newRefreshToken = data.refresh_token as string;
-  const expiresIn = (data.expires_in as number) || 3600; // seconds, default 1h
+  const expiresIn = (data.expires_in as number) || 3600;
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+  const newIssuedAt = new Date().toISOString();
 
-  // Update tokens in DB
-  await supabaseAdmin
+  // Optimistic lock: only update if token_issued_at hasn't changed since we read it
+  const { data: updated } = await supabaseAdmin
     .from('hubspot_integrations')
     .update({
       access_token: newAccessToken,
       refresh_token: newRefreshToken,
       expires_at: expiresAt,
-      token_issued_at: new Date().toISOString(),
+      token_issued_at: newIssuedAt,
     })
-    .eq('id', integration.id);
+    .eq('id', integration.id)
+    .eq('token_issued_at', integration.token_issued_at || '')
+    .select('access_token, expires_at')
+    .maybeSingle();
+
+  if (!updated) {
+    // Another request already refreshed — re-read the latest token
+    const { data: latest } = await supabaseAdmin
+      .from('hubspot_integrations')
+      .select('access_token, expires_at')
+      .eq('id', integration.id)
+      .single();
+    return {
+      access_token: latest?.access_token || newAccessToken,
+      expires_at: latest?.expires_at || expiresAt,
+    };
+  }
 
   return { access_token: newAccessToken, expires_at: expiresAt };
 }

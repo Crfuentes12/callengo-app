@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { AgentTemplate, Company } from '@/types/supabase';
 import AgentCard from './AgentCard';
 import AgentConfigModal from './AgentConfigModal';

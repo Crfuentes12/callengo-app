@@ -2,7 +2,6 @@
 // Handle Slack interactive actions and slash commands
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { confirmAppointment, cancelCalendarEvent, markEventNoShow } from '@/lib/calendar/sync';
 import crypto from 'crypto';
 import { getAppUrl } from '@/lib/config';
@@ -44,10 +43,12 @@ export async function POST(request: NextRequest) {
     if (params.has('command')) {
       const command = params.get('command');
       const text = params.get('text') || '';
-      const responseUrl = params.get('response_url');
+       
+      const _responseUrl = params.get('response_url');
 
       if (command === '/callengo') {
-        const [action, ...args] = text.trim().split(' ');
+         
+        const [action, ..._args] = text.trim().split(' ');
 
         switch (action) {
           case 'reschedule':

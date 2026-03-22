@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
+// Image import available for future use
 import { useTranslation } from '@/i18n';
 import { Company, AgentTemplate, AgentRun, ContactList } from '@/types/supabase';
 import { Contact } from '@/types/call-agent';
@@ -103,7 +103,7 @@ export default function DashboardOverview({
   agentTemplates,
   companyAgents,
   agentRuns,
-  contactLists,
+  contactLists: _contactLists,
   usageTracking,
   subscription,
   contactStats: serverStats,
@@ -191,7 +191,7 @@ export default function DashboardOverview({
       completedCampaigns,
       totalCampaignCalls,
     };
-  }, [contacts, recentCalls, agentRuns, serverStats]);
+  }, [contacts, agentRuns, serverStats]);
 
   // Track when usage exceeds 80% of plan minutes
   const limitTrackedRef = useRef(false);

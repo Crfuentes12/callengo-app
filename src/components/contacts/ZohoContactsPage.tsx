@@ -131,7 +131,9 @@ function ZohoLogo({ className = 'w-5 h-5' }: { className?: string }) {
 // ============================================================================
 
 export default function ZohoContactsPage({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   companyId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planSlug,
   zohoConnected,
   zohoIntegration,

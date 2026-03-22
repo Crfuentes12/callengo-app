@@ -1,6 +1,6 @@
 // components/layout/Sidebar.tsx
 'use client';
-import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Database } from '@/types/supabase';
@@ -124,13 +124,13 @@ interface TooltipState {
 }
 
 export default function Sidebar({
-  company,
+  company: _company,
   userRole,
   onLogout,
   isOpen,
   onClose,
   isCollapsed,
-  onToggleCollapse,
+  onToggleCollapse: _onToggleCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useTranslation();
@@ -148,7 +148,6 @@ export default function Sidebar({
   }, []);
 
   const isAdmin = userRole === 'admin';
-  const isOwnerOrAdmin = userRole === 'admin' || userRole === 'owner';
 
   const navGroups = [
     [
@@ -238,6 +237,7 @@ export default function Sidebar({
       */}
       <div className="h-12 flex items-center px-4 overflow-hidden shrink-0">
         <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo, no optimization needed */}
           <img src="/callengo-logo-white.svg" alt="Callengo" className="w-8 h-8 shrink-0" />
           <span
             className={`

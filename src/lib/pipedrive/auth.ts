@@ -105,11 +105,34 @@ export async function getPipedriveUserInfo(
 export async function refreshPipedriveToken(
   integration: PipedriveIntegration
 ): Promise<{ access_token: string; expires_at: string; api_domain: string }> {
+  // --- Race condition guard: re-read from DB to check if another request already refreshed ---
+  const originalTokenIssuedAt = integration.token_issued_at;
+  const { data: latestRow } = await supabaseAdmin
+    .from('pipedrive_integrations')
+    .select('access_token, refresh_token, expires_at, api_domain, token_issued_at')
+    .eq('id', integration.id)
+    .single();
+
+  if (latestRow && latestRow.token_issued_at && originalTokenIssuedAt &&
+      latestRow.token_issued_at !== originalTokenIssuedAt) {
+    // Token was already refreshed by a concurrent request — use the latest token
+    const latestExpiresAt = latestRow.expires_at && new Date(latestRow.expires_at).getTime() > Date.now()
+      ? latestRow.expires_at : integration.expires_at ?? '';
+    return {
+      access_token: latestRow.access_token,
+      expires_at: latestExpiresAt,
+      api_domain: latestRow.api_domain ?? integration.api_domain ?? 'https://api.pipedrive.com',
+    };
+  }
+
+  // Use the latest refresh_token from DB in case it was rotated
+  const currentRefreshToken = latestRow?.refresh_token ?? integration.refresh_token;
+
   const { clientId, clientSecret } = getPipedriveConfig();
 
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
-    refresh_token: integration.refresh_token,
+    refresh_token: currentRefreshToken,
   });
 
   const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
@@ -138,18 +161,37 @@ export async function refreshPipedriveToken(
   const expiresIn = data.expires_in as number; // seconds
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
   const apiDomain = (data.api_domain as string) || integration.api_domain || 'https://api.pipedrive.com';
+  const newTokenIssuedAt = new Date().toISOString();
 
-  // Update tokens in DB
-  await supabaseAdmin
+  // Update tokens in DB with optimistic locking on token_issued_at to prevent double-writes
+  const { data: updateResult } = await supabaseAdmin
     .from('pipedrive_integrations')
     .update({
       access_token: newAccessToken,
       refresh_token: newRefreshToken,
       expires_at: expiresAt,
       api_domain: apiDomain,
-      token_issued_at: new Date().toISOString(),
+      token_issued_at: newTokenIssuedAt,
     })
-    .eq('id', integration.id);
+    .eq('id', integration.id)
+    .eq('token_issued_at', originalTokenIssuedAt ?? '')
+    .select('access_token, expires_at, api_domain');
+
+  // If optimistic lock failed (another request won the race), re-read latest token
+  if (!updateResult || updateResult.length === 0) {
+    const { data: fallbackRow } = await supabaseAdmin
+      .from('pipedrive_integrations')
+      .select('access_token, expires_at, api_domain')
+      .eq('id', integration.id)
+      .single();
+    if (fallbackRow) {
+      return {
+        access_token: fallbackRow.access_token,
+        expires_at: fallbackRow.expires_at ?? expiresAt,
+        api_domain: fallbackRow.api_domain ?? apiDomain,
+      };
+    }
+  }
 
   return { access_token: newAccessToken, expires_at: expiresAt, api_domain: apiDomain };
 }

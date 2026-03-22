@@ -103,6 +103,7 @@ export function StripeIcon({ className = 'w-7 h-7' }: { className?: string }) {
 
 export function DynamicsIcon({ className = 'w-7 h-7' }: { className?: string }) {
   return (
+    /* eslint-disable-next-line @next/next/no-img-element -- Small brand logo */
     <img src="/dynamic-logo.png" alt="Microsoft Dynamics" className={className} />
   );
 }

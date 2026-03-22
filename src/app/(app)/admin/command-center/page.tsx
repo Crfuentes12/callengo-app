@@ -19,13 +19,13 @@ export default function AdminCommandCenterPage() {
           if (data.isAdmin) {
             setIsAuthorized(true);
           } else {
-            router.push('/dashboard');
+            router.push('/home');
           }
         } else {
-          router.push('/dashboard');
+          router.push('/home');
         }
       } catch {
-        router.push('/dashboard');
+        router.push('/home');
       } finally {
         setIsLoading(false);
       }

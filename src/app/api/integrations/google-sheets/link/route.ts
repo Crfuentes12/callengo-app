@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { spreadsheetId, spreadsheetName, sheetTabTitle, sheetTabId, columnMapping, syncDirection } = body;
+     
+    const { spreadsheetId, spreadsheetName, sheetTabTitle, sheetTabId, columnMapping, syncDirection: _syncDirection } = body;
 
     if (!spreadsheetId || !sheetTabTitle) {
       return NextResponse.json({ error: 'Missing spreadsheetId or sheetTabTitle' }, { status: 400 });

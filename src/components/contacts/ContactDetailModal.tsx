@@ -19,6 +19,7 @@ interface ContactDetailModalProps {
 export default function ContactDetailModal({ contact, onClose }: ContactDetailModalProps) {
   const { t } = useTranslation();
   const analysis = contact.analysis as CallAnalysis | null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const metadata = contact.call_metadata as CallMetadata | null;
 
   return (

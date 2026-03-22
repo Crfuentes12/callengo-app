@@ -75,6 +75,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
   // Load contact lists on mount
   useEffect(() => {
     loadContactLists();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
 
   // Handle preloaded data from Google Sheets picker
@@ -125,7 +126,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
         setNewListDescription('');
         setShowCreateList(false);
       }
-    } catch (error) {
+    } catch {
       onShowToast?.('Failed to create list', 'error');
     } finally {
       setLoading(false);
@@ -264,7 +265,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
       setStep('complete');
       const durationSeconds = Math.round((Date.now() - importStartTimeRef.current) / 1000);
       phContactEvents.csvImportFlowCompleted(data.imported, durationSeconds);
-    } catch (error) {
+    } catch {
       phContactEvents.importValidationError('import_failed');
       onShowToast?.('Failed to import contacts', 'error');
     } finally {

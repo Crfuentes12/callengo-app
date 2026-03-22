@@ -6,7 +6,6 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import type {
   CalendarIntegration,
   CalendarEvent,
-  GoogleCalendarEvent,
   GoogleTokenResponse,
 } from '@/types/calendar';
 import { getAppUrl } from '@/lib/config';
@@ -203,12 +202,24 @@ export async function listGoogleEvents(
       nextPageToken: response.data.nextPageToken || undefined,
     };
   } catch (error: unknown) {
-    // If sync token is invalid (410 Gone), do a full sync
-    if (error && typeof error === 'object' && 'code' in error && (error as { code: number }).code === 410) {
-      return listGoogleEvents(integration, {
-        ...options,
-        syncToken: undefined,
-      });
+    if (error && typeof error === 'object' && 'code' in error) {
+      const errorCode = (error as { code: number }).code;
+      // If sync token is invalid (410 Gone), do a full sync
+      if (errorCode === 410 && options.syncToken) {
+        console.warn('[google] Sync token expired (410 Gone), falling back to full sync');
+        return listGoogleEvents(integration, {
+          ...options,
+          syncToken: undefined,
+        });
+      }
+      // If permission revoked (401/403) and using sync token, reset and retry
+      if ((errorCode === 401 || errorCode === 403) && options.syncToken) {
+        console.warn(`[google] Permission error (${errorCode}) with sync token, retrying without token`);
+        return listGoogleEvents(integration, {
+          ...options,
+          syncToken: undefined,
+        });
+      }
     }
     throw error;
   }

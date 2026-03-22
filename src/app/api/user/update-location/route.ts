@@ -97,7 +97,8 @@ export async function POST(req: NextRequest) {
 }
 
 // Also support GET for easier testing
-export async function GET(req: NextRequest) {
+ 
+export async function GET(_req: NextRequest) {
   try {
     const supabase = await createServerClient();
 

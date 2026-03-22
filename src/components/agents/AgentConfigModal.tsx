@@ -39,7 +39,8 @@ const InfoTooltip = ({ text }: { text: string }) => (
   </span>
 );
 
-// Stat bar component
+// Stat bar component (kept for future use)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const StatBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
   <div className="space-y-1.5">
     <div className="flex items-center justify-between">
@@ -81,7 +82,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const [testingAgent, setTestingAgent] = useState(false);
   const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
   const [callDuration, setCallDuration] = useState(0);
-  const [callId, setCallId] = useState<string | null>(null);
+  const [, setCallId] = useState<string | null>(null);
   const [callData, setCallData] = useState<Record<string, unknown> | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Use ref instead of state
   const hasAnalyzedRef = useRef(false); // Track if call has been analyzed
@@ -93,6 +94,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const [setAsDefaultVoice, setSetAsDefaultVoice] = useState(false);
   const [planLimits, setPlanLimits] = useState<{ maxCallDuration: number; maxCallsPerDay: number | null; minutesIncluded: number; slug: string } | null>(null);
   const [overageData, setOverageData] = useState<{ enabled: boolean; budget: number; spent: number; pricePerMinute: number; subscriptionId: string } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [togglingOverage, setTogglingOverage] = useState(false);
   const [contextSuggestions, setContextSuggestions] = useState<{ title: string; detail: string }[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -189,6 +191,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
         }
       })
       .catch((err) => console.warn('Non-critical operation failed:', err?.message));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount to load plan limits
   }, []);
 
   // When plan limits load, cap maxDuration to plan's max
@@ -206,6 +209,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     if (step === 'contacts') {
       loadContactCount(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when selectedLists or step changes, not when loadContactCount reference changes
   }, [selectedLists, step]);
 
   // Auto-load AI context suggestions when entering contacts step
@@ -229,6 +233,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
         .catch((err) => console.warn('Non-critical operation failed:', err?.message))
         .finally(() => setLoadingSuggestions(false));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only trigger when step changes to avoid re-fetching suggestions
   }, [step]);
 
   // Call duration timer
@@ -255,7 +260,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   }, []);
 
   const loadContactLists = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('contact_lists')
       .select('*')
       .eq('company_id', companyId)
@@ -577,7 +582,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
       // Redirect to campaign page
       router.push(`/dashboard/campaigns/${run?.id as string}`);
-    } catch (error) {
+    } catch {
       alert('Failed to create campaign');
     } finally {
       setLoading(false);
@@ -585,6 +590,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
   };
 
   const avatarImage = getAvatarImage(agent.name, settings.voice);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const stats = getAgentStats(agent);
   const gradientColor = getCategoryColor(agent.category);
   const agentInfo = getAgentDescription(agent);

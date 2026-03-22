@@ -31,7 +31,7 @@ interface PipedriveOrgMembersProps {
 }
 
 export default function PipedriveOrgMembers({
-  companyId,
+  companyId: _companyId,
   planSlug,
   pdConnected,
 }: PipedriveOrgMembersProps) {

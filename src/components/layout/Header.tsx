@@ -61,7 +61,7 @@ interface TeamMember {
 export default function Header({
   user,
   title,
-  subtitle,
+  subtitle: _subtitle,
   actions,
   onMenuClick,
   onLogout,

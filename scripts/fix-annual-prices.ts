@@ -165,8 +165,8 @@ async function main() {
         fixedCount++;
       }
 
-    } catch (error: any) {
-      console.error(`   ❌ Error: ${error.message}`);
+    } catch (error: unknown) {
+      console.error(`   ❌ Error: ${error instanceof Error ? error.message : String(error)}`);
       errorCount++;
     }
   }

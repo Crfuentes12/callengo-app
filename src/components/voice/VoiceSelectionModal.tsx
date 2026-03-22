@@ -25,7 +25,6 @@ interface VoiceSelectionModalProps {
 }
 
 type ViewMode = 'recommended' | 'explore';
-type FilterType = 'country' | 'language' | 'accent' | 'characteristic';
 
 export default function VoiceSelectionModal({
   isOpen,
@@ -33,7 +32,7 @@ export default function VoiceSelectionModal({
   selectedVoiceId,
   onVoiceSelect,
   fullscreen = false,
-  defaultVoiceId,
+  defaultVoiceId: _defaultVoiceId,
 }: VoiceSelectionModalProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('recommended');
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useTranslation } from '@/i18n';
 
@@ -30,7 +31,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="relative z-10 w-full max-w-[420px]">
         {/* Logo - no rounding, raw SVG */}
         <div className="flex items-center justify-center gap-2.5 mb-7">
-          <img src="/callengo-logo.svg" alt="Callengo" className="w-12 h-12 p-1 rounded-lg bg-white/90 backdrop-blur-sm" />
+          <Image src="/callengo-logo.svg" alt="Callengo" width={48} height={48} className="w-12 h-12 p-1 rounded-lg bg-white/90 backdrop-blur-sm" />
           <span className="text-white font-bold text-2xl tracking-tight">Callengo</span>
         </div>
 

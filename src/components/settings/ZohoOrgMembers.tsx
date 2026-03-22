@@ -34,7 +34,7 @@ function ZohoLogo({ className = 'w-5 h-5' }: { className?: string }) {
 }
 
 export default function ZohoOrgMembers({
-  companyId,
+  companyId: _companyId,
   planSlug,
   zohoConnected,
 }: ZohoOrgMembersProps) {

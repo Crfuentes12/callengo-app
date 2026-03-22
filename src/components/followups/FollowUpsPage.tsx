@@ -35,6 +35,7 @@ interface FollowUpsPageProps {
 
 const statusStyles: Record<string, string> = {
   pending: 'bg-amber-50 border-amber-200 text-amber-700',
+  in_progress: 'bg-sky-50 border-sky-200 text-sky-700',
   scheduled: 'bg-blue-50 border-blue-200 text-blue-700',
   completed: 'bg-emerald-50 border-emerald-200 text-emerald-700',
   failed: 'bg-red-50 border-red-200 text-red-700',
@@ -43,7 +44,7 @@ const statusStyles: Record<string, string> = {
 
 export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
   const { t } = useTranslation();
-  const [filter, setFilter] = useState<'all' | 'pending' | 'scheduled' | 'completed'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'scheduled' | 'completed'>('all');
   const [search, setSearch] = useState('');
   const [selectedFollowUp, setSelectedFollowUp] = useState<FollowUp | null>(null);
 
@@ -65,6 +66,7 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
   const stats = useMemo(() => ({
     total: followUps.length,
     pending: followUps.filter(f => f.status === 'pending' || f.status === 'scheduled').length,
+    inProgress: followUps.filter(f => f.status === 'in_progress').length,
     completed: followUps.filter(f => f.status === 'completed').length,
     failed: followUps.filter(f => f.status === 'failed').length,
   }), [followUps]);
@@ -160,7 +162,7 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
           />
         </div>
         <div className="flex bg-[var(--color-neutral-100)] rounded-lg p-1">
-          {(['all', 'pending', 'scheduled', 'completed'] as const).map(f => (
+          {(['all', 'pending', 'in_progress', 'scheduled', 'completed'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}

@@ -256,10 +256,11 @@ export async function acquireCallSlot(
   }
 
   try {
-    // Check contact cooldown BEFORE acquiring the slot (prevents wasted slot increments)
+    // Atomic contact cooldown check-and-set using SET NX (prevents race condition
+    // where two threads both see no cooldown and both acquire slots for same contact)
     if (contactId) {
-      const onCooldown = await redis.exists(KEYS.contactCooldown(contactId));
-      if (onCooldown) {
+      const cooldownSet = await redis.set(KEYS.contactCooldown(contactId), '1', { ex: 300, nx: true });
+      if (!cooldownSet) {
         return { acquired: false, error: 'Contact was called recently (5-min cooldown)' };
       }
     }
@@ -276,11 +277,6 @@ export async function acquireCallSlot(
 
     // Track active call with 30-min TTL (auto-cleanup if webhook doesn't arrive)
     pipeline.set(KEYS.activeCall(callId), JSON.stringify({ companyId, contactId, ts: Date.now() }), { ex: 1800 });
-
-    // Set contact cooldown (5 min = 300 seconds)
-    if (contactId) {
-      pipeline.set(KEYS.contactCooldown(contactId), '1', { ex: 300 });
-    }
 
     await pipeline.exec();
 
@@ -313,24 +309,35 @@ export async function releaseCallSlot(
   if (!redis) return;
 
   try {
+    // First check if this call slot actually exists (prevent double-release)
+    const callExists = await redis.exists(KEYS.activeCall(callId));
+
+    if (!callExists) {
+      // Slot was already released (e.g., TTL expired or duplicate webhook)
+      // Don't decrement counters to avoid going negative
+      console.warn(`[concurrency-manager] releaseCallSlot: call ${callId} not found (already released or expired)`);
+      return;
+    }
+
     const pipeline = redis.pipeline();
 
-    // Decrement concurrent counters (don't go below 0)
+    // Decrement concurrent counters
     pipeline.decr(KEYS.globalConcurrent);
     pipeline.decr(KEYS.companyConcurrent(companyId));
 
     // Remove active call tracker
     pipeline.del(KEYS.activeCall(callId));
 
-    await pipeline.exec();
+    const results = await pipeline.exec();
 
-    // Ensure counters don't go negative
-    const globalCurrent = await redis.get<number>(KEYS.globalConcurrent);
-    if (globalCurrent !== null && globalCurrent < 0) {
+    // Fix negative counters atomically (can happen if TTL expired before release)
+    const globalAfter = results[0] as number;
+    const companyAfter = results[1] as number;
+
+    if (globalAfter < 0) {
       await redis.set(KEYS.globalConcurrent, 0, { ex: 1800 });
     }
-    const companyCurrent = await redis.get<number>(KEYS.companyConcurrent(companyId));
-    if (companyCurrent !== null && companyCurrent < 0) {
+    if (companyAfter < 0) {
       await redis.set(KEYS.companyConcurrent(companyId), 0, { ex: 1800 });
     }
   } catch (error) {
@@ -444,16 +451,21 @@ export async function getConcurrencySnapshot(): Promise<ConcurrencySnapshot> {
 
 /**
  * Reset stale concurrent counters (safety valve).
- * Call periodically or when counters seem stuck.
+ * Reconciles counters with actual active call slots to fix drift
+ * from missed releaseCallSlot calls (crashes, timeouts, etc.).
+ * Call periodically (e.g., every 5 minutes via cron) or when counters seem stuck.
  */
 export async function resetStaleConcurrency(): Promise<void> {
   if (!redis) return;
 
   try {
-    // Count actual active calls from Redis (max 10 iterations)
+    // Count actual active calls from Redis and build per-company breakdown
+    const companyCallCounts: Record<string, number> = {};
     let actualActive = 0;
     let cursor = 0;
     let scanIterations = 0;
+    const MAX_SCAN_ITERATIONS = 10;
+
     do {
       const [nextCursor, keys] = await redis.scan(cursor, {
         match: 'callengo:active_call:*',
@@ -462,11 +474,49 @@ export async function resetStaleConcurrency(): Promise<void> {
       cursor = typeof nextCursor === 'number' ? nextCursor : parseInt(nextCursor as string, 10);
       actualActive += keys.length;
       scanIterations++;
-    } while (cursor !== 0 && scanIterations < 10);
+
+      // Read each active call to determine company
+      for (const key of keys) {
+        try {
+          const data = await redis.get<{ companyId: string }>(key);
+          if (data?.companyId) {
+            companyCallCounts[data.companyId] = (companyCallCounts[data.companyId] || 0) + 1;
+          }
+        } catch { /* skip individual key errors */ }
+      }
+    } while (cursor !== 0 && scanIterations < MAX_SCAN_ITERATIONS);
 
     // Reset global concurrent to actual count
     await redis.set(KEYS.globalConcurrent, actualActive, { ex: 1800 });
-    console.log(`[concurrency-manager] Reset global concurrent to ${actualActive}`);
+
+    // Reset per-company concurrent counters to actual counts
+    const pipeline = redis.pipeline();
+    for (const [companyId, count] of Object.entries(companyCallCounts)) {
+      pipeline.set(KEYS.companyConcurrent(companyId), count, { ex: 1800 });
+    }
+    await pipeline.exec();
+
+    // Also clean up company counters that have no active calls but may have stale values
+    let companyCursor = 0;
+    let compScanIter = 0;
+    do {
+      const [nextCursor, keys] = await redis.scan(companyCursor, {
+        match: 'callengo:concurrent:company:*',
+        count: 100,
+      });
+      companyCursor = typeof nextCursor === 'number' ? nextCursor : parseInt(nextCursor as string, 10);
+      compScanIter++;
+
+      for (const key of keys) {
+        const companyId = key.replace('callengo:concurrent:company:', '');
+        if (!companyCallCounts[companyId]) {
+          // No active calls for this company — reset to 0
+          await redis.set(key, 0, { ex: 1800 });
+        }
+      }
+    } while (companyCursor !== 0 && compScanIter < MAX_SCAN_ITERATIONS);
+
+    console.log(`[concurrency-manager] Reconciled: global=${actualActive}, companies=${Object.keys(companyCallCounts).length}`);
   } catch (error) {
     console.error('[concurrency-manager] resetStaleConcurrency error:', error);
   }

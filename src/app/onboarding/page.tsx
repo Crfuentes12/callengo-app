@@ -54,6 +54,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     checkOnboardingStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const checkOnboardingStatus = async () => {
@@ -417,6 +418,7 @@ export default function OnboardingPage() {
             {/* Company Header with logo */}
             <div className="p-6 flex items-start gap-4 border-b border-[var(--border-default)]">
               {scrapedData.favicon_url ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={scrapedData.favicon_url}
                   alt="Company logo"

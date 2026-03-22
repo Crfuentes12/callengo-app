@@ -203,6 +203,28 @@ export async function getDynamicsOrgInfo(
 export async function refreshDynamicsToken(
   integration: DynamicsIntegration
 ): Promise<{ access_token: string; expires_at: string }> {
+  // --- Race condition guard: re-read from DB to check if another request already refreshed ---
+  const originalTokenIssuedAt = integration.token_issued_at;
+  const { data: latestRow } = await supabaseAdmin
+    .from('dynamics_integrations')
+    .select('access_token, refresh_token, token_expires_at, token_issued_at')
+    .eq('id', integration.id)
+    .single();
+
+  if (latestRow && latestRow.token_issued_at && originalTokenIssuedAt &&
+      latestRow.token_issued_at !== originalTokenIssuedAt) {
+    // Token was already refreshed by a concurrent request — use the latest token
+    const latestExpiresAt = latestRow.token_expires_at && new Date(latestRow.token_expires_at).getTime() > Date.now()
+      ? latestRow.token_expires_at : integration.token_expires_at ?? '';
+    return {
+      access_token: latestRow.access_token,
+      expires_at: latestExpiresAt,
+    };
+  }
+
+  // Use the latest refresh_token from DB in case it was rotated
+  const currentRefreshToken = latestRow?.refresh_token ?? integration.refresh_token;
+
   const { clientId, clientSecret, tenantId } = getDynamicsConfig();
 
   const scopes = [...SCOPES];
@@ -215,7 +237,7 @@ export async function refreshDynamicsToken(
     grant_type: 'refresh_token',
     client_id: clientId,
     client_secret: clientSecret,
-    refresh_token: integration.refresh_token,
+    refresh_token: currentRefreshToken,
     scope: scopes.join(' '),
   });
 
@@ -246,12 +268,13 @@ export async function refreshDynamicsToken(
   const newAccessToken = data.access_token as string;
   const expiresIn = (data.expires_in as number) || 3600;
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+  const newTokenIssuedAt = new Date().toISOString();
 
-  // Update tokens in DB
+  // Update tokens in DB with optimistic locking on token_issued_at to prevent double-writes
   const updateData: Record<string, unknown> = {
     access_token: newAccessToken,
     token_expires_at: expiresAt,
-    token_issued_at: new Date().toISOString(),
+    token_issued_at: newTokenIssuedAt,
   };
 
   // If a new refresh token was provided, store it
@@ -259,10 +282,27 @@ export async function refreshDynamicsToken(
     updateData.refresh_token = data.refresh_token;
   }
 
-  await supabaseAdmin
+  const { data: updateResult } = await supabaseAdmin
     .from('dynamics_integrations')
     .update(updateData)
-    .eq('id', integration.id);
+    .eq('id', integration.id)
+    .eq('token_issued_at', originalTokenIssuedAt ?? '')
+    .select('access_token, token_expires_at');
+
+  // If optimistic lock failed (another request won the race), re-read latest token
+  if (!updateResult || updateResult.length === 0) {
+    const { data: fallbackRow } = await supabaseAdmin
+      .from('dynamics_integrations')
+      .select('access_token, token_expires_at')
+      .eq('id', integration.id)
+      .single();
+    if (fallbackRow) {
+      return {
+        access_token: fallbackRow.access_token,
+        expires_at: fallbackRow.token_expires_at ?? expiresAt,
+      };
+    }
+  }
 
   return { access_token: newAccessToken, expires_at: expiresAt };
 }

@@ -12,11 +12,9 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import {
   createCalendarEvent,
   updateCalendarEvent,
-  cancelCalendarEvent,
   rescheduleAppointment,
   confirmAppointment,
   markEventNoShow,
-  createAgentFollowUp,
   createAgentCallback,
 } from './sync';
 import { getNextAvailableSlot } from './availability';
@@ -305,11 +303,17 @@ export async function syncHandleNoShow(
     const retryDelayHours = calConfig.noShowRetryDelayHours || 24;
 
     // 1. Mark event as no-show
+    // Use availability API to find a proper retry slot during working hours
+    let retryDate: string | undefined;
+    if (shouldRetry) {
+      const minRetryTime = new Date(Date.now() + retryDelayHours * 60 * 60 * 1000).toISOString();
+      const nextSlot = await getNextAvailableSlot(params.companyId, minRetryTime, 15);
+      retryDate = nextSlot?.start || minRetryTime;
+    }
+
     const updatedEvent = await markEventNoShow(params.eventId, {
       scheduleRetry: shouldRetry,
-      retryDate: shouldRetry
-        ? new Date(Date.now() + retryDelayHours * 60 * 60 * 1000).toISOString()
-        : undefined,
+      retryDate,
       retryNotes: `Auto-retry after no-show (delay: ${retryDelayHours}h)`,
     });
 

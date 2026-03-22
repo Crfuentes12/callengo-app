@@ -5,7 +5,6 @@
 
 import { stripe, createMeteredPrice, reportUsage } from '../stripe';
 import { supabaseAdmin as supabase } from '@/lib/supabase/service';
-import Stripe from 'stripe';
 
 /**
  * Enable overage for a subscription
@@ -36,7 +35,8 @@ export async function enableOverage(params: {
       throw new Error('Overage is not available on the free trial plan. Please upgrade to a paid plan to continue making calls.');
     }
 
-    const isFreeOrTrialPlan = !subscription.stripe_subscription_id;
+     
+    const _isFreeOrTrialPlan = !subscription.stripe_subscription_id;
 
     // For paid plans with Stripe subscription, add metered billing
     // Check if plan has metered price configured
