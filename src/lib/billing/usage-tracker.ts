@@ -320,7 +320,7 @@ export async function getUsageStats(companyId: string) {
     if (activeAddons && activeAddons.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       boosterMinutes = (activeAddons as any[]).reduce(
-        (sum: number, addon: { quantity?: number }) => sum + ((addon.quantity || 1) * 225), 0
+        (sum: number, addon: { quantity?: number }) => sum + (Math.max(0, addon.quantity || 1) * 225), 0
       );
     }
 

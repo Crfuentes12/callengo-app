@@ -136,14 +136,14 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   const companyId = session.metadata?.company_id;
   const planId = session.metadata?.plan_id;
-  const billingCycle = session.metadata?.billing_cycle || 'monthly';
+  const billingCycle = session.metadata?.billing_cycle === 'annual' ? 'annual' : 'monthly';
   const isAddon = session.metadata?.is_addon === 'true';
   const productType = session.metadata?.product_type;
 
   // Handle add-on purchases (don't require plan_id)
   if (companyId && isAddon) {
     const addonType = session.metadata?.addon_type;
-    const addonQuantity = parseInt(session.metadata?.quantity || '1', 10);
+    const addonQuantity = Math.max(1, parseInt(session.metadata?.quantity || '1', 10));
     console.log(`📦 Add-on checkout completed: ${addonType} x${addonQuantity} for company ${companyId}`);
 
     try {
@@ -163,7 +163,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   // Handle extra seat purchases (don't require plan_id)
   if (companyId && productType === 'extra_seat') {
-    const seatQuantity = parseInt(session.metadata?.quantity || '1', 10);
+    const seatQuantity = Math.max(1, parseInt(session.metadata?.quantity || '1', 10));
     console.log(`💺 Seat checkout completed: ${seatQuantity} seats for company ${companyId}`);
 
     try {
