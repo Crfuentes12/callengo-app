@@ -46,7 +46,7 @@ export async function GET() {
       stripe.subscriptions.list({
         limit: 100,
         status: 'all',
-        expand: ['data.discount', 'data.discount.coupon', 'data.discount.promotion_code', 'data.customer'],
+        expand: ['data.discounts', 'data.customer'],
       }),
     ]);
 
@@ -73,11 +73,13 @@ export async function GET() {
     let totalMonthlyDiscountImpact = 0;
 
     for (const sub of subscriptionsWithDiscountResult.data) {
-      const discount = sub.discount;
-      if (!discount || !discount.coupon) continue;
+      const firstDiscount = (sub.discounts && sub.discounts.length > 0) ? sub.discounts[0] : null;
+      if (!firstDiscount || typeof firstDiscount === 'string') continue;
+      const coupon = typeof firstDiscount.coupon === 'string' ? null : firstDiscount.coupon;
+      if (!coupon) continue;
 
       totalActiveDiscounts++;
-      const couponId = discount.coupon.id;
+      const couponId = coupon.id;
       const customer = sub.customer as { id: string; name?: string | null; email?: string | null; metadata?: Record<string, string> } | string;
       const customerId = typeof customer === 'string' ? customer : customer.id;
       const customerName = typeof customer === 'string' ? '' : (customer.name || '');
@@ -93,17 +95,17 @@ export async function GET() {
       }, 0) / 100; // cents to dollars
 
       let monthlyDiscount = 0;
-      if (discount.coupon.percent_off) {
-        monthlyDiscount = planAmount * (discount.coupon.percent_off / 100);
-      } else if (discount.coupon.amount_off) {
-        const amountOff = discount.coupon.amount_off / 100;
+      if (coupon.percent_off) {
+        monthlyDiscount = planAmount * (coupon.percent_off / 100);
+      } else if (coupon.amount_off) {
+        const amountOff = coupon.amount_off / 100;
         // If coupon duration is repeating with months, or forever
         monthlyDiscount = Math.min(amountOff, planAmount);
       }
 
       totalMonthlyDiscountImpact += monthlyDiscount;
 
-      const promoCode = discount.promotion_code;
+      const promoCode = firstDiscount.promotion_code;
       const promoCodeStr = promoCode
         ? (typeof promoCode === 'string' ? promoCode : promoCode.code)
         : null;
@@ -127,8 +129,8 @@ export async function GET() {
         subscriptionId: sub.id,
         subscriptionStatus: sub.status,
         promotionCode: promoCodeStr,
-        discountStart: discount.start ?? null,
-        discountEnd: discount.end ?? null,
+        discountStart: firstDiscount.start ?? null,
+        discountEnd: firstDiscount.end ?? null,
         monthlyDiscount: Math.round(monthlyDiscount * 100) / 100,
         planAmount: Math.round(planAmount * 100) / 100,
       });

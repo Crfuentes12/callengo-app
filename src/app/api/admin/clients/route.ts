@@ -132,10 +132,13 @@ export async function GET(request: NextRequest) {
       const stripeSubs = await stripe.subscriptions.list({
         status: 'active',
         limit: 100,
-        expand: ['data.discount', 'data.discount.coupon', 'data.discount.promotion_code', 'data.customer'],
+        expand: ['data.discounts', 'data.customer'],
       });
       for (const ss of stripeSubs.data) {
-        if (!ss.discount?.coupon) continue;
+        const firstDiscount = (ss.discounts && ss.discounts.length > 0) ? ss.discounts[0] : null;
+        if (!firstDiscount || typeof firstDiscount === 'string') continue;
+        const coupon = typeof firstDiscount.coupon === 'string' ? null : firstDiscount.coupon;
+        if (!coupon) continue;
         const cust = ss.customer as { metadata?: Record<string, string> } | string;
         const cId = typeof cust === 'string' ? null : cust.metadata?.company_id;
         if (!cId) continue;
@@ -144,16 +147,16 @@ export async function GET(request: NextRequest) {
           return sum + (item.price?.recurring?.interval === 'year' ? ua / 12 : ua);
         }, 0) / 100;
         let disc = 0;
-        if (ss.discount.coupon.percent_off) disc = planAmt * (ss.discount.coupon.percent_off / 100);
-        else if (ss.discount.coupon.amount_off) disc = Math.min(ss.discount.coupon.amount_off / 100, planAmt);
-        const pc = ss.discount.promotion_code;
+        if (coupon.percent_off) disc = planAmt * (coupon.percent_off / 100);
+        else if (coupon.amount_off) disc = Math.min(coupon.amount_off / 100, planAmt);
+        const pc = firstDiscount.promotion_code;
         discountByCompany.set(cId, {
           promoCode: pc ? (typeof pc === 'string' ? pc : pc.code) : null,
-          couponName: ss.discount.coupon.name,
-          percentOff: ss.discount.coupon.percent_off,
-          amountOff: ss.discount.coupon.amount_off ? ss.discount.coupon.amount_off / 100 : null,
-          duration: ss.discount.coupon.duration,
-          durationInMonths: ss.discount.coupon.duration_in_months ?? null,
+          couponName: coupon.name,
+          percentOff: coupon.percent_off,
+          amountOff: coupon.amount_off ? coupon.amount_off / 100 : null,
+          duration: coupon.duration,
+          durationInMonths: coupon.duration_in_months ?? null,
           monthlyDiscount: Math.round(disc * 100) / 100,
         });
       }

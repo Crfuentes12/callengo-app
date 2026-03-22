@@ -457,19 +457,22 @@ export async function GET() {
       const stripeSubs = await stripe.subscriptions.list({
         status: 'active',
         limit: 100,
-        expand: ['data.discount', 'data.discount.coupon'],
+        expand: ['data.discounts'],
       });
       for (const sub of stripeSubs.data) {
-        if (!sub.discount?.coupon) continue;
+        const firstDiscount = (sub.discounts && sub.discounts.length > 0) ? sub.discounts[0] : null;
+        if (!firstDiscount || typeof firstDiscount === 'string') continue;
+        const coupon = typeof firstDiscount.coupon === 'string' ? null : firstDiscount.coupon;
+        if (!coupon) continue;
         subsWithDiscounts++;
         const planAmount = sub.items.data.reduce((sum, item) => {
           const ua = item.price?.unit_amount || 0;
           return sum + (item.price?.recurring?.interval === 'year' ? ua / 12 : ua);
         }, 0) / 100;
-        if (sub.discount.coupon.percent_off) {
-          totalMonthlyDiscountImpact += planAmount * (sub.discount.coupon.percent_off / 100);
-        } else if (sub.discount.coupon.amount_off) {
-          totalMonthlyDiscountImpact += Math.min(sub.discount.coupon.amount_off / 100, planAmount);
+        if (coupon.percent_off) {
+          totalMonthlyDiscountImpact += planAmount * (coupon.percent_off / 100);
+        } else if (coupon.amount_off) {
+          totalMonthlyDiscountImpact += Math.min(coupon.amount_off / 100, planAmount);
         }
       }
     } catch (err) {
