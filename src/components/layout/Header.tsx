@@ -97,7 +97,7 @@ export default function Header({
         .select('*, subscription_plans(*)')
         .eq('company_id', companyId)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       const now = new Date().toISOString();
       const { data: usage } = await supabase
@@ -107,7 +107,7 @@ export default function Header({
         .lte('period_start', now)
         .gte('period_end', now)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (subscription?.subscription_plans) {
         const plan = subscription.subscription_plans as Record<string, unknown>;
@@ -127,12 +127,21 @@ export default function Header({
         });
       }
 
-      const [membersRes, companyRes] = await Promise.all([
-        supabase.from('users').select('id, full_name, email, role').eq('company_id', companyId).limit(10),
-        supabase.from('companies').select('name').eq('id', companyId).single(),
+      // Fetch team members via API endpoint (bypasses RLS which blocks client-side
+      // queries to users table by company_id)
+      const [membersApiRes, companyRes] = await Promise.all([
+        fetch('/api/team/members').then(r => r.ok ? r.json() : null).catch(() => null),
+        supabase.from('companies').select('name').eq('id', companyId).maybeSingle(),
       ]);
 
-      if (membersRes.data) setTeamMembers(membersRes.data);
+      if (membersApiRes?.members) {
+        setTeamMembers(membersApiRes.members.slice(0, 10).map((m: Record<string, unknown>) => ({
+          id: m.id as string,
+          full_name: m.full_name as string | null,
+          email: m.email as string,
+          role: m.role as string,
+        })));
+      }
       if (companyRes.data?.name) setCompanyName(companyRes.data.name);
     };
     fetchData();

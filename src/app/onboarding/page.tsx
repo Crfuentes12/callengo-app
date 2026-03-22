@@ -67,11 +67,13 @@ export default function OnboardingPage() {
     if (onboardingStartedRef.current) return;
 
     // Check if user already has a company
+    // Use maybeSingle() instead of single() — new users may not have a record yet,
+    // and single() returns 406 when 0 rows are found.
     const { data: existingUser } = await supabase
       .from('users')
       .select('company_id')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (existingUser?.company_id) {
       // User already has company - go to home

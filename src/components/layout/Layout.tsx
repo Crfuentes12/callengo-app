@@ -65,7 +65,7 @@ export default function Layout({
           .from('users')
           .select('role')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         if (data?.role) {
           setUserRole(data.role);
         }
