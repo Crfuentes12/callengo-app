@@ -129,15 +129,25 @@ export async function GET(request: NextRequest) {
       monthlyDiscount: number;
     }>();
     try {
-      const stripeSubs = await stripe.subscriptions.list({
-        status: 'active',
-        limit: 100,
-        expand: ['data.discounts', 'data.customer'],
-      });
+      // Fetch subscriptions + all coupons in parallel for reliable resolution
+      const [stripeSubs, allCoupons] = await Promise.all([
+        stripe.subscriptions.list({
+          status: 'active',
+          limit: 100,
+          expand: ['data.discounts', 'data.customer'],
+        }),
+        stripe.coupons.list({ limit: 100 }),
+      ]);
+      // Build coupon lookup map (handles case where source.coupon is a string ID)
+      const couponMap = new Map(allCoupons.data.map(c => [c.id, c]));
+
       for (const ss of stripeSubs.data) {
         const firstDiscount = (ss.discounts && ss.discounts.length > 0) ? ss.discounts[0] : null;
         if (!firstDiscount || typeof firstDiscount === 'string') continue;
-        const coupon = typeof firstDiscount.source?.coupon === 'string' ? null : firstDiscount.source?.coupon;
+        const couponRef = firstDiscount.source?.coupon;
+        const coupon = typeof couponRef === 'string'
+          ? couponMap.get(couponRef) || null
+          : couponRef;
         if (!coupon) continue;
         const cust = ss.customer as { metadata?: Record<string, string> } | string;
         const cId = typeof cust === 'string' ? null : cust.metadata?.company_id;

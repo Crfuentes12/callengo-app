@@ -320,6 +320,20 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     }
   }
 
+  // Log billing event for subscription creation
+  await supabase.from('billing_events').insert({
+    company_id: companyId,
+    subscription_id: subId,
+    event_type: 'subscription_created',
+    event_data: {
+      plan: plan.slug,
+      billing_cycle: billingCycle,
+      amount: billingCycle === 'annual' ? Number(plan.price_annual) : Number(plan.price_monthly),
+    },
+    minutes_consumed: 0,
+    cost_usd: billingCycle === 'annual' ? Number(plan.price_annual) : Number(plan.price_monthly),
+  });
+
   // GA4 server-side: subscription started
   trackServerEvent(companyId, null, 'server_subscription_started', {
     plan: plan.slug,

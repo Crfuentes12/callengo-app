@@ -238,6 +238,7 @@ interface FinanceData {
   revenue_total: number | null;
   revenue_subscriptions: number | null;
   revenue_overages: number | null;
+  total_discount_impact: number | null;
   cost_total: number | null;
   cost_bland: number | null;
   cost_openai: number | null;
@@ -294,6 +295,12 @@ const severityColors: Record<string, string> = {
 };
 
 const eventTypeLabels: Record<string, string> = {
+  subscription_created: 'Subscription Created',
+  subscription_updated: 'Subscription Updated',
+  subscription_canceled: 'Subscription Canceled',
+  payment_succeeded: 'Payment Succeeded',
+  payment_failed: 'Payment Failed',
+  trial_ending: 'Trial Ending',
   usage_recorded: 'Usage Recorded',
   usage_alert: 'Usage Alert',
   overage_alert: 'Overage Alert',
@@ -304,6 +311,10 @@ const eventTypeLabels: Record<string, string> = {
   bland_credits_allocated: 'Credits Allocated',
   bland_credits_reclaimed: 'Credits Reclaimed',
   bland_subaccount_deactivated: 'Account Deactivated',
+  downgrade_minutes_exceeded: 'Downgrade Warning',
+  addon_purchased: 'Add-on Purchased',
+  addon_canceled: 'Add-on Canceled',
+  plan_upgrade_credits: 'Upgrade Credits',
 };
 
 // ─── Component ───────────────────────────────────────────────────────
@@ -1472,6 +1483,7 @@ export default function AdminCommandCenter() {
               const blandInfrastructureCost = (fd.bland_infrastructure_cost as number) || 0;
               const marginColor = (p: number | null) => !p ? 'text-[var(--color-neutral-600)]' : p >= 50 ? 'text-emerald-600' : p >= 35 ? 'text-amber-600' : 'text-red-600';
               // Use healthData as fallback for Bland account info (more reliable — already synced via command-center)
+              const discountImpact = fd.total_discount_impact || 0;
               const blandBalance = fd.bland_master_balance || healthData?.blandAccount?.balance || 0;
               const blandPlan = fd.bland_plan || healthData?.blandAccount?.plan || 'Unknown';
               const blandTalkRate = fd.bland_talk_rate || healthData?.blandAccount?.costPerMinute || 0.11;
@@ -1489,6 +1501,7 @@ export default function AdminCommandCenter() {
                           <div className="flex justify-between"><span>Subscriptions</span><span>${fd.revenue_subscriptions?.toLocaleString() || 0}</span></div>
                           <div className="flex justify-between"><span>Overages</span><span>${fd.revenue_overages?.toLocaleString() || 0}</span></div>
                           {addonRevenue > 0 && <div className="flex justify-between font-semibold"><span>Add-ons</span><span>${addonRevenue.toLocaleString()}</span></div>}
+                          {discountImpact > 0 && <div className="flex justify-between text-orange-600 font-semibold"><span>Discounts</span><span>-${fmt(discountImpact)}</span></div>}
                         </div>
                       </div>
 

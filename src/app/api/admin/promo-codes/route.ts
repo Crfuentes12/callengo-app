@@ -73,10 +73,16 @@ export async function GET() {
     let totalActiveDiscounts = 0;
     let totalMonthlyDiscountImpact = 0;
 
+    // Build coupon lookup map for reliable resolution (source.coupon may be a string ID)
+    const couponMap = new Map(couponsResult.data.map(c => [c.id, c]));
+
     for (const sub of subscriptionsWithDiscountResult.data) {
       const firstDiscount = (sub.discounts && sub.discounts.length > 0) ? sub.discounts[0] : null;
       if (!firstDiscount || typeof firstDiscount === 'string') continue;
-      const coupon = typeof firstDiscount.source?.coupon === 'string' ? null : firstDiscount.source?.coupon;
+      const couponRef = firstDiscount.source?.coupon;
+      const coupon = typeof couponRef === 'string'
+        ? couponMap.get(couponRef) || null
+        : couponRef;
       if (!coupon) continue;
 
       totalActiveDiscounts++;
