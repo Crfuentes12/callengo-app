@@ -133,3 +133,105 @@
 - `src/lib/bland/master-client.ts` — solid dispatch logic with timeout and error handling
 
 ---
+
+## Module 4: Admin Endpoints — 2026-03-22
+
+**Files reviewed:**
+- `src/app/api/admin/command-center/route.ts` (first 100 lines)
+- `src/app/api/admin/finances/route.ts` (first 100 lines)
+- `src/app/api/admin/clients/route.ts` (first 100 lines)
+- `src/app/api/admin/reconcile/route.ts` (first 40 lines)
+- `src/app/api/admin/monitor/route.ts` (first 40 lines)
+- `src/app/api/admin/cleanup-orphans/route.ts` (first 40 lines)
+- `src/app/api/admin/promo-codes/route.ts` (first 40 lines)
+- `src/app/api/seed/route.ts`
+
+### 🔴 CRITICAL (breaks in prod / security risk / data loss)
+
+- **seed/route.ts:64-75 — Seed endpoint protection relies solely on `NODE_ENV`.** In production, the endpoint is blocked. But Vercel preview deployments may have `NODE_ENV=development`, making the seed endpoint accessible to any authenticated user. The `SEED_ENDPOINT_SECRET` check (line 69-75) only applies if the env var is set — if not configured in preview environments, the endpoint is wide open. Additionally, the secret comparison (line 72) uses `!==` instead of timing-safe comparison. **Fix:** Block the endpoint in all environments unless explicitly enabled via env var. Use timing-safe comparison for the secret.
+
+### 🟡 WARNING (degrades reliability or maintainability)
+
+- **finances/route.ts:9 — Duplicate `BLAND_API_KEY` non-null assertion.** `const BLAND_MASTER_KEY = process.env.BLAND_API_KEY!` is declared again here (already in `master-client.ts`). Two separate module-level references to the same env var — inconsistent error handling if missing. **Fix:** Import from `master-client.ts` instead of re-declaring.
+
+- **clients/route.ts:41-44 — Fetches ALL companies without pagination at DB level.** Despite having pagination params (`page`, `limit`), the initial query fetches all companies, filters in JS, then slices. With thousands of companies, this is wasteful. **Fix:** Apply DB-level pagination with `range()`.
+
+### 🟢 INFO (minor, non-blocking)
+
+- **All admin endpoints consistently enforce role checks.** Every admin route follows the pattern: `getUser()` → `role === 'admin'` check → rate limiting. No gaps found in the 7 admin endpoints reviewed.
+
+- **command-center/route.ts — Good: Parallel query pattern.** Uses `Promise.all` for concurrent DB + Stripe + Redis queries.
+
+- **cleanup-orphans/route.ts — Good: Soft-delete approach.** Preserves billing history by soft-deleting companies instead of hard-deleting.
+
+### ✅ CLEAN
+- `src/app/api/admin/command-center/route.ts` — proper auth, rate limiting, parallel queries
+- `src/app/api/admin/reconcile/route.ts` — read-only, properly protected
+- `src/app/api/admin/promo-codes/route.ts` — proper auth and rate limiting
+
+---
+
+## Module 5: Redis & Rate Limiting — 2026-03-22
+
+**Files reviewed:**
+- `src/lib/redis/concurrency-manager.ts`
+- `src/lib/rate-limit.ts`
+
+### 🔴 CRITICAL (breaks in prod / security risk / data loss)
+
+- **rate-limit.ts:81 — Redis limiter silently ignores per-call limit parameter.** The `createRedisLimiter` wraps `@upstash/ratelimit` with a fixed `defaultLimit` at creation time, but the `check(_limit, token)` method ignores the first argument (prefixed with `_`). Every caller passing a custom limit (e.g., `expensiveLimiter.check(3, ...)` expecting 3 req/min, or `.check(10, ...)` expecting 10) actually gets the hardcoded default of 5. The in-memory fallback (dev) correctly uses the limit parameter, so behavior differs between dev and prod. This means rate limits are misconfigured in production — some endpoints are too permissive, others too restrictive. **Fix:** Either create separate `Ratelimit` instances per limit value, or use a token bucket that respects per-call limits.
+
+### 🟡 WARNING (degrades reliability or maintainability)
+
+- **concurrency-manager.ts:294-298 — Fail-open on Redis errors.** If Redis throws an exception in `acquireCallSlot()`, the function returns `{ acquired: true }`. This is intentional (don't block business during Redis outages), but means ALL concurrency limits are bypassed during Redis instability — including contact cooldown, global caps, and per-company limits. A sustained Redis outage could result in exceeding Bland API limits and getting the master account throttled or suspended. **Fix:** Add a circuit breaker pattern — after N consecutive Redis failures, fall back to DB-based limits (already implemented in `call-throttle.ts`) instead of blindly allowing all calls.
+
+- **concurrency-manager.ts:26 — Redis token fallback to empty string.** `token: process.env.UPSTASH_REDIS_REST_TOKEN || ''` — if the URL is set but the token is empty, Redis client is created but all requests will fail with auth errors. This silently disables Redis-based limiting. **Fix:** Validate both URL and token together before creating the Redis client.
+
+- **concurrency-manager.ts:311-320 — Check-then-delete race in `releaseCallSlot`.** `exists()` followed by `decr()` and `del()` is not atomic. Two concurrent webhook retries could both pass `exists()`, causing double-decrement. The negative counter fix (lines 337-342) mitigates this but doesn't prevent a brief period of incorrect counts. **Fix:** Use a Lua script for atomic check-and-decrement, or use the active call key deletion as the single source of truth.
+
+### 🟢 INFO (minor, non-blocking)
+
+- **concurrency-manager.ts — Well-architected overall.** Atomic contact cooldown (SET NX), pipeline-based reads, bounded SCAN iterations, TTL-based auto-cleanup, per-company and global tracking, monitoring snapshot for admin.
+
+- **rate-limit.ts — Good: Graceful fallback.** Falls back to in-memory LRU cache when Redis is unavailable, with clear warnings. Pre-configured limiter tiers (`apiLimiter`, `expensiveLimiter`, `authLimiter`, `callLimiter`) provide good separation of concerns.
+
+- **concurrency-manager.ts:456-523 — Good: `resetStaleConcurrency()` reconciliation.** Scans actual active calls and resets counters to match reality, with bounded iterations.
+
+### ✅ CLEAN
+- Overall architecture of distributed concurrency management is sound
+- Rate limiting infrastructure is properly set up (aside from the parameter bug)
+
+---
+
+## Module 6: Contacts & Data Mutations — 2026-03-22
+
+**Files reviewed:**
+- `src/app/api/contacts/route.ts`
+- `src/app/api/contacts/import/route.ts`
+- `src/app/api/contacts/[id]/route.ts`
+
+### 🔴 CRITICAL (breaks in prod / security risk / data loss)
+
+_(none found)_
+
+### 🟡 WARNING (degrades reliability or maintainability)
+
+- **contacts/route.ts:50-53 — Search parameter interpolated into PostgREST `.or()` filter string.** User input (`search`) is embedded directly into the filter: `company_name.ilike.%${search}%,...`. PostgREST filter syntax uses commas and dots as delimiters. A search value containing `,` or `.` could break the query or manipulate the filter expression, potentially exposing data from other filter conditions. While Supabase RLS protects against cross-company access, malformed queries could cause errors or unexpected results. **Fix:** Sanitize the search string (escape PostgREST special characters) or use individual `.ilike()` calls combined with `.or()` array syntax.
+
+- **contacts/import/route.ts — No rate limiting on import endpoint.** A user could repeatedly upload 10MB CSV files with 10,000 rows, causing heavy DB load. Unlike other billing/call endpoints, import has no `expensiveLimiter` check. **Fix:** Add rate limiting (e.g., 3 imports per minute per user).
+
+### 🟢 INFO (minor, non-blocking)
+
+- **contacts/route.ts:35-40 — Good: Sort column allowlist.** Prevents column injection in `ORDER BY` clause.
+
+- **contacts/import/route.ts — Good: Comprehensive validation.** File size limit (10MB), row count limit (10k), plan-based contact limits, file type validation, deduplication (both against existing DB and within file).
+
+- **contacts/[id]/route.ts:109-117 — Good: Field allowlist for updates.** Only whitelisted fields can be modified, preventing mutation of `company_id` or other sensitive fields.
+
+- **contacts/[id]/route.ts:83-105 — Good: Optimistic lock protection.** Prevents concurrent modification during active calls, with 10-minute auto-expiry as safety valve.
+
+### ✅ CLEAN
+- `src/app/api/contacts/[id]/route.ts` — well-structured CRUD with proper authorization
+- `src/app/api/contacts/import/route.ts` — solid import implementation (aside from missing rate limit)
+
+---
