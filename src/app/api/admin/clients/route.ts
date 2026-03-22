@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
       for (const ss of stripeSubs.data) {
         const firstDiscount = (ss.discounts && ss.discounts.length > 0) ? ss.discounts[0] : null;
         if (!firstDiscount || typeof firstDiscount === 'string') continue;
-        const coupon = typeof firstDiscount.coupon === 'string' ? null : firstDiscount.coupon;
+        const coupon = typeof firstDiscount.source?.coupon === 'string' ? null : firstDiscount.source?.coupon;
         if (!coupon) continue;
         const cust = ss.customer as { metadata?: Record<string, string> } | string;
         const cId = typeof cust === 'string' ? null : cust.metadata?.company_id;

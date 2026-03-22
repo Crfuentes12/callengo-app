@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server';
 import { expensiveLimiter } from '@/lib/rate-limit';
 import { createServerClient } from '@/lib/supabase/server';
+import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 
 export async function GET() {
@@ -37,7 +38,7 @@ export async function GET() {
       subscriptionsWithDiscountResult,
     ] = await Promise.all([
       // 1. All promotion codes (the user-facing codes that wrap coupons)
-      stripe.promotionCodes.list({ limit: 100, expand: ['data.coupon'] }),
+      stripe.promotionCodes.list({ limit: 100, expand: ['data.promotion.coupon'] }),
 
       // 2. All coupons (the underlying discount objects)
       stripe.coupons.list({ limit: 100 }),
@@ -75,7 +76,7 @@ export async function GET() {
     for (const sub of subscriptionsWithDiscountResult.data) {
       const firstDiscount = (sub.discounts && sub.discounts.length > 0) ? sub.discounts[0] : null;
       if (!firstDiscount || typeof firstDiscount === 'string') continue;
-      const coupon = typeof firstDiscount.coupon === 'string' ? null : firstDiscount.coupon;
+      const coupon = typeof firstDiscount.source?.coupon === 'string' ? null : firstDiscount.source?.coupon;
       if (!coupon) continue;
 
       totalActiveDiscounts++;
@@ -137,41 +138,53 @@ export async function GET() {
     }
 
     // Build promotion codes response
-    const promotionCodes = promotionCodesResult.data.map(pc => {
-      const coupon = pc.coupon;
-      const usage = couponUsageMap.get(coupon.id);
+    const promotionCodes = promotionCodesResult.data
+      .filter(pc => {
+        const c = pc.promotion?.coupon;
+        return c && typeof c !== 'string';
+      })
+      .map(pc => {
+        const coupon = pc.promotion.coupon as Stripe.Coupon;
+        const usage = couponUsageMap.get(coupon.id);
 
-      return {
-        id: pc.id,
-        code: pc.code,
-        active: pc.active,
-        timesRedeemed: pc.times_redeemed,
-        maxRedemptions: pc.max_redemptions,
-        expiresAt: pc.expires_at,
-        createdAt: pc.created,
-        // Coupon details
-        coupon: {
-          id: coupon.id,
-          name: coupon.name,
-          percentOff: coupon.percent_off,
-          amountOff: coupon.amount_off ? coupon.amount_off / 100 : null,
-          currency: coupon.currency,
-          duration: coupon.duration,
-          durationInMonths: coupon.duration_in_months,
-          timesRedeemed: coupon.times_redeemed,
-          maxRedemptions: coupon.max_redemptions,
-          valid: coupon.valid,
-          createdAt: coupon.created,
-        },
-        // Active usage
-        activeRedemptions: usage?.activeRedemptions || 0,
-        monthlyImpact: Math.round((usage?.totalDiscountAmount || 0) * 100) / 100,
-        customers: usage?.customers || [],
-      };
-    });
+        return {
+          id: pc.id,
+          code: pc.code,
+          active: pc.active,
+          timesRedeemed: pc.times_redeemed,
+          maxRedemptions: pc.max_redemptions,
+          expiresAt: pc.expires_at,
+          createdAt: pc.created,
+          // Coupon details
+          coupon: {
+            id: coupon.id,
+            name: coupon.name,
+            percentOff: coupon.percent_off,
+            amountOff: coupon.amount_off ? coupon.amount_off / 100 : null,
+            currency: coupon.currency,
+            duration: coupon.duration,
+            durationInMonths: coupon.duration_in_months,
+            timesRedeemed: coupon.times_redeemed,
+            maxRedemptions: coupon.max_redemptions,
+            valid: coupon.valid,
+            createdAt: coupon.created,
+          },
+          // Active usage
+          activeRedemptions: usage?.activeRedemptions || 0,
+          monthlyImpact: Math.round((usage?.totalDiscountAmount || 0) * 100) / 100,
+          customers: usage?.customers || [],
+        };
+      });
 
     // Also include coupons that might not have promotion codes (e.g., retention coupons applied directly)
-    const promoCodeCouponIds = new Set(promotionCodesResult.data.map(pc => pc.coupon.id));
+    const promoCodeCouponIds = new Set(
+      promotionCodesResult.data
+        .map(pc => {
+          const c = pc.promotion?.coupon;
+          return c && typeof c !== 'string' ? c.id : null;
+        })
+        .filter(Boolean) as string[]
+    );
     const standaloneCoupons = couponsResult.data
       .filter(c => !promoCodeCouponIds.has(c.id))
       .map(coupon => {

@@ -462,7 +462,7 @@ export async function GET() {
       for (const sub of stripeSubs.data) {
         const firstDiscount = (sub.discounts && sub.discounts.length > 0) ? sub.discounts[0] : null;
         if (!firstDiscount || typeof firstDiscount === 'string') continue;
-        const coupon = typeof firstDiscount.coupon === 'string' ? null : firstDiscount.coupon;
+        const coupon = typeof firstDiscount.source?.coupon === 'string' ? null : firstDiscount.source?.coupon;
         if (!coupon) continue;
         subsWithDiscounts++;
         const planAmount = sub.items.data.reduce((sum, item) => {
