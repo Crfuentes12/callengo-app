@@ -836,6 +836,7 @@ const it: TranslationKeys = {
     overageRate: 'Tariffa eccedenza:',
     perMinute: '/minuto',
     overageBudget: 'Budget eccedenza',
+    overageSpent: 'Eccedenza spesa',
     cancelConfirmTitle: 'Sei sicuro di voler annullare?',
     cancelCurrentPlan: 'Sei attualmente sul piano',
     cancelPlanWith: 'con',

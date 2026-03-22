@@ -836,6 +836,7 @@ const de: TranslationKeys = {
     overageRate: 'Zusatztarif:',
     perMinute: '/Minute',
     overageBudget: 'Zusatzbudget',
+    overageSpent: 'Zusatzausgaben',
     cancelConfirmTitle: 'Sind Sie sicher, dass Sie kündigen möchten?',
     cancelCurrentPlan: 'Sie sind derzeit im',
     cancelPlanWith: 'Plan mit',

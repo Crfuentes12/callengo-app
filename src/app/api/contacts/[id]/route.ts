@@ -179,6 +179,46 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const companyId = await getCompanyId(supabase);
     if (!companyId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Check if contact is locked by an active call before allowing delete
+    const { data: contact } = await supabase
+      .from('contacts')
+      .select('custom_fields')
+      .eq('id', id)
+      .eq('company_id', companyId)
+      .maybeSingle();
+
+    if (!contact) {
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
+    }
+
+    const cf = (contact.custom_fields as Record<string, unknown>) || {};
+    if (cf._locked) {
+      const lockTime = cf._locked_at ? new Date(cf._locked_at as string) : null;
+      const lockAge = lockTime ? (Date.now() - lockTime.getTime()) / 1000 : Infinity;
+      // Respect lock if it's less than 10 minutes old (active call in progress)
+      if (lockAge < 600) {
+        return NextResponse.json({
+          error: 'Contact is currently being processed by an active call. Please wait until the call completes before deleting.',
+          locked: true,
+          locked_by: cf._locked_by || 'ai_agent',
+        }, { status: 423 });
+      }
+    }
+
+    // Also check if contact has an active call in the queue
+    const { count: queuedCalls } = await supabase
+      .from('call_queue')
+      .select('id', { count: 'exact', head: true })
+      .eq('contact_id', id)
+      .eq('company_id', companyId)
+      .in('status', ['queued', 'in_progress']);
+
+    if (queuedCalls && queuedCalls > 0) {
+      return NextResponse.json({
+        error: 'Contact has calls queued or in progress. Please wait until all calls complete before deleting.',
+      }, { status: 423 });
+    }
+
     const { error } = await supabase
       .from('contacts')
       .delete()

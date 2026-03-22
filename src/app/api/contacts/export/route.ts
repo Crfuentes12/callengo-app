@@ -54,13 +54,15 @@ export async function GET(request: NextRequest) {
     const listId = request.nextUrl.searchParams.get('listId');
     const status = request.nextUrl.searchParams.get('status');
 
-    // Fetch ALL contacts (no 1000 limit) using pagination
+    // Fetch contacts using pagination with safety limit to prevent timeout/DOS
+    const MAX_EXPORT_CONTACTS = 100_000;
+    const MAX_PAGES = 100;
     let allContacts: Record<string, unknown>[] = [];
     let page = 0;
     const pageSize = 1000;
     let hasMore = true;
 
-    while (hasMore) {
+    while (hasMore && page < MAX_PAGES && allContacts.length < MAX_EXPORT_CONTACTS) {
       let query = supabase
         .from('contacts')
         .select('*')
@@ -89,6 +91,11 @@ export async function GET(request: NextRequest) {
       } else {
         hasMore = false;
       }
+    }
+
+    // Truncate to max limit if needed
+    if (allContacts.length > MAX_EXPORT_CONTACTS) {
+      allContacts = allContacts.slice(0, MAX_EXPORT_CONTACTS);
     }
 
     trackServerEvent(user.id, user.id, 'contact_export_completed', {

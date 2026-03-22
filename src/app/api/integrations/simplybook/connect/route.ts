@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
-    if (!['starter', 'business', 'teams', 'enterprise'].includes(planSlug)) {
+    if (!['starter', 'growth', 'business', 'teams', 'enterprise'].includes(planSlug)) {
       return NextResponse.json(
         { error: 'SimplyBook.me integration requires Starter plan or higher' },
         { status: 403 }

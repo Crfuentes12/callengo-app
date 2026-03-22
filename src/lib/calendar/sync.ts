@@ -604,6 +604,7 @@ export async function createAgentCallback(
     agentName: string;
     reason: 'for_callback' | 'voicemail' | 'no_answer' | 'requested';
     notes?: string;
+    timezone?: string;
   }
 ): Promise<CalendarEvent | null> {
   const startTime = new Date(params.callbackDate);
@@ -633,6 +634,7 @@ export async function createAgentCallback(
       agent_name: params.agentName,
       ai_notes: reasonLabels[params.reason],
       notes: params.notes,
+      timezone: params.timezone || 'UTC',
       created_by_feature: 'callback_scheduling',
     },
     { syncToGoogle: true, syncToMicrosoft: true }

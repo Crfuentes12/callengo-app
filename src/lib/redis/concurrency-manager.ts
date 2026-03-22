@@ -256,10 +256,11 @@ export async function acquireCallSlot(
   }
 
   try {
-    // Check contact cooldown BEFORE acquiring the slot (prevents wasted slot increments)
+    // Atomic contact cooldown check-and-set using SET NX (prevents race condition
+    // where two threads both see no cooldown and both acquire slots for same contact)
     if (contactId) {
-      const onCooldown = await redis.exists(KEYS.contactCooldown(contactId));
-      if (onCooldown) {
+      const cooldownSet = await redis.set(KEYS.contactCooldown(contactId), '1', { ex: 300, nx: true });
+      if (!cooldownSet) {
         return { acquired: false, error: 'Contact was called recently (5-min cooldown)' };
       }
     }
@@ -276,11 +277,6 @@ export async function acquireCallSlot(
 
     // Track active call with 30-min TTL (auto-cleanup if webhook doesn't arrive)
     pipeline.set(KEYS.activeCall(callId), JSON.stringify({ companyId, contactId, ts: Date.now() }), { ex: 1800 });
-
-    // Set contact cooldown (5 min = 300 seconds)
-    if (contactId) {
-      pipeline.set(KEYS.contactCooldown(contactId), '1', { ex: 300 });
-    }
 
     await pipeline.exec();
 
@@ -313,24 +309,35 @@ export async function releaseCallSlot(
   if (!redis) return;
 
   try {
+    // First check if this call slot actually exists (prevent double-release)
+    const callExists = await redis.exists(KEYS.activeCall(callId));
+
+    if (!callExists) {
+      // Slot was already released (e.g., TTL expired or duplicate webhook)
+      // Don't decrement counters to avoid going negative
+      console.warn(`[concurrency-manager] releaseCallSlot: call ${callId} not found (already released or expired)`);
+      return;
+    }
+
     const pipeline = redis.pipeline();
 
-    // Decrement concurrent counters (don't go below 0)
+    // Decrement concurrent counters
     pipeline.decr(KEYS.globalConcurrent);
     pipeline.decr(KEYS.companyConcurrent(companyId));
 
     // Remove active call tracker
     pipeline.del(KEYS.activeCall(callId));
 
-    await pipeline.exec();
+    const results = await pipeline.exec();
 
-    // Ensure counters don't go negative
-    const globalCurrent = await redis.get<number>(KEYS.globalConcurrent);
-    if (globalCurrent !== null && globalCurrent < 0) {
+    // Fix negative counters atomically (can happen if TTL expired before release)
+    const globalAfter = results[0] as number;
+    const companyAfter = results[1] as number;
+
+    if (globalAfter < 0) {
       await redis.set(KEYS.globalConcurrent, 0, { ex: 1800 });
     }
-    const companyCurrent = await redis.get<number>(KEYS.companyConcurrent(companyId));
-    if (companyCurrent !== null && companyCurrent < 0) {
+    if (companyAfter < 0) {
       await redis.set(KEYS.companyConcurrent(companyId), 0, { ex: 1800 });
     }
   } catch (error) {

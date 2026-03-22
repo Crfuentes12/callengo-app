@@ -137,16 +137,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Idempotency check: skip if this call_id was already fully processed
+    // Also guard against concurrent webhook processing for the same call
     if (call_id) {
       const { data: existingLog } = await supabaseAdmin
         .from('call_logs')
-        .select('id, completed')
+        .select('id, completed, status')
         .eq('call_id', call_id)
         .maybeSingle();
 
       if (existingLog?.completed) {
         console.log(`[webhook] Call ${call_id} already processed, skipping`);
         return NextResponse.json({ status: 'already_processed', call_id });
+      }
+
+      // Guard against duplicate in-flight webhooks: if this call is already being
+      // processed (status matches what we're about to set), skip to prevent
+      // duplicate calendar events, contact locks, and usage tracking
+      if (existingLog && completed && existingLog.status === status) {
+        console.log(`[webhook] Call ${call_id} appears to be duplicate webhook (same status: ${status}), skipping`);
+        return NextResponse.json({ status: 'duplicate_skipped', call_id });
       }
     }
 
@@ -322,8 +331,15 @@ export async function POST(request: NextRequest) {
 
       // If call was not answered or voicemail, schedule a callback event
       if (answered_by === 'voicemail' || status === 'no_answer' || status === 'voicemail') {
+        // Schedule callback for next business day at 10:00 in company's timezone
+        // Use the campaign timezone from metadata if available, otherwise default to UTC
+        const campaignTimezone = (metadata?.calendar_timezone as string) || 'UTC';
         const callbackDate = new Date();
         callbackDate.setDate(callbackDate.getDate() + 1);
+        // Skip weekends: if callback lands on Saturday, move to Monday
+        const dayOfWeek = callbackDate.getDay();
+        if (dayOfWeek === 6) callbackDate.setDate(callbackDate.getDate() + 2); // Saturday → Monday
+        else if (dayOfWeek === 0) callbackDate.setDate(callbackDate.getDate() + 1); // Sunday → Monday
         callbackDate.setHours(10, 0, 0, 0);
 
         await createAgentCallback(companyId, {
@@ -334,6 +350,7 @@ export async function POST(request: NextRequest) {
           agentName: metadata?.agent_name || 'AI Agent',
           reason: answered_by === 'voicemail' ? 'voicemail' : 'no_answer',
           notes: summary || `Auto-scheduled callback after ${answered_by === 'voicemail' ? 'voicemail' : 'no answer'}`,
+          timezone: campaignTimezone,
         });
       }
 
@@ -948,7 +965,9 @@ export async function POST(request: NextRequest) {
     // ================================================================
     // USAGE TRACKING: Report call minutes to billing system
     // ================================================================
-    if (completed && call_length && companyId) {
+    // Only track usage for completed calls with actual call duration
+    // Skip failed/error calls to avoid charging customers for unsuccessful calls
+    if (completed && call_length && call_length > 0 && companyId && status !== 'failed' && status !== 'error') {
       try {
         const callMinutes = Math.ceil((call_length as number) / 60); // Convert seconds to minutes (round up)
         if (callMinutes > 0) {

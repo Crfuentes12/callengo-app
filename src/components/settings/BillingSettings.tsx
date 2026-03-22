@@ -481,8 +481,8 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
             </div>
             {subscription.overage_enabled && (
               <div className="space-y-3 pt-4 border-t border-[var(--border-subtle)]">
-                <div className="flex justify-between items-center"><span className="text-sm text-[var(--color-neutral-600)]">{t.billing.overageCost}</span><span className="text-sm font-semibold text-[var(--color-ink)]">{formatPrice(subscription.overage_budget)}</span></div>
-                <div className="flex justify-between items-center"><span className="text-sm text-[var(--color-neutral-600)]">{t.billing.overageCost}</span><span className="text-sm font-semibold text-[var(--color-ink)]">{formatPrice(subscription.overage_spent)}</span></div>
+                <div className="flex justify-between items-center"><span className="text-sm text-[var(--color-neutral-600)]">{t.billing.overageBudget}</span><span className="text-sm font-semibold text-[var(--color-ink)]">{formatPrice(subscription.overage_budget)}</span></div>
+                <div className="flex justify-between items-center"><span className="text-sm text-[var(--color-neutral-600)]">{t.billing.overageSpent || 'Overage Spent'}</span><span className="text-sm font-semibold text-[var(--color-ink)]">{formatPrice(subscription.overage_spent)}</span></div>
                 <div className="space-y-1">
                   <div className="h-2 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
                     <div className={`h-full transition-all duration-500 ${subscription.overage_spent >= subscription.overage_budget ? 'bg-red-500' : subscription.overage_spent >= subscription.overage_budget * 0.85 ? 'bg-orange-500' : 'bg-green-500'}`} style={{ width: `${Math.min((subscription.overage_spent / subscription.overage_budget) * 100, 100)}%` }} />
