@@ -274,6 +274,7 @@ export default function Sidebar({
                   <Link
                     key={item.name}
                     href={item.href}
+                    prefetch={false}
                     onClick={() => { navigationEvents.sidebarClicked(item.href); phNavigationEvents.sidebarClicked(item.href); onClose(); }}
                     onMouseEnter={(e) => showTooltip(e, item.name)}
                     onMouseLeave={hideTooltip}
@@ -321,6 +322,7 @@ export default function Sidebar({
                   <Link
                     key={item.name}
                     href={item.href}
+                    prefetch={false}
                     onClick={() => { navigationEvents.sidebarClicked(item.href); phNavigationEvents.sidebarClicked(item.href); onClose(); }}
                     onMouseEnter={(e) => showTooltip(e, item.name)}
                     onMouseLeave={hideTooltip}
