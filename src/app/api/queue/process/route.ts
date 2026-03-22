@@ -2,9 +2,20 @@
 // Background worker endpoint for processing the AI analysis queue.
 // Can be triggered by: cron job, Vercel cron, edge function, or manual call.
 
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { processBatch, getQueueStats } from '@/lib/queue/analysis-queue';
+import { processDispatchBatch } from '@/lib/queue/dispatch-queue';
 import { resetStaleConcurrency } from '@/lib/redis/concurrency-manager';
+
+function timingSafeCompare(a: string | null, b: string): boolean {
+  if (!a) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  } catch {
+    return false; // Length mismatch
+  }
+}
 
 const QUEUE_SECRET = process.env.QUEUE_PROCESSING_SECRET || process.env.CRON_SECRET;
 
@@ -26,8 +37,8 @@ export async function POST(request: NextRequest) {
   // Removed x-vercel-cron header check — anyone can send that header.
   // Use only secret-based authorization.
   const authorized =
-    (authHeader === `Bearer ${QUEUE_SECRET}`) ||
-    (cronHeader === QUEUE_SECRET);
+    timingSafeCompare(authHeader, `Bearer ${QUEUE_SECRET}`) ||
+    timingSafeCompare(cronHeader, QUEUE_SECRET);
 
   if (!authorized) {
     console.warn('[queue/process] POST 401 — auth failed.', {
@@ -75,9 +86,9 @@ export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
 
   const authorized =
-    (authHeader === `Bearer ${QUEUE_SECRET}`) ||
-    (cronSecret && authHeader === `Bearer ${cronSecret}`) ||
-    (cronHeader === QUEUE_SECRET);
+    timingSafeCompare(authHeader, `Bearer ${QUEUE_SECRET}`) ||
+    (cronSecret ? timingSafeCompare(authHeader, `Bearer ${cronSecret}`) : false) ||
+    timingSafeCompare(cronHeader, QUEUE_SECRET);
 
   if (!authorized) {
     console.warn('[queue/process] GET 401 — cron auth failed.', {
@@ -94,16 +105,18 @@ export async function GET(request: NextRequest) {
     const companyId = request.nextUrl.searchParams.get('company_id') || undefined;
 
     if (!companyId) {
-      // Cron hit — process pending jobs + reconcile Redis concurrency counters
-      const [result] = await Promise.all([
+      // Cron hit — process pending jobs + dispatch queue + reconcile Redis concurrency counters
+      const [analysisResult, dispatchResult] = await Promise.all([
         processBatch(10),
+        processDispatchBatch(5),
         resetStaleConcurrency().catch(err =>
           console.error('[queue/process] Concurrency reconciliation failed (non-fatal):', err)
         ),
       ]);
       return NextResponse.json({
         success: true,
-        ...result,
+        analysis: analysisResult,
+        dispatch: dispatchResult,
         timestamp: new Date().toISOString(),
       });
     }

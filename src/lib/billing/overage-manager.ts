@@ -253,65 +253,73 @@ export async function updateOverageBudget(params: {
  */
 export async function syncAllMeteredUsage(): Promise<void> {
   try {
-    // Get all subscriptions with overage enabled
-    const { data: subscriptions, error } = await supabase
-      .from('company_subscriptions')
-      .select('*, subscription_plans(*), usage_tracking(*)')
-      .eq('overage_enabled', true)
-      .not('stripe_subscription_item_id', 'is', null);
+    const PAGE_SIZE = 50;
+    let offset = 0;
+    let totalSynced = 0;
+    let totalErrors = 0;
 
-    if (error || !subscriptions) {
-      console.error('Error fetching subscriptions:', error);
-      return;
-    }
+    // Process subscriptions in pages to avoid timeouts and memory issues
+    while (true) {
+      const { data: subscriptions, error } = await supabase
+        .from('company_subscriptions')
+        .select('*, subscription_plans(*)')
+        .eq('overage_enabled', true)
+        .not('stripe_subscription_item_id', 'is', null)
+        .range(offset, offset + PAGE_SIZE - 1);
 
-    console.log(`📊 Syncing metered usage for ${subscriptions.length} subscriptions`);
+      if (error || !subscriptions || subscriptions.length === 0) {
+        if (error) console.error('Error fetching subscriptions page:', error);
+        break;
+      }
 
-    for (const subscription of subscriptions) {
-      try {
-        // Get latest usage
-        const { data: usage } = await supabase
-          .from('usage_tracking')
-          .select('*')
-          .eq('subscription_id', subscription.id)
-          .order('period_start', { ascending: false })
-          .limit(1)
-          .single();
+      for (const subscription of subscriptions) {
+        try {
+          // Get latest usage
+          const { data: usage } = await supabase
+            .from('usage_tracking')
+            .select('*')
+            .eq('subscription_id', subscription.id)
+            .order('period_start', { ascending: false })
+            .limit(1)
+            .single();
 
-        if (!usage) continue;
+          if (!usage) continue;
 
-        const minutesIncluded = subscription.subscription_plans?.minutes_included || 0;
-        const overageMinutes = Math.max(0, usage.minutes_used - minutesIncluded);
+          const minutesIncluded = subscription.subscription_plans?.minutes_included || 0;
+          const overageMinutes = Math.max(0, usage.minutes_used - minutesIncluded);
 
-        if (overageMinutes > 0 && subscription.stripe_subscription_item_id) {
-          await reportUsage({
-            subscriptionItemId: subscription.stripe_subscription_item_id,
-            quantity: overageMinutes,
-            action: 'set',
-          });
+          if (overageMinutes > 0 && subscription.stripe_subscription_item_id) {
+            await reportUsage({
+              subscriptionItemId: subscription.stripe_subscription_item_id,
+              quantity: overageMinutes,
+              action: 'set',
+            });
 
-          // Update overage_spent in the subscription record
-          const pricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;
-          const overageCost = overageMinutes * pricePerMinute;
+            const pricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;
+            const overageCost = overageMinutes * pricePerMinute;
 
-          await supabase
-            .from('company_subscriptions')
-            .update({ overage_spent: overageCost })
-            .eq('id', subscription.id);
+            await supabase
+              .from('company_subscriptions')
+              .update({ overage_spent: overageCost })
+              .eq('id', subscription.id);
 
-          console.log(
-            `  ✅ Synced ${overageMinutes} overage minutes ($${overageCost.toFixed(2)}) for company ${subscription.company_id}`
+            totalSynced++;
+          }
+        } catch (itemError) {
+          totalErrors++;
+          console.error(
+            `Error syncing usage for subscription ${subscription.id}:`,
+            itemError
           );
         }
-      } catch (itemError) {
-        console.error(
-          `  ❌ Error syncing usage for subscription ${subscription.id}:`,
-          itemError
-        );
       }
+
+      // If we got fewer than PAGE_SIZE, we've reached the end
+      if (subscriptions.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
     }
 
-    console.log('✅ Metered usage sync completed');
+    console.log(`Metered usage sync completed: ${totalSynced} synced, ${totalErrors} errors`);
   } catch (error) {
     console.error('Error syncing metered usage:', error);
   }

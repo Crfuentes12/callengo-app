@@ -6,6 +6,51 @@ import crypto from 'crypto';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 
 // ============================================================================
+// URL VALIDATION — Prevent SSRF via webhook URLs
+// ============================================================================
+
+/**
+ * Validate that a webhook URL is safe to send requests to.
+ * Blocks private IP ranges, localhost, and non-HTTPS URLs.
+ */
+export function validateWebhookUrl(url: string): { valid: boolean; error?: string } {
+  try {
+    const parsed = new URL(url);
+
+    // Require HTTPS
+    if (parsed.protocol !== 'https:') {
+      return { valid: false, error: 'Webhook URL must use HTTPS' };
+    }
+
+    // Block localhost and loopback
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '0.0.0.0') {
+      return { valid: false, error: 'Webhook URL cannot point to localhost' };
+    }
+
+    // Block private IP ranges
+    const ipMatch = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (ipMatch) {
+      const [, a, b] = ipMatch.map(Number);
+      if (a === 10) return { valid: false, error: 'Webhook URL cannot point to private IP range (10.x.x.x)' };
+      if (a === 172 && b >= 16 && b <= 31) return { valid: false, error: 'Webhook URL cannot point to private IP range (172.16-31.x.x)' };
+      if (a === 192 && b === 168) return { valid: false, error: 'Webhook URL cannot point to private IP range (192.168.x.x)' };
+      if (a === 169 && b === 254) return { valid: false, error: 'Webhook URL cannot point to link-local range (169.254.x.x)' };
+    }
+
+    // Block internal service hostnames
+    const blockedPatterns = ['.internal', '.local', '.localhost', '.svc.cluster'];
+    if (blockedPatterns.some(pattern => hostname.endsWith(pattern))) {
+      return { valid: false, error: 'Webhook URL cannot point to internal hostnames' };
+    }
+
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Invalid URL format' };
+  }
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -315,6 +360,11 @@ export async function createWebhookEndpoint(
   events: string[],
   description?: string
 ): Promise<WebhookEndpoint> {
+  const urlCheck = validateWebhookUrl(url);
+  if (!urlCheck.valid) {
+    throw new Error(urlCheck.error || 'Invalid webhook URL');
+  }
+
   const secret = generateWebhookSecret();
 
   const { data, error } = await supabaseAdmin
@@ -347,6 +397,13 @@ export async function updateWebhookEndpoint(
     is_active?: boolean;
   }
 ): Promise<WebhookEndpoint> {
+  if (updates.url) {
+    const urlCheck = validateWebhookUrl(updates.url);
+    if (!urlCheck.valid) {
+      throw new Error(urlCheck.error || 'Invalid webhook URL');
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from('webhook_endpoints')
     .update({

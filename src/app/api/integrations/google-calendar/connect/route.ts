@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getGoogleAuthUrl } from '@/lib/calendar/google';
+import { createSignedState } from '@/lib/oauth-state';
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,17 +25,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No company found' }, { status: 400 });
     }
 
-    // Create a state parameter with user/company info for the callback
+    // Create a signed state parameter with user/company info for the callback
     const returnTo = request.nextUrl.searchParams.get('return_to') || '/integrations';
-    const state = Buffer.from(
-      JSON.stringify({
-        user_id: user.id,
-        company_id: userData.company_id,
-        provider: 'google_calendar',
-        timestamp: Date.now(),
-        return_to: returnTo,
-      })
-    ).toString('base64url');
+    const state = createSignedState({
+      user_id: user.id,
+      company_id: userData.company_id,
+      provider: 'google_calendar',
+      timestamp: Date.now(),
+      return_to: returnTo,
+    });
 
     const authUrl = getGoogleAuthUrl(state);
 

@@ -347,24 +347,65 @@ async function applyIntentResults(
 
 /**
  * Process up to `batchSize` pending jobs.
+ * Uses a DB-based lock to prevent overlap when two cron invocations fire simultaneously.
  * Designed to be called by a cron or edge function.
  */
 export async function processBatch(batchSize: number = 10): Promise<{
   processed: number;
   failed: number;
   remaining: number;
+  skipped_locked?: boolean;
 }> {
+  // Lightweight overlap guard: try to insert a processing lock row.
+  // If another invocation is already running, skip this batch.
+  const lockId = 'analysis_queue_lock';
+  const { error: lockError } = await supabaseAdmin
+    .from('analysis_queue')
+    .upsert({
+      id: lockId,
+      status: 'processing',
+      company_id: '00000000-0000-0000-0000-000000000000',
+      call_log_id: '00000000-0000-0000-0000-000000000000',
+      template_slug: '_lock',
+      transcript: '',
+      call_metadata: {},
+      attempts: 0,
+      max_attempts: 1,
+      started_at: new Date().toISOString(),
+    }, { onConflict: 'id' })
+    .eq('status', 'completed'); // Only acquire if previous lock was released (completed)
+
+  // If we couldn't acquire the lock, another batch is running — skip gracefully
+  // Note: if the lock row doesn't exist yet or is in 'completed' state, upsert succeeds
+  if (lockError) {
+    console.log('[analysis-queue] Another batch is running, skipping');
+    const { count } = await supabaseAdmin
+      .from('analysis_queue')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    return { processed: 0, failed: 0, remaining: count || 0, skipped_locked: true };
+  }
+
   let processed = 0;
   let failed = 0;
 
-  for (let i = 0; i < batchSize; i++) {
-    const result = await processNextJob();
-    if (!result.processed) break; // No more jobs
-    if (result.error) {
-      failed++;
-    } else {
-      processed++;
+  try {
+    for (let i = 0; i < batchSize; i++) {
+      const result = await processNextJob();
+      if (!result.processed) break; // No more jobs
+      if (result.error) {
+        failed++;
+      } else {
+        processed++;
+      }
     }
+  } finally {
+    // Release the lock
+    await supabaseAdmin
+      .from('analysis_queue')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .eq('id', lockId)
+      .catch(() => {}); // Non-fatal if lock release fails
   }
 
   // Count remaining

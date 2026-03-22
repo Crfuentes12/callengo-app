@@ -1,6 +1,7 @@
 // app/api/ai/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { expensiveLimiter } from '@/lib/rate-limit';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -196,6 +197,12 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit: 10 chat messages per minute per user (each triggers OpenAI API call)
+    const rateLimit = await expensiveLimiter.check(10, `ai_chat_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many messages. Please wait a moment.' }, { status: 429 });
     }
 
     const { message, conversationId, messages: previousMessages } = await request.json();

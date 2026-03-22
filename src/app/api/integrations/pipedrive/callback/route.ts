@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { exchangePipedriveCode, getPipedriveUserInfo } from '@/lib/pipedrive';
+import { verifySignedState } from '@/lib/oauth-state';
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,19 +26,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Decode state parameter
-    let stateData: { user_id: string; company_id: string; return_to?: string };
-    try {
-      stateData = JSON.parse(
-        Buffer.from(state, 'base64url').toString('utf-8')
-      );
-    } catch {
+    // Verify signed state parameter (HMAC-SHA256)
+    const stateData = verifySignedState(state);
+    if (!stateData) {
       return NextResponse.redirect(
         new URL('/integrations?error=pipedrive_auth_invalid_state', request.url)
       );
     }
 
-    const { user_id, company_id, return_to } = stateData;
+    const user_id = stateData.user_id as string;
+    const company_id = stateData.company_id as string;
+    const return_to = stateData.return_to as string | undefined;
     const safeReturnTo = (return_to && return_to.startsWith('/') && !return_to.startsWith('//')) ? return_to : '/integrations';
     const redirectBase = safeReturnTo;
 
@@ -46,6 +45,12 @@ export async function GET(request: NextRequest) {
     const { data: { user: currentUser } } = await supabaseAuth.auth.getUser();
     if (!currentUser || currentUser.id !== user_id) {
       return NextResponse.redirect(new URL(`${safeReturnTo}?error=user_mismatch`, request.url));
+    }
+
+    // Verify company_id matches authenticated user's actual company
+    const { data: userData } = await supabaseAuth.from('users').select('company_id').eq('id', currentUser.id).single();
+    if (!userData || userData.company_id !== company_id) {
+      return NextResponse.redirect(new URL(`${safeReturnTo}?error=company_mismatch`, request.url));
     }
 
     // Exchange code for tokens

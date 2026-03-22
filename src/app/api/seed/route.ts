@@ -4,6 +4,7 @@
 // DELETE /api/seed - Removes all seeded mock data
 
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import {
   DEMO_USER_EMAIL,
@@ -60,18 +61,26 @@ async function getAgentTemplateIds() {
 
 export async function POST(request: NextRequest) {
   try {
-    // Block in production — seed endpoint is only for development/staging
-    if (process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ error: 'Seed endpoint is disabled in production' }, { status: 403 });
+    // Block unless explicitly enabled via SEED_ENDPOINT_SECRET.
+    // This protects production AND preview deployments (which may have NODE_ENV=development).
+    const seedSecret = process.env.SEED_ENDPOINT_SECRET;
+    if (!seedSecret) {
+      return NextResponse.json({ error: 'Seed endpoint is disabled (SEED_ENDPOINT_SECRET not configured)' }, { status: 403 });
     }
 
-    // In staging with SEED_ENDPOINT_SECRET set, require the secret via header
-    const seedSecret = process.env.SEED_ENDPOINT_SECRET;
-    if (seedSecret) {
-      const providedSecret = request.headers.get('x-seed-secret');
-      if (providedSecret !== seedSecret) {
+    // Timing-safe secret comparison to prevent timing attacks
+    const providedSecret = request.headers.get('x-seed-secret') || '';
+    try {
+      const isValid = crypto.timingSafeEqual(
+        Buffer.from(providedSecret),
+        Buffer.from(seedSecret)
+      );
+      if (!isValid) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
+    } catch {
+      // Length mismatch or other error — reject
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const result = await getDemoUserCompany();

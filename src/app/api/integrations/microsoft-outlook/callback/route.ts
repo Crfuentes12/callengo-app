@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAppUrl } from '@/lib/config';
+import { verifySignedState } from '@/lib/oauth-state';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,8 +19,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/calendar?error=missing_params', request.url));
     }
 
-    const state = JSON.parse(Buffer.from(stateB64, 'base64url').toString());
-    const { userId, companyId, returnTo } = state;
+    // Verify signed state parameter (HMAC-SHA256)
+    const stateData = verifySignedState(stateB64);
+    if (!stateData) {
+      return NextResponse.redirect(new URL('/calendar?error=outlook_auth_invalid_state', request.url));
+    }
+    const userId = stateData.userId as string;
+    const companyId = stateData.companyId as string;
+    const returnTo = stateData.returnTo as string | undefined;
     // Sanitize returnTo to prevent open redirect
     const safeReturnTo = (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//'))
       ? returnTo : '/calendar';
@@ -29,6 +36,12 @@ export async function GET(request: NextRequest) {
     const { data: { user: currentUser } } = await supabaseAuth.auth.getUser();
     if (!currentUser || currentUser.id !== userId) {
       return NextResponse.redirect(new URL(`${safeReturnTo}?error=user_mismatch`, request.url));
+    }
+
+    // Verify company_id matches authenticated user's actual company
+    const { data: userData } = await supabaseAuth.from('users').select('company_id').eq('id', currentUser.id).single();
+    if (!userData || userData.company_id !== companyId) {
+      return NextResponse.redirect(new URL(`${safeReturnTo}?error=company_mismatch`, request.url));
     }
 
     const clientId = process.env.MICROSOFT_CLIENT_ID!;

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAppUrl } from '@/lib/config';
+import { createSignedState } from '@/lib/oauth-state';
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
     const appUrl = getAppUrl();
     const redirectUri = `${appUrl}/api/integrations/slack/callback`;
 
-    const state = JSON.stringify({
+    const state = createSignedState({
       userId: user.id,
       companyId: userData.company_id,
       returnTo,
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
     authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('scope', scopes.join(','));
     authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('state', Buffer.from(state).toString('base64url'));
+    authUrl.searchParams.set('state', state);
 
     return NextResponse.redirect(authUrl.toString());
   } catch (error) {

@@ -20,14 +20,50 @@ import { Redis } from '@upstash/redis';
 // Redis Client
 // ================================================================
 
-const redis = process.env.UPSTASH_REDIS_REST_URL
+const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
   ? new Redis({
       url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
     })
   : null;
 
 const REDIS_AVAILABLE = !!redis;
+
+// ================================================================
+// Circuit Breaker — Prevents fail-open abuse during Redis outages
+// After CIRCUIT_BREAKER_THRESHOLD consecutive failures, block calls
+// instead of allowing them blindly.
+// ================================================================
+
+let consecutiveRedisFailures = 0;
+const CIRCUIT_BREAKER_THRESHOLD = 5;
+const CIRCUIT_BREAKER_RESET_MS = 60_000; // 1 minute
+let circuitBreakerTrippedAt: number | null = null;
+
+function recordRedisSuccess() {
+  consecutiveRedisFailures = 0;
+  circuitBreakerTrippedAt = null;
+}
+
+function recordRedisFailure() {
+  consecutiveRedisFailures++;
+  if (consecutiveRedisFailures >= CIRCUIT_BREAKER_THRESHOLD && !circuitBreakerTrippedAt) {
+    circuitBreakerTrippedAt = Date.now();
+    console.error(`[concurrency-manager] Circuit breaker TRIPPED after ${consecutiveRedisFailures} consecutive Redis failures`);
+  }
+}
+
+function isCircuitBreakerOpen(): boolean {
+  if (!circuitBreakerTrippedAt) return false;
+  // Auto-reset after CIRCUIT_BREAKER_RESET_MS to allow retry
+  if (Date.now() - circuitBreakerTrippedAt > CIRCUIT_BREAKER_RESET_MS) {
+    consecutiveRedisFailures = 0;
+    circuitBreakerTrippedAt = null;
+    console.log('[concurrency-manager] Circuit breaker RESET — retrying Redis');
+    return false;
+  }
+  return true;
+}
 
 if (!REDIS_AVAILABLE && process.env.NODE_ENV !== 'test') {
   console.warn('[concurrency-manager] UPSTASH_REDIS_REST_URL not configured — concurrency limits will use DB fallback');
@@ -290,10 +326,17 @@ export async function acquireCallSlot(
     ttlPipeline.expire(KEYS.companyHourly(companyId), 7200);
     await ttlPipeline.exec();
 
+    recordRedisSuccess();
     return { acquired: true };
   } catch (error) {
     console.error('[concurrency-manager] acquireCallSlot error:', error);
-    // Fail open — don't block calls if Redis is temporarily down
+    recordRedisFailure();
+    // Circuit breaker: if Redis has been down too long, BLOCK calls to prevent
+    // exceeding Bland API limits and getting the master account suspended.
+    if (isCircuitBreakerOpen()) {
+      return { acquired: false, error: 'Redis unavailable — call scheduling paused for safety' };
+    }
+    // First few failures: fail open to avoid blocking business during brief blips
     return { acquired: true };
   }
 }

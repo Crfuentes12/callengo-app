@@ -76,6 +76,8 @@ export async function middleware(request: NextRequest) {
     '/api/integrations/outlook/callback',
     '/api/integrations/slack/callback',
     '/api/integrations/simplybook/webhook', // SimplyBook webhook
+    '/api/queue/',                         // Cron-triggered queue processing — has its own secret-based auth
+    '/api/health',                         // Health check endpoint (no auth needed)
   ];
 
   if (pathname.startsWith('/api/')) {
@@ -109,12 +111,43 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/verify-email?email=' + encodeURIComponent(user.email || ''), request.url));
     }
 
-    // Email is verified, check onboarding status
-    const { data: userData } = await supabase
-      .from('users')
-      .select('company_id')
-      .eq('id', user.id)
-      .maybeSingle();
+    // Email is verified, check onboarding status (and role for admin routes).
+    // Use cached cookie to avoid DB query on every protected page navigation.
+    const cachedUserData = request.cookies.get('x-user-meta')?.value;
+    let userData: { company_id: string | null; role: string | null } | null = null;
+
+    if (cachedUserData) {
+      try {
+        userData = JSON.parse(cachedUserData);
+      } catch { /* invalid cookie, will re-fetch */ }
+    }
+
+    if (!userData) {
+      const { data: freshUserData } = await supabase
+        .from('users')
+        .select('company_id, role')
+        .eq('id', user.id)
+        .maybeSingle();
+      userData = freshUserData;
+      // Cache for 5 minutes to reduce DB queries on subsequent navigations
+      if (freshUserData) {
+        supabaseResponse.cookies.set('x-user-meta', JSON.stringify({
+          company_id: freshUserData.company_id,
+          role: freshUserData.role,
+        }), {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 300, // 5 minutes
+          path: '/',
+        });
+      }
+    }
+
+    // Admin routes require admin role — defense-in-depth
+    if (pathname.startsWith('/admin') && userData?.role !== 'admin') {
+      return NextResponse.redirect(new URL('/home', request.url));
+    }
 
     if (!userData?.company_id && pathname !== '/onboarding') {
       // User hasn't completed onboarding - redirect there

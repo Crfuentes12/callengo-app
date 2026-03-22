@@ -67,6 +67,7 @@ export async function exchangePipedriveCode(code: string): Promise<PipedriveToke
       Authorization: `Basic ${basicAuth}`,
     },
     body: body.toString(),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -86,6 +87,7 @@ export async function getPipedriveUserInfo(
 ): Promise<PipedriveUserInfo> {
   const res = await fetch(`${apiDomain}/api/v1/users/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -144,6 +146,7 @@ export async function refreshPipedriveToken(
       Authorization: `Basic ${basicAuth}`,
     },
     body: body.toString(),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
