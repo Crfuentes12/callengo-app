@@ -2,7 +2,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useTranslation } from '@/i18n';
 import CallDetailModal from '@/components/calls/CallDetailModal';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';

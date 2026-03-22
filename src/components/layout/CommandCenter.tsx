@@ -1,7 +1,7 @@
 // components/layout/CommandCenter.tsx
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslation } from '@/i18n';
@@ -374,7 +374,7 @@ const HELP_RESOURCES: SearchResult[] = [
   { id: 'h-compliance',    type: 'resource', title: 'Compliance',             subtitle: 'Regulatory & compliance info',              href: 'https://callengo.com/compliance', icon: <IconShield />,   external: true },
 ];
 
-const ALL_STATIC = [...PAGES, ...ACTIONS, ...INTEGRATIONS, ...SETTINGS, ...HELP_RESOURCES];
+const _ALL_STATIC = [...PAGES, ...ACTIONS, ...INTEGRATIONS, ...SETTINGS, ...HELP_RESOURCES];
 
 const TYPE_PILL: Record<string, string> = {
   page:        'bg-[var(--color-info-50)] text-[var(--color-info-600)]',
@@ -523,14 +523,14 @@ export default function CommandCenter({ isOpen, onClose, companyId }: CommandCen
   const filteredSettings = filterStatic(SETTINGS);
   const filteredHelp = filterStatic(HELP_RESOURCES);
 
-  const allResults = [
+  const allResults = useMemo(() => [
     ...filteredPages,
     ...filteredActions,
     ...filteredIntegrations,
     ...filteredSettings,
     ...dbResults,
     ...filteredHelp,
-  ];
+  ], [filteredPages, filteredActions, filteredIntegrations, filteredSettings, dbResults, filteredHelp]);
 
   // Navigate to result
   const navigateToResult = useCallback((result: SearchResult) => {

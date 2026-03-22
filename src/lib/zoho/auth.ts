@@ -30,7 +30,8 @@ export function getZohoConfig() {
 // Zoho OAuth URLs — use accounts.zoho.com for global
 const ZOHO_AUTH_URL = 'https://accounts.zoho.com/oauth/v2/auth';
 const ZOHO_TOKEN_URL = 'https://accounts.zoho.com/oauth/v2/token';
-const ZOHO_API_URL = 'https://www.zohoapis.com/crm/v5';
+ 
+const _ZOHO_API_URL = 'https://www.zohoapis.com/crm/v5';
 
 const SCOPES = [
   'ZohoCRM.modules.ALL',

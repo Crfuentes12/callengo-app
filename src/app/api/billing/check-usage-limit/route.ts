@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
 /**
  * GET endpoint to retrieve usage limit information
  */
-export async function GET(req: NextRequest) {
+ 
+export async function GET(_req: NextRequest) {
   try {
     const supabase = await createServerClient();
 

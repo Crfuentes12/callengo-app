@@ -1,17 +1,15 @@
 // components/settings/SettingsManager.tsx
 'use client';
 
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@/types/supabase';
 import BillingSettings from './BillingSettings';
 import CallSettings from './CallSettings';
 import NotificationSettings from './NotificationSettings';
-import VoiceSelector from '@/components/voice/VoiceSelector';
 import { useTranslation, useLanguage } from '@/i18n';
 import LanguageSelector from '@/components/LanguageSelector';
-import type { SupportedLanguage } from '@/i18n/translations';
 import { settingsEvents, navigationEvents } from '@/lib/analytics';
 import { phSettingsEvents, phNavigationEvents, phSecurityEvents } from '@/lib/posthog';
 
@@ -50,13 +48,13 @@ export default function SettingsManager({ company: initialCompany, settings: ini
   const [profileSuccess, setProfileSuccess] = useState('');
 
   // Password state
-  const [currentPassword, setCurrentPassword] = useState('');
+  const [_currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
-  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [_showCurrentPw, _setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
 
   // 2FA state
@@ -74,6 +72,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
     if (activeTab === 'general') {
       loadMfaFactors();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMfaFactors is stable
   }, [activeTab]);
 
   const loadMfaFactors = async () => {
@@ -305,7 +304,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       setTimeout(() => {
         window.location.reload();
       }, 500);
-    } catch (error) {
+    } catch {
       alert(t.settings.company.updateError);
     } finally {
       setLoading(false);
@@ -340,7 +339,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       setFaviconTimestamp(Date.now()); // Force favicon refresh
 
       setSuccess(t.settings.company.analyzeSuccess);
-    } catch (error) {
+    } catch {
       alert(t.settings.company.analyzeError);
     } finally {
       setLoading(false);
@@ -387,7 +386,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
       if (error) throw error;
 
       setSuccess(t.settings.calling.success);
-    } catch (error) {
+    } catch {
       alert(t.settings.calling.error);
     } finally {
       setLoading(false);
@@ -447,6 +446,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                   <div className="relative group">
                     <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm border border-[var(--border-default)] shadow-md">
                       {company.favicon_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element -- Dynamic user-uploaded image URL */
                         <img
                           key={`${company.favicon_url}-${faviconTimestamp}`}
                           src={`${company.favicon_url}${company.favicon_url.includes('?') ? '&' : '?'}t=${faviconTimestamp}`}
@@ -795,6 +795,7 @@ export default function SettingsManager({ company: initialCompany, settings: ini
                       <p className="text-xs text-[var(--color-neutral-600)]">Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password…)</p>
                       <div className="flex flex-col sm:flex-row gap-5 items-start">
                         <div className="bg-white border border-[var(--border-default)] rounded-xl p-3 shadow-sm flex-shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- Data URI QR code */}
                           <img
                             src={mfaEnrollData.qrCode}
                             alt="2FA QR Code"

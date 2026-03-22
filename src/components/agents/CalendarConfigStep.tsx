@@ -1,7 +1,7 @@
 // components/agents/CalendarConfigStep.tsx
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BiLogoZoom } from 'react-icons/bi';
 import { GoogleCalendarIcon, OutlookIcon, GoogleMeetIcon, TeamsIcon, SlackIcon } from '@/components/icons/BrandIcons';
 import { createClient } from '@/lib/supabase/client';
@@ -290,10 +290,13 @@ export default function CalendarConfigStep({
   agentType,
   config,
   onConfigChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   gradientColor,
   planSlug: propPlanSlug = 'free',
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   companySettings,
 }: CalendarConfigStepProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { t } = useTranslation();
   const [integrations, setIntegrations] = useState<IntegrationStatuses>({
     google_calendar: { connected: false },
@@ -384,6 +387,7 @@ export default function CalendarConfigStep({
   // Fetch integration statuses
   useEffect(() => {
     fetchIntegrationStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchIntegrationStatus is stable, only re-run when companyId changes
   }, [companyId]);
 
   const fetchIntegrationStatus = async () => {

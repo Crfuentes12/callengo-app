@@ -113,7 +113,9 @@ function getContactName(c: HSContact): string {
 // ============================================================================
 
 export default function HubSpotContactsPage({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   companyId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planSlug,
   hsConnected,
   hsIntegration,

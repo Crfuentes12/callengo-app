@@ -135,7 +135,8 @@ Be accurate and avoid false positives. Only classify as "confirmed" if there's c
 
 export async function analyzeLeadQualificationIntent(
   transcript: string,
-  metadata?: Record<string, unknown>
+   
+  _metadata?: Record<string, unknown>
 ): Promise<LeadQualificationResult> {
   const prompt = `You are analyzing a call transcript from a lead qualification AI agent. The agent called a potential lead to qualify them using the BANT framework (Budget, Authority, Need, Timeline).
 

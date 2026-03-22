@@ -12,11 +12,9 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import {
   createCalendarEvent,
   updateCalendarEvent,
-  cancelCalendarEvent,
   rescheduleAppointment,
   confirmAppointment,
   markEventNoShow,
-  createAgentFollowUp,
   createAgentCallback,
 } from './sync';
 import { getNextAvailableSlot } from './availability';

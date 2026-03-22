@@ -37,7 +37,7 @@ interface ReportsPageProps {
   companyId: string;
 }
 
-export default function ReportsPage({ campaigns, callStats, contacts, companyId }: ReportsPageProps) {
+export default function ReportsPage({ campaigns, callStats, contacts, companyId: _companyId }: ReportsPageProps) {
   const { t } = useTranslation();
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
 

@@ -79,7 +79,7 @@ export default function OnboardingWizardModal({
     onComplete();
   };
 
-  const handleAgentTestComplete = async (callData: unknown) => {
+  const handleAgentTestComplete = async (_callData: unknown) => {
     onboardingEvents.stepCompleted('agent_test', 3);
     phOnboardingEvents.stepCompleted('agent_test', 3);
     onboardingEvents.completed();

@@ -33,7 +33,7 @@ function DynamicsLogo({ className = 'w-5 h-5' }: { className?: string }) {
 }
 
 export default function DynamicsOrgMembers({
-  companyId,
+  companyId: _companyId,
   planSlug,
   dynamicsConnected,
 }: DynamicsOrgMembersProps) {

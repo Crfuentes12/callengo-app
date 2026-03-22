@@ -1,7 +1,6 @@
 // components/layout/Layout.tsx
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -30,7 +29,6 @@ export default function Layout({
   headerSubtitle,
   headerActions,
 }: LayoutProps) {
-  const router = useRouter();
   const supabase = createClient();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);

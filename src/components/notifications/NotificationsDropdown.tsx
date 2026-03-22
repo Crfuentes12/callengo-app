@@ -206,6 +206,7 @@ export default function NotificationsDropdown({ companyId, userId }: Notificatio
     return () => {
       supabase.removeChannel(channel);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchNotifications and supabase are stable
   }, [companyId, userId, tableExists]);
 
   // Don't render if table doesn't exist

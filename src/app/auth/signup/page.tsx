@@ -37,7 +37,8 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '', fullName: '' });
-  const [recaptchaReady, setRecaptchaReady] = useState(!RECAPTCHA_SITE_KEY); // true if no key (dev mode)
+   
+  const [_recaptchaReady, setRecaptchaReady] = useState(!RECAPTCHA_SITE_KEY); // true if no key (dev mode)
 
   const strength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
   const passwordsMatch = formData.confirmPassword.length === 0 || formData.password === formData.confirmPassword;

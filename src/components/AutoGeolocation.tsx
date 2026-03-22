@@ -23,7 +23,7 @@ export function AutoGeolocation() {
         });
 
         // Silently succeed or fail - no user interaction needed
-      } catch (error) {
+      } catch {
         // Silently fail - no need to alert user
         console.debug('[AutoGeolocation] Location update skipped');
       }

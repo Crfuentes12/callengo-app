@@ -4,6 +4,7 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
 function LoginForm() {
@@ -51,7 +52,7 @@ function LoginForm() {
         <div className="text-center mb-8">
           {/* Logo/Icon */}
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-bg mb-6 shadow-md">
-            <img src="/callengo-logo-white.svg" alt="Callengo" className="w-10 h-10" />
+            <Image src="/callengo-logo-white.svg" alt="Callengo" width={40} height={40} className="w-10 h-10" />
           </div>
           <h1 className="text-4xl font-bold text-[var(--color-ink)] mb-3 tracking-tight">Welcome back</h1>
           <p className="text-[var(--color-neutral-500)] text-lg">Sign in to continue to Callengo</p>

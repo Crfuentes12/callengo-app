@@ -6,8 +6,8 @@ import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import { Redis } from '@upstash/redis';
 import { CAMPAIGN_FEATURE_ACCESS } from '@/config/plan-features';
-import { getBlandAccountInfo, BLAND_COST_PER_MINUTE } from '@/lib/bland/master-client';
-import { getConcurrencySnapshot, getBlandLimits, KEYS, REDIS_AVAILABLE } from '@/lib/redis/concurrency-manager';
+import { getBlandAccountInfo } from '@/lib/bland/master-client';
+import { getConcurrencySnapshot, getBlandLimits, REDIS_AVAILABLE } from '@/lib/redis/concurrency-manager';
 
 const redis = process.env.UPSTASH_REDIS_REST_URL
   ? new Redis({
@@ -159,7 +159,6 @@ async function getRedisState() {
 // ================================================================
 async function getCompanyBreakdown() {
   // Use supabaseAdminRaw to avoid type issues with addon columns
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: subscriptions } = await supabaseAdminRaw
     .from('company_subscriptions')
     .select(`

@@ -376,7 +376,8 @@ async function processUsagePostUpdate(
 /**
  * GET endpoint to retrieve current usage
  */
-export async function GET(req: NextRequest) {
+ 
+export async function GET(_req: NextRequest) {
   try {
     const supabase = await createServerClient();
 

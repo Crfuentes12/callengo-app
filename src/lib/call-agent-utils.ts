@@ -1,5 +1,4 @@
 // lib/call-agent-utils.ts
-import { v4 as uuidv4 } from 'uuid';
 import {
   Contact,
   ContactStatus,
@@ -10,7 +9,6 @@ import {
   DashboardStats,
   VoiceId,
   VoiceConfig,
-  CallCategory,
 } from '@/types/call-agent';
 
 export const VOICE_CONFIGS: Record<VoiceId, VoiceConfig> = {

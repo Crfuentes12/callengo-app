@@ -70,11 +70,12 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
   const phoneNumbersRef = useRef<HTMLDivElement>(null);
 
   // Phone Number Management State
-  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
-  const [loadingPhones, setLoadingPhones] = useState(false);
+  const [_phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
+  const [_loadingPhones, setLoadingPhones] = useState(false);
 
   useEffect(() => {
     loadPlanAndUsage();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPlanAndUsage is stable
   }, [companyId]);
 
   useEffect(() => {
@@ -89,12 +90,14 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
     if (plan && (!settings.default_max_duration || settings.default_max_duration > plan.max_call_duration)) {
       onSettingsChange({ ...settings, default_max_duration: plan.max_call_duration });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to plan changes
   }, [plan]);
 
   useEffect(() => {
     if (companyId) {
       loadPhoneNumbers();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPhoneNumbers is stable
   }, [companyId]);
 
   const loadPlanAndUsage = async () => {
@@ -207,7 +210,7 @@ export default function CallSettings({ settings, onSettingsChange, onSubmit, loa
     }
   };
 
-  const savePhoneNumbers = async (numbers: PhoneNumber[]) => {
+  const _savePhoneNumbers = async (numbers: PhoneNumber[]) => {
     try {
       const { data: currentSettings } = await supabase
         .from('company_settings')

@@ -42,6 +42,7 @@ const COUNTRY_TO_LANGUAGE: Record<string, SupportedLanguage> = {
  */
 export function detectLanguageFromGeo(
   countryCode: string,
+   
   _region?: string
 ): SupportedLanguage {
   const country = countryCode.toUpperCase();

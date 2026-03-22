@@ -11,6 +11,7 @@ import {
   resetStaleConcurrency,
   REDIS_AVAILABLE,
 } from '@/lib/redis/concurrency-manager';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for future use
 import { getCompanyNumbers } from '@/lib/bland/phone-numbers';
 
 export async function GET() {

@@ -107,7 +107,9 @@ function ClioLogo({ className = 'w-5 h-5' }: { className?: string }) {
 // ============================================================================
 
 export default function ClioContactsPage({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   companyId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planSlug,
   clioConnected,
   clioIntegration,

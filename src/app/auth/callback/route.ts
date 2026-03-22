@@ -10,7 +10,8 @@ import { syncUserToHubSpot } from '@/lib/hubspot-user-sync';
  * Validate redirect_to parameter to prevent open redirects.
  * Only allows relative paths starting with '/'.
  */
-function safeRedirectUrl(redirectTo: string | null, origin: string): string {
+ 
+function _safeRedirectUrl(redirectTo: string | null, origin: string): string {
   if (!redirectTo) return `${origin}/home`;
   // Only allow relative paths (no protocol, no double slashes, no backslashes)
   if (redirectTo.startsWith('/') && !redirectTo.startsWith('//') && !redirectTo.includes('\\')) {

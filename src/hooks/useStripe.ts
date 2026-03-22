@@ -8,7 +8,8 @@ import { billingEvents } from '@/lib/analytics';
 import { phBillingEvents } from '@/lib/posthog';
 
 // Initialize Stripe
-const stripePromise = loadStripe(
+ 
+const _stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 

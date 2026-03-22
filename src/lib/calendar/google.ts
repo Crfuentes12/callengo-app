@@ -6,7 +6,6 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import type {
   CalendarIntegration,
   CalendarEvent,
-  GoogleCalendarEvent,
   GoogleTokenResponse,
 } from '@/types/calendar';
 import { getAppUrl } from '@/lib/config';

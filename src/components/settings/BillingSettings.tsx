@@ -180,6 +180,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
       if (attempts >= maxAttempts) clearInterval(pollInterval);
     }, 2000);
     return () => clearInterval(pollInterval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable per render cycle
   }, [searchParams, companyId]);
 
   const handleChangePlan = async (planId: string) => {
@@ -397,7 +398,7 @@ export default function BillingSettings({ companyId }: BillingSettingsProps) {
   //  PAID PLAN VIEW — Management + upgrade options
   // ══════════════════════════════════════════════════
   if (isPaidPlan && subscription) {
-    const planFeatures = getTranslatedFeatures(currentPlan.slug);
+    const _planFeatures = getTranslatedFeatures(currentPlan.slug);
 
     return (
       <div className="space-y-6">

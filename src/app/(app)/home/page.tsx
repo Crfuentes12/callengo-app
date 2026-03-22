@@ -26,7 +26,8 @@ export default async function HomePageRoute() {
     callsCountRes,
     agentsRes,
     integrationsRes,
-    calendarEventsRes,
+     
+    _calendarEventsRes,
     usageRes,
   ] = await Promise.all([
     supabase.from('companies').select('*').eq('id', companyId).single(),

@@ -23,7 +23,7 @@ interface HubSpotOrgMembersProps {
 }
 
 export default function HubSpotOrgMembers({
-  companyId,
+  companyId: _companyId,
   planSlug,
   hsConnected,
 }: HubSpotOrgMembersProps) {

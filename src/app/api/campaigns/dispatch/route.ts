@@ -171,7 +171,6 @@ export async function POST(request: NextRequest) {
 
         // Dispatch via master API key — wrapped in try-finally to guarantee slot release on ANY exception
         let dispatchSuccess = false;
-        let dispatchCallId: string | undefined;
         try {
           const result = await dispatchCall({
             phone_number: contact.phone_number,
@@ -199,7 +198,6 @@ export async function POST(request: NextRequest) {
 
           if (result.success && result.callId) {
             dispatchSuccess = true;
-            dispatchCallId = result.callId;
             // Update pre-registered call_log with real call_id — must succeed to maintain consistency
             if (preLog?.id) {
               const { error: linkError } = await supabaseAdmin.from('call_logs')

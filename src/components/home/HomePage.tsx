@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/i18n';
 import OnboardingWizardModal from '@/components/onboarding/OnboardingWizardModal';
@@ -113,15 +113,8 @@ export default function HomePage({ userName, companyId, companyName, completedTa
   const { t } = useTranslation();
   const [videoModal, setVideoModal] = useState<{ title: string; videoId: string } | null>(null);
   const [showAllTasks, setShowAllTasks] = useState(false);
-  const [showOnboardingWizard, setShowOnboardingWizard] = useState(false);
+  const [showOnboardingWizard, setShowOnboardingWizard] = useState(!onboardingWizardCompleted);
   const [wizardCompleted, setWizardCompleted] = useState(onboardingWizardCompleted);
-
-  // Auto-open the onboarding wizard modal if not completed
-  useEffect(() => {
-    if (!onboardingWizardCompleted) {
-      setShowOnboardingWizard(true);
-    }
-  }, [onboardingWizardCompleted]);
 
   const handleOnboardingComplete = () => {
     setShowOnboardingWizard(false);
@@ -396,6 +389,7 @@ export default function HomePage({ userName, companyId, companyName, completedTa
               className="bg-white border border-[var(--border-default)] rounded-xl overflow-hidden hover:shadow-md hover:border-[var(--color-primary-200)] transition-all group text-left"
             >
               <div className="relative aspect-video bg-[var(--color-neutral-100)]">
+                {/* eslint-disable-next-line @next/next/no-img-element -- External YouTube thumbnail with dynamic URL */}
                 <img
                   src={`https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`}
                   alt={video.title}

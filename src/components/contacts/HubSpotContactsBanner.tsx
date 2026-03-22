@@ -11,6 +11,7 @@ interface HubSpotContactsBannerProps {
 }
 
 export default function HubSpotContactsBanner({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planSlug,
   hasHubSpotAccess,
   hsConnected,

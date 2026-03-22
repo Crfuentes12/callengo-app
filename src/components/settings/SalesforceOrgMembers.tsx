@@ -25,7 +25,7 @@ interface SalesforceOrgMembersProps {
 }
 
 export default function SalesforceOrgMembers({
-  companyId,
+  companyId: _companyId,
   planSlug,
   sfConnected,
 }: SalesforceOrgMembersProps) {

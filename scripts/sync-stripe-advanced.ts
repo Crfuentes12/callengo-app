@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Advanced Stripe Synchronization Script
  *
@@ -94,13 +95,8 @@ const COUPONS_CONFIG = [
   },
 ];
 
-// Tax configuration (US sales tax example)
-const TAX_CONFIG = {
-  US: {
-    code: 'txcd_10000000', // Standard digital services
-    inclusive: false,
-  },
-};
+// Tax configuration (US sales tax example) - kept for future use
+// const TAX_CONFIG = { US: { code: 'txcd_10000000', inclusive: false } };
 
 // Enhanced product descriptions
 const PRODUCT_DESCRIPTIONS = {
@@ -242,7 +238,7 @@ async function syncCoupons() {
       try {
         existingCoupon = await stripe.coupons.retrieve(couponConfig.id);
         log(`    Found existing coupon`, 'info');
-      } catch (error) {
+      } catch {
         // Coupon doesn't exist, will create
       }
 
@@ -282,13 +278,15 @@ async function syncCoupons() {
             max_redemptions: couponConfig.max_redemptions,
           } as any);
           log(`    ✅ Promotion code created: ${promoCode.code}`, 'success');
-        } catch (promoError: any) {
+        } catch (promoError: unknown) {
           // Promotion code likely already exists
-          if (promoError.code === 'resource_already_exists' || promoError.message?.includes('already exists')) {
+          const errMsg = promoError instanceof Error ? promoError.message : String(promoError);
+          const errCode = (promoError as Record<string, unknown>)?.code;
+          if (errCode === 'resource_already_exists' || errMsg.includes('already exists')) {
             log(`    ℹ️  Promotion code already exists`, 'info');
           } else {
             // Log other errors but don't fail the whole sync
-            logVerbose(`    Note: Could not create promotion code: ${promoError.message}`);
+            logVerbose(`    Note: Could not create promotion code: ${errMsg}`);
           }
         }
       }
@@ -348,7 +346,7 @@ async function syncSinglePlan(plan: any) {
   let productId = plan.stripe_product_id;
   let priceIdMonthly = plan.stripe_price_id_monthly;
   let priceIdAnnual = plan.stripe_price_id_annual;
-  let priceIdMetered = plan.stripe_metered_price_id;
+  const priceIdMetered = plan.stripe_metered_price_id;
 
   const productDesc = PRODUCT_DESCRIPTIONS[plan.slug as keyof typeof PRODUCT_DESCRIPTIONS];
 
@@ -431,7 +429,7 @@ async function syncSinglePlan(plan: any) {
             limit: 100,
           } as any);
           feature = existingFeatures.data.find((f: any) => f.lookup_key === featureLookupKey);
-        } catch (err) {
+        } catch {
           // Feature doesn't exist
         }
 
@@ -465,13 +463,14 @@ async function syncSinglePlan(plan: any) {
             } as any);
             logVerbose(`     ✅ Attached feature to product: ${featureName}`);
           }
-        } catch (attachErr: any) {
-          if (!attachErr.message?.includes('already attached')) {
-            logVerbose(`     Note: Could not attach feature: ${attachErr.message}`);
+        } catch (attachErr: unknown) {
+          const errMsg = attachErr instanceof Error ? attachErr.message : String(attachErr);
+          if (!errMsg.includes('already attached')) {
+            logVerbose(`     Note: Could not attach feature: ${errMsg}`);
           }
         }
-      } catch (error: any) {
-        logVerbose(`     Warning: Could not process feature "${featureName}": ${error.message}`);
+      } catch (error: unknown) {
+        logVerbose(`     Warning: Could not process feature "${featureName}": ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
@@ -532,7 +531,7 @@ async function syncSinglePlan(plan: any) {
           priceIdAnnual = null; // Force creation of new price
         }
       }
-    } catch (err) {
+    } catch {
       // Price doesn't exist or can't be retrieved
       priceIdAnnual = null;
     }

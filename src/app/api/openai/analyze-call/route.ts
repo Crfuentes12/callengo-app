@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { transcripts, agentType, demoData } = await request.json();
+     
+    const { transcripts, agentType: _agentType, demoData } = await request.json();
 
     if (!transcripts || !Array.isArray(transcripts)) {
       return NextResponse.json(

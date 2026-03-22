@@ -144,7 +144,7 @@ export function LanguageProvider({
         setIsAutoDetected(true);
       });
     }
-  }, [userCountryCode, userRegion, initialLanguage]);
+  }, [userCountryCode, userRegion, initialLanguage, language]);
 
   const setLanguage = useCallback(async (lang: SupportedLanguage) => {
     setLanguageState(lang);

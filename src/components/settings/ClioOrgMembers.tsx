@@ -27,7 +27,7 @@ function ClioLogo({ className = 'w-5 h-5' }: { className?: string }) {
 }
 
 export default function ClioOrgMembers({
-  companyId,
+  companyId: _companyId,
   planSlug,
   clioConnected,
 }: ClioOrgMembersProps) {

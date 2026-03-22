@@ -30,21 +30,6 @@ const supabase = createClient<Database>(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-interface SubscriptionPlan {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  price_monthly: number;
-  price_annual: number;
-  minutes_included: number;
-  max_users: number;
-  features: any;
-  stripe_product_id?: string | null;
-  stripe_price_id_monthly?: string | null;
-  stripe_price_id_annual?: string | null;
-}
-
 async function syncPlansToStripe() {
   console.log('🚀 Starting Stripe plans synchronization...\n');
 

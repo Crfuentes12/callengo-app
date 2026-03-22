@@ -319,7 +319,6 @@ export async function assignNumberToCompany(
     return { success: false, error: 'This number is already assigned to your company' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: addon, error } = await supabaseAdminRaw
     .from('company_addons')
     .insert({
@@ -331,7 +330,7 @@ export async function assignNumberToCompany(
       quantity: 1,
       stripe_subscription_id: stripeSubscriptionId || null,
       ...(label ? { number_label: label } : {}),
-    } as any)
+    } as Record<string, unknown>)
     .select('id')
     .single();
 
@@ -343,11 +342,10 @@ export async function assignNumberToCompany(
   // Update the addon flag on company_subscriptions
   await supabaseAdminRaw
     .from('company_subscriptions')
-    .update({ addon_dedicated_number: true } as any)
+    .update({ addon_dedicated_number: true } as Record<string, unknown>)
     .eq('company_id', companyId);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { success: true, addonId: (addon as any)?.id };
+  return { success: true, addonId: (addon as Record<string, unknown>)?.id as string };
 }
 
 /**
@@ -375,7 +373,7 @@ export async function releaseNumberFromCompany(
   if (remaining === 0) {
     await supabaseAdminRaw
       .from('company_subscriptions')
-      .update({ addon_dedicated_number: false } as any)
+      .update({ addon_dedicated_number: false } as Record<string, unknown>)
       .eq('company_id', companyId);
   }
 

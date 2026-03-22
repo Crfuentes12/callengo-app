@@ -47,6 +47,7 @@ const providers: { id: OAuthProvider; name: string; Icon: React.FC }[] = [
   { id: 'slack_oidc', name: 'Slack', Icon: SlackIcon },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function SocialAuthButtons({ mode }: { mode: 'signin' | 'signup' }) {
   const { signInWithProvider } = useAuth();
   const { t } = useTranslation();

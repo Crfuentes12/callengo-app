@@ -269,7 +269,8 @@ export async function POST(request: NextRequest) {
 
       // Strip any existing lock fields before setting our new lock
       // This handles stale locks from crashed webhooks
-      const { _locked, _locked_at, _locked_by, _lock_call_id, _lock_expires_at: _expiry, ...cleanFields } = lockCf;
+       
+      const { _locked, _locked_at, _locked_by: __locked_by, _lock_call_id: __lock_call_id, _lock_expires_at: __expiry, ...cleanFields } = lockCf;
 
       if (_locked && _locked_at) {
         const lockAge = Date.now() - new Date(_locked_at as string).getTime();
@@ -1092,7 +1093,8 @@ export async function POST(request: NextRequest) {
           .single();
         const unlockCf = (unlockContact?.custom_fields as Record<string, unknown>) || {};
         // Remove lock fields
-        const { _locked, _locked_at, _locked_by, _lock_call_id, _lock_expires_at, ...restFields } = unlockCf;
+         
+        const { _locked: _uLocked, _locked_at: _uLockedAt, _locked_by: _uLockedBy, _lock_call_id: _uLockCallId, _lock_expires_at: _uLockExpiresAt, ...restFields } = unlockCf;
         await supabaseAdmin
           .from('contacts')
           .update({ custom_fields: JSON.parse(JSON.stringify(restFields)) })

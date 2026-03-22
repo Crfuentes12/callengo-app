@@ -72,7 +72,7 @@ export default function AgentTestExperience({
   agentTitle,
   agentDescription,
   companyId,
-  companyName,
+  companyName: _companyName,
   onComplete,
   onSkip,
 }: AgentTestExperienceProps) {
@@ -85,7 +85,7 @@ export default function AgentTestExperience({
   const [loading, setLoading] = useState(false);
   const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
   const [callDuration, setCallDuration] = useState(0);
-  const [callId, setCallId] = useState<string | null>(null);
+  const [_callId, setCallId] = useState<string | null>(null);
   const [callData, setCallData] = useState<Record<string, unknown> | null>(null);
   const [callAnalysis, setCallAnalysis] = useState<CallAnalysis | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
