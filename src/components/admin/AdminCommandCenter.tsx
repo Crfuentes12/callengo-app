@@ -205,7 +205,7 @@ interface ClientData {
   subscription: { status: string; overageEnabled: boolean; overageBudget: number | null };
   bland: { subAccountId: string | null; apiKeyMasked: string | null; creditBalance: number };
   usage: { minutesUsed: number; minutesIncluded: number; usagePercent: number; overageMinutes: number; periodStart: string | null; periodEnd: string | null };
-  economics: { totalRevenue: number; subscriptionRevenue: number; overageRevenue: number; addonRevenue: number; discountAmount: number; blandCost: number; profit: number; marginPercent: number };
+  economics: { grossRevenue: number; netRevenue: number; subscriptionRevenue: number; overageRevenue: number; addonRevenue: number; discountAmount: number; blandCost: number; profit: number; marginPercent: number };
   discount: { promoCode: string | null; couponName: string | null; percentOff: number | null; amountOff: number | null; duration: string; durationInMonths: number | null; monthlyDiscount: number } | null;
   addons: { type: string; quantity: number }[];
 }
@@ -235,6 +235,7 @@ interface ReconcileData {
 }
 
 interface FinanceData {
+  revenue_gross: number | null;
   revenue_total: number | null;
   revenue_subscriptions: number | null;
   revenue_overages: number | null;
@@ -272,7 +273,25 @@ interface FinanceData {
   [key: string]: unknown;
 }
 
-type Tab = 'health' | 'operations' | 'clients' | 'events' | 'reconcile' | 'finances' | 'promos';
+type Tab = 'health' | 'operations' | 'clients' | 'events' | 'reconcile' | 'finances' | 'promos' | 'accounting';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface AccountingData {
+  period: { start: string; end: string; label: string };
+  pnl: {
+    revenue: {
+      grossSubscriptions: number; discounts: number; netSubscriptions: number;
+      overages: number; addons: number; totalGross: number; totalNet: number;
+      byPlan: Record<string, { count: number; gross: number; net: number }>;
+    };
+    costs: { bland: number; openai: number; supabase: number; stripeProcessing: number; totalCOGS: number; totalOperating: number };
+    margins: { grossProfit: number; grossMarginPercent: number; operatingProfit: number; operatingMarginPercent: number };
+  };
+  cashFlow: { paymentsReceived: number; paymentsFailed: number; transactionCount: number };
+  discountedSubscriptions: { companyId: string; plan: string; grossAmount: number; discountAmount: number; netAmount: number; promoCode: string | null; couponName: string | null; percentOff: number | null; duration: string }[];
+  unitEconomics: { totalCompanies: number; paidCompanies: number; freeCompanies: number; totalUsers: number; arpc: number; costPerCall: number; avgMinPerCall: number; ltv: number; totalCalls: number; completedCalls: number; failedCalls: number; totalMinutes: number };
+  ledger: { date: string; type: string; category: string; description: string; debit: number; credit: number; companyId: string | null; companyName: string | null; reference: string | null }[];
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -315,6 +334,7 @@ const eventTypeLabels: Record<string, string> = {
   addon_purchased: 'Add-on Purchased',
   addon_canceled: 'Add-on Canceled',
   plan_upgrade_credits: 'Upgrade Credits',
+  promo_code_applied: 'Promo Code Applied',
 };
 
 // ─── Component ───────────────────────────────────────────────────────
@@ -337,6 +357,8 @@ export default function AdminCommandCenter() {
   const [savingBlandPlan, setSavingBlandPlan] = useState(false);
   const [promoData, setPromoData] = useState<PromoCodeData | null>(null);
   const [promoExpanded, setPromoExpanded] = useState<string | null>(null);
+  const [accountingData, setAccountingData] = useState<AccountingData | null>(null);
+  const [accountingPeriod, setAccountingPeriod] = useState('current');
 
   // Auto-refresh health data every 30 seconds
   const fetchHealth = useCallback(async () => {
@@ -497,6 +519,18 @@ export default function AdminCommandCenter() {
     }
   }, []);
 
+  const fetchAccounting = useCallback(async (p: string) => {
+    try {
+      const res = await fetch(`/api/admin/accounting?period=${p}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAccountingData(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch accounting:', e);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     const load = async () => {
@@ -520,7 +554,8 @@ export default function AdminCommandCenter() {
     if (tab === 'reconcile' && !reconcileData) fetchReconcile();
     if (tab === 'finances' && !financeData) fetchFinances(financePeriod);
     if (tab === 'promos' && !promoData) fetchPromos();
-  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, eventsFilter, financePeriod]);
+    if (tab === 'accounting' && !accountingData) fetchAccounting(accountingPeriod);
+  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, accountingData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, fetchAccounting, eventsFilter, financePeriod, accountingPeriod]);
 
   if (loading) {
     return (
@@ -635,6 +670,7 @@ export default function AdminCommandCenter() {
             { id: 'reconcile' as Tab, label: t.admin.commandCenter?.tabReconcile || 'Reconciliation' },
             { id: 'finances' as Tab, label: 'Finances' },
             { id: 'promos' as Tab, label: 'Promo Codes' },
+  { id: 'accounting' as Tab, label: 'Accounting' },
           ]).map(({ id, label }) => (
             <button
               key={id}
@@ -1229,13 +1265,23 @@ export default function AdminCommandCenter() {
                           </span>
                         </div>
                       </td>
-                      <td className="text-center py-3 px-3 font-medium text-emerald-700">${fmt(client.economics.totalRevenue)}</td>
+                      <td className="text-center py-3 px-3">
+                        <div className="flex flex-col items-center">
+                          <span className="font-medium text-emerald-700">${fmt(client.economics.grossRevenue)}</span>
+                          {client.economics.discountAmount > 0 && (
+                            <span className="text-[10px] text-[var(--color-neutral-500)]">Net: ${fmt(client.economics.netRevenue)}</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="text-center py-3 px-3">
                         {client.discount ? (
                           <div className="flex flex-col items-center">
-                            <span className="text-xs font-semibold text-orange-600">-${fmt(client.economics.discountAmount)}</span>
+                            <span className="text-xs font-semibold text-orange-600">-${fmt(client.economics.discountAmount)}/mo</span>
                             <span className="text-[10px] text-[var(--color-neutral-400)]" title={client.discount.couponName || ''}>
-                              {client.discount.promoCode || client.discount.couponName || (client.discount.percentOff ? `${client.discount.percentOff}% off` : `$${client.discount.amountOff} off`)}
+                              {client.discount.promoCode || client.discount.couponName || 'Direct'}{' '}
+                              ({client.discount.percentOff ? `${client.discount.percentOff}%` : `$${client.discount.amountOff}`}
+                              {client.discount.duration === 'repeating' && client.discount.durationInMonths ? ` · ${client.discount.durationInMonths}mo` :
+                               client.discount.duration === 'forever' ? ' · forever' : ' · once'})
                             </span>
                           </div>
                         ) : (
@@ -1267,12 +1313,12 @@ export default function AdminCommandCenter() {
           {clients.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <SummaryCard
-                label="Total Revenue"
-                value={`$${fmt(clients.reduce((s, c) => s + c.economics.totalRevenue, 0))}`}
+                label="Gross Revenue"
+                value={`$${fmt(clients.reduce((s, c) => s + c.economics.grossRevenue, 0))}`}
                 color="emerald"
               />
               <SummaryCard
-                label="Total Discounts"
+                label="Discounts"
                 value={`-$${fmt(clients.reduce((s, c) => s + c.economics.discountAmount, 0))}`}
                 color="orange"
               />
@@ -1479,11 +1525,11 @@ export default function AdminCommandCenter() {
           {(() => {
               const fd = financeData || {} as FinanceData;
               const addonRevenue = (fd.addon_revenue as number) || 0;
-              const totalRevenue = (fd.revenue_total || 0) + addonRevenue;
+              const grossRevenue = (fd.revenue_gross || fd.revenue_subscriptions || 0) + (fd.revenue_overages || 0) + addonRevenue;
+              const discountImpact = fd.total_discount_impact || 0;
+              const netRevenue = grossRevenue - discountImpact;
               const blandInfrastructureCost = (fd.bland_infrastructure_cost as number) || 0;
               const marginColor = (p: number | null) => !p ? 'text-[var(--color-neutral-600)]' : p >= 50 ? 'text-emerald-600' : p >= 35 ? 'text-amber-600' : 'text-red-600';
-              // Use healthData as fallback for Bland account info (more reliable — already synced via command-center)
-              const discountImpact = fd.total_discount_impact || 0;
               const blandBalance = fd.bland_master_balance || healthData?.blandAccount?.balance || 0;
               const blandPlan = fd.bland_plan || healthData?.blandAccount?.plan || 'Unknown';
               const blandTalkRate = fd.bland_talk_rate || healthData?.blandAccount?.costPerMinute || 0.11;
@@ -1495,13 +1541,14 @@ export default function AdminCommandCenter() {
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-5">
-                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Total Revenue</p>
-                        <p className="text-2xl font-bold text-emerald-900">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Revenue</p>
+                        <p className="text-2xl font-bold text-emerald-900">${fmt(grossRevenue)} <span className="text-sm font-normal text-emerald-600">gross</span></p>
                         <div className="mt-2 space-y-0.5 text-xs text-emerald-700">
                           <div className="flex justify-between"><span>Subscriptions</span><span>${fd.revenue_subscriptions?.toLocaleString() || 0}</span></div>
                           <div className="flex justify-between"><span>Overages</span><span>${fd.revenue_overages?.toLocaleString() || 0}</span></div>
-                          {addonRevenue > 0 && <div className="flex justify-between font-semibold"><span>Add-ons</span><span>${addonRevenue.toLocaleString()}</span></div>}
+                          {addonRevenue > 0 && <div className="flex justify-between"><span>Add-ons</span><span>${addonRevenue.toLocaleString()}</span></div>}
                           {discountImpact > 0 && <div className="flex justify-between text-orange-600 font-semibold"><span>Discounts</span><span>-${fmt(discountImpact)}</span></div>}
+                          <div className="flex justify-between font-bold border-t border-emerald-300 pt-1 mt-1"><span>Net Revenue</span><span>${fmt(netRevenue)}</span></div>
                         </div>
                       </div>
 
@@ -1934,6 +1981,306 @@ export default function AdminCommandCenter() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════
+          TAB: ACCOUNTING — P&L, Cash Flow, Ledger
+         ════════════════════════════════════════════════════════════════ */}
+      {tab === 'accounting' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-[var(--color-neutral-600)]">Full Financial Accounting — P&L, Cash Flow, Ledger</p>
+            <div className="flex gap-2 items-center">
+              <select
+                value={accountingPeriod}
+                onChange={(e) => { setAccountingPeriod(e.target.value); setAccountingData(null); fetchAccounting(e.target.value); }}
+                className="px-3 py-2 border border-[var(--border-default)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+              >
+                <option value="current">Current Month</option>
+                <option value="last_30">Last 30 Days</option>
+                <option value="last_90">Last 90 Days</option>
+                <option value="ytd">Year to Date</option>
+              </select>
+              <button
+                onClick={() => { setAccountingData(null); fetchAccounting(accountingPeriod); }}
+                className="px-3 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:opacity-90"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {!accountingData ? (
+            <div className="text-center py-12 text-[var(--color-neutral-400)]">Loading accounting data...</div>
+          ) : (() => {
+            const { pnl, cashFlow, discountedSubscriptions: discSubs, unitEconomics: ue, ledger: ledgerData } = accountingData;
+            const marginColor = (p: number) => p >= 50 ? 'text-emerald-600' : p >= 20 ? 'text-amber-600' : 'text-red-600';
+
+            return (
+              <>
+                {/* ─── P&L STATEMENT ─── */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                  <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4">
+                    <h3 className="text-white font-bold text-sm uppercase tracking-wide">Profit & Loss Statement</h3>
+                    <p className="text-slate-300 text-xs mt-1">
+                      {new Date(accountingData.period.start).toLocaleDateString()} — {new Date(accountingData.period.end).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="p-6">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-[var(--border-default)]">
+                          <th className="text-left py-2 font-bold text-[var(--color-neutral-700)]">Line Item</th>
+                          <th className="text-right py-2 font-bold text-[var(--color-neutral-700)]">Amount</th>
+                          <th className="text-right py-2 font-bold text-[var(--color-neutral-700)]">% of Net Rev</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* REVENUE */}
+                        <tr className="bg-emerald-50"><td colSpan={3} className="py-2 px-2 font-bold text-emerald-800 uppercase text-xs tracking-wide">Revenue</td></tr>
+                        <tr className="border-b border-[var(--border-default)]">
+                          <td className="py-2 pl-6">Gross Subscription Revenue (MRR)</td>
+                          <td className="text-right py-2 font-medium">${fmt(pnl.revenue.grossSubscriptions)}</td>
+                          <td className="text-right py-2 text-[var(--color-neutral-400)]">—</td>
+                        </tr>
+                        {pnl.revenue.discounts > 0 && (
+                          <tr className="border-b border-[var(--border-default)] text-orange-600">
+                            <td className="py-2 pl-6">Less: Discounts & Promo Codes</td>
+                            <td className="text-right py-2 font-medium">-${fmt(pnl.revenue.discounts)}</td>
+                            <td className="text-right py-2">-{pnl.revenue.totalNet > 0 ? Math.round((pnl.revenue.discounts / pnl.revenue.totalNet) * 100) : 0}%</td>
+                          </tr>
+                        )}
+                        <tr className="border-b border-[var(--border-default)] font-semibold">
+                          <td className="py-2 pl-6">Net Subscription Revenue</td>
+                          <td className="text-right py-2">${fmt(pnl.revenue.netSubscriptions)}</td>
+                          <td className="text-right py-2">{pnl.revenue.totalNet > 0 ? Math.round((pnl.revenue.netSubscriptions / pnl.revenue.totalNet) * 100) : 0}%</td>
+                        </tr>
+                        <tr className="border-b border-[var(--border-default)]">
+                          <td className="py-2 pl-6">Overage Revenue</td>
+                          <td className="text-right py-2">${fmt(pnl.revenue.overages)}</td>
+                          <td className="text-right py-2 text-[var(--color-neutral-400)]">{pnl.revenue.totalNet > 0 ? Math.round((pnl.revenue.overages / pnl.revenue.totalNet) * 100) : 0}%</td>
+                        </tr>
+                        {pnl.revenue.addons > 0 && (
+                          <tr className="border-b border-[var(--border-default)]">
+                            <td className="py-2 pl-6">Add-on Revenue</td>
+                            <td className="text-right py-2">${fmt(pnl.revenue.addons)}</td>
+                            <td className="text-right py-2 text-[var(--color-neutral-400)]">{pnl.revenue.totalNet > 0 ? Math.round((pnl.revenue.addons / pnl.revenue.totalNet) * 100) : 0}%</td>
+                          </tr>
+                        )}
+                        <tr className="border-b-2 border-emerald-300 bg-emerald-50 font-bold">
+                          <td className="py-3 pl-4 text-emerald-800">Total Net Revenue</td>
+                          <td className="text-right py-3 text-emerald-800">${fmt(pnl.revenue.totalNet)}</td>
+                          <td className="text-right py-3 text-emerald-600">100%</td>
+                        </tr>
+
+                        {/* COSTS */}
+                        <tr className="bg-red-50"><td colSpan={3} className="py-2 px-2 font-bold text-red-800 uppercase text-xs tracking-wide mt-2">Cost of Goods Sold (COGS)</td></tr>
+                        <tr className="border-b border-[var(--border-default)]">
+                          <td className="py-2 pl-6">Bland AI (Voice & Telephony)</td>
+                          <td className="text-right py-2 text-red-600">${fmt(pnl.costs.bland)}</td>
+                          <td className="text-right py-2 text-[var(--color-neutral-400)]">{pnl.revenue.totalNet > 0 ? Math.round((pnl.costs.bland / pnl.revenue.totalNet) * 100) : 0}%</td>
+                        </tr>
+                        {pnl.costs.openai > 0 && (
+                          <tr className="border-b border-[var(--border-default)]">
+                            <td className="py-2 pl-6">OpenAI (Analysis)</td>
+                            <td className="text-right py-2 text-red-600">${fmt(pnl.costs.openai)}</td>
+                            <td className="text-right py-2 text-[var(--color-neutral-400)]">{pnl.revenue.totalNet > 0 ? Math.round((pnl.costs.openai / pnl.revenue.totalNet) * 100) : 0}%</td>
+                          </tr>
+                        )}
+                        <tr className="border-b-2 border-red-300 bg-red-50 font-bold">
+                          <td className="py-3 pl-4 text-red-800">Total COGS</td>
+                          <td className="text-right py-3 text-red-800">${fmt(pnl.costs.totalCOGS)}</td>
+                          <td className="text-right py-3 text-red-600">{pnl.revenue.totalNet > 0 ? Math.round((pnl.costs.totalCOGS / pnl.revenue.totalNet) * 100) : 0}%</td>
+                        </tr>
+
+                        {/* GROSS PROFIT */}
+                        <tr className="bg-blue-50 font-bold text-lg">
+                          <td className="py-3 pl-4 text-blue-800">Gross Profit</td>
+                          <td className="text-right py-3 text-blue-800">${fmt(pnl.margins.grossProfit)}</td>
+                          <td className={`text-right py-3 font-bold ${marginColor(pnl.margins.grossMarginPercent)}`}>{pnl.margins.grossMarginPercent}%</td>
+                        </tr>
+
+                        {/* OPERATING EXPENSES */}
+                        <tr className="bg-amber-50"><td colSpan={3} className="py-2 px-2 font-bold text-amber-800 uppercase text-xs tracking-wide">Operating Expenses</td></tr>
+                        <tr className="border-b border-[var(--border-default)]">
+                          <td className="py-2 pl-6">Stripe Processing (~2.9% + $0.30/txn)</td>
+                          <td className="text-right py-2 text-amber-700">${fmt(pnl.costs.stripeProcessing)}</td>
+                          <td className="text-right py-2 text-[var(--color-neutral-400)]">{pnl.revenue.totalNet > 0 ? Math.round((pnl.costs.stripeProcessing / pnl.revenue.totalNet) * 100) : 0}%</td>
+                        </tr>
+
+                        {/* OPERATING PROFIT */}
+                        <tr className="bg-violet-50 font-bold text-lg border-t-2 border-violet-300">
+                          <td className="py-3 pl-4 text-violet-800">Operating Profit (EBITDA)</td>
+                          <td className="text-right py-3 text-violet-800">${fmt(pnl.margins.operatingProfit)}</td>
+                          <td className={`text-right py-3 font-bold ${marginColor(pnl.margins.operatingMarginPercent)}`}>{pnl.margins.operatingMarginPercent}%</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* ─── REVENUE BY PLAN ─── */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Revenue Breakdown by Plan</h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--border-default)]">
+                        <th className="text-left py-2 font-semibold">Plan</th>
+                        <th className="text-center py-2 font-semibold">Subscribers</th>
+                        <th className="text-right py-2 font-semibold">Gross MRR</th>
+                        <th className="text-right py-2 font-semibold">Net MRR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(pnl.revenue.byPlan).map(([slug, data]) => (
+                        <tr key={slug} className="border-b border-[var(--border-default)]">
+                          <td className="py-2 capitalize font-medium">{slug}</td>
+                          <td className="text-center py-2">{data.count}</td>
+                          <td className="text-right py-2">${fmt(data.gross)}</td>
+                          <td className="text-right py-2 font-semibold">${fmt(data.net)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* ─── DISCOUNTED SUBSCRIPTIONS ─── */}
+                {discSubs.length > 0 && (
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">
+                      Active Discounted Subscriptions ({discSubs.length})
+                    </h3>
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-[var(--border-default)]">
+                          <th className="text-left py-2 font-semibold">Company</th>
+                          <th className="text-center py-2 font-semibold">Plan</th>
+                          <th className="text-center py-2 font-semibold">Promo / Coupon</th>
+                          <th className="text-right py-2 font-semibold">Gross</th>
+                          <th className="text-right py-2 font-semibold text-orange-600">Discount</th>
+                          <th className="text-right py-2 font-semibold">Net</th>
+                          <th className="text-center py-2 font-semibold">Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {discSubs.map((ds, i) => (
+                          <tr key={i} className="border-b border-[var(--border-default)]">
+                            <td className="py-2 font-medium">{ds.companyId.substring(0, 12)}...</td>
+                            <td className="text-center py-2">
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${planColors[ds.plan] || 'bg-gray-100 text-gray-700'}`}>{ds.plan}</span>
+                            </td>
+                            <td className="text-center py-2 text-xs">
+                              <span className="font-semibold">{ds.promoCode || ds.couponName || 'Direct'}</span>
+                              {ds.percentOff && <span className="text-orange-600 ml-1">({ds.percentOff}% off)</span>}
+                            </td>
+                            <td className="text-right py-2">${fmt(ds.grossAmount)}</td>
+                            <td className="text-right py-2 text-orange-600 font-semibold">-${fmt(ds.discountAmount)}</td>
+                            <td className="text-right py-2 font-semibold">${fmt(ds.netAmount)}</td>
+                            <td className="text-center py-2 text-xs text-[var(--color-neutral-500)]">{ds.duration}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="mt-3 pt-3 border-t border-[var(--border-default)] flex justify-between text-sm font-bold">
+                      <span>Total Discount Impact</span>
+                      <span className="text-orange-600">-${fmt(discSubs.reduce((s, d) => s + d.discountAmount, 0))}/mo</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── CASH FLOW + UNIT ECONOMICS ─── */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Cash Flow</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Payments Received</span>
+                        <span className="text-lg font-bold text-emerald-700">${fmt(cashFlow.paymentsReceived)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Failed Payments</span>
+                        <span className={`text-lg font-bold ${cashFlow.paymentsFailed > 0 ? 'text-red-600' : 'text-[var(--color-neutral-400)]'}`}>${fmt(cashFlow.paymentsFailed)}</span>
+                      </div>
+                      <div className="flex justify-between items-center border-t pt-2">
+                        <span className="text-sm">Transactions</span>
+                        <span className="text-lg font-bold">{cashFlow.transactionCount}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Unit Economics</h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div><span className="text-[var(--color-neutral-500)]">Companies</span><p className="font-bold text-lg">{ue.totalCompanies} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.paidCompanies} paid, {ue.freeCompanies} free)</span></p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Active Users</span><p className="font-bold text-lg">{ue.totalUsers}</p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">ARPC</span><p className="font-bold text-lg">${fmt(ue.arpc)}<span className="text-xs font-normal">/mo</span></p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">LTV (12mo)</span><p className="font-bold text-lg">${fmt(ue.ltv)}</p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Total Calls</span><p className="font-bold text-lg">{ue.totalCalls.toLocaleString()} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.completedCalls} ok, {ue.failedCalls} failed)</span></p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Total Minutes</span><p className="font-bold text-lg">{ue.totalMinutes.toLocaleString()}</p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Cost/Call</span><p className="font-bold text-lg">${fmt(ue.costPerCall)}</p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Avg Min/Call</span><p className="font-bold text-lg">{ue.avgMinPerCall.toFixed(2)}</p></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ─── GENERAL LEDGER ─── */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                  <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4">
+                    <h3 className="text-white font-bold text-sm uppercase tracking-wide">General Ledger</h3>
+                    <p className="text-slate-300 text-xs mt-1">{ledgerData.length} entries</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                          <th className="text-left py-3 px-4 font-semibold text-[var(--color-neutral-500)]">Date</th>
+                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Type</th>
+                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Category</th>
+                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Description</th>
+                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Company</th>
+                          <th className="text-right py-3 px-3 font-semibold text-red-600">Debit</th>
+                          <th className="text-right py-3 px-3 font-semibold text-emerald-600">Credit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ledgerData.map((entry, i) => (
+                          <tr key={i} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                            <td className="py-2 px-4 text-xs text-[var(--color-neutral-500)]">{new Date(entry.date).toLocaleDateString()}</td>
+                            <td className="py-2 px-3">
+                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                                entry.type === 'revenue' ? 'bg-emerald-50 text-emerald-700' :
+                                entry.type === 'cost' ? 'bg-red-50 text-red-700' :
+                                entry.type === 'discount' ? 'bg-orange-50 text-orange-700' :
+                                'bg-gray-50 text-gray-700'
+                              }`}>{entry.type}</span>
+                            </td>
+                            <td className="py-2 px-3 text-xs font-medium">{entry.category}</td>
+                            <td className="py-2 px-3 text-xs text-[var(--color-neutral-600)] max-w-xs truncate">{entry.description}</td>
+                            <td className="py-2 px-3 text-xs">{entry.companyName || '—'}</td>
+                            <td className="text-right py-2 px-3 text-xs text-red-600">{entry.debit > 0 ? `$${fmt(entry.debit)}` : ''}</td>
+                            <td className="text-right py-2 px-3 text-xs text-emerald-600">{entry.credit > 0 ? `$${fmt(entry.credit)}` : ''}</td>
+                          </tr>
+                        ))}
+                        {ledgerData.length === 0 && (
+                          <tr><td colSpan={7} className="py-8 text-center text-[var(--color-neutral-400)]">No ledger entries for this period</td></tr>
+                        )}
+                      </tbody>
+                      {ledgerData.length > 0 && (
+                        <tfoot>
+                          <tr className="bg-[var(--color-neutral-50)] border-t-2 border-[var(--border-default)] font-bold">
+                            <td colSpan={5} className="py-3 px-4 text-right">Totals</td>
+                            <td className="text-right py-3 px-3 text-red-700">${fmt(ledgerData.reduce((s, e) => s + e.debit, 0))}</td>
+                            <td className="text-right py-3 px-3 text-emerald-700">${fmt(ledgerData.reduce((s, e) => s + e.credit, 0))}</td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
     </div>

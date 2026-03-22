@@ -321,6 +321,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   }
 
   // Log billing event for subscription creation
+  const planAmount = billingCycle === 'annual' ? Number(plan.price_annual) : Number(plan.price_monthly);
   await supabase.from('billing_events').insert({
     company_id: companyId,
     subscription_id: subId,
@@ -328,11 +329,66 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     event_data: {
       plan: plan.slug,
       billing_cycle: billingCycle,
-      amount: billingCycle === 'annual' ? Number(plan.price_annual) : Number(plan.price_monthly),
+      amount: planAmount,
     },
     minutes_consumed: 0,
-    cost_usd: billingCycle === 'annual' ? Number(plan.price_annual) : Number(plan.price_monthly),
+    cost_usd: planAmount,
   });
+
+  // Check for promo code / discount on this subscription and log it
+  if (subscriptionId) {
+    try {
+      const stripeSub = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ['discounts.source.coupon'],
+      });
+      const firstDiscount = stripeSub.discounts?.[0];
+      if (firstDiscount && typeof firstDiscount !== 'string') {
+        const couponRef = firstDiscount.source?.coupon;
+        const coupon = couponRef && typeof couponRef !== 'string' ? couponRef : null;
+        const promoRef = firstDiscount.promotion_code;
+        // Resolve promo code name
+        let promoCodeName: string | null = null;
+        if (promoRef) {
+          if (typeof promoRef === 'string') {
+            try {
+              const pc = await stripe.promotionCodes.retrieve(promoRef);
+              promoCodeName = pc.code;
+            } catch { /* ignore */ }
+          } else {
+            promoCodeName = promoRef.code;
+          }
+        }
+
+        let discountAmount = 0;
+        if (coupon?.percent_off) {
+          discountAmount = planAmount * (coupon.percent_off / 100);
+        } else if (coupon?.amount_off) {
+          discountAmount = Math.min(coupon.amount_off / 100, planAmount);
+        }
+
+        await supabase.from('billing_events').insert({
+          company_id: companyId,
+          subscription_id: subId,
+          event_type: 'promo_code_applied',
+          event_data: {
+            promo_code: promoCodeName,
+            coupon_name: coupon?.name || null,
+            percent_off: coupon?.percent_off || null,
+            amount_off: coupon?.amount_off ? coupon.amount_off / 100 : null,
+            duration: coupon?.duration || null,
+            duration_in_months: coupon?.duration_in_months || null,
+            plan: plan.slug,
+            plan_amount: planAmount,
+            discount_amount: Math.round(discountAmount * 100) / 100,
+          },
+          minutes_consumed: 0,
+          cost_usd: -Math.round(discountAmount * 100) / 100,
+        });
+      }
+    } catch (promoErr) {
+      console.error('[checkout] Failed to log promo code event:', promoErr);
+    }
+  }
 
   // GA4 server-side: subscription started
   trackServerEvent(companyId, null, 'server_subscription_started', {

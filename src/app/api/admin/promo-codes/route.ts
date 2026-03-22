@@ -51,30 +51,44 @@ export async function GET() {
       }),
     ]);
 
-    // Build coupon usage map from subscriptions
-    const couponUsageMap = new Map<string, {
+    // Build coupon lookup map for reliable resolution (source.coupon may be a string ID)
+    const couponMap = new Map(couponsResult.data.map(c => [c.id, c]));
+
+    // Build a promo code ID → code name lookup from the promotionCodes list
+    const promoCodeIdToName = new Map<string, string>();
+    for (const pc of promotionCodesResult.data) {
+      promoCodeIdToName.set(pc.id, pc.code);
+    }
+
+    // === Build BOTH per-promo-code AND per-coupon usage maps ===
+    // Key: promotion_code Stripe ID (promo_xxx) for promo-code-specific tracking
+    // Fallback: coupon ID for standalone coupons (applied directly, not via promo code)
+    type CustomerEntry = {
+      customerId: string;
+      customerName: string;
+      customerEmail: string;
+      companyId: string | null;
+      subscriptionId: string;
+      subscriptionStatus: string;
+      promotionCode: string | null;
+      discountStart: number | null;
+      discountEnd: number | null;
+      monthlyDiscount: number;
+      planAmount: number;
+    };
+    type UsageEntry = {
       activeRedemptions: number;
       totalDiscountAmount: number;
-      customers: {
-        customerId: string;
-        customerName: string;
-        customerEmail: string;
-        companyId: string | null;
-        subscriptionId: string;
-        subscriptionStatus: string;
-        promotionCode: string | null;
-        discountStart: number | null;
-        discountEnd: number | null;
-        monthlyDiscount: number;
-        planAmount: number;
-      }[];
-    }>();
+      customers: CustomerEntry[];
+    };
+
+    // Per promotion code ID (for codes used via promo codes)
+    const promoCodeUsageMap = new Map<string, UsageEntry>();
+    // Per coupon ID (for standalone coupon usage — no promo code attached)
+    const standaloneCouponUsageMap = new Map<string, UsageEntry>();
 
     let totalActiveDiscounts = 0;
     let totalMonthlyDiscountImpact = 0;
-
-    // Build coupon lookup map for reliable resolution (source.coupon may be a string ID)
-    const couponMap = new Map(couponsResult.data.map(c => [c.id, c]));
 
     for (const sub of subscriptionsWithDiscountResult.data) {
       const firstDiscount = (sub.discounts && sub.discounts.length > 0) ? sub.discounts[0] : null;
@@ -86,7 +100,6 @@ export async function GET() {
       if (!coupon) continue;
 
       totalActiveDiscounts++;
-      const couponId = coupon.id;
       const customer = sub.customer as { id: string; name?: string | null; email?: string | null; metadata?: Record<string, string> } | string;
       const customerId = typeof customer === 'string' ? customer : customer.id;
       const customerName = typeof customer === 'string' ? '' : (customer.name || '');
@@ -97,53 +110,67 @@ export async function GET() {
       const planAmount = sub.items.data.reduce((sum, item) => {
         const unitAmount = item.price?.unit_amount || 0;
         const interval = item.price?.recurring?.interval;
-        // Normalize to monthly
         return sum + (interval === 'year' ? unitAmount / 12 : unitAmount);
-      }, 0) / 100; // cents to dollars
+      }, 0) / 100;
 
       let monthlyDiscount = 0;
       if (coupon.percent_off) {
         monthlyDiscount = planAmount * (coupon.percent_off / 100);
       } else if (coupon.amount_off) {
-        const amountOff = coupon.amount_off / 100;
-        // If coupon duration is repeating with months, or forever
-        monthlyDiscount = Math.min(amountOff, planAmount);
+        monthlyDiscount = Math.min(coupon.amount_off / 100, planAmount);
       }
 
       totalMonthlyDiscountImpact += monthlyDiscount;
 
-      const promoCode = firstDiscount.promotion_code;
-      const promoCodeStr = promoCode
-        ? (typeof promoCode === 'string' ? promoCode : promoCode.code)
+      const promoCodeRef = firstDiscount.promotion_code;
+      // Get the promo code ID (string) — may be string ID or expanded object
+      const promoCodeId = promoCodeRef
+        ? (typeof promoCodeRef === 'string' ? promoCodeRef : promoCodeRef.id)
+        : null;
+      // Get the user-facing code name
+      const promoCodeName = promoCodeRef
+        ? (typeof promoCodeRef === 'string'
+            ? (promoCodeIdToName.get(promoCodeRef) || promoCodeRef)
+            : promoCodeRef.code)
         : null;
 
-      if (!couponUsageMap.has(couponId)) {
-        couponUsageMap.set(couponId, {
-          activeRedemptions: 0,
-          totalDiscountAmount: 0,
-          customers: [],
-        });
-      }
-
-      const entry = couponUsageMap.get(couponId)!;
-      entry.activeRedemptions++;
-      entry.totalDiscountAmount += monthlyDiscount;
-      entry.customers.push({
+      const customerEntry: CustomerEntry = {
         customerId,
         customerName,
         customerEmail,
         companyId,
         subscriptionId: sub.id,
         subscriptionStatus: sub.status,
-        promotionCode: promoCodeStr,
+        promotionCode: promoCodeName,
         discountStart: firstDiscount.start ?? null,
         discountEnd: firstDiscount.end ?? null,
         monthlyDiscount: Math.round(monthlyDiscount * 100) / 100,
         planAmount: Math.round(planAmount * 100) / 100,
-      });
+      };
+
+      if (promoCodeId) {
+        // Track per promo code ID — so each code gets its own usage
+        if (!promoCodeUsageMap.has(promoCodeId)) {
+          promoCodeUsageMap.set(promoCodeId, { activeRedemptions: 0, totalDiscountAmount: 0, customers: [] });
+        }
+        const entry = promoCodeUsageMap.get(promoCodeId)!;
+        entry.activeRedemptions++;
+        entry.totalDiscountAmount += monthlyDiscount;
+        entry.customers.push(customerEntry);
+      } else {
+        // No promo code — standalone coupon applied directly
+        const couponId = coupon.id;
+        if (!standaloneCouponUsageMap.has(couponId)) {
+          standaloneCouponUsageMap.set(couponId, { activeRedemptions: 0, totalDiscountAmount: 0, customers: [] });
+        }
+        const entry = standaloneCouponUsageMap.get(couponId)!;
+        entry.activeRedemptions++;
+        entry.totalDiscountAmount += monthlyDiscount;
+        entry.customers.push(customerEntry);
+      }
     }
 
-    // Build promotion codes response
+    // Build promotion codes response — now keyed by promo code ID, not coupon ID
     const promotionCodes = promotionCodesResult.data
       .filter(pc => {
         const c = pc.promotion?.coupon;
@@ -151,7 +178,8 @@ export async function GET() {
       })
       .map(pc => {
         const coupon = pc.promotion.coupon as Stripe.Coupon;
-        const usage = couponUsageMap.get(coupon.id);
+        // Look up usage for THIS specific promo code, not the whole coupon
+        const usage = promoCodeUsageMap.get(pc.id);
 
         return {
           id: pc.id,
@@ -161,7 +189,6 @@ export async function GET() {
           maxRedemptions: pc.max_redemptions,
           expiresAt: pc.expires_at,
           createdAt: pc.created,
-          // Coupon details
           coupon: {
             id: coupon.id,
             name: coupon.name,
@@ -175,14 +202,14 @@ export async function GET() {
             valid: coupon.valid,
             createdAt: coupon.created,
           },
-          // Active usage
+          // Usage for THIS specific promo code only
           activeRedemptions: usage?.activeRedemptions || 0,
           monthlyImpact: Math.round((usage?.totalDiscountAmount || 0) * 100) / 100,
           customers: usage?.customers || [],
         };
       });
 
-    // Also include coupons that might not have promotion codes (e.g., retention coupons applied directly)
+    // Standalone coupons (not wrapped in a promo code)
     const promoCodeCouponIds = new Set(
       promotionCodesResult.data
         .map(pc => {
@@ -194,7 +221,7 @@ export async function GET() {
     const standaloneCoupons = couponsResult.data
       .filter(c => !promoCodeCouponIds.has(c.id))
       .map(coupon => {
-        const usage = couponUsageMap.get(coupon.id);
+        const usage = standaloneCouponUsageMap.get(coupon.id);
         return {
           id: null,
           code: null,
