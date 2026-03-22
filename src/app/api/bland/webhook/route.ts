@@ -329,7 +329,7 @@ export async function POST(request: NextRequest) {
     // ================================================================
     try {
       const contactName: string = contactId
-        ? await getContactName(contactId)
+        ? await getContactName(contactId, companyId)
         : (to as string) || 'Unknown';
 
       // If call was not answered or voicemail, schedule a callback event
@@ -496,7 +496,7 @@ export async function POST(request: NextRequest) {
         const callLogId = callLogData?.id;
 
         const contactName: string = contactId
-          ? await getContactName(contactId)
+          ? await getContactName(contactId, companyId)
           : (to as string) || 'Unknown';
 
         // ---- AI-POWERED INTENT ANALYSIS ----
@@ -1118,12 +1118,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function getContactName(contactId: string): Promise<string> {
-  const { data } = await supabaseAdmin
+async function getContactName(contactId: string, companyId?: string): Promise<string> {
+  let query = supabaseAdmin
     .from('contacts')
     .select('contact_name, phone_number')
-    .eq('id', contactId)
-    .maybeSingle();
+    .eq('id', contactId);
+  if (companyId) query = query.eq('company_id', companyId);
+  const { data } = await query.maybeSingle();
   return data?.contact_name || data?.phone_number || 'Unknown';
 }
 

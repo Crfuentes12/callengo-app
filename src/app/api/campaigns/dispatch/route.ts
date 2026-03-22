@@ -18,11 +18,11 @@ const dispatchSchema = z.object({
   agent_run_id: z.string().uuid().optional(),
   contacts: z.array(z.object({
     contact_id: z.string().uuid(),
-    phone_number: z.string().min(7),
+    phone_number: z.string().regex(/^\+?[1-9]\d{6,14}$/, 'Invalid phone number format (E.164)'),
     contact_name: z.string().optional(),
   })).min(1).max(500),
   call_config: z.object({
-    task: z.string().min(1).max(5000),
+    task: z.string().min(1).max(5000).refine(s => s.trim().length > 0, 'Task cannot be empty'),
     voice: z.string().default('maya'),
     first_sentence: z.string().max(500).optional(),
     voicemail_action: z.enum(['leave_message', 'hangup', 'ignore']).default('leave_message'),
@@ -96,6 +96,15 @@ export async function POST(request: NextRequest) {
     // Get dedicated number if company has one
     const dedicatedNumber = await getCompanyCallerNumber(company_id);
 
+    // Validate all contact_ids belong to this company before dispatching
+    const contactIds = contacts.map(c => c.contact_id);
+    const { data: validContacts } = await supabaseAdmin
+      .from('contacts')
+      .select('id')
+      .eq('company_id', company_id)
+      .in('id', contactIds);
+    const validContactIds = new Set((validContacts || []).map(c => c.id));
+
     // Process contacts sequentially with delays
     const results: { contact_id: string; status: 'dispatched' | 'throttled' | 'failed' | 'cooldown'; call_id?: string; error?: string }[] = [];
     let dispatched = 0;
@@ -104,6 +113,13 @@ export async function POST(request: NextRequest) {
 
     for (let i = 0; i < contacts.length; i++) {
       const contact = contacts[i];
+
+      // Validate contact belongs to this company
+      if (!validContactIds.has(contact.contact_id)) {
+        results.push({ contact_id: contact.contact_id, status: 'failed', error: 'Contact not found in company' });
+        failed++;
+        continue;
+      }
 
       try {
         // FIX: Pre-register call_log BEFORE throttle re-check to prevent TOCTOU race.
@@ -184,11 +200,14 @@ export async function POST(request: NextRequest) {
           if (result.success && result.callId) {
             dispatchSuccess = true;
             dispatchCallId = result.callId;
-            // Update pre-registered call_log with real call_id
+            // Update pre-registered call_log with real call_id — must succeed to maintain consistency
             if (preLog?.id) {
-              await supabaseAdmin.from('call_logs')
+              const { error: linkError } = await supabaseAdmin.from('call_logs')
                 .update({ call_id: result.callId, status: 'in_progress' })
                 .eq('id', preLog.id);
+              if (linkError) {
+                console.error(`[dispatch] CRITICAL: Failed to link pre-log ${preLog.id} to real call ${result.callId}:`, linkError);
+              }
             }
             results.push({ contact_id: contact.contact_id, status: 'dispatched', call_id: result.callId });
             dispatched++;
@@ -223,7 +242,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update campaign/agent_run status if provided
+    // Update campaign/agent_run status if provided (only if still running)
     if (agent_run_id) {
       await supabaseAdmin
         .from('agent_runs')
@@ -231,7 +250,8 @@ export async function POST(request: NextRequest) {
           status: throttled > 0 ? 'partially_completed' : 'completed',
           completed_at: new Date().toISOString(),
         })
-        .eq('id', agent_run_id);
+        .eq('id', agent_run_id)
+        .in('status', ['running', 'active', 'dispatching']); // Only transition from active states
     }
 
     return NextResponse.json({
