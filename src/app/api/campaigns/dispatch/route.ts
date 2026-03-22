@@ -241,10 +241,11 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin
         .from('agent_runs')
         .update({
-          status: throttled > 0 ? 'partially_completed' : 'completed',
+          status: (failed > 0 || throttled > 0) ? 'partially_completed' : 'completed',
           completed_at: new Date().toISOString(),
         })
-        .eq('id', agent_run_id);
+        .eq('id', agent_run_id)
+        .eq('company_id', company_id);
     }
 
     return NextResponse.json({
