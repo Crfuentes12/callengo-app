@@ -46,7 +46,7 @@ export default async function HomePageRoute() {
     usageRes,
   ] = await Promise.all([
     supabase.from('companies').select('*').eq('id', companyId).maybeSingle(),
-    supabase.from('company_subscriptions').select('*, subscription_plans(*)').eq('company_id', companyId).eq('status', 'active').maybeSingle(),
+    supabase.from('company_subscriptions').select('*, subscription_plans(*)').eq('company_id', companyId).in('status', ['active', 'trialing']).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
     supabase.from('agent_runs').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
     supabase.from('call_logs').select('*', { count: 'exact', head: true }).eq('company_id', companyId),

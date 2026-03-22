@@ -26,6 +26,11 @@ export async function POST(request: NextRequest) {
     (cronHeader === QUEUE_SECRET);
 
   if (!authorized) {
+    console.warn('[queue/followups] POST 401 — auth failed.', {
+      hasAuthHeader: !!authHeader,
+      hasCronHeader: !!cronHeader,
+      secretConfigured: !!QUEUE_SECRET,
+    });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -70,6 +75,12 @@ export async function GET(request: NextRequest) {
     (cronHeader === QUEUE_SECRET);
 
   if (!authorized) {
+    console.warn('[queue/followups] GET 401 — cron auth failed.', {
+      hasAuthHeader: !!authHeader,
+      hasCronHeader: !!cronHeader,
+      secretConfigured: !!QUEUE_SECRET,
+      cronSecretConfigured: !!cronSecret,
+    });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -1054,6 +1054,7 @@ const en = {
     errorOccurred: 'An error occurred',
     tryAgain: 'Please try again',
     somethingWentWrong: 'Something went wrong',
+    unexpectedErrorMessage: 'An unexpected error occurred. Please refresh the page or try again later.',
     copiedToClipboard: 'Copied to clipboard',
     comingSoon: 'Coming Soon',
     beta: 'Beta',

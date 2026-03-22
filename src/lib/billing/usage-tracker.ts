@@ -170,7 +170,7 @@ export async function checkUsageLimit(companyId: string): Promise<UsageCheckResu
     if (activeAddons && activeAddons.length > 0) {
       // Each Calls Booster adds 225 minutes (150 calls * ~1.5 min avg)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      boosterMinutes = (activeAddons as any[]).reduce((sum: number, addon: any) => sum + ((addon.quantity || 1) * 225), 0);
+      boosterMinutes = (activeAddons as any[]).reduce((sum: number, addon: any) => sum + (Math.max(0, addon.quantity || 1) * 225), 0);
     }
 
     const minutesUsed = usage?.minutes_used || 0;
@@ -320,7 +320,7 @@ export async function getUsageStats(companyId: string) {
     if (activeAddons && activeAddons.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       boosterMinutes = (activeAddons as any[]).reduce(
-        (sum: number, addon: { quantity?: number }) => sum + ((addon.quantity || 1) * 225), 0
+        (sum: number, addon: { quantity?: number }) => sum + (Math.max(0, addon.quantity || 1) * 225), 0
       );
     }
 
