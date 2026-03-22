@@ -347,7 +347,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                       className="w-full px-4 py-3 border-2 border-[var(--border-default)] rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                       disabled={loading}
                     />
-                    <p className="text-xs text-[var(--color-neutral-50)]0 mt-2">Paste the full URL of your Google Sheet</p>
+                    <p className="text-xs text-[var(--color-neutral-500)] mt-2">Paste the full URL of your Google Sheet</p>
                   </div>
 
                   <button
@@ -408,7 +408,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                         </svg>
                       </div>
                       <p className="text-[var(--color-neutral-700)] font-semibold">{t.contacts.importModal.dragDrop}</p>
-                      <p className="text-sm text-[var(--color-neutral-50)]0 mt-1">{t.contacts.importModal.supportedFormats}</p>
+                      <p className="text-sm text-[var(--color-neutral-500)] mt-1">{t.contacts.importModal.supportedFormats}</p>
                       <p className="text-xs text-[var(--color-neutral-400)] mt-3">{typeInfo.accept}</p>
                     </>
                   )}
@@ -446,7 +446,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-[var(--color-ink)]">{t.contacts.allLists}</p>
-                      <p className="text-xs text-[var(--color-neutral-50)]0">{t.contacts.importContacts}</p>
+                      <p className="text-xs text-[var(--color-neutral-500)]">{t.contacts.importContacts}</p>
                     </div>
                   </div>
                 </button>
@@ -477,7 +477,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                         <div>
                           <p className="text-sm font-semibold text-[var(--color-ink)]">{list.name}</p>
                           {list.description && (
-                            <p className="text-xs text-[var(--color-neutral-50)]0 mt-0.5">{list.description}</p>
+                            <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{list.description}</p>
                           )}
                         </div>
                       </div>
@@ -618,7 +618,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                           <svg className="w-3 h-3 text-[var(--color-neutral-300)] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                           </svg>
-                          <span className="text-xs text-[var(--color-neutral-50)]0 truncate">{headerName}</span>
+                          <span className="text-xs text-[var(--color-neutral-500)] truncate">{headerName}</span>
                           <button
                             onClick={() => {
                               const newExtra = { ...mapping.extraFields };
@@ -665,7 +665,7 @@ export default function ImportModal({ companyId, onClose, onComplete, importType
                   <thead className="bg-[var(--color-neutral-50)]/80">
                     <tr>
                       {headers.slice(0, 6).map((header) => (
-                        <th key={header} className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-50)]0 uppercase tracking-wider">
+                        <th key={header} className="px-4 py-3 text-left text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
                           {header}
                         </th>
                       ))}

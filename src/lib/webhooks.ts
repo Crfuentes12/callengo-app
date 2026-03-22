@@ -95,6 +95,37 @@ export function generateWebhookSecret(): string {
   return `whsec_${crypto.randomBytes(24).toString('hex')}`;
 }
 
+/**
+ * Verify an inbound webhook signature and check timestamp freshness.
+ * Can be used by any endpoint receiving signed Callengo webhooks.
+ */
+export function verifyInboundWebhookSignature(
+  payload: string,
+  signature: string,
+  timestamp: string,
+  secret: string
+): { valid: boolean; error?: string } {
+  // Verify signature
+  const expectedSignature = signPayload(payload, secret);
+  const isValid = crypto.timingSafeEqual(
+    Buffer.from(signature, 'hex'),
+    Buffer.from(expectedSignature, 'hex')
+  );
+
+  if (!isValid) {
+    return { valid: false, error: 'Invalid webhook signature' };
+  }
+
+  // Check timestamp freshness — reject if older than 5 minutes
+  const MAX_TIMESTAMP_AGE_SECONDS = 300; // 5 minutes
+  const timestampAge = Math.floor(Date.now() / 1000) - parseInt(timestamp);
+  if (isNaN(timestampAge) || timestampAge > MAX_TIMESTAMP_AGE_SECONDS) {
+    return { valid: false, error: 'Webhook timestamp too old' };
+  }
+
+  return { valid: true };
+}
+
 // ============================================================================
 // DISPATCHING
 // ============================================================================

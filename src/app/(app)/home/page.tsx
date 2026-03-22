@@ -15,7 +15,22 @@ export default async function HomePageRoute() {
     .eq('id', user!.id)
     .single();
 
-  const companyId = userData!.company_id;
+  const companyId = userData?.company_id;
+
+  if (!companyId) {
+    return (
+      <>
+        <PageTracker page="home" />
+        <PostHogPageTracker page="home" />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <h2 className="text-xl font-semibold text-[var(--color-ink)]">Account Setup Incomplete</h2>
+            <p className="text-[var(--color-neutral-500)]">Your account is not associated with a company yet. Please complete onboarding or contact support.</p>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   // Fetch data in parallel
   const [
@@ -30,7 +45,7 @@ export default async function HomePageRoute() {
     _calendarEventsRes,
     usageRes,
   ] = await Promise.all([
-    supabase.from('companies').select('*').eq('id', companyId).single(),
+    supabase.from('companies').select('*').eq('id', companyId).maybeSingle(),
     supabase.from('company_subscriptions').select('*, subscription_plans(*)').eq('company_id', companyId).eq('status', 'active').maybeSingle(),
     supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
     supabase.from('agent_runs').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
@@ -79,7 +94,7 @@ export default async function HomePageRoute() {
       <PageTracker page="home" />
       <PostHogPageTracker page="home" />
       <HomePage
-        userName={userData!.full_name || user!.email || ''}
+        userName={userData?.full_name || user?.email || ''}
         companyId={companyId}
         companyName={(companyRes.data?.name as string) || ''}
         completedTasks={completedTasks}

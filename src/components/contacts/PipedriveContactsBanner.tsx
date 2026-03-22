@@ -33,7 +33,7 @@ export default function PipedriveContactsBanner({
           </div>
           <div>
             <p className="text-sm font-semibold text-[var(--color-ink)]">Pipedrive Connected</p>
-            <p className="text-xs text-[var(--color-neutral-50)]0">View and sync your Pipedrive contacts</p>
+            <p className="text-xs text-[var(--color-neutral-500)]">View and sync your Pipedrive contacts</p>
           </div>
         </div>
         <Link
@@ -60,7 +60,7 @@ export default function PipedriveContactsBanner({
           </div>
           <div>
             <p className="text-sm font-semibold text-[var(--color-ink)]">Sync with Pipedrive</p>
-            <p className="text-xs text-[var(--color-neutral-50)]0">Connect your Pipedrive account to sync contacts</p>
+            <p className="text-xs text-[var(--color-neutral-500)]">Connect your Pipedrive account to sync contacts</p>
           </div>
         </div>
         <Link
@@ -83,7 +83,7 @@ export default function PipedriveContactsBanner({
         </div>
         <div>
           <p className="text-sm font-semibold text-[var(--color-ink)]">Pipedrive CRM Integration</p>
-          <p className="text-xs text-[var(--color-neutral-50)]0">
+          <p className="text-xs text-[var(--color-neutral-500)]">
             Sync contacts with Pipedrive. Available on Business plan and above.
           </p>
         </div>

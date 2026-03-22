@@ -15,7 +15,7 @@ export function getPlanLabel(plan: PlanTier): string {
 
 export function getPlanBadgeColors(plan: PlanTier): string {
   switch (plan) {
-    case 'free': return 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-50)]0';
+    case 'free': return 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)]';
     case 'starter': return 'bg-blue-50 text-blue-600';
     case 'business': return 'bg-violet-50 text-violet-600';
     case 'teams': return 'bg-amber-50 text-amber-600';

@@ -66,6 +66,23 @@ export async function PATCH(
         if (!['http:', 'https:'].includes(parsed.protocol)) {
           return NextResponse.json({ error: 'URL must use HTTP or HTTPS' }, { status: 400 });
         }
+        const hostname = parsed.hostname;
+        // Block private/internal IPs
+        const blockedPatterns = [
+          /^localhost$/i,
+          /^127\./,
+          /^10\./,
+          /^172\.(1[6-9]|2[0-9]|3[01])\./,
+          /^192\.168\./,
+          /^0\./,
+          /^169\.254\./,  // Link-local
+          /^::1$/,
+          /^fc00:/i,
+          /^fe80:/i,
+        ];
+        if (blockedPatterns.some(p => p.test(hostname))) {
+          return NextResponse.json({ error: 'URL cannot point to private/internal addresses' }, { status: 400 });
+        }
       } catch {
         return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
       }

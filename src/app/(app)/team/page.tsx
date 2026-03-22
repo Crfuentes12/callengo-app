@@ -22,7 +22,7 @@ function TeamUpgradeCTA() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-[var(--color-ink)]">{t.team.title}</h2>
-              <p className="text-[var(--color-neutral-500)] font-medium">{t.team.title}</p>
+              <p className="text-[var(--color-neutral-500)] font-medium">Manage your team members, roles, and permissions</p>
             </div>
           </div>
         </div>
@@ -176,7 +176,7 @@ export default async function TeamPage() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-[var(--color-ink)]">{t.team.title}</h2>
-              <p className="text-[var(--color-neutral-500)] font-medium">{t.team.title}</p>
+              <p className="text-[var(--color-neutral-500)] font-medium">Manage your team members, roles, and permissions</p>
             </div>
           </div>
         </div>

@@ -112,6 +112,18 @@ export async function POST(req: NextRequest) {
         ? subscriptionId
         : (subscriptionId as unknown as Record<string, unknown>)?.id as string || null;
 
+    // Check if webhook already processed this subscription to avoid race condition
+    const { data: existingSub } = await supabase
+      .from('company_subscriptions')
+      .select('stripe_subscription_id')
+      .eq('company_id', companyId)
+      .single();
+
+    // If webhook already processed this, don't overwrite
+    if (existingSub?.stripe_subscription_id && existingSub.stripe_subscription_id === stripeSubId) {
+      return NextResponse.json({ success: true, message: 'Already processed by webhook' });
+    }
+
     // Update the existing subscription record using .update().eq()
     // This avoids the upsert/onConflict issue that requires a UNIQUE constraint
     const { data: updated, error: updateError } = await supabase

@@ -158,6 +158,23 @@ export async function POST(request: NextRequest) {
         console.log(`[webhook] Call ${call_id} appears to be duplicate webhook (same status: ${status}), skipping`);
         return NextResponse.json({ status: 'duplicate_skipped', call_id });
       }
+
+      // Atomic: try to set completed=true only if it's currently false
+      // This prevents race conditions when multiple webhook deliveries arrive simultaneously
+      if (existingLog && completed) {
+        const { data: claimed, error: claimError } = await supabaseAdmin
+          .from('call_logs')
+          .update({ completed: true })
+          .eq('bland_call_id', call_id)
+          .eq('completed', false)
+          .select('id')
+          .maybeSingle();
+
+        if (!claimed && !claimError) {
+          // Another webhook already claimed this call
+          return NextResponse.json({ status: 'already_processed', call_id });
+        }
+      }
     }
 
     // Upsert call_log (insert or update if call_id already exists from pre-dispatch)

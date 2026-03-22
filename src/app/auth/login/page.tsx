@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import { useTranslation } from '@/i18n';
 import { authEvents } from '@/lib/analytics';
@@ -11,6 +11,7 @@ import { phAuthEvents } from '@/lib/posthog';
 
 function LoginForm() {
   const { signIn } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ function LoginForm() {
     }
     authEvents.login('email');
     phAuthEvents.login('email');
-    window.location.href = '/home';
+    router.replace('/home');
   };
 
   return (

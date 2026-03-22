@@ -373,6 +373,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
         setCallAnalysis(result.analysis);
       }
     } catch (error) {
+      console.error('Failed to analyze call:', error);
     } finally {
       setAnalyzingCall(false);
     }
