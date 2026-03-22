@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       // Active subscriptions with plan info
       supabaseAdmin
         .from('company_subscriptions')
-        .select('*, subscription_plans(slug, name, price_monthly, price_yearly, minutes_included, price_per_extra_minute)')
+        .select('*, subscription_plans(*)')
         .in('status', ['active', 'trialing']),
 
       // All active users
@@ -221,11 +221,17 @@ export async function GET(request: NextRequest) {
       console.error('[finances] Failed to fetch Stripe discounts:', err);
     }
 
-    // Compute net revenue and margins after discounts
-    const netRevenue = grossRevenue - totalDiscountImpact;
-    const grossMargin = netRevenue - costTotal;
-    const grossMarginPercent = netRevenue > 0 ? (grossMargin / netRevenue) * 100 : 0;
-    const avgRevenuePerCompany = totalCompaniesActive > 0 ? netRevenue / totalCompaniesActive : 0;
+    // Actual revenue = what's collected (can't be negative — promo users pay $0, not negative)
+    const actualRevenue = Math.max(0, grossRevenue - totalDiscountImpact);
+    const grossMargin = actualRevenue - costTotal;
+    const grossMarginPercent = actualRevenue > 0 ? (grossMargin / actualRevenue) * 100 : 0;
+    // ARPC: only count paying companies (exclude fully discounted)
+    const paidCompanies = activeSubs.filter(s => {
+      const plan = s.subscription_plans as { slug?: string } | null;
+      return plan && plan.slug !== 'free';
+    }).length;
+    const payingCompanies = Math.max(0, paidCompanies); // Stripe promo subs are still "active" in DB
+    const avgRevenuePerCompany = payingCompanies > 0 ? actualRevenue / payingCompanies : 0;
     const overageRevenuePercent = revenueSubscriptions > 0 ? (revenueOverages / revenueSubscriptions) * 100 : 0;
 
     const financeRecord = {
@@ -238,10 +244,10 @@ export async function GET(request: NextRequest) {
       active_subaccounts: 0,
       bland_master_balance: blandMasterInfo.balance,
       bland_master_subscription: blandMasterInfo.subscription,
-      // Gross = plan price (before discounts)
+      // Gross = plan prices (catalog value, before discounts)
       revenue_gross: Math.round(grossRevenue * 100) / 100,
-      // Total = net (after discounts) — backward compatible
-      revenue_total: Math.round(netRevenue * 100) / 100,
+      // Total = actual revenue collected (never negative)
+      revenue_total: Math.round(actualRevenue * 100) / 100,
       revenue_subscriptions: Math.round(revenueSubscriptions * 100) / 100,
       revenue_overages: Math.round(revenueOverages * 100) / 100,
       total_discount_impact: Math.round(totalDiscountImpact * 100) / 100,
@@ -249,8 +255,9 @@ export async function GET(request: NextRequest) {
       cost_bland: Math.round(costBland * 100) / 100,
       cost_openai: costOpenai,
       cost_supabase: costSupabase,
-      gross_margin: Math.round(grossMargin * 100) / 100,
+      gross_margin: Math.round(Math.max(grossMargin, -costTotal) * 100) / 100,
       gross_margin_percent: Math.round(grossMarginPercent * 10) / 10,
+      paying_companies: payingCompanies,
       total_companies_active: totalCompaniesActive,
       total_users_active: totalUsersActive,
       total_calls_made: totalCallsMade,

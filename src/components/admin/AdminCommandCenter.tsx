@@ -291,7 +291,7 @@ interface AccountingData {
     margins: { grossProfit: number; grossMarginPercent: number; operatingProfit: number; operatingMarginPercent: number };
   };
   cashFlow: { paymentsReceived: number; paymentsFailed: number; transactionCount: number };
-  discountedSubscriptions: { companyId: string; plan: string; grossAmount: number; discountAmount: number; netAmount: number; promoCode: string | null; couponName: string | null; percentOff: number | null; duration: string }[];
+  discountedSubscriptions: { companyId: string; companyName: string; plan: string; grossAmount: number; discountAmount: number; netAmount: number; promoCode: string | null; couponName: string | null; percentOff: number | null; duration: string }[];
   unitEconomics: { totalCompanies: number; payingCustomers: number; promoCustomers: number; freeCustomers: number; totalUsers: number; arpc: number; costPerCall: number; avgMinPerCall: number; ltv: number; totalCalls: number; completedCalls: number; failedCalls: number; totalMinutes: number; payingMinutes: number; promoMinutes: number };
   charts: {
     revenueWaterfall: { name: string; value: number; fill: string }[];
@@ -1536,9 +1536,9 @@ export default function AdminCommandCenter() {
           {(() => {
               const fd = financeData || {} as FinanceData;
               const addonRevenue = (fd.addon_revenue as number) || 0;
-              const grossRevenue = (fd.revenue_gross || fd.revenue_subscriptions || 0) + (fd.revenue_overages || 0) + addonRevenue;
+              // Actual revenue = revenue_total from API (already capped at 0, never negative)
+              const actualRevenue = fd.revenue_total || 0;
               const discountImpact = fd.total_discount_impact || 0;
-              const netRevenue = grossRevenue - discountImpact;
               const blandInfrastructureCost = (fd.bland_infrastructure_cost as number) || 0;
               const marginColor = (p: number | null) => !p ? 'text-[var(--color-neutral-600)]' : p >= 50 ? 'text-emerald-600' : p >= 35 ? 'text-amber-600' : 'text-red-600';
               const blandBalance = fd.bland_master_balance || healthData?.blandAccount?.balance || 0;
@@ -1552,30 +1552,33 @@ export default function AdminCommandCenter() {
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-5">
-                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Revenue</p>
-                        <p className="text-2xl font-bold text-emerald-900">${fmt(grossRevenue)} <span className="text-sm font-normal text-emerald-600">gross</span></p>
+                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Actual Revenue</p>
+                        <p className="text-2xl font-bold text-emerald-900">${fmt(actualRevenue)}</p>
                         <div className="mt-2 space-y-0.5 text-xs text-emerald-700">
-                          <div className="flex justify-between"><span>Subscriptions</span><span>${fd.revenue_subscriptions?.toLocaleString() || 0}</span></div>
-                          <div className="flex justify-between"><span>Overages</span><span>${fd.revenue_overages?.toLocaleString() || 0}</span></div>
-                          {addonRevenue > 0 && <div className="flex justify-between"><span>Add-ons</span><span>${addonRevenue.toLocaleString()}</span></div>}
-                          {discountImpact > 0 && <div className="flex justify-between text-orange-600 font-semibold"><span>Discounts</span><span>-${fmt(discountImpact)}</span></div>}
-                          <div className="flex justify-between font-bold border-t border-emerald-300 pt-1 mt-1"><span>Net Revenue</span><span>${fmt(netRevenue)}</span></div>
+                          <div className="flex justify-between"><span>Subscriptions</span><span>${fmt(fd.revenue_subscriptions || 0)}</span></div>
+                          <div className="flex justify-between"><span>Overages</span><span>${fmt(fd.revenue_overages || 0)}</span></div>
+                          {addonRevenue > 0 && <div className="flex justify-between"><span>Add-ons</span><span>${fmt(addonRevenue)}</span></div>}
+                          {discountImpact > 0 && (
+                            <div className="flex justify-between text-orange-600 pt-1 mt-1 border-t border-emerald-300">
+                              <span>Promo foregone</span><span>${fmt(discountImpact)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-5">
                         <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-1">Total Costs</p>
-                        <p className="text-2xl font-bold text-red-900">${fd.cost_total?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}</p>
+                        <p className="text-2xl font-bold text-red-900">${fmt(fd.cost_total || 0)}</p>
                         <div className="mt-2 space-y-0.5 text-xs text-red-700">
-                          <div className="flex justify-between"><span>Bland per-min</span><span>${fd.cost_bland?.toLocaleString() || 0}</span></div>
-                          {blandInfrastructureCost > 0 && <div className="flex justify-between"><span>Bland infra</span><span>${blandInfrastructureCost.toLocaleString()}</span></div>}
-                          <div className="flex justify-between"><span>Other</span><span>${((fd.cost_openai || 0) + (fd.cost_supabase || 0)).toLocaleString()}</span></div>
+                          <div className="flex justify-between"><span>Bland per-min</span><span>${fmt(fd.cost_bland || 0)}</span></div>
+                          {blandInfrastructureCost > 0 && <div className="flex justify-between"><span>Bland infra</span><span>${fmt(blandInfrastructureCost)}</span></div>}
+                          <div className="flex justify-between"><span>Other</span><span>${fmt((fd.cost_openai || 0) + (fd.cost_supabase || 0))}</span></div>
                         </div>
                       </div>
 
                       <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5">
                         <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Gross Margin</p>
-                        <p className="text-2xl font-bold text-[var(--color-ink)]">${fd.gross_margin?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}</p>
+                        <p className="text-2xl font-bold text-[var(--color-ink)]">${fmt(fd.gross_margin || 0)}</p>
                         <p className={`mt-2 text-xl font-bold ${marginColor(fd.gross_margin_percent)}`}>{fd.gross_margin_percent?.toFixed(1) || '0.0'}%</p>
                         <p className="text-xs text-[var(--color-neutral-500)]">Target: 55-67%</p>
                       </div>
@@ -1583,7 +1586,8 @@ export default function AdminCommandCenter() {
                       <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-xl p-5">
                         <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Companies</p>
                         <p className="text-2xl font-bold text-[var(--color-ink)]">{fd.total_companies_active || 0}</p>
-                        <p className="mt-2 text-sm text-violet-700">${fd.avg_revenue_per_company?.toFixed(2) || '0.00'} ARPC</p>
+                        <p className="mt-2 text-sm text-violet-700">${fmt(fd.avg_revenue_per_company || 0)} ARPC</p>
+                        {discountImpact > 0 && <p className="text-xs text-orange-600 mt-1">Includes promo users</p>}
                       </div>
                     </div>
 
@@ -2233,46 +2237,45 @@ export default function AdminCommandCenter() {
                   </table>
                 </div>
 
-                {/* ─── DISCOUNTED SUBSCRIPTIONS ─── */}
+                {/* ─── PROMOTIONAL / DISCOUNTED SUBSCRIPTIONS ─── */}
                 {discSubs.length > 0 && (
-                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
-                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">
-                      Active Discounted Subscriptions ({discSubs.length})
+                  <div className="bg-white rounded-xl border border-orange-200 p-6">
+                    <h3 className="text-sm font-bold text-orange-700 uppercase mb-1">
+                      Promotional Subscriptions ({discSubs.length})
                     </h3>
+                    <p className="text-xs text-[var(--color-neutral-400)] mb-4">These users pay reduced or $0. Their only real cost to you is Bland AI usage.</p>
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-[var(--border-default)]">
+                        <tr className="border-b border-orange-200">
                           <th className="text-left py-2 font-semibold">Company</th>
                           <th className="text-center py-2 font-semibold">Plan</th>
                           <th className="text-center py-2 font-semibold">Promo / Coupon</th>
-                          <th className="text-right py-2 font-semibold">Gross</th>
-                          <th className="text-right py-2 font-semibold text-orange-600">Discount</th>
-                          <th className="text-right py-2 font-semibold">Net</th>
+                          <th className="text-right py-2 font-semibold">Full Price</th>
+                          <th className="text-right py-2 font-semibold text-emerald-600">Pays</th>
                           <th className="text-center py-2 font-semibold">Duration</th>
                         </tr>
                       </thead>
                       <tbody>
                         {discSubs.map((ds, i) => (
                           <tr key={i} className="border-b border-[var(--border-default)]">
-                            <td className="py-2 font-medium">{ds.companyId.substring(0, 12)}...</td>
+                            <td className="py-2 font-medium">{ds.companyName}</td>
                             <td className="text-center py-2">
-                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${planColors[ds.plan] || 'bg-gray-100 text-gray-700'}`}>{ds.plan}</span>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${planColors[ds.plan] || 'bg-gray-100 text-gray-700'}`}>{ds.plan}</span>
                             </td>
                             <td className="text-center py-2 text-xs">
                               <span className="font-semibold">{ds.promoCode || ds.couponName || 'Direct'}</span>
                               {ds.percentOff && <span className="text-orange-600 ml-1">({ds.percentOff}% off)</span>}
                             </td>
-                            <td className="text-right py-2">${fmt(ds.grossAmount)}</td>
-                            <td className="text-right py-2 text-orange-600 font-semibold">-${fmt(ds.discountAmount)}</td>
-                            <td className="text-right py-2 font-semibold">${fmt(ds.netAmount)}</td>
+                            <td className="text-right py-2 text-[var(--color-neutral-400)] line-through">${fmt(ds.grossAmount)}</td>
+                            <td className="text-right py-2 font-semibold text-emerald-600">${fmt(ds.netAmount)}/mo</td>
                             <td className="text-center py-2 text-xs text-[var(--color-neutral-500)]">{ds.duration}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    <div className="mt-3 pt-3 border-t border-[var(--border-default)] flex justify-between text-sm font-bold">
-                      <span>Total Discount Impact</span>
-                      <span className="text-orange-600">-${fmt(discSubs.reduce((s, d) => s + d.discountAmount, 0))}/mo</span>
+                    <div className="mt-3 pt-3 border-t border-orange-200 flex justify-between text-sm">
+                      <span className="text-[var(--color-neutral-500)]">Catalog value if full price</span>
+                      <span className="text-[var(--color-neutral-400)]">${fmt(discSubs.reduce((s, d) => s + d.grossAmount, 0))}/mo (not collected — not a loss)</span>
                     </div>
                   </div>
                 )}
