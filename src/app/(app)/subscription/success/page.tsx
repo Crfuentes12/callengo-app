@@ -60,7 +60,7 @@ function SubscriptionSuccessContent() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.push('/dashboard');
+          router.push('/home');
           return 0;
         }
         return prev - 1;

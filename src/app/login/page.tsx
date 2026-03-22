@@ -35,7 +35,7 @@ function LoginForm() {
       }
 
       // Success! Redirect to dashboard
-      router.push('/dashboard');
+      router.push('/home');
       router.refresh();
     } catch (err: unknown) {
       console.error('Login error:', err);

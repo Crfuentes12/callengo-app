@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
     setLoading(true);
     const { error: updateError } = await updatePassword(password);
     if (updateError) { setError(updateError.message || t.auth.resetPassword.errorGeneric); setLoading(false); }
-    else { authEvents.passwordResetCompleted(); phAuthEvents.passwordResetCompleted(); router.push('/dashboard'); }
+    else { authEvents.passwordResetCompleted(); phAuthEvents.passwordResetCompleted(); router.push('/home'); }
   };
 
   return (
