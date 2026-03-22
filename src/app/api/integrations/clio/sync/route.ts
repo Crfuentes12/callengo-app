@@ -62,6 +62,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify company plan still allows Clio integration
+    const { data: subscription } = await supabaseAdmin
+      .from('company_subscriptions')
+      .select('subscription_plans(slug)')
+      .eq('company_id', userData.company_id)
+      .eq('status', 'active')
+      .single();
+
+    const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
+    if (!isPlanAllowedForIntegration(planSlug, 'clio')) {
+      return NextResponse.json(
+        { error: 'Your current plan does not include Clio integration. Please upgrade to Business or higher.' },
+        { status: 403 }
+      );
+    }
+
     const clioIntegration = integration as unknown as ClioIntegration;
     const isSelectiveSync = ids && ids.length > 0;
 

@@ -61,6 +61,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify company plan still allows Salesforce integration
+    const { data: subscription } = await supabaseAdmin
+      .from('company_subscriptions')
+      .select('subscription_plans(slug)')
+      .eq('company_id', userData.company_id)
+      .eq('status', 'active')
+      .single();
+
+    const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
+    if (!isPlanAllowedForIntegration(planSlug, 'salesforce')) {
+      return NextResponse.json(
+        { error: 'Your current plan does not include Salesforce integration. Please upgrade to Teams or higher.' },
+        { status: 403 }
+      );
+    }
+
     const sfIntegration = integration as unknown as SalesforceIntegration;
     const isSelectiveSync = ids && ids.length > 0;
 

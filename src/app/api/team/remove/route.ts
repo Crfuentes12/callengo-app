@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 /**
  * POST /api/team/remove
@@ -14,6 +15,12 @@ export async function POST(req: NextRequest) {
 
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit: 3 remove requests per minute per user
+    const rateLimit = await expensiveLimiter.check(3, `team_remove_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const { userId } = await req.json();
