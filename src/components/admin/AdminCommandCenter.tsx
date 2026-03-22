@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/i18n';
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, Cell,
 } from 'recharts';
 
@@ -186,12 +186,14 @@ interface CommandCenterData {
     byReason: { reason: string; count: number }[];
   };
   unitEconomics?: {
-    grossRevenue: number;
-    grossRevenueBeforeDiscounts: number;
-    discountImpact: number;
-    grossCost: number;
-    grossProfit: number;
-    grossMarginPercent: number;
+    actualRevenue: number;
+    catalogMrr: number;
+    promoAllowance: number;
+    promoSubsCount: number;
+    blandCost: number;
+    profit: number;
+    marginPercent: number;
+    payingCompanies: number;
     arpc: number;
     costPerCall: number;
   };
@@ -280,16 +282,22 @@ interface AccountingData {
   period: { start: string; end: string; label: string };
   pnl: {
     revenue: {
-      grossSubscriptions: number; discounts: number; netSubscriptions: number;
-      overages: number; addons: number; totalGross: number; totalNet: number;
-      byPlan: Record<string, { count: number; gross: number; net: number }>;
+      catalogMrr: number; actualMrr: number;
+      overages: number; addons: number; totalActualRevenue: number;
+      byPlan: Record<string, { count: number; paying: number; promo: number; catalogMrr: number; actualMrr: number }>;
     };
-    costs: { bland: number; openai: number; supabase: number; stripeProcessing: number; totalCOGS: number; totalOperating: number };
+    promotional: { foregoneRevenue: number; promoCustomers: number; promoBlandCost: number; effectivePromoCost: number };
+    costs: { blandTotal: number; blandPaying: number; blandPromo: number; stripeProcessing: number; totalCosts: number };
     margins: { grossProfit: number; grossMarginPercent: number; operatingProfit: number; operatingMarginPercent: number };
   };
   cashFlow: { paymentsReceived: number; paymentsFailed: number; transactionCount: number };
   discountedSubscriptions: { companyId: string; plan: string; grossAmount: number; discountAmount: number; netAmount: number; promoCode: string | null; couponName: string | null; percentOff: number | null; duration: string }[];
-  unitEconomics: { totalCompanies: number; paidCompanies: number; freeCompanies: number; totalUsers: number; arpc: number; costPerCall: number; avgMinPerCall: number; ltv: number; totalCalls: number; completedCalls: number; failedCalls: number; totalMinutes: number };
+  unitEconomics: { totalCompanies: number; payingCustomers: number; promoCustomers: number; freeCustomers: number; totalUsers: number; arpc: number; costPerCall: number; avgMinPerCall: number; ltv: number; totalCalls: number; completedCalls: number; failedCalls: number; totalMinutes: number; payingMinutes: number; promoMinutes: number };
+  charts: {
+    revenueWaterfall: { name: string; value: number; fill: string }[];
+    costBreakdown: { name: string; value: number; fill: string }[];
+    subscriberSegments: { name: string; value: number; fill: string }[];
+  };
   ledger: { date: string; type: string; category: string; description: string; debit: number; credit: number; companyId: string | null; companyName: string | null; reference: string | null }[];
 }
 
@@ -961,10 +969,10 @@ export default function AdminCommandCenter() {
               sub="Paid invoices"
             />
             <KPICard
-              label="Gross Profit"
-              value={`$${fmt(healthData.unitEconomics?.grossProfit || 0)}`}
-              color={((healthData.unitEconomics?.grossMarginPercent || 0) >= 50) ? 'emerald' : 'amber'}
-              sub={`${healthData.unitEconomics?.grossMarginPercent || 0}% margin`}
+              label="Profit"
+              value={`$${fmt(healthData.unitEconomics?.profit || 0)}`}
+              color={((healthData.unitEconomics?.marginPercent || 0) >= 50) ? 'emerald' : 'amber'}
+              sub={`${healthData.unitEconomics?.marginPercent || 0}% margin`}
             />
             <KPICard
               label="ARPC"
@@ -1120,34 +1128,37 @@ export default function AdminCommandCenter() {
             </div>
           </div>
 
-          {/* Row 4: Unit Economics Summary Bar */}
+          {/* Row 4: Unit Economics — Correct model: promo users ≠ losses */}
           <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
-            <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Unit Economics — This Month</h3>
+            <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Actual Economics — This Month</h3>
             <div className="flex items-center gap-6">
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-[var(--color-neutral-500)]">Gross Revenue (MRR)</span>
-                  <span className="text-sm font-bold text-emerald-600">${fmt(healthData.unitEconomics?.grossRevenueBeforeDiscounts || 0)}</span>
-                </div>
-                {(healthData.unitEconomics?.discountImpact || 0) > 0 && (
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-[var(--color-neutral-500)]">Discounts ({healthData.revenue?.subsWithDiscounts || 0} subs)</span>
-                    <span className="text-sm font-bold text-orange-600">-${fmt(healthData.unitEconomics?.discountImpact || 0)}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-[var(--color-neutral-500)]">Net Revenue</span>
-                  <span className="text-sm font-bold text-emerald-600">${fmt(healthData.unitEconomics?.grossRevenue || 0)}</span>
+                  <span className="text-xs text-[var(--color-neutral-500)]">Actual Revenue (Collected)</span>
+                  <span className="text-sm font-bold text-emerald-600">${fmt(healthData.unitEconomics?.actualRevenue || 0)}</span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-[var(--color-neutral-500)]">Bland Cost</span>
-                  <span className="text-sm font-bold text-red-600">-${fmt(healthData.unitEconomics?.grossCost || 0)}</span>
+                  <span className="text-xs text-[var(--color-neutral-500)]">Bland AI Cost (All Users)</span>
+                  <span className="text-sm font-bold text-red-600">-${fmt(healthData.unitEconomics?.blandCost || 0)}</span>
                 </div>
                 <div className="border-t border-[var(--border-default)] pt-2 flex items-center justify-between">
-                  <span className="text-xs font-bold text-[var(--color-neutral-700)]">Gross Profit</span>
-                  <span className={`text-sm font-bold ${(healthData.unitEconomics?.grossProfit || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    ${fmt(healthData.unitEconomics?.grossProfit || 0)}
+                  <span className="text-xs font-bold text-[var(--color-neutral-700)]">Profit</span>
+                  <span className={`text-sm font-bold ${(healthData.unitEconomics?.profit || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    ${fmt(healthData.unitEconomics?.profit || 0)}
                   </span>
+                </div>
+                {(healthData.unitEconomics?.promoSubsCount || 0) > 0 && (
+                  <div className="mt-3 pt-3 border-t border-dashed border-[var(--color-neutral-200)]">
+                    <p className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase mb-1">Promotional Users ({healthData.unitEconomics?.promoSubsCount || 0})</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-[var(--color-neutral-400)]">Foregone revenue (not a loss)</span>
+                      <span className="text-xs text-[var(--color-neutral-400)]">${fmt(healthData.unitEconomics?.promoAllowance || 0)}/mo</span>
+                    </div>
+                    <p className="text-[10px] text-[var(--color-neutral-400)] mt-1">These users only cost you their Bland AI usage</p>
+                  </div>
+                )}
+                <div className="mt-3 pt-2 border-t border-[var(--border-default)] flex items-center justify-between">
+                  <span className="text-[10px] text-[var(--color-neutral-400)]">Paying customers: {healthData.unitEconomics?.payingCompanies || 0} · ARPC: ${fmt(healthData.unitEconomics?.arpc || 0)}/mo</span>
                 </div>
               </div>
               {/* Margin gauge */}
@@ -1157,14 +1168,14 @@ export default function AdminCommandCenter() {
                     <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--color-neutral-100)" strokeWidth="3" />
                     <circle
                       cx="18" cy="18" r="15.5" fill="none"
-                      stroke={(healthData.unitEconomics?.grossMarginPercent || 0) >= 50 ? '#10b981' : (healthData.unitEconomics?.grossMarginPercent || 0) >= 20 ? '#f59e0b' : '#ef4444'}
+                      stroke={(healthData.unitEconomics?.marginPercent || 0) >= 50 ? '#10b981' : (healthData.unitEconomics?.marginPercent || 0) >= 20 ? '#f59e0b' : '#ef4444'}
                       strokeWidth="3"
-                      strokeDasharray={`${(healthData.unitEconomics?.grossMarginPercent || 0) * 0.974} 97.4`}
+                      strokeDasharray={`${Math.max(0, healthData.unitEconomics?.marginPercent || 0) * 0.974} 97.4`}
                       strokeLinecap="round"
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-sm font-bold text-[var(--color-ink)]">{healthData.unitEconomics?.grossMarginPercent || 0}%</span>
+                    <span className="text-sm font-bold text-[var(--color-ink)]">{healthData.unitEconomics?.marginPercent || 0}%</span>
                   </div>
                 </div>
                 <span className="text-xs text-[var(--color-neutral-500)] mt-1">Margin</span>
@@ -1990,7 +2001,7 @@ export default function AdminCommandCenter() {
       {tab === 'accounting' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-[var(--color-neutral-600)]">Full Financial Accounting — P&L, Cash Flow, Ledger</p>
+            <p className="text-sm text-[var(--color-neutral-600)]">Full Financial Accounting — Actual Revenue, Real Costs, Promo Impact</p>
             <div className="flex gap-2 items-center">
               <select
                 value={accountingPeriod}
@@ -2014,12 +2025,12 @@ export default function AdminCommandCenter() {
           {!accountingData ? (
             <div className="text-center py-12 text-[var(--color-neutral-400)]">Loading accounting data...</div>
           ) : (() => {
-            const { pnl, cashFlow, discountedSubscriptions: discSubs, unitEconomics: ue, ledger: ledgerData } = accountingData;
+            const { pnl, cashFlow, discountedSubscriptions: discSubs, unitEconomics: ue, charts: chartData, ledger: ledgerData } = accountingData;
             const marginColor = (p: number) => p >= 50 ? 'text-emerald-600' : p >= 20 ? 'text-amber-600' : 'text-red-600';
 
             return (
               <>
-                {/* ─── P&L STATEMENT ─── */}
+                {/* ─── P&L STATEMENT (Correct: revenue = actual collected) ─── */}
                 <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
                   <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4">
                     <h3 className="text-white font-bold text-sm uppercase tracking-wide">Profit & Loss Statement</h3>
@@ -2033,71 +2044,61 @@ export default function AdminCommandCenter() {
                         <tr className="border-b-2 border-[var(--border-default)]">
                           <th className="text-left py-2 font-bold text-[var(--color-neutral-700)]">Line Item</th>
                           <th className="text-right py-2 font-bold text-[var(--color-neutral-700)]">Amount</th>
-                          <th className="text-right py-2 font-bold text-[var(--color-neutral-700)]">% of Net Rev</th>
+                          <th className="text-right py-2 font-bold text-[var(--color-neutral-700)]">Notes</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {/* REVENUE */}
-                        <tr className="bg-emerald-50"><td colSpan={3} className="py-2 px-2 font-bold text-emerald-800 uppercase text-xs tracking-wide">Revenue</td></tr>
+                        {/* ACTUAL REVENUE */}
+                        <tr className="bg-emerald-50"><td colSpan={3} className="py-2 px-2 font-bold text-emerald-800 uppercase text-xs tracking-wide">Actual Revenue (What&apos;s Collected)</td></tr>
                         <tr className="border-b border-[var(--border-default)]">
-                          <td className="py-2 pl-6">Gross Subscription Revenue (MRR)</td>
-                          <td className="text-right py-2 font-medium">${fmt(pnl.revenue.grossSubscriptions)}</td>
-                          <td className="text-right py-2 text-[var(--color-neutral-400)]">—</td>
+                          <td className="py-2 pl-6">Subscription Revenue</td>
+                          <td className="text-right py-2 font-medium text-emerald-700">${fmt(pnl.revenue.actualMrr)}</td>
+                          <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">{ue.payingCustomers} paying customer{ue.payingCustomers !== 1 ? 's' : ''}</td>
                         </tr>
-                        {pnl.revenue.discounts > 0 && (
-                          <tr className="border-b border-[var(--border-default)] text-orange-600">
-                            <td className="py-2 pl-6">Less: Discounts & Promo Codes</td>
-                            <td className="text-right py-2 font-medium">-${fmt(pnl.revenue.discounts)}</td>
-                            <td className="text-right py-2">-{pnl.revenue.totalNet > 0 ? Math.round((pnl.revenue.discounts / pnl.revenue.totalNet) * 100) : 0}%</td>
+                        {pnl.revenue.overages > 0 && (
+                          <tr className="border-b border-[var(--border-default)]">
+                            <td className="py-2 pl-6">Overage Revenue</td>
+                            <td className="text-right py-2">${fmt(pnl.revenue.overages)}</td>
+                            <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Usage beyond plan limits</td>
                           </tr>
                         )}
-                        <tr className="border-b border-[var(--border-default)] font-semibold">
-                          <td className="py-2 pl-6">Net Subscription Revenue</td>
-                          <td className="text-right py-2">${fmt(pnl.revenue.netSubscriptions)}</td>
-                          <td className="text-right py-2">{pnl.revenue.totalNet > 0 ? Math.round((pnl.revenue.netSubscriptions / pnl.revenue.totalNet) * 100) : 0}%</td>
-                        </tr>
-                        <tr className="border-b border-[var(--border-default)]">
-                          <td className="py-2 pl-6">Overage Revenue</td>
-                          <td className="text-right py-2">${fmt(pnl.revenue.overages)}</td>
-                          <td className="text-right py-2 text-[var(--color-neutral-400)]">{pnl.revenue.totalNet > 0 ? Math.round((pnl.revenue.overages / pnl.revenue.totalNet) * 100) : 0}%</td>
-                        </tr>
                         {pnl.revenue.addons > 0 && (
                           <tr className="border-b border-[var(--border-default)]">
                             <td className="py-2 pl-6">Add-on Revenue</td>
                             <td className="text-right py-2">${fmt(pnl.revenue.addons)}</td>
-                            <td className="text-right py-2 text-[var(--color-neutral-400)]">{pnl.revenue.totalNet > 0 ? Math.round((pnl.revenue.addons / pnl.revenue.totalNet) * 100) : 0}%</td>
+                            <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Dedicated numbers, vaults, boosters</td>
                           </tr>
                         )}
                         <tr className="border-b-2 border-emerald-300 bg-emerald-50 font-bold">
-                          <td className="py-3 pl-4 text-emerald-800">Total Net Revenue</td>
-                          <td className="text-right py-3 text-emerald-800">${fmt(pnl.revenue.totalNet)}</td>
-                          <td className="text-right py-3 text-emerald-600">100%</td>
+                          <td className="py-3 pl-4 text-emerald-800">Total Actual Revenue</td>
+                          <td className="text-right py-3 text-emerald-800">${fmt(pnl.revenue.totalActualRevenue)}</td>
+                          <td className="text-right py-3 text-xs text-emerald-600">Cash collected</td>
                         </tr>
 
                         {/* COSTS */}
-                        <tr className="bg-red-50"><td colSpan={3} className="py-2 px-2 font-bold text-red-800 uppercase text-xs tracking-wide mt-2">Cost of Goods Sold (COGS)</td></tr>
+                        <tr className="bg-red-50"><td colSpan={3} className="py-2 px-2 font-bold text-red-800 uppercase text-xs tracking-wide">Cost of Revenue</td></tr>
                         <tr className="border-b border-[var(--border-default)]">
-                          <td className="py-2 pl-6">Bland AI (Voice & Telephony)</td>
-                          <td className="text-right py-2 text-red-600">${fmt(pnl.costs.bland)}</td>
-                          <td className="text-right py-2 text-[var(--color-neutral-400)]">{pnl.revenue.totalNet > 0 ? Math.round((pnl.costs.bland / pnl.revenue.totalNet) * 100) : 0}%</td>
+                          <td className="py-2 pl-6">Bland AI — Paying Customers</td>
+                          <td className="text-right py-2 text-red-600">${fmt(pnl.costs.blandPaying)}</td>
+                          <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">{ue.payingMinutes} min</td>
                         </tr>
-                        {pnl.costs.openai > 0 && (
+                        {pnl.costs.blandPromo > 0 && (
                           <tr className="border-b border-[var(--border-default)]">
-                            <td className="py-2 pl-6">OpenAI (Analysis)</td>
-                            <td className="text-right py-2 text-red-600">${fmt(pnl.costs.openai)}</td>
-                            <td className="text-right py-2 text-[var(--color-neutral-400)]">{pnl.revenue.totalNet > 0 ? Math.round((pnl.costs.openai / pnl.revenue.totalNet) * 100) : 0}%</td>
+                            <td className="py-2 pl-6">Bland AI — Promo/Tester Users</td>
+                            <td className="text-right py-2 text-orange-600">${fmt(pnl.costs.blandPromo)}</td>
+                            <td className="text-right py-2 text-xs text-orange-500">{ue.promoMinutes} min · actual cost of promos</td>
                           </tr>
                         )}
                         <tr className="border-b-2 border-red-300 bg-red-50 font-bold">
                           <td className="py-3 pl-4 text-red-800">Total COGS</td>
-                          <td className="text-right py-3 text-red-800">${fmt(pnl.costs.totalCOGS)}</td>
-                          <td className="text-right py-3 text-red-600">{pnl.revenue.totalNet > 0 ? Math.round((pnl.costs.totalCOGS / pnl.revenue.totalNet) * 100) : 0}%</td>
+                          <td className="text-right py-3 text-red-800">${fmt(pnl.costs.blandTotal)}</td>
+                          <td className="text-right py-3 text-xs text-red-600">{ue.totalMinutes} total min</td>
                         </tr>
 
                         {/* GROSS PROFIT */}
                         <tr className="bg-blue-50 font-bold text-lg">
                           <td className="py-3 pl-4 text-blue-800">Gross Profit</td>
-                          <td className="text-right py-3 text-blue-800">${fmt(pnl.margins.grossProfit)}</td>
+                          <td className={`text-right py-3 ${pnl.margins.grossProfit >= 0 ? 'text-blue-800' : 'text-red-600'}`}>${fmt(pnl.margins.grossProfit)}</td>
                           <td className={`text-right py-3 font-bold ${marginColor(pnl.margins.grossMarginPercent)}`}>{pnl.margins.grossMarginPercent}%</td>
                         </tr>
 
@@ -2106,17 +2107,100 @@ export default function AdminCommandCenter() {
                         <tr className="border-b border-[var(--border-default)]">
                           <td className="py-2 pl-6">Stripe Processing (~2.9% + $0.30/txn)</td>
                           <td className="text-right py-2 text-amber-700">${fmt(pnl.costs.stripeProcessing)}</td>
-                          <td className="text-right py-2 text-[var(--color-neutral-400)]">{pnl.revenue.totalNet > 0 ? Math.round((pnl.costs.stripeProcessing / pnl.revenue.totalNet) * 100) : 0}%</td>
+                          <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">On collected payments only</td>
                         </tr>
 
                         {/* OPERATING PROFIT */}
                         <tr className="bg-violet-50 font-bold text-lg border-t-2 border-violet-300">
-                          <td className="py-3 pl-4 text-violet-800">Operating Profit (EBITDA)</td>
-                          <td className="text-right py-3 text-violet-800">${fmt(pnl.margins.operatingProfit)}</td>
+                          <td className="py-3 pl-4 text-violet-800">Operating Profit</td>
+                          <td className={`text-right py-3 ${pnl.margins.operatingProfit >= 0 ? 'text-violet-800' : 'text-red-600'}`}>${fmt(pnl.margins.operatingProfit)}</td>
                           <td className={`text-right py-3 font-bold ${marginColor(pnl.margins.operatingMarginPercent)}`}>{pnl.margins.operatingMarginPercent}%</td>
                         </tr>
+
+                        {/* PROMO CONTEXT — informational, NOT a loss */}
+                        {pnl.promotional.promoCustomers > 0 && (
+                          <>
+                            <tr><td colSpan={3} className="py-1" /></tr>
+                            <tr className="bg-orange-50"><td colSpan={3} className="py-2 px-2 font-bold text-orange-700 uppercase text-xs tracking-wide">Promotional Users Context (Informational)</td></tr>
+                            <tr className="border-b border-[var(--border-default)]">
+                              <td className="py-2 pl-6 text-[var(--color-neutral-500)]">Promo/Tester Users</td>
+                              <td className="text-right py-2 text-[var(--color-neutral-500)]">{pnl.promotional.promoCustomers}</td>
+                              <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Users on discounted plans</td>
+                            </tr>
+                            <tr className="border-b border-[var(--border-default)]">
+                              <td className="py-2 pl-6 text-[var(--color-neutral-500)]">Catalog Value (if full price)</td>
+                              <td className="text-right py-2 text-[var(--color-neutral-400)]">${fmt(pnl.promotional.foregoneRevenue)}/mo</td>
+                              <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Not a loss — never collected</td>
+                            </tr>
+                            <tr className="border-b border-[var(--border-default)]">
+                              <td className="py-2 pl-6 text-[var(--color-neutral-500)]">Real Cost of Promo Users</td>
+                              <td className="text-right py-2 text-orange-600 font-semibold">${fmt(pnl.promotional.effectivePromoCost)}</td>
+                              <td className="text-right py-2 text-xs text-orange-500">Only Bland usage — this is your actual cost</td>
+                            </tr>
+                          </>
+                        )}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+
+                {/* ─── CHARTS: Revenue Waterfall + Cost Breakdown + Subscriber Segments ─── */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Revenue Waterfall */}
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                    <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-3">Revenue Waterfall</h3>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={chartData.revenueWaterfall} layout="vertical" margin={{ left: 0, right: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" tickFormatter={(v) => `$${v}`} fontSize={10} />
+                        <YAxis dataKey="name" type="category" fontSize={10} width={90} />
+                        <Tooltip formatter={(v) => `$${fmt(Math.abs(Number(v)))}`} />
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                          {chartData.revenueWaterfall.map((entry, index) => (
+                            <Cell key={index} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Cost Breakdown */}
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                    <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-3">Cost Breakdown</h3>
+                    {chartData.costBreakdown.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <PieChart>
+                          <Pie data={chartData.costBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`} fontSize={10}>
+                            {chartData.costBreakdown.map((entry, index) => (
+                              <Cell key={index} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(v) => `$${fmt(Number(v))}`} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-[220px] text-[var(--color-neutral-400)] text-sm">No costs yet</div>
+                    )}
+                  </div>
+
+                  {/* Subscriber Segments */}
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                    <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-3">Subscriber Segments</h3>
+                    {chartData.subscriberSegments.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <PieChart>
+                          <Pie data={chartData.subscriberSegments} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, value }) => `${name}: ${value}`} fontSize={10}>
+                            {chartData.subscriberSegments.map((entry, index) => (
+                              <Cell key={index} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend fontSize={10} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-[220px] text-[var(--color-neutral-400)] text-sm">No subscribers yet</div>
+                    )}
                   </div>
                 </div>
 
@@ -2127,9 +2211,11 @@ export default function AdminCommandCenter() {
                     <thead>
                       <tr className="border-b border-[var(--border-default)]">
                         <th className="text-left py-2 font-semibold">Plan</th>
-                        <th className="text-center py-2 font-semibold">Subscribers</th>
-                        <th className="text-right py-2 font-semibold">Gross MRR</th>
-                        <th className="text-right py-2 font-semibold">Net MRR</th>
+                        <th className="text-center py-2 font-semibold">Total</th>
+                        <th className="text-center py-2 font-semibold text-emerald-600">Paying</th>
+                        <th className="text-center py-2 font-semibold text-orange-600">Promo</th>
+                        <th className="text-right py-2 font-semibold">Catalog MRR</th>
+                        <th className="text-right py-2 font-semibold">Actual MRR</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2137,8 +2223,10 @@ export default function AdminCommandCenter() {
                         <tr key={slug} className="border-b border-[var(--border-default)]">
                           <td className="py-2 capitalize font-medium">{slug}</td>
                           <td className="text-center py-2">{data.count}</td>
-                          <td className="text-right py-2">${fmt(data.gross)}</td>
-                          <td className="text-right py-2 font-semibold">${fmt(data.net)}</td>
+                          <td className="text-center py-2 text-emerald-600">{data.paying}</td>
+                          <td className="text-center py-2 text-orange-600">{data.promo}</td>
+                          <td className="text-right py-2 text-[var(--color-neutral-400)]">${fmt(data.catalogMrr)}</td>
+                          <td className="text-right py-2 font-semibold">${fmt(data.actualMrr)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2212,12 +2300,12 @@ export default function AdminCommandCenter() {
                   <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
                     <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Unit Economics</h3>
                     <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div><span className="text-[var(--color-neutral-500)]">Companies</span><p className="font-bold text-lg">{ue.totalCompanies} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.paidCompanies} paid, {ue.freeCompanies} free)</span></p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Companies</span><p className="font-bold text-lg">{ue.totalCompanies} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.payingCustomers} paying, {ue.promoCustomers} promo, {ue.freeCustomers} free)</span></p></div>
                       <div><span className="text-[var(--color-neutral-500)]">Active Users</span><p className="font-bold text-lg">{ue.totalUsers}</p></div>
-                      <div><span className="text-[var(--color-neutral-500)]">ARPC</span><p className="font-bold text-lg">${fmt(ue.arpc)}<span className="text-xs font-normal">/mo</span></p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">ARPC (paying only)</span><p className="font-bold text-lg">${fmt(ue.arpc)}<span className="text-xs font-normal">/mo</span></p></div>
                       <div><span className="text-[var(--color-neutral-500)]">LTV (12mo)</span><p className="font-bold text-lg">${fmt(ue.ltv)}</p></div>
                       <div><span className="text-[var(--color-neutral-500)]">Total Calls</span><p className="font-bold text-lg">{ue.totalCalls.toLocaleString()} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.completedCalls} ok, {ue.failedCalls} failed)</span></p></div>
-                      <div><span className="text-[var(--color-neutral-500)]">Total Minutes</span><p className="font-bold text-lg">{ue.totalMinutes.toLocaleString()}</p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Minutes</span><p className="font-bold text-lg">{ue.totalMinutes.toLocaleString()} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.payingMinutes} paying, {ue.promoMinutes} promo)</span></p></div>
                       <div><span className="text-[var(--color-neutral-500)]">Cost/Call</span><p className="font-bold text-lg">${fmt(ue.costPerCall)}</p></div>
                       <div><span className="text-[var(--color-neutral-500)]">Avg Min/Call</span><p className="font-bold text-lg">{ue.avgMinPerCall.toFixed(2)}</p></div>
                     </div>

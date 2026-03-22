@@ -631,14 +631,26 @@ export async function GET() {
       },
 
       // === NEW: Unit Economics Summary ===
+      // Revenue = what paying customers actually pay (net of discounts, NOT theoretical)
+      // Promo users only cost you their Bland usage, NOT the foregone plan price
       unitEconomics: {
-        grossRevenue: Math.round(netMrr * 100) / 100,
-        grossRevenueBeforeDiscounts: Math.round(mrr * 100) / 100,
-        discountImpact: Math.round(totalMonthlyDiscountImpact * 100) / 100,
-        grossCost: Math.round(blandCostThisMonth * 100) / 100,
-        grossProfit: Math.round((netMrr - blandCostThisMonth) * 100) / 100,
-        grossMarginPercent: netMrr > 0 ? Math.round(((netMrr - blandCostThisMonth) / netMrr) * 1000) / 10 : 0,
-        arpc: activeCount > 0 ? Math.round((netMrr / activeCount) * 100) / 100 : 0,
+        // Actual revenue (what paying customers pay)
+        actualRevenue: Math.round(netMrr * 100) / 100,
+        // Full plan price MRR (if everyone paid full price)
+        catalogMrr: Math.round(mrr * 100) / 100,
+        // Promotional allowance (informational — NOT a loss)
+        promoAllowance: Math.round(totalMonthlyDiscountImpact * 100) / 100,
+        promoSubsCount: subsWithDiscounts,
+        // Actual costs
+        blandCost: Math.round(blandCostThisMonth * 100) / 100,
+        // Profit = actual revenue - actual costs (promo users only add cost, not negative revenue)
+        profit: Math.round((netMrr - blandCostThisMonth) * 100) / 100,
+        marginPercent: netMrr > 0 ? Math.round(((netMrr - blandCostThisMonth) / netMrr) * 1000) / 10 : 0,
+        // ARPC only for paying customers (excludes free and 100% promo)
+        payingCompanies: activeCount - subsWithDiscounts,
+        arpc: (activeCount - subsWithDiscounts) > 0
+          ? Math.round((netMrr / (activeCount - subsWithDiscounts)) * 100) / 100
+          : 0,
         costPerCall: (callsThisMonthResult.count || 0) > 0
           ? Math.round((blandCostThisMonth / (callsThisMonthResult.count || 1)) * 100) / 100
           : 0,

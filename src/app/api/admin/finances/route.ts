@@ -140,12 +140,15 @@ export async function GET(request: NextRequest) {
     const usageData = usageResult.data || [];
     const billingHistory = billingHistoryResult.data || [];
 
-    // Active companies: companies with active subscriptions (exclude free-only if no stripe)
+    // Active companies: companies with active subscriptions
+    // Also count from users table as fallback (in case subscription query returns empty)
     const activeCompanyIds = new Set(activeSubs.map(s => s.company_id));
-    const totalCompaniesActive = activeCompanyIds.size;
+    // If no subs found, count unique company_ids from users
+    const userCompanyIds = new Set(allUsers.map(u => u.company_id).filter(Boolean));
+    const totalCompaniesActive = activeCompanyIds.size > 0 ? activeCompanyIds.size : userCompanyIds.size;
 
-    // Active users: users belonging to active companies
-    const totalUsersActive = allUsers.filter(u => u.company_id && activeCompanyIds.has(u.company_id)).length;
+    // Active users: all users with a company
+    const totalUsersActive = allUsers.filter(u => u.company_id).length;
 
     // Subscription revenue (MRR from plans)
     let revenueSubscriptions = 0;
