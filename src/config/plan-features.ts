@@ -370,3 +370,30 @@ export function minutesToEstimatedCalls(minutes: number): number {
 export function callsToEstimatedMinutes(calls: number): number {
   return Math.round(calls * 1.5);
 }
+
+/**
+ * Integration access by plan tier.
+ * Based on pricing model:
+ * - Free/Starter/Growth: Google Calendar, Google Meet, Zoom, Slack, SimplyBook, Webhooks
+ * - Business+: + Microsoft Outlook, Teams, HubSpot, Pipedrive, Zoho, Clio
+ * - Teams+: + Salesforce, Microsoft Dynamics 365
+ */
+const INTEGRATION_PLAN_REQUIREMENTS: Record<string, string[]> = {
+  hubspot: ['business', 'teams', 'enterprise'],
+  pipedrive: ['business', 'teams', 'enterprise'],
+  zoho: ['business', 'teams', 'enterprise'],
+  clio: ['business', 'teams', 'enterprise'],
+  salesforce: ['teams', 'enterprise'],
+  dynamics: ['teams', 'enterprise'],
+};
+
+/**
+ * Check if a plan slug allows access to a given CRM integration.
+ * Returns true if the plan is in the allowed list for that integration.
+ * If the integration is not in the gated list (e.g. google-calendar), returns true (ungated).
+ */
+export function isPlanAllowedForIntegration(planSlug: string, integrationName: string): boolean {
+  const allowedPlans = INTEGRATION_PLAN_REQUIREMENTS[integrationName];
+  if (!allowedPlans) return true; // Not gated (e.g. Google Calendar, Zoom, Slack, SimplyBook)
+  return allowedPlans.includes(planSlug);
+}

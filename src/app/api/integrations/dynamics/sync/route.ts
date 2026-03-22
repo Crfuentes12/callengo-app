@@ -13,6 +13,7 @@ import {
   syncSelectedDynamicsLeads,
   pushContactUpdatesToDynamics,
 } from '@/lib/dynamics';
+import { isPlanAllowedForIntegration } from '@/config/plan-features';
 import type { DynamicsIntegration } from '@/types/dynamics';
 
 export async function POST(request: NextRequest) {

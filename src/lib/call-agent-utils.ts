@@ -209,6 +209,20 @@ export function isValidPhoneNumber(phone: string): boolean {
   return phoneRegex.test(normalized);
 }
 
+/**
+ * Sanitize a CSV value to prevent formula injection (CSV injection / DDE attack).
+ * Prefixes formula-triggering characters with a single quote so spreadsheet apps
+ * don't interpret them as formulas when the data is exported back to CSV.
+ */
+function sanitizeCsvValue(value: string): string {
+  if (!value) return value;
+  // Prefix formula-triggering characters with a single quote
+  if (/^[=+\-@\t\r]/.test(value)) {
+    return "'" + value;
+  }
+  return value;
+}
+
 export function mapRowToContact(
   row: string[],
   headers: string[],
@@ -244,7 +258,7 @@ export function mapRowToContact(
     for (const [fieldName, headerName] of Object.entries(mapping.extraFields)) {
       const value = getValue(headerName);
       if (value) {
-        customFields[fieldName] = value;
+        customFields[fieldName] = sanitizeCsvValue(value);
       }
     }
   }
@@ -263,17 +277,27 @@ export function mapRowToContact(
     delete customFields.tags;
   }
 
+  // Sanitize text fields that could be exported to CSV to prevent formula injection.
+  // phone_number is intentionally NOT sanitized (needs + prefix for international format).
+  const safeCompanyName = sanitizeCsvValue(getValue(mapping.companyName)) || 'Unknown Company';
+  const safeAddress = getValue(mapping.address) ? sanitizeCsvValue(getValue(mapping.address)) : null;
+  const safeCity = getValue(mapping.city) ? sanitizeCsvValue(getValue(mapping.city)) : null;
+  const safeState = getValue(mapping.state) ? sanitizeCsvValue(getValue(mapping.state)) : null;
+  const safeZipCode = getValue(mapping.zipCode) ? sanitizeCsvValue(getValue(mapping.zipCode)) : null;
+  const safeEmail = getValue(mapping.email) ? sanitizeCsvValue(getValue(mapping.email)) : null;
+  const safeContactName = contactName ? sanitizeCsvValue(contactName) : null;
+
   return {
     company_id: '', // Will be set by caller
-    company_name: getValue(mapping.companyName) || 'Unknown Company',
-    address: getValue(mapping.address) || null,
-    city: getValue(mapping.city) || null,
-    state: getValue(mapping.state) || null,
-    zip_code: getValue(mapping.zipCode) || null,
+    company_name: safeCompanyName,
+    address: safeAddress,
+    city: safeCity,
+    state: safeState,
+    zip_code: safeZipCode,
     phone_number: phoneNormalized,
     original_phone_number: phoneRaw,
-    contact_name: contactName,
-    email: getValue(mapping.email) || null,
+    contact_name: safeContactName,
+    email: safeEmail,
     status: 'Pending',
     call_outcome: 'Not Called',
     last_call_date: null,
@@ -286,7 +310,7 @@ export function mapRowToContact(
     transcripts: null,
     analysis: null,
     call_metadata: null,
-    notes: notesValue || null,
+    notes: notesValue ? sanitizeCsvValue(notesValue) : null,
     is_test_call: false,
     tags: parsedTags,
     list_id: null,

@@ -11,6 +11,7 @@ import {
   syncSelectedSalesforceContacts,
   syncSelectedSalesforceLeads,
 } from '@/lib/salesforce';
+import { isPlanAllowedForIntegration } from '@/config/plan-features';
 import type { SalesforceIntegration } from '@/types/salesforce';
 
 export async function POST(request: NextRequest) {

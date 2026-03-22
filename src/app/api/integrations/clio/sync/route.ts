@@ -10,6 +10,7 @@ import {
   syncSelectedClioContacts,
   pushContactUpdatesToClio,
 } from '@/lib/clio';
+import { isPlanAllowedForIntegration } from '@/config/plan-features';
 import type { ClioIntegration } from '@/types/clio';
 
 export async function POST(request: NextRequest) {

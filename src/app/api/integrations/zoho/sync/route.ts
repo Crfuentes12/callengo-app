@@ -13,6 +13,7 @@ import {
   syncSelectedZohoLeads,
   pushContactUpdatesToZoho,
 } from '@/lib/zoho';
+import { isPlanAllowedForIntegration } from '@/config/plan-features';
 import type { ZohoIntegration } from '@/types/zoho';
 
 export async function POST(request: NextRequest) {

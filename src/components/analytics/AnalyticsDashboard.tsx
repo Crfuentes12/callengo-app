@@ -61,7 +61,7 @@ export default function AnalyticsDashboard({
   const kpis = useMemo(() => {
     const totalCalls = callLogs.length;
     const completedCalls = callLogs.filter(log => log.completed).length;
-    const successfulCalls = callLogs.filter(log => log.status === 'completed').length;
+    const successfulCalls = callLogs.filter(log => log.completed && log.status === 'completed').length;
     const failedCalls = callLogs.filter(log => log.status === 'failed' || !log.completed).length;
 
     const totalDuration = callLogs.reduce((sum, log) => sum + (log.call_length || 0), 0);
@@ -413,7 +413,7 @@ export default function AnalyticsDashboard({
             </div>
             <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-[var(--border-default)]">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-[var(--color-success-50)]0 rounded-full"></div>
+                <div className="w-2 h-2 bg-[var(--color-success-500)] rounded-full"></div>
                 <span className="text-xs text-[var(--color-neutral-500)] font-semibold">{t.analytics.successRate}</span>
               </div>
               <span className="text-3xl text-[var(--color-ink)] font-bold">{kpis.successRate.toFixed(0)}%</span>
