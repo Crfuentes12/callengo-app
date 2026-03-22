@@ -129,17 +129,20 @@ export async function GET(request: NextRequest) {
       monthlyDiscount: number;
     }>();
     try {
-      // Fetch subscriptions + all coupons in parallel for reliable resolution
-      const [stripeSubs, allCoupons] = await Promise.all([
+      // Fetch subscriptions + all coupons + promo codes in parallel for reliable resolution
+      const [stripeSubs, allCoupons, allPromoCodes] = await Promise.all([
         stripe.subscriptions.list({
           status: 'active',
           limit: 100,
           expand: ['data.discounts', 'data.customer'],
         }),
         stripe.coupons.list({ limit: 100 }),
+        stripe.promotionCodes.list({ limit: 100 }),
       ]);
       // Build coupon lookup map (handles case where source.coupon is a string ID)
       const couponMap = new Map(allCoupons.data.map(c => [c.id, c]));
+      // Build promo code ID → code name lookup
+      const promoCodeIdToName = new Map(allPromoCodes.data.map(pc => [pc.id, pc.code]));
 
       for (const ss of stripeSubs.data) {
         const firstDiscount = (ss.discounts && ss.discounts.length > 0) ? ss.discounts[0] : null;
@@ -160,8 +163,14 @@ export async function GET(request: NextRequest) {
         if (coupon.percent_off) disc = planAmt * (coupon.percent_off / 100);
         else if (coupon.amount_off) disc = Math.min(coupon.amount_off / 100, planAmt);
         const pc = firstDiscount.promotion_code;
+        // Resolve promo code name: if it's a string ID, look up from our fetched list
+        const promoCodeName = pc
+          ? (typeof pc === 'string'
+              ? (promoCodeIdToName.get(pc) || null)
+              : pc.code)
+          : null;
         discountByCompany.set(cId, {
-          promoCode: pc ? (typeof pc === 'string' ? pc : pc.code) : null,
+          promoCode: promoCodeName,
           couponName: coupon.name,
           percentOff: coupon.percent_off,
           amountOff: coupon.amount_off ? coupon.amount_off / 100 : null,
@@ -185,19 +194,20 @@ export async function GET(request: NextRequest) {
       const minutesIncluded = plan?.minutes_included || 0;
       const usagePercent = minutesIncluded > 0 ? Math.round((minutesUsed / minutesIncluded) * 100) : 0;
 
-      // Unit economics
-      const subscriptionRevenue = plan?.price_monthly || 0;
+      // Unit economics — separate gross and net revenue
+      const grossSubscriptionRevenue = plan?.price_monthly || 0;
       const overageMinutes = Math.max(0, minutesUsed - minutesIncluded);
       const overageRevenue = overageMinutes * (plan?.price_per_extra_minute || 0);
       const addonRevenue = addons.reduce((sum: number, a) => sum + ((ADDON_PRICES[a.addon_type] || 0) * (a.quantity || 1)), 0);
       const discount = discountByCompany.get(company.id);
       const discountAmount = discount?.monthlyDiscount || 0;
-      const totalRevenue = subscriptionRevenue + overageRevenue + addonRevenue - discountAmount;
+      const grossRevenue = grossSubscriptionRevenue + overageRevenue + addonRevenue;
+      const netRevenue = grossRevenue - discountAmount;
 
       // Cost = actual minutes used × Bland cost/min
       const blandCost = minutesUsed * BLAND_COST_PER_MINUTE;
-      const profit = totalRevenue - blandCost;
-      const marginPercent = totalRevenue > 0 ? Math.round((profit / totalRevenue) * 100) : 0;
+      const profit = netRevenue - blandCost;
+      const marginPercent = netRevenue > 0 ? Math.round((profit / netRevenue) * 100) : 0;
 
       return {
         id: company.id,
@@ -206,7 +216,7 @@ export async function GET(request: NextRequest) {
         plan: {
           slug: plan?.slug || 'free',
           name: plan?.name || 'Free',
-          priceMonthly: subscriptionRevenue,
+          priceMonthly: grossSubscriptionRevenue,
         },
         subscription: {
           status: sub?.status || 'inactive',
@@ -227,8 +237,9 @@ export async function GET(request: NextRequest) {
           periodEnd: usage?.period_end || null,
         },
         economics: {
-          totalRevenue: Math.round(totalRevenue * 100) / 100,
-          subscriptionRevenue,
+          grossRevenue: Math.round(grossRevenue * 100) / 100,
+          netRevenue: Math.round(netRevenue * 100) / 100,
+          subscriptionRevenue: grossSubscriptionRevenue,
           overageRevenue,
           addonRevenue,
           discountAmount,

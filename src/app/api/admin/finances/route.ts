@@ -183,13 +183,10 @@ export async function GET(request: NextRequest) {
     const costSupabase = 0; // Fixed cost, not tracked per-period
     const costTotal = costBland + costOpenai + costSupabase;
 
-    // Revenue and margin
+    // Revenue and margin — gross = plan prices, net = gross - discounts
     const revenueOverages = usageOverages;
-    const revenueTotal = revenueSubscriptions + revenueOverages;
-    const grossMargin = revenueTotal - costTotal;
-    const grossMarginPercent = revenueTotal > 0 ? (grossMargin / revenueTotal) * 100 : 0;
-    const avgRevenuePerCompany = totalCompaniesActive > 0 ? revenueTotal / totalCompaniesActive : 0;
-    const overageRevenuePercent = revenueSubscriptions > 0 ? (revenueOverages / revenueSubscriptions) * 100 : 0;
+    const grossRevenue = revenueSubscriptions + revenueOverages;
+    // Net revenue will be computed after discount calculation below
 
     // Stripe discount impact
     let totalDiscountImpact = 0;
@@ -221,6 +218,13 @@ export async function GET(request: NextRequest) {
       console.error('[finances] Failed to fetch Stripe discounts:', err);
     }
 
+    // Compute net revenue and margins after discounts
+    const netRevenue = grossRevenue - totalDiscountImpact;
+    const grossMargin = netRevenue - costTotal;
+    const grossMarginPercent = netRevenue > 0 ? (grossMargin / netRevenue) * 100 : 0;
+    const avgRevenuePerCompany = totalCompaniesActive > 0 ? netRevenue / totalCompaniesActive : 0;
+    const overageRevenuePercent = revenueSubscriptions > 0 ? (revenueOverages / revenueSubscriptions) * 100 : 0;
+
     const financeRecord = {
       bland_talk_rate: BLAND_COST_PER_MINUTE,
       bland_transfer_rate: blandMasterInfo.transferRate,
@@ -231,7 +235,10 @@ export async function GET(request: NextRequest) {
       active_subaccounts: 0,
       bland_master_balance: blandMasterInfo.balance,
       bland_master_subscription: blandMasterInfo.subscription,
-      revenue_total: Math.round(revenueTotal * 100) / 100,
+      // Gross = plan price (before discounts)
+      revenue_gross: Math.round(grossRevenue * 100) / 100,
+      // Total = net (after discounts) — backward compatible
+      revenue_total: Math.round(netRevenue * 100) / 100,
       revenue_subscriptions: Math.round(revenueSubscriptions * 100) / 100,
       revenue_overages: Math.round(revenueOverages * 100) / 100,
       total_discount_impact: Math.round(totalDiscountImpact * 100) / 100,
