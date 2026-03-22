@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
         const { data: claimed, error: claimError } = await supabaseAdmin
           .from('call_logs')
           .update({ completed: true })
-          .eq('bland_call_id', call_id)
+          .eq('call_id', call_id)
           .eq('completed', false)
           .select('id')
           .maybeSingle();

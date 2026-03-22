@@ -224,8 +224,21 @@ export async function POST(request: NextRequest) {
               if (preLog?.id) {
                 await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
               }
-              await releaseCallSlot(company_id, preCallId);
-            } catch { /* cleanup errors are non-fatal */ }
+            } catch (dbCleanupErr) {
+              console.error(`[dispatch] Failed to cleanup pre-log ${preLog?.id} (non-fatal):`, dbCleanupErr);
+            }
+            // Retry slot release up to 3 times to prevent counter drift
+            for (let releaseAttempt = 0; releaseAttempt < 3; releaseAttempt++) {
+              try {
+                await releaseCallSlot(company_id, preCallId);
+                break; // Success
+              } catch (releaseErr) {
+                console.error(`[dispatch] CRITICAL: Failed to release slot ${preCallId} (attempt ${releaseAttempt + 1}/3):`, releaseErr);
+                if (releaseAttempt < 2) {
+                  await new Promise(r => setTimeout(r, 100 * Math.pow(2, releaseAttempt)));
+                }
+              }
+            }
           }
         }
       } catch (callError) {

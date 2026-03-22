@@ -61,6 +61,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Idempotency: if callId is provided, check if usage was already reported for this call
+    if (callId) {
+      const { data: existingEvent } = await supabaseAdmin
+        .from('billing_events')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('event_type', 'usage_recorded')
+        .filter('event_data->>call_id', 'eq', callId)
+        .maybeSingle();
+
+      if (existingEvent) {
+        return NextResponse.json({
+          success: true,
+          skipped: true,
+          reason: 'Usage already reported for this call',
+        });
+      }
+    }
+
     // Verify user has access to this company (if user-authenticated, not service call)
     if (user && !isServiceCall) {
       const { data: userData } = await supabase
@@ -227,6 +246,7 @@ async function processUsagePostUpdate(
   const stripeSubItemId = subscription.stripe_subscription_item_id as string | null;
   const overageBudget = subscription.overage_budget as number | null;
   const overageAlertLevel = subscription.overage_alert_level as number | null;
+  let stripeReportFailed = false;
 
   // Update company subscription overage tracking
   await supabase
@@ -278,8 +298,8 @@ async function processUsagePostUpdate(
         action: 'set',
       });
     } catch (stripeError) {
-      console.error('Error reporting to Stripe:', stripeError);
-      // Log the failure for later reconciliation but don't block the response
+      console.error('CRITICAL: Error reporting to Stripe — overage not billed:', stripeError);
+      // Log the failure for later reconciliation
       await supabase.from('billing_events').insert({
         company_id: companyId,
         subscription_id: subId,
@@ -288,10 +308,13 @@ async function processUsagePostUpdate(
           overage_minutes: overageMinutes,
           stripe_subscription_item_id: stripeSubItemId,
           error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+          needs_reconciliation: true,
         },
-        minutes_consumed: 0,
+        minutes_consumed: overageMinutes,
         cost_usd: 0,
       });
+      // Surface the failure to the caller so it can be retried
+      stripeReportFailed = true;
     }
   }
 
@@ -382,6 +405,7 @@ async function processUsagePostUpdate(
 
   return {
     success: true,
+    stripe_report_failed: stripeReportFailed,
     usage: {
       minutes_used: newMinutesUsed,
       minutes_included: minutesIncluded,

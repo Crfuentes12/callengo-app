@@ -1043,6 +1043,7 @@ const es: TranslationKeys = {
     errorOccurred: 'Ha ocurrido un error',
     tryAgain: 'Por favor, inténtalo de nuevo',
     somethingWentWrong: 'Algo salió mal',
+    unexpectedErrorMessage: 'Ocurrió un error inesperado. Por favor recarga la página o inténtalo de nuevo más tarde.',
     copiedToClipboard: 'Copiado al portapapeles',
     comingSoon: 'Próximamente',
     beta: 'Beta',
