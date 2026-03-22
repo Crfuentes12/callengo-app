@@ -4,10 +4,6 @@ import type { TranslationKeys } from './en';
 // Lazy-load non-English translations to keep bundle size down
 const translationLoaders: Record<string, () => Promise<{ default: TranslationKeys }>> = {
   es: () => import('./es'),
-  de: () => import('./de'),
-  nl: () => import('./nl'),
-  fr: () => import('./fr'),
-  it: () => import('./it'),
 };
 
 export type SupportedLanguage = 'en' | 'es';

@@ -97,7 +97,15 @@ export async function POST(req: NextRequest) {
 
       if (totalSeats >= plan.max_seats) {
         if (plan.extra_seat_price) {
-          // Teams plan allows extra seats for a fee - let it through
+          // TEA-04: Validate that the company has actually purchased enough extra seats
+          const extraSeatsAllowed = (subscription as Record<string, unknown>).extra_users as number || 0;
+          const totalAllowedSeats = plan.max_seats + extraSeatsAllowed;
+          if (totalSeats >= totalAllowedSeats) {
+            return NextResponse.json(
+              { error: `All ${totalAllowedSeats} seats are used. Purchase additional seats to invite more members.` },
+              { status: 403 }
+            );
+          }
         } else {
           return NextResponse.json(
             { error: `All ${plan.max_seats} seats are used. Upgrade your plan to add more team members.` },

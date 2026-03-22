@@ -241,6 +241,20 @@ async function processUsagePostUpdate(
     cost_usd: newMinutesUsed > minutesIncluded ? minutes * pricePerMinute : 0,
   });
 
+  // BIL-03: Flag when overage is owed but can't be reported to Stripe
+  if (overageEnabled && overageMinutes > 0 && !stripeSubItemId) {
+    console.error('[report-usage] CRITICAL: Overage minutes detected but stripe_subscription_item_id is null. Overage will not be billed.', { companyId, overageMinutes });
+    // Create a billing event to flag this for reconciliation
+    await supabase.from('billing_events').insert({
+      company_id: companyId,
+      subscription_id: subId,
+      event_type: 'overage_billing_failed',
+      event_data: { reason: 'missing_stripe_subscription_item_id', overage_minutes: overageMinutes },
+      minutes_consumed: overageMinutes,
+      cost_usd: 0,
+    });
+  }
+
   // Report to Stripe if needed
   // FIX: Propagate Stripe reporting errors — silent failure means overage minutes
   // are tracked locally but never billed to the customer, causing revenue loss.

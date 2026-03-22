@@ -522,6 +522,43 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription & Rec
         }
         // Downgrade: credits stay as-is until next renewal cycle
         // (reclaim + fresh allocation happens at invoice.payment_succeeded)
+
+        // BIL-04: Flag if current minutes_used exceeds the new (lower) plan limit
+        if (newMinutes < oldMinutes) {
+          try {
+            const now = new Date().toISOString();
+            const { data: currentUsage } = await supabase
+              .from('usage_tracking')
+              .select('minutes_used')
+              .eq('company_id', existingSub.company_id)
+              .lte('period_start', now)
+              .gte('period_end', now)
+              .order('period_start', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            const minutesUsed = currentUsage?.minutes_used || 0;
+            if (minutesUsed > newMinutes) {
+              console.warn(`[subscription.updated] DOWNGRADE: company ${existingSub.company_id} has used ${minutesUsed} minutes but new plan "${newPlan.slug}" only includes ${newMinutes}. Excess: ${minutesUsed - newMinutes} minutes.`);
+              await supabase.from('billing_events').insert({
+                company_id: existingSub.company_id,
+                subscription_id: existingSub.id,
+                event_type: 'downgrade_minutes_exceeded',
+                event_data: {
+                  previous_plan: oldPlan.slug,
+                  new_plan: newPlan.slug,
+                  minutes_used: minutesUsed,
+                  new_minutes_included: newMinutes,
+                  excess_minutes: minutesUsed - newMinutes,
+                },
+                minutes_consumed: 0,
+                cost_usd: 0,
+              });
+            }
+          } catch (downgradeCheckError) {
+            console.error('⚠️ Downgrade minutes check failed (non-fatal):', downgradeCheckError);
+          }
+        }
       }
     }
   } catch (blandError) {
