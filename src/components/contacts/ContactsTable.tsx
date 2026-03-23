@@ -131,9 +131,9 @@ export default function ContactsTable({
   const to = Math.min(page * pageSize, total);
 
   return (
-    <div className="bg-white rounded-xl border border-[var(--border-default)]/80 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-xl border border-[var(--border-default)]/80 overflow-hidden shadow-sm flex flex-col min-h-[60vh]">
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto flex-1">
         <table className="min-w-full divide-y divide-[var(--border-subtle)]">
           <thead className="bg-[var(--color-neutral-50)]/80 sticky top-0 z-10">
             <tr>
@@ -174,7 +174,7 @@ export default function ContactsTable({
                   </svg>
                 </button>
                 {showColumnMenu && (
-                  <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-xl border border-[var(--border-default)] py-1.5 z-50">
+                  <div className="absolute right-0 bottom-full mb-1 w-52 bg-white rounded-lg shadow-xl border border-[var(--border-default)] py-1.5 z-50">
                     <div className="px-3 py-1.5 text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wider">{t.contacts.filters}</div>
                     {Object.entries({
                       address: t.contacts.address,

@@ -232,6 +232,10 @@ export async function syncSelectedDynamicsContacts(
           email: dc.emailaddress1 || null,
           phone_number: phoneNumber,
           company_name: dc.parentcustomerid_account?.name || 'Unknown',
+          address: dc.address1_line1 || null,
+          city: dc.address1_city || null,
+          state: dc.address1_stateorprovince || null,
+          zip_code: dc.address1_postalcode || null,
           source: 'dynamics',
           tags: ['dynamics-import'],
           custom_fields: {
@@ -240,8 +244,6 @@ export async function syncSelectedDynamicsContacts(
             dynamics_lastname: dc.lastname,
             dynamics_jobtitle: dc.jobtitle,
             dynamics_department: dc.department,
-            dynamics_city: dc.address1_city,
-            dynamics_state: dc.address1_stateorprovince,
             dynamics_country: dc.address1_country,
           },
         };
@@ -431,6 +433,10 @@ export async function syncDynamicsContactsToCallengo(
           email: dc.emailaddress1 || null,
           phone_number: phoneNumber,
           company_name: dc.parentcustomerid_account?.name || 'Unknown',
+          address: dc.address1_line1 || null,
+          city: dc.address1_city || null,
+          state: dc.address1_stateorprovince || null,
+          zip_code: dc.address1_postalcode || null,
           source: 'dynamics',
           tags: ['dynamics-import'],
           custom_fields: {
@@ -439,8 +445,6 @@ export async function syncDynamicsContactsToCallengo(
             dynamics_lastname: dc.lastname,
             dynamics_jobtitle: dc.jobtitle,
             dynamics_department: dc.department,
-            dynamics_city: dc.address1_city,
-            dynamics_state: dc.address1_stateorprovince,
             dynamics_country: dc.address1_country,
           },
         };

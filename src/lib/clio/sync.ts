@@ -164,12 +164,22 @@ export async function syncSelectedClioContacts(
 
         const email = clioContact.primary_email_address || null;
         const phone = clioContact.primary_phone_number || '';
+
+        // Extract primary address from Clio addresses array
+        const primaryAddr = Array.isArray(clioContact.addresses) && clioContact.addresses.length > 0
+          ? (clioContact.addresses.find((a: Record<string, unknown>) => a.primary) || clioContact.addresses[0]) as Record<string, string>
+          : null;
+
         const contactData = {
           company_id: integration.company_id,
           contact_name: clioContact.name || `${clioContact.first_name || ''} ${clioContact.last_name || ''}`.trim(),
           email,
           phone_number: phone,
           company_name: clioContact.company?.name || 'Unknown',
+          address: primaryAddr?.street || null,
+          city: primaryAddr?.city || null,
+          state: primaryAddr?.province || null,
+          zip_code: primaryAddr?.postal_code || null,
           source: 'clio',
           tags: ['clio-import'],
           custom_fields: {
@@ -179,7 +189,6 @@ export async function syncSelectedClioContacts(
             clio_type: clioContact.type,
             clio_title: clioContact.title,
             clio_prefix: clioContact.prefix,
-            clio_addresses: clioContact.addresses,
           },
         };
 
@@ -266,12 +275,22 @@ export async function syncClioContactsToCallengo(
 
         const email = clioContact.primary_email_address || null;
         const phone = clioContact.primary_phone_number || '';
+
+        // Extract primary address from Clio addresses array
+        const primaryAddr = Array.isArray(clioContact.addresses) && clioContact.addresses.length > 0
+          ? (clioContact.addresses.find((a: Record<string, unknown>) => a.primary) || clioContact.addresses[0]) as Record<string, string>
+          : null;
+
         const contactData = {
           company_id: integration.company_id,
           contact_name: clioContact.name || `${clioContact.first_name || ''} ${clioContact.last_name || ''}`.trim(),
           email,
           phone_number: phone,
           company_name: clioContact.company?.name || 'Unknown',
+          address: primaryAddr?.street || null,
+          city: primaryAddr?.city || null,
+          state: primaryAddr?.province || null,
+          zip_code: primaryAddr?.postal_code || null,
           source: 'clio',
           tags: ['clio-import'],
           custom_fields: {
@@ -281,7 +300,6 @@ export async function syncClioContactsToCallengo(
             clio_type: clioContact.type,
             clio_title: clioContact.title,
             clio_prefix: clioContact.prefix,
-            clio_addresses: clioContact.addresses,
           },
         };
 

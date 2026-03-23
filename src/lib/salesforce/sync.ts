@@ -228,6 +228,10 @@ export async function syncSelectedSalesforceContacts(
           email: sfContact.Email || null,
           phone_number: phoneNumber,
           company_name: sfContact.Account?.Name || 'Unknown',
+          address: sfContact.MailingStreet || null,
+          city: sfContact.MailingCity || null,
+          state: sfContact.MailingState || null,
+          zip_code: sfContact.MailingPostalCode || null,
           source: 'salesforce',
           tags: ['salesforce-import'],
           custom_fields: {
@@ -237,8 +241,6 @@ export async function syncSelectedSalesforceContacts(
             sf_title: sfContact.Title,
             sf_department: sfContact.Department,
             sf_account_id: sfContact.AccountId,
-            sf_mailing_city: sfContact.MailingCity,
-            sf_mailing_state: sfContact.MailingState,
             sf_mailing_country: sfContact.MailingCountry,
           },
         };
@@ -429,6 +431,10 @@ export async function syncSalesforceContactsToCallengo(
           email: sfContact.Email || null,
           phone_number: phoneNumber,
           company_name: sfContact.Account?.Name || 'Unknown',
+          address: sfContact.MailingStreet || null,
+          city: sfContact.MailingCity || null,
+          state: sfContact.MailingState || null,
+          zip_code: sfContact.MailingPostalCode || null,
           source: 'salesforce',
           tags: ['salesforce-import'],
           custom_fields: {
@@ -438,8 +444,6 @@ export async function syncSalesforceContactsToCallengo(
             sf_title: sfContact.Title,
             sf_department: sfContact.Department,
             sf_account_id: sfContact.AccountId,
-            sf_mailing_city: sfContact.MailingCity,
-            sf_mailing_state: sfContact.MailingState,
             sf_mailing_country: sfContact.MailingCountry,
           },
         };

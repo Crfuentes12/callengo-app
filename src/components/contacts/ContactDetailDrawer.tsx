@@ -42,17 +42,29 @@ export default function ContactDetailDrawer({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('details');
   const [isEditing, setIsEditing] = useState(false);
+
+  // Helper: resolve a field from DB column first, then fallback to custom_fields variants
+  const resolveField = (dbValue: string | null | undefined, ...cfKeys: string[]): string => {
+    if (dbValue) return dbValue;
+    const cf = (contact.custom_fields as Record<string, unknown>) || {};
+    for (const key of cfKeys) {
+      const val = cf[key] ?? cf[key.toLowerCase()];
+      if (val && typeof val === 'string' && val.trim()) return val.trim();
+    }
+    return '';
+  };
+
   const [editData, setEditData] = useState({
     company_name: contact.company_name || '',
     contact_name: contact.contact_name || '',
     email: contact.email || '',
     phone_number: contact.phone_number || '',
-    address: contact.address || '',
-    city: contact.city || '',
-    state: contact.state || '',
-    zip_code: contact.zip_code || '',
+    address: resolveField(contact.address, 'address', 'street', 'street_address', 'direccion'),
+    city: resolveField(contact.city, 'city', 'ciudad', 'town'),
+    state: resolveField(contact.state, 'state', 'province', 'estado', 'region'),
+    zip_code: resolveField(contact.zip_code, 'zip', 'zip_code', 'zipcode', 'postal_code', 'postal', 'codigo_postal'),
     status: contact.status || 'Pending',
-    notes: contact.notes || '',
+    notes: resolveField(contact.notes, 'notes', 'note', 'notas'),
   });
   const [saving, setSaving] = useState(false);
   const [crmMappings, setCrmMappings] = useState<CrmMappings | null>(null);
@@ -77,6 +89,15 @@ export default function ContactDetailDrawer({
     const cf = (contact.custom_fields as Record<string, unknown>) || {};
     // Internal fields to hide
     const hiddenKeys = new Set(['_locked', '_locked_at', '_locked_by', '_lock_call_id']);
+    // Fields that map to built-in DB columns — never show as "Other Fields"
+    const builtInFieldKeys = new Set([
+      'address', 'street', 'street_address', 'direccion',
+      'city', 'ciudad', 'town',
+      'state', 'province', 'estado', 'region',
+      'zip', 'zip_code', 'zipcode', 'postal_code', 'postal', 'codigo_postal',
+      'company_name', 'company', 'contact_name', 'name', 'first_name', 'last_name',
+      'email', 'phone', 'phone_number', 'notes', 'note', 'notas', 'status',
+    ]);
 
     const categories: Record<string, { label: string; color: string; fields: { key: string; value: unknown }[] }> = {
       contact_info: { label: 'Additional Contact Info', color: 'blue', fields: [] },
@@ -97,6 +118,7 @@ export default function ContactDetailDrawer({
 
     for (const [key, value] of Object.entries(cf)) {
       if (hiddenKeys.has(key)) continue;
+      if (builtInFieldKeys.has(key.toLowerCase())) continue;
       if (value === null || value === undefined || value === '') continue;
 
       const entry = { key, value };
