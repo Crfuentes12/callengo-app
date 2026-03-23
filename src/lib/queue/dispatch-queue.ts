@@ -7,7 +7,7 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { checkCallAllowed, getMaxCallDuration } from '@/lib/billing/call-throttle';
 import { dispatchCall } from '@/lib/bland/master-client';
 import { getCompanyCallerNumber } from '@/lib/bland/phone-numbers';
-import { acquireCallSlot, releaseCallSlot } from '@/lib/redis/concurrency-manager';
+import { acquireCallSlot, releaseCallSlot, transferCallSlot } from '@/lib/redis/concurrency-manager';
 
 /**
  * Process up to `batchSize` pending dispatch queue entries.
@@ -129,6 +129,8 @@ export async function processDispatchBatch(batchSize: number = 5): Promise<{
               .update({ call_id: result.callId, status: 'in_progress' })
               .eq('id', preLog.id);
           }
+          // Transfer Redis slot from pre_* ID to real Bland call_id
+          await transferCallSlot(entry.company_id, preCallId, result.callId);
           await supabaseAdmin
             .from('campaign_queue')
             .update({ status: 'completed', call_id: result.callId, completed_at: new Date().toISOString() })

@@ -285,7 +285,8 @@ export async function checkCallCapacity(
 export async function acquireCallSlot(
   companyId: string,
   callId: string,
-  contactId?: string
+  contactId?: string,
+  limits?: { concurrentCap: number; dailyCap: number; hourlyCap: number }
 ): Promise<{ acquired: boolean; error?: string }> {
   if (!redis) {
     return { acquired: true }; // No Redis = no Redis-based limiting
@@ -301,30 +302,79 @@ export async function acquireCallSlot(
       }
     }
 
+    // Single pipeline: increment counters + set TTLs + track active call
+    // This prevents counter drift if process crashes between two pipelines.
     const pipeline = redis.pipeline();
 
     // Increment all counters
-    pipeline.incr(KEYS.globalConcurrent);
-    pipeline.incr(KEYS.companyConcurrent(companyId));
-    pipeline.incr(KEYS.globalDaily());
-    pipeline.incr(KEYS.globalHourly());
-    pipeline.incr(KEYS.companyDaily(companyId));
-    pipeline.incr(KEYS.companyHourly(companyId));
+    pipeline.incr(KEYS.globalConcurrent);          // [0]
+    pipeline.incr(KEYS.companyConcurrent(companyId)); // [1]
+    pipeline.incr(KEYS.globalDaily());              // [2]
+    pipeline.incr(KEYS.globalHourly());             // [3]
+    pipeline.incr(KEYS.companyDaily(companyId));     // [4]
+    pipeline.incr(KEYS.companyHourly(companyId));    // [5]
+
+    // Set TTLs in the SAME pipeline (prevents orphaned counters without expiry)
+    pipeline.expire(KEYS.globalConcurrent, 1800);
+    pipeline.expire(KEYS.companyConcurrent(companyId), 1800);
+    pipeline.expire(KEYS.globalDaily(), 86400);
+    pipeline.expire(KEYS.globalHourly(), 7200);
+    pipeline.expire(KEYS.companyDaily(companyId), 86400);
+    pipeline.expire(KEYS.companyHourly(companyId), 7200);
 
     // Track active call with 30-min TTL (auto-cleanup if webhook doesn't arrive)
     pipeline.set(KEYS.activeCall(callId), JSON.stringify({ companyId, contactId, ts: Date.now() }), { ex: 1800 });
 
-    await pipeline.exec();
+    const results = await pipeline.exec();
 
-    // Set TTLs on counters (idempotent — only sets if not already set)
-    const ttlPipeline = redis.pipeline();
-    ttlPipeline.expire(KEYS.globalConcurrent, 1800); // 30 min max (safety)
-    ttlPipeline.expire(KEYS.companyConcurrent(companyId), 1800);
-    ttlPipeline.expire(KEYS.globalDaily(), 86400); // 24 hours
-    ttlPipeline.expire(KEYS.globalHourly(), 7200); // 2 hours
-    ttlPipeline.expire(KEYS.companyDaily(companyId), 86400);
-    ttlPipeline.expire(KEYS.companyHourly(companyId), 7200);
-    await ttlPipeline.exec();
+    // Post-increment cap check: if we exceeded limits, roll back immediately.
+    // This makes check+acquire effectively atomic — we increment first, then verify.
+    if (limits) {
+      const newGlobalConcurrent = (results[0] as number) || 0;
+      const newCompanyConcurrent = (results[1] as number) || 0;
+      const newGlobalDaily = (results[2] as number) || 0;
+      const newGlobalHourly = (results[3] as number) || 0;
+      const newCompanyDaily = (results[4] as number) || 0;
+      const newCompanyHourly = (results[5] as number) || 0;
+
+      const blandLimits = await getBlandLimits();
+      const safeConcurrentCap = Math.floor(blandLimits.concurrentCap * 0.9);
+      const safeDailyCap = Math.floor(blandLimits.dailyCap * 0.9);
+      const safeHourlyCap = Math.floor(blandLimits.hourlyCap * 0.9);
+
+      let overLimit = false;
+      let reason = '';
+
+      if (newGlobalConcurrent > safeConcurrentCap) {
+        overLimit = true;
+        reason = `Platform at max concurrent calls (${safeConcurrentCap})`;
+      } else if (limits.concurrentCap !== -1 && newCompanyConcurrent > limits.concurrentCap) {
+        overLimit = true;
+        reason = `Company at max concurrent calls (${limits.concurrentCap})`;
+      } else if (newGlobalDaily > safeDailyCap) {
+        overLimit = true;
+        reason = `Platform daily call limit reached (${safeDailyCap})`;
+      } else if (newGlobalHourly > safeHourlyCap) {
+        overLimit = true;
+        reason = `Platform hourly call limit reached (${safeHourlyCap})`;
+      } else if (newCompanyDaily > limits.dailyCap) {
+        overLimit = true;
+        reason = `Company daily call limit reached (${limits.dailyCap})`;
+      } else if (newCompanyHourly > limits.hourlyCap) {
+        overLimit = true;
+        reason = `Company hourly call limit reached (${limits.hourlyCap})`;
+      }
+
+      if (overLimit) {
+        // Roll back: decrement counters and remove active call
+        await rollbackSlot(companyId, callId);
+        // Also release contact cooldown so the contact can be retried
+        if (contactId) {
+          await redis.del(KEYS.contactCooldown(contactId)).catch(() => {});
+        }
+        return { acquired: false, error: reason };
+      }
+    }
 
     recordRedisSuccess();
     return { acquired: true };
@@ -336,8 +386,27 @@ export async function acquireCallSlot(
     if (isCircuitBreakerOpen()) {
       return { acquired: false, error: 'Redis unavailable — call scheduling paused for safety' };
     }
-    // First few failures: fail open to avoid blocking business during brief blips
-    return { acquired: true };
+    // First 2 failures: fail open to avoid blocking business during brief blips
+    // (reduced from 5 to limit exposure window)
+    if (consecutiveRedisFailures <= 2) {
+      return { acquired: true };
+    }
+    return { acquired: false, error: 'Redis temporarily unavailable' };
+  }
+}
+
+/** Roll back counters after a failed post-increment cap check. */
+async function rollbackSlot(companyId: string, callId: string): Promise<void> {
+  if (!redis) return;
+  try {
+    const pipeline = redis.pipeline();
+    pipeline.decr(KEYS.globalConcurrent);
+    pipeline.decr(KEYS.companyConcurrent(companyId));
+    pipeline.del(KEYS.activeCall(callId));
+    // Note: daily/hourly counters are NOT decremented — they represent attempts, not active calls
+    await pipeline.exec();
+  } catch (err) {
+    console.error('[concurrency-manager] rollbackSlot error:', err);
   }
 }
 
@@ -385,6 +454,32 @@ export async function releaseCallSlot(
     }
   } catch (error) {
     console.error('[concurrency-manager] releaseCallSlot error:', error);
+  }
+}
+
+/**
+ * Transfer a call slot from one callId to another (e.g., pre_* → real Bland callId).
+ * This ensures releaseCallSlot() can find the slot when the webhook arrives with the real callId.
+ */
+export async function transferCallSlot(
+  companyId: string,
+  oldCallId: string,
+  newCallId: string
+): Promise<void> {
+  if (!redis) return;
+
+  try {
+    // Read the old active call data
+    const data = await redis.get<{ companyId: string; contactId?: string; ts: number }>(KEYS.activeCall(oldCallId));
+    if (!data) return; // Old slot already expired or doesn't exist
+
+    // Atomically: set new key with same data + TTL, delete old key
+    const pipeline = redis.pipeline();
+    pipeline.set(KEYS.activeCall(newCallId), JSON.stringify({ ...data, companyId }), { ex: 1800 });
+    pipeline.del(KEYS.activeCall(oldCallId));
+    await pipeline.exec();
+  } catch (error) {
+    console.error('[concurrency-manager] transferCallSlot error:', error);
   }
 }
 

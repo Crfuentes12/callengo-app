@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { scrapeWebsite, generateCompanySummary, detectIndustry, detectCompanyName } from '@/lib/web-scraper';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,26 +13,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Parse request body - company_id and website can be passed directly (for onboarding)
-    const body = await request.json().catch(() => ({}));
-    const { company_id: bodyCompanyId, website: bodyWebsite, auto_save = false } = body;
-
-    let companyId = bodyCompanyId;
-    let websiteUrl = bodyWebsite;
-
-    // If not provided in body, get from user record (for settings page)
-    if (!companyId) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('company_id')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.company_id) {
-        return NextResponse.json({ error: 'No company found' }, { status: 404 });
-      }
-      companyId = userData.company_id;
+    // Rate limit
+    const rl = await expensiveLimiter.check(3, `company_scrape_${user.id}`);
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
+
+    // Parse request body
+    const body = await request.json().catch(() => ({}));
+    const { website: bodyWebsite, auto_save = false } = body;
+
+    // Always derive company_id from the authenticated user's record — never trust the body
+    const { data: userData } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData?.company_id) {
+      return NextResponse.json({ error: 'No company found' }, { status: 404 });
+    }
+    const companyId = userData.company_id;
+    let websiteUrl = bodyWebsite;
 
     // Get company details
     const { data: company } = await supabase

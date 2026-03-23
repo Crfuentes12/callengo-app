@@ -214,8 +214,13 @@ export async function getSalesforceClient(integration: SalesforceIntegration): P
 
   const sfFetch = async (path: string, init?: RequestInit): Promise<Response> => {
     const url = path.startsWith('http') ? path : `${instanceUrl}${path}`;
+    const timeoutSignal = AbortSignal.timeout(15000);
+    const signal = init?.signal
+      ? AbortSignal.any([init.signal, timeoutSignal])
+      : timeoutSignal;
     const res = await fetch(url, {
       ...init,
+      signal,
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -230,8 +235,13 @@ export async function getSalesforceClient(integration: SalesforceIntegration): P
       instanceUrl = refreshed.instance_url;
 
       const retryUrl = path.startsWith('http') ? path : `${instanceUrl}${path}`;
+      const retryTimeoutSignal = AbortSignal.timeout(15000);
+      const retrySignal = init?.signal
+        ? AbortSignal.any([init.signal, retryTimeoutSignal])
+        : retryTimeoutSignal;
       return fetch(retryUrl, {
         ...init,
+        signal: retrySignal,
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',

@@ -178,9 +178,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert call_log (insert or update if call_id already exists from pre-dispatch)
+    // For calls without a pre-registered log: use atomic claim via upsert + completed check
+    // to prevent duplicate downstream processing when concurrent webhooks arrive
     const isVoicemail = answered_by === 'voicemail' || status === 'voicemail';
     const voicemailMessageLeft = isVoicemail && !!(call_length && call_length > 5);
-    const { data: upsertedCallLog } = await supabaseAdmin.from('call_logs').upsert({
+    const { data: upsertedCallLog, error: upsertError } = await supabaseAdmin.from('call_logs').upsert({
       company_id: companyId,
       contact_id: contactId || null,
       call_id: call_id as string,

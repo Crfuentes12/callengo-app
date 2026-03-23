@@ -227,8 +227,13 @@ export async function getPipedriveClient(integration: PipedriveIntegration): Pro
 
   const pdFetch = async (path: string, init?: RequestInit): Promise<Response> => {
     const url = path.startsWith('http') ? path : `${apiDomain}${path}`;
+    const timeoutSignal = AbortSignal.timeout(15000);
+    const signal = init?.signal
+      ? AbortSignal.any([init.signal, timeoutSignal])
+      : timeoutSignal;
     const res = await fetch(url, {
       ...init,
+      signal,
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -243,8 +248,13 @@ export async function getPipedriveClient(integration: PipedriveIntegration): Pro
       apiDomain = refreshed.api_domain;
 
       const retryUrl = path.startsWith('http') ? path : `${apiDomain}${path}`;
+      const retryTimeoutSignal = AbortSignal.timeout(15000);
+      const retrySignal = init?.signal
+        ? AbortSignal.any([init.signal, retryTimeoutSignal])
+        : retryTimeoutSignal;
       return fetch(retryUrl, {
         ...init,
+        signal: retrySignal,
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',

@@ -1,11 +1,18 @@
 // app/api/contacts/parse-csv/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { parseCSV, detectColumnMapping } from '@/lib/call-agent-utils';
+import { createServerClient } from '@/lib/supabase/server';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 

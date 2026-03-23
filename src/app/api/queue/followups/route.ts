@@ -2,8 +2,18 @@
 // Background worker endpoint for processing the follow-up call queue.
 // Can be triggered by: cron job, Vercel cron, edge function, or manual call.
 
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { processFollowUpBatch, getFollowUpQueueStats } from '@/lib/queue/followup-queue';
+
+function timingSafeCompare(a: string | null, b: string): boolean {
+  if (!a) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  } catch {
+    return false; // Length mismatch
+  }
+}
 
 const QUEUE_SECRET = process.env.QUEUE_PROCESSING_SECRET || process.env.CRON_SECRET;
 
@@ -22,8 +32,8 @@ export async function POST(request: NextRequest) {
   const cronHeader = request.headers.get('x-cron-secret');
 
   const authorized =
-    (authHeader === `Bearer ${QUEUE_SECRET}`) ||
-    (cronHeader === QUEUE_SECRET);
+    timingSafeCompare(authHeader, `Bearer ${QUEUE_SECRET}`) ||
+    timingSafeCompare(cronHeader, QUEUE_SECRET);
 
   if (!authorized) {
     console.warn('[queue/followups] POST 401 — auth failed.', {
@@ -70,9 +80,9 @@ export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
 
   const authorized =
-    (authHeader === `Bearer ${QUEUE_SECRET}`) ||
-    (cronSecret && authHeader === `Bearer ${cronSecret}`) ||
-    (cronHeader === QUEUE_SECRET);
+    timingSafeCompare(authHeader, `Bearer ${QUEUE_SECRET}`) ||
+    (cronSecret ? timingSafeCompare(authHeader, `Bearer ${cronSecret}`) : false) ||
+    timingSafeCompare(cronHeader, QUEUE_SECRET);
 
   if (!authorized) {
     console.warn('[queue/followups] GET 401 — cron auth failed.', {

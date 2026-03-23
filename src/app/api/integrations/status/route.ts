@@ -63,6 +63,14 @@ export async function GET() {
       .eq('is_active', true)
       .maybeSingle();
 
+    // Get Zoho integration
+    const { data: zohoIntegration } = await supabaseAdmin
+      .from('zoho_integrations')
+      .select('id, company_id, is_active, last_synced_at')
+      .eq('company_id', userData.company_id)
+      .eq('is_active', true)
+      .maybeSingle();
+
     // Get company settings for Slack, Zoom, Twilio
     const { data: companySettings } = await supabaseAdmin
       .from('company_settings')
@@ -133,6 +141,11 @@ export async function GET() {
         firmId: clioIntegration?.clio_firm_id || undefined,
         lastSynced: clioIntegration?.last_synced_at || undefined,
         integrationId: clioIntegration?.id || undefined,
+      },
+      zoho: {
+        connected: !!zohoIntegration,
+        lastSynced: zohoIntegration?.last_synced_at || undefined,
+        integrationId: zohoIntegration?.id || undefined,
       },
     };
 

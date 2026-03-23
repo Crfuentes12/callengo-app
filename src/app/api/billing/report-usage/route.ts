@@ -44,15 +44,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const body = await req.json();
+    const { companyId, minutes, callId } = body;
+
     // Rate limit: 3 usage report requests per minute per caller
-    const rateLimitKey = user ? `billing_report_usage_${user.id}` : `billing_report_usage_service`;
+    // For service/internal calls, use a per-company key so concurrent webhooks
+    // for different companies don't share a single bucket.
+    const rateLimitKey = isServiceCall
+      ? `billing_report_usage_svc_${companyId || 'unknown'}`
+      : `billing_report_usage_${user!.id}`;
     const rateLimit = await expensiveLimiter.check(3, rateLimitKey);
     if (!rateLimit.success) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
-
-    const body = await req.json();
-    const { companyId, minutes, callId } = body;
 
     if (!companyId || !minutes || typeof minutes !== 'number' || minutes <= 0) {
       return NextResponse.json(

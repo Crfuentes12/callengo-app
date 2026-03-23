@@ -80,6 +80,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'No updates provided' }, { status: 400 });
     }
 
+    // Only owners and admins can use force to bypass the lock
+    if (force) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        const userRole = userData?.role;
+        if (userRole !== 'owner' && userRole !== 'admin') {
+          return NextResponse.json({ error: 'Only owners and admins can force-override a contact lock' }, { status: 403 });
+        }
+      }
+    }
+
     // Check if contact is locked (being processed by an active call)
     if (!force) {
       const { data: contact } = await supabase
@@ -118,6 +134,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (Object.keys(safeUpdates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+    }
+
+    // Strip _locked* keys from custom_fields to prevent lock tampering
+    if (safeUpdates.custom_fields && typeof safeUpdates.custom_fields === 'object') {
+      const cf = safeUpdates.custom_fields as Record<string, unknown>;
+      for (const key of Object.keys(cf)) {
+        if (key.startsWith('_locked')) {
+          delete cf[key];
+        }
+      }
+      safeUpdates.custom_fields = cf;
     }
 
     safeUpdates.updated_at = new Date().toISOString();

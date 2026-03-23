@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +18,12 @@ export async function POST(req: NextRequest) {
 
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit
+    const rl = await expensiveLimiter.check(5, `verify_session_${user.id}`);
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     // Get user's company
