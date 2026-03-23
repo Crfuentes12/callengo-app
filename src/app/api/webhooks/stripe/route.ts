@@ -229,9 +229,14 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     try {
       const { default: Stripe } = await import('stripe');
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-      const stripeSub = await stripe.subscriptions.retrieve(subscriptionId);
-      currentPeriodStart = new Date(stripeSub.current_period_start * 1000);
-      currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
+      const stripeSub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['items.data'] });
+      const item = stripeSub.items?.data?.[0];
+      if (item) {
+        currentPeriodStart = new Date(item.current_period_start * 1000);
+        currentPeriodEnd = new Date(item.current_period_end * 1000);
+      } else {
+        throw new Error('No subscription items found');
+      }
     } catch (stripeErr) {
       console.warn('Failed to fetch Stripe subscription period, using calculated dates:', stripeErr);
       currentPeriodStart = new Date();
