@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 /**
  * POST /api/billing/cancellation-feedback
@@ -13,6 +14,12 @@ export async function POST(req: NextRequest) {
 
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit
+    const rl = await expensiveLimiter.check(3, `cancel_feedback_${user.id}`);
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const body = await req.json();

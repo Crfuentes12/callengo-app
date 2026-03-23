@@ -5,6 +5,7 @@ import { contactsToCSV } from '@/lib/call-agent-utils';
 import type { Contact } from '@/types/call-agent';
 import { trackServerEvent } from '@/lib/analytics';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 const EXPORT_FIELDS = [
   'company_name', 'contact_name', 'email', 'phone_number',
@@ -38,6 +39,12 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit
+    const rl = await expensiveLimiter.check(3, `contacts_export_${user.id}`);
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const { data: userData } = await supabase

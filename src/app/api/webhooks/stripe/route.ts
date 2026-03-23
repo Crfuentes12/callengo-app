@@ -227,8 +227,6 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   if (subscriptionId) {
     try {
-      const { default: Stripe } = await import('stripe');
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
       const stripeSub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['items.data'] });
       const item = stripeSub.items?.data?.[0];
       if (item) {

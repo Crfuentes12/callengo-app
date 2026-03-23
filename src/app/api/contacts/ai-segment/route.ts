@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { trackServerEvent } from '@/lib/analytics';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 interface ListFilters {
   status?: string[];
@@ -21,6 +22,11 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const rateLimit = await expensiveLimiter.check(5, `ai_segment_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
 
     const { data: userData } = await supabase
       .from('users')

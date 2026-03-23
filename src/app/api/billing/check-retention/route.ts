@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin, supabaseAdminRaw } from '@/lib/supabase/service';
 import { stripe } from '@/lib/stripe';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 /**
  * Retention tier logic:
@@ -28,6 +29,12 @@ export async function GET(_req: NextRequest) {
 
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit
+    const rl = await expensiveLimiter.check(5, `retention_${user.id}`);
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const { data: userData } = await supabase
@@ -155,6 +162,12 @@ export async function POST(req: NextRequest) {
 
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit
+    const rlPost = await expensiveLimiter.check(5, `retention_${user.id}`);
+    if (!rlPost.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const { feedback_id } = await req.json();

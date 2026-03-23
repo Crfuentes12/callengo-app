@@ -205,7 +205,8 @@ async function executeJob(job: AnalysisJob): Promise<{
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error(`[analysis-queue] Job ${job.id} failed:`, errorMsg);
 
-    const newStatus = job.attempts + 1 >= job.max_attempts ? 'failed' : 'pending';
+    // job.attempts was already incremented during claim, so compare directly
+    const newStatus = job.attempts >= job.max_attempts ? 'failed' : 'pending';
     await supabaseAdmin
       .from('analysis_queue')
       .update({

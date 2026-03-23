@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { scrapeWebsite, generateCompanySummary, detectIndustry, detectCompanyName } from '@/lib/web-scraper';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,6 +11,12 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit
+    const rl = await expensiveLimiter.check(3, `company_scrape_${user.id}`);
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     // Parse request body - company_id and website can be passed directly (for onboarding)

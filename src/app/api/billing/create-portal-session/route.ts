@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createBillingPortalSession, stripe } from '@/lib/stripe';
 import { getAppUrl } from '@/lib/config';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
  
 export async function POST(_req: NextRequest) {
@@ -19,6 +20,12 @@ export async function POST(_req: NextRequest) {
         { error: 'Unauthorized' },
         { status: 401 }
       );
+    }
+
+    // Rate limit
+    const rl = await expensiveLimiter.check(5, `portal_session_${user.id}`);
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     // Get user's company (include email and name for Stripe sync)

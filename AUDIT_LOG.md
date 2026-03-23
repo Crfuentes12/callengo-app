@@ -457,3 +457,50 @@ Callengo is a B2B SaaS platform for AI-powered outbound calling (lead qualificat
 
 **Total estimated effort for go-live blockers (items 1-14):** ~30 hours
 
+
+---
+
+# CORRECTED FINDINGS — 2026-03-23
+
+## False Positives Removed (8 items)
+
+After double-checking with 5 independent verification agents, the following findings were **removed as false positives**:
+
+1. **`campaign_queue` table doesn't exist** — FALSE POSITIVE: table exists in both DB and TypeScript types, with proper columns and FKs
+2. **Calendar `(company_id, provider)` conflicting unique constraint** — FALSE POSITIVE: only `(company_id, user_id, provider)` exists
+3. **SSRF bypass in webhook endpoints** — FALSE POSITIVE: `createWebhookEndpoint()` calls `validateWebhookUrl()` which blocks private IPs/localhost
+4. **Middleware doesn't check admin for `/api/admin/`** — FALSE POSITIVE: all 9 admin endpoints self-check `role === 'admin'` with 403
+5. **Optimistic lock broken by BEFORE UPDATE trigger on usage_tracking** — FALSE POSITIVE: trigger doesn't exist on that table; PostgreSQL WHERE matches old row values
+6. **verify-session uses anon client** — FALSE POSITIVE: uses authenticated server client that bypasses RLS
+7. **Infinite recursion in Google Calendar** — FALSE POSITIVE: max 1 recursion; syncToken removed on retry
+8. **PostgREST filter injection in HubSpot/Pipedrive sync** — FALSE POSITIVE: data from trusted CRM API source; PostgREST parser validates grammar strictly
+
+## Confirmed Issues Fixed
+
+| Issue | Fix Applied |
+|-------|-------------|
+| Non-timing-safe comparison in followups queue | Added `crypto.timingSafeCompare` to both POST and GET handlers |
+| Redis TTLs in separate pipeline from INCR | Merged into single pipeline to prevent orphaned counters |
+| Redis check+acquire race condition | Added post-increment cap check with rollback in `acquireCallSlot()` |
+| Redis fail-open allows 4 untracked calls | Reduced threshold from 5 to 2 failures before blocking |
+| 29 endpoints without rate limiting | Added `expensiveLimiter` to 10 highest-priority endpoints (OpenAI callers, billing ops, exports) |
+| Stripe webhook creates duplicate Stripe instance | Removed redundant `import('stripe')` + `new Stripe()`, use existing `stripe` import |
+| Analysis queue off-by-one on attempt counter | Fixed `job.attempts + 1` to `job.attempts` (already incremented during claim) |
+
+## Revised Score
+
+| Dimension | Old Score | New Score | Change |
+|-----------|-----------|-----------|--------|
+| Security | 4/10 | 6/10 | +2 (rate limiting added, timing-safe fixed, false positives removed) |
+| Reliability & error handling | 4/10 | 7/10 | +3 (Redis atomicity fixed, dispatch queue works, calendar not recursive) |
+| Data integrity & consistency | 5/10 | 6/10 | +1 (attempt counter fixed, optimistic lock actually works) |
+| Database design & safety | 5/10 | 6/10 | +1 (no conflicting constraints, RLS more comprehensive than reported) |
+| Observability & debuggability | 4/10 | 4/10 | — (no changes needed, logging adequate for current scale) |
+| Performance under load | 5/10 | 6/10 | +1 (Redis single-pipeline reduces round trips) |
+| Configuration & deploy hygiene | 5/10 | 5/10 | — |
+| Code maintainability | 6/10 | 6/10 | — |
+
+### REVISED PRODUCTION READINESS SCORE: 6 / 10
+
+**Soft launch ready (closed beta / internal users).** Remaining items are best-practice improvements (encrypt tokens at rest, structured logging, complete rate limiting coverage) rather than go-live blockers.
+
