@@ -197,3 +197,96 @@
 - Redis key naming is well-organized with clear prefixes and TTLs
 - 90% safety margin on Bland limits is conservative and appropriate
 
+
+## QUEUE PROCESSING — 2026-03-23
+
+### 🔴 CRITICAL
+
+- **[dispatch-queue.ts:28-29 — queries non-existent `campaign_queue` table]** The dispatch queue queries `supabaseAdmin.from('campaign_queue')` but the database schema has NO `campaign_queue` table. The schema only has `call_queue`. This means the dispatch queue processor is **completely non-functional** — all calls return an empty result and `fetchError` silently. Follow-up queue also inserts into `campaign_queue` (line 247), which will fail. **Impact:** Background campaign dispatch and follow-up re-dispatch are broken. **Fix:** Change table references from `campaign_queue` to `call_queue` or create the missing table.
+
+- **[followups/route.ts:24-26 — non-timing-safe string comparison for auth]** The followups endpoint uses `===` for secret comparison (`authHeader === \`Bearer ${QUEUE_SECRET}\``), which is vulnerable to timing attacks. The process endpoint correctly uses `timingSafeCompare`. **Impact:** An attacker could potentially extract the QUEUE_SECRET via timing analysis. **Fix:** Use `timingSafeCompare` for all secret comparisons.
+
+### 🟡 WARNING
+
+- **[analysis-queue.ts:362-376 — lock mechanism uses fake UUID and upsert into analysis_queue]** The overlap guard inserts a "lock" row with hardcoded UUIDs (`00000000-...`) into the `analysis_queue` table itself. This pollutes the queue table with non-job rows. If the lock row's status gets stuck as 'processing' (crash without cleanup), no future batches can run until manual intervention. The `finally` block at line 402-409 catches errors, but if the process crashes hard (OOM, timeout), the lock is never released. **Fix:** Use a separate lock table or Redis-based lock with TTL.
+
+- **[dispatch-queue.ts:6 — uses `supabaseAdminRaw` aliased as `supabaseAdmin`]** The import `import { supabaseAdminRaw as supabaseAdmin }` uses the untyped client. All DB operations in this file bypass TypeScript type checking. Same issue in `followup-queue.ts` and `analysis-queue.ts`. **Fix:** Add types for `campaign_queue`/`call_queue` to the Database type definition and use the typed client.
+
+- **[dispatch-queue.ts:86 — empty catch block on call_logs cleanup]** `try { await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id); } catch {}` — failure to clean up pre-registered call logs is silently swallowed. Orphaned call_logs with status 'queued' will accumulate over time. **Fix:** Log the error at minimum.
+
+- **[followup-queue.ts:246-261 — dispatches to `campaign_queue` table that doesn't exist]** Follow-up jobs are inserted into `campaign_queue` which, per the schema, does not exist. This means follow-up redispatch is silently failing. **Fix:** Use `call_queue` table.
+
+- **[analysis-queue.ts:208 — job.attempts +1 check may be wrong]** The condition `job.attempts + 1 >= job.max_attempts` checks if the NEXT attempt would exceed max, but `attempts` was already incremented during claim (line 139). This means the effective max attempts is `max_attempts - 1`. With default `max_attempts: 3`, the job gets 2 attempts, not 3. **Fix:** Check `job.attempts >= job.max_attempts` (since attempts was already incremented).
+
+### 🟢 INFO
+
+- Queue endpoints are properly protected with secret-based auth (QUEUE_PROCESSING_SECRET or CRON_SECRET).
+- The `/api/queue/process` endpoint correctly rejects `x-vercel-cron` header spoofing (comment at line 37).
+- Optimistic locking pattern for job claiming is correct (update where status='pending').
+- Follow-up queue has proper exponential backoff for retries (capped at 7 days).
+- Analysis queue has `claim_analysis_job` RPC function as primary claim mechanism with fallback.
+- Contact status checking before follow-up dispatch prevents unnecessary calls.
+- Dispatch queue releases Redis call slot on failure (with retry logic).
+
+### ✅ CLEAN
+
+- `src/app/api/queue/process/route.ts` — proper secret-based auth with timing-safe comparison
+- Job claiming pattern across all queues uses optimistic locking — correct
+- Batch size is capped at 50 to prevent timeout
+- Redis concurrency reconciliation runs as part of cron cycle
+
+
+## ADMIN ENDPOINTS — 2026-03-23
+
+### 🔴 CRITICAL
+
+- **[api/admin/* — no middleware-level admin check for API routes]** As noted in Phase 1, the middleware only checks admin role for `/admin` page routes (line 148), NOT for `/api/admin/*` API routes. Each admin endpoint must self-enforce the role check. All reviewed admin endpoints (`command-center`, `clients`) do check `role !== 'admin'` internally, but this is a fragile defense-in-depth issue. If a new admin API endpoint is added without the role check, it's accessible to any authenticated user. **Fix:** Add admin role check to middleware for `/api/admin/` prefix.
+
+### 🟡 WARNING
+
+- **[admin/command-center/route.ts:62-67 — unbounded queries for companies/users]** `GET /api/admin/command-center` fetches ALL users and ALL companies without pagination: `supabaseAdmin.from('users').select('company_id')` and `supabaseAdmin.from('companies').select('id, name')`. At scale (thousands of companies), this will timeout. **Fix:** Use aggregation queries or pagination.
+
+- **[admin/clients/route.ts:42-49 — fetches all user company_ids into memory]** Fetches ALL users' `company_id` into memory to build a unique set, then uses `.in('id', uniqueActiveIds)` which has a maximum URL length limit in Supabase REST API (~2000 IDs). **Fix:** Use a subquery or join instead.
+
+- **[api/seed/route.ts — seeding endpoint exists in production code]** The seed endpoint exists in the production codebase. While protected by `SEED_SECRET`, it uses `supabaseAdmin` (service role) to write mock data. If `SEED_SECRET` is accidentally set in production env, anyone with the secret can inject demo data into production. **Fix:** Gate behind `NODE_ENV !== 'production'` or remove from production build.
+
+### 🟢 INFO
+
+- All admin endpoints verify `role === 'admin'` with proper 403 responses.
+- Admin endpoints use `expensiveLimiter` rate limiting.
+- Seed endpoint uses timing-safe secret comparison.
+- Admin clients endpoint has proper pagination (page/limit with max 100).
+
+### ✅ CLEAN
+
+- `src/app/api/admin/command-center/route.ts` — proper auth + role check + rate limiting
+- `src/app/api/admin/clients/route.ts` — proper auth + role check + pagination
+
+
+## CONTACTS & DATA MUTATIONS — 2026-03-23
+
+### 🔴 CRITICAL
+
+- (No new critical findings — dispatch queue `campaign_queue` issue already covered in Phase 4)
+
+### 🟡 WARNING
+
+- **[contacts/route.ts — no rate limiting on GET]** The contacts listing endpoint has no rate limiting. An attacker with valid auth could enumerate all contacts by paginating rapidly. Page size is capped at 200 but with no rate limit, full data extraction is fast. **Fix:** Apply `apiLimiter`.
+
+- **[campaigns/dispatch/route.ts:63 — company_id from request body, not from session]** The `company_id` is taken from the request body (line 63), then verified against the user's actual `company_id` (line 72). This is correct but the Zod schema allows the client to specify any UUID. If the ownership check at line 72 were ever removed or bypassed, it would be an IDOR vulnerability. The check is present, so this is informational.
+
+### 🟢 INFO
+
+- Campaign dispatch uses Zod validation with strict schemas (UUID format, E.164 phone regex, max lengths).
+- Contact import has proper plan-based contact limits, file size validation (10MB), and file type checking.
+- Import validates list_id ownership to prevent cross-company import.
+- Search input is sanitized for PostgREST special characters (%, _, etc.).
+- Sort column whitelist prevents SQL injection via order clause.
+- Pagination is bounded (pageSize max 200 contacts, max 500 dispatch contacts).
+
+### ✅ CLEAN
+
+- `src/app/api/contacts/route.ts` — proper auth, pagination, search sanitization, sort whitelist
+- `src/app/api/contacts/import/route.ts` — rate limited, size/type validated, plan limits enforced
+- `src/app/api/campaigns/dispatch/route.ts` — Zod validated, rate limited, company ownership verified
+
