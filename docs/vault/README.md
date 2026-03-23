@@ -8,6 +8,24 @@ aliases: [Vault Index, Home]
 > Obsidian vault documenting the complete Callengo SaaS platform.
 > Generated: March 23, 2026
 
+## How to Open in Obsidian
+
+1. Download and install [Obsidian](https://obsidian.md) (free, Mac/Windows/Linux)
+2. Open Obsidian
+3. Click **"Open folder as vault"** (or "Open" if it's your first vault)
+4. Navigate to this folder: `callengo-app/docs/vault/`
+5. Select it and click Open
+
+That's it. Obsidian will automatically detect all `.md` files, resolve the `[[wikilinks]]` between notes, and index the tags from the YAML frontmatter.
+
+### Recommended After Opening
+
+- **Graph View** (`Ctrl/Cmd + G`) — See all 48 notes and their connections visually
+- **Install "Dataview" plugin** — Enables querying notes by tags (e.g., all `#entity` notes)
+- **Star this note** — Use it as your home page / entry point
+
+---
+
 ## Quick Start
 
 **What is Callengo?** → [[App Identity]]
