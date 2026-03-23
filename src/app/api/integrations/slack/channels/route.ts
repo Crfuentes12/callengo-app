@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import axios from 'axios';
+import { decryptToken } from '@/lib/encryption';
 
 export async function GET() {
   try {
@@ -33,11 +34,13 @@ export async function GET() {
       .single();
 
     const settings = (companySettings?.settings ?? {}) as Record<string, unknown>;
-    const accessToken = settings.slack_access_token as string | undefined;
+    const encryptedToken = settings.slack_access_token as string | undefined;
 
-    if (!accessToken) {
+    if (!encryptedToken) {
       return NextResponse.json({ channels: [] });
     }
+
+    const accessToken = decryptToken(encryptedToken);
 
     // Fetch channels using the Slack API
     const channels: { id: string; name: string }[] = [];

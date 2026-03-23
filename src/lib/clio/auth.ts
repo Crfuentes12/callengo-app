@@ -8,6 +8,7 @@ import type {
   ClioUserInfo,
 } from '@/types/clio';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 
 // ============================================================================
 // CONFIGURATION
@@ -119,13 +120,13 @@ export async function refreshClioToken(
     const latestExpiresAt = latestRow.token_expires_at && new Date(latestRow.token_expires_at).getTime() > Date.now()
       ? latestRow.token_expires_at : integration.token_expires_at ?? '';
     return {
-      access_token: latestRow.access_token,
+      access_token: decryptToken(latestRow.access_token),
       expires_at: latestExpiresAt,
     };
   }
 
   // Use the latest refresh_token from DB in case it was rotated
-  const currentRefreshToken = latestRow?.refresh_token ?? integration.refresh_token;
+  const currentRefreshToken = decryptToken(latestRow?.refresh_token ?? integration.refresh_token);
 
   const { clientId, clientSecret, redirectUri } = getClioConfig();
 
@@ -164,8 +165,8 @@ export async function refreshClioToken(
   const { data: updateResult } = await supabaseAdmin
     .from('clio_integrations')
     .update({
-      access_token: newAccessToken,
-      refresh_token: newRefreshToken,
+      access_token: encryptToken(newAccessToken),
+      refresh_token: encryptToken(newRefreshToken),
       token_expires_at: expiresAt,
       token_issued_at: newTokenIssuedAt,
     })
@@ -182,7 +183,7 @@ export async function refreshClioToken(
       .single();
     if (fallbackRow) {
       return {
-        access_token: fallbackRow.access_token,
+        access_token: decryptToken(fallbackRow.access_token),
         expires_at: fallbackRow.token_expires_at ?? expiresAt,
       };
     }
@@ -202,7 +203,7 @@ export async function refreshClioToken(
 export async function getClioClient(integration: ClioIntegration): Promise<{
   fetch: (path: string, init?: RequestInit) => Promise<Response>;
 }> {
-  let accessToken = integration.access_token;
+  let accessToken = decryptToken(integration.access_token);
 
   // Proactively refresh if token expires within 5 minutes
   if (integration.token_expires_at) {

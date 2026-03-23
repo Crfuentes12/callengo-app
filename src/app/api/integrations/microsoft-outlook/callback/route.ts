@@ -4,6 +4,7 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAppUrl } from '@/lib/config';
 import { verifySignedState } from '@/lib/oauth-state';
+import { encryptToken } from '@/lib/encryption';
 
 export async function GET(request: NextRequest) {
   try {
@@ -89,8 +90,8 @@ export async function GET(request: NextRequest) {
           company_id: companyId,
           user_id: userId,
           provider: 'microsoft_outlook',
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token || null,
+          access_token: encryptToken(tokens.access_token),
+          refresh_token: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
           token_expires_at: expiresAt,
           provider_email: profile.mail || profile.userPrincipalName || null,
           provider_user_id: profile.id || null,

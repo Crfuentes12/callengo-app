@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 import { authenticateSimplyBook, getSimplyBookUserInfo } from '@/lib/simplybook';
+import { encryptToken } from '@/lib/encryption';
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,8 +77,8 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         sb_company_login: company_login,
         sb_user_login: user_login,
-        sb_token: tokenData.token,
-        sb_refresh_token: tokenData.refresh_token,
+        sb_token: encryptToken(tokenData.token),
+        sb_refresh_token: tokenData.refresh_token ? encryptToken(tokenData.refresh_token) : null,
         token_expires_at: expiresAt,
         sb_user_id: userInfo.id ? String(userInfo.id) : null,
         sb_user_name: [userInfo.firstname, userInfo.lastname].filter(Boolean).join(' ') || tokenData.login || null,

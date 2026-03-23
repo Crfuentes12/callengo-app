@@ -6,6 +6,7 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { exchangeHubSpotCode, getHubSpotTokenInfo } from '@/lib/hubspot';
 import { verifySignedState } from '@/lib/oauth-state';
+import { encryptToken } from '@/lib/encryption';
 
 export async function GET(request: NextRequest) {
   try {
@@ -74,8 +75,8 @@ export async function GET(request: NextRequest) {
     const integrationData = {
       company_id,
       user_id,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      access_token: encryptToken(tokens.access_token),
+      refresh_token: encryptToken(tokens.refresh_token),
       expires_at: expiresAt,
       hub_id: String(tokenInfo.hub_id),
       hub_domain: tokenInfo.hub_domain || null,

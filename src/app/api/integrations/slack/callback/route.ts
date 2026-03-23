@@ -4,6 +4,7 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAppUrl } from '@/lib/config';
 import { verifySignedState } from '@/lib/oauth-state';
+import { encryptToken } from '@/lib/encryption';
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
       .update({
         settings: {
           ...existingSettings,
-          slack_access_token: tokenData.access_token,
+          slack_access_token: encryptToken(tokenData.access_token),
           slack_bot_user_id: tokenData.bot_user_id,
           slack_team_id: tokenData.team?.id,
           slack_team_name: tokenData.team?.name,

@@ -10,6 +10,7 @@ import type {
   DynamicsOrgInfo,
 } from '@/types/dynamics';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 
 // ============================================================================
 // CONFIGURATION
@@ -221,13 +222,13 @@ export async function refreshDynamicsToken(
     const latestExpiresAt = latestRow.token_expires_at && new Date(latestRow.token_expires_at).getTime() > Date.now()
       ? latestRow.token_expires_at : integration.token_expires_at ?? '';
     return {
-      access_token: latestRow.access_token,
+      access_token: decryptToken(latestRow.access_token),
       expires_at: latestExpiresAt,
     };
   }
 
   // Use the latest refresh_token from DB in case it was rotated
-  const currentRefreshToken = latestRow?.refresh_token ?? integration.refresh_token;
+  const currentRefreshToken = decryptToken(latestRow?.refresh_token ?? integration.refresh_token);
 
   const { clientId, clientSecret, tenantId } = getDynamicsConfig();
 
@@ -277,14 +278,14 @@ export async function refreshDynamicsToken(
 
   // Update tokens in DB with optimistic locking on token_issued_at to prevent double-writes
   const updateData: Record<string, unknown> = {
-    access_token: newAccessToken,
+    access_token: encryptToken(newAccessToken),
     token_expires_at: expiresAt,
     token_issued_at: newTokenIssuedAt,
   };
 
   // If a new refresh token was provided, store it
   if (data.refresh_token) {
-    updateData.refresh_token = data.refresh_token;
+    updateData.refresh_token = encryptToken(data.refresh_token);
   }
 
   const { data: updateResult } = await supabaseAdmin
@@ -303,7 +304,7 @@ export async function refreshDynamicsToken(
       .single();
     if (fallbackRow) {
       return {
-        access_token: fallbackRow.access_token,
+        access_token: decryptToken(fallbackRow.access_token),
         expires_at: fallbackRow.token_expires_at ?? expiresAt,
       };
     }
@@ -324,7 +325,7 @@ export async function getDynamicsClient(integration: DynamicsIntegration): Promi
   fetch: (path: string, init?: RequestInit) => Promise<Response>;
   instanceUrl: string;
 }> {
-  let accessToken = integration.access_token;
+  let accessToken = decryptToken(integration.access_token);
   const instanceUrl = integration.dynamics_instance_url.replace(/\/+$/, '');
 
   // Proactively refresh if token expires within 5 minutes

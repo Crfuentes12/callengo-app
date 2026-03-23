@@ -8,6 +8,7 @@ import type {
   HubSpotUserInfo,
 } from '@/types/hubspot';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 
 // ============================================================================
 // CONFIGURATION
@@ -126,6 +127,9 @@ export async function refreshHubSpotToken(
     .single();
 
   if (freshIntegration) {
+    // Decrypt tokens read from DB
+    freshIntegration.access_token = decryptToken(freshIntegration.access_token);
+    freshIntegration.refresh_token = decryptToken(freshIntegration.refresh_token);
     const freshExpiry = freshIntegration.expires_at ? new Date(freshIntegration.expires_at).getTime() : 0;
     const originalExpiry = integration.expires_at ? new Date(integration.expires_at).getTime() : 0;
     // If the token was refreshed since we last read it, use the new one
@@ -175,8 +179,8 @@ export async function refreshHubSpotToken(
   const { data: updated } = await supabaseAdmin
     .from('hubspot_integrations')
     .update({
-      access_token: newAccessToken,
-      refresh_token: newRefreshToken,
+      access_token: encryptToken(newAccessToken),
+      refresh_token: encryptToken(newRefreshToken),
       expires_at: expiresAt,
       token_issued_at: newIssuedAt,
     })
@@ -193,7 +197,7 @@ export async function refreshHubSpotToken(
       .eq('id', integration.id)
       .single();
     return {
-      access_token: latest?.access_token || newAccessToken,
+      access_token: latest?.access_token ? decryptToken(latest.access_token) : newAccessToken,
       expires_at: latest?.expires_at || expiresAt,
     };
   }
@@ -212,7 +216,7 @@ export async function refreshHubSpotToken(
 export async function getHubSpotClient(integration: HubSpotIntegration): Promise<{
   fetch: (path: string, init?: RequestInit) => Promise<Response>;
 }> {
-  let accessToken = integration.access_token;
+  let accessToken = decryptToken(integration.access_token);
 
   // Check if token is about to expire (within 5 minutes)
   if (integration.expires_at) {

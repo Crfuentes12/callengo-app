@@ -39,9 +39,17 @@ export async function POST(req: NextRequest) {
 
     const { session_id } = await req.json();
 
-    if (!session_id) {
+    if (!session_id || typeof session_id !== 'string') {
       return NextResponse.json(
         { error: 'session_id is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate Stripe checkout session ID format
+    if (!session_id.startsWith('cs_')) {
+      return NextResponse.json(
+        { error: 'Invalid session_id format' },
         { status: 400 }
       );
     }

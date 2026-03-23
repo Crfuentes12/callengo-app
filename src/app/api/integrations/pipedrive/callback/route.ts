@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { exchangePipedriveCode, getPipedriveUserInfo } from '@/lib/pipedrive';
+import { encryptToken } from '@/lib/encryption';
 import { verifySignedState } from '@/lib/oauth-state';
 
 export async function GET(request: NextRequest) {
@@ -74,8 +75,8 @@ export async function GET(request: NextRequest) {
     const integrationData = {
       company_id,
       user_id,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      access_token: encryptToken(tokens.access_token),
+      refresh_token: encryptToken(tokens.refresh_token),
       expires_at: expiresAt,
       pd_company_id: String(pdUser.company_id),
       pd_company_name: pdUser.company_name || null,
