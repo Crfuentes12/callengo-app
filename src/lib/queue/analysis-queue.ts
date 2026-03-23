@@ -401,11 +401,12 @@ export async function processBatch(batchSize: number = 10): Promise<{
     }
   } finally {
     // Release the lock
-    await supabaseAdmin
-      .from('analysis_queue')
-      .update({ status: 'completed', completed_at: new Date().toISOString() })
-      .eq('id', lockId)
-      .catch(() => {}); // Non-fatal if lock release fails
+    try {
+      await supabaseAdmin
+        .from('analysis_queue')
+        .update({ status: 'completed', completed_at: new Date().toISOString() })
+        .eq('id', lockId);
+    } catch {} // Non-fatal if lock release fails
   }
 
   // Count remaining

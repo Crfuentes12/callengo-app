@@ -1000,6 +1000,82 @@ export type Database = {
           }
         ]
       }
+      analysis_queue: {
+        Row: {
+          id: string
+          company_id: string
+          call_log_id: string
+          contact_id: string | null
+          agent_run_id: string | null
+          template_slug: string
+          transcript: string
+          call_metadata: Json
+          status: string
+          result: Json | null
+          error_message: string | null
+          attempts: number
+          max_attempts: number
+          created_at: string
+          started_at: string | null
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          call_log_id: string
+          contact_id?: string | null
+          agent_run_id?: string | null
+          template_slug: string
+          transcript: string
+          call_metadata?: Json
+          status?: string
+          result?: Json | null
+          error_message?: string | null
+          attempts?: number
+          max_attempts?: number
+          created_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          call_log_id?: string
+          contact_id?: string | null
+          agent_run_id?: string | null
+          template_slug?: string
+          transcript?: string
+          call_metadata?: Json
+          status?: string
+          result?: Json | null
+          error_message?: string | null
+          attempts?: number
+          max_attempts?: number
+          created_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_queue_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_queue_call_log_id_fkey"
+            columns: ["call_log_id"]
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_queue_contact_id_fkey"
+            columns: ["contact_id"]
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       call_queue: {
         Row: {
           id: string

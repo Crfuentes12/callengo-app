@@ -105,7 +105,7 @@ export async function processDispatchBatch(batchSize: number = 5): Promise<{
           wait_for_greeting: true,
           record: true,
           max_duration: effectiveMaxDuration,
-          voicemail_action: (callConfig.voicemail_action as string) || 'leave_message',
+          voicemail_action: ((callConfig.voicemail_action as string) || 'leave_message') as 'leave_message' | 'hangup' | 'ignore',
           answered_by_enabled: true,
           webhook: webhookUrl,
           metadata: {
