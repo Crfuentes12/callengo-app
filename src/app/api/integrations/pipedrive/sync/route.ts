@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       .from('company_subscriptions')
       .select('subscription_plans(slug)')
       .eq('company_id', userData.company_id)
-      .eq('status', 'active')
+      .in('status', ['active', 'trialing'])
       .single();
 
     const planSlug = (subscription?.subscription_plans as unknown as { slug: string })?.slug || 'free';
@@ -81,6 +81,24 @@ export async function POST(request: NextRequest) {
     const pdIntegration = integration as unknown as PipedriveIntegration;
     const isSelectiveSync = ids && ids.length > 0;
     const syncType = isSelectiveSync ? 'selective' : 'full';
+
+    // Guard: prevent concurrent syncs for the same integration
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: runningSync } = await supabaseAdmin
+      .from('pipedrive_sync_logs')
+      .select('id')
+      .eq('integration_id', pdIntegration.id)
+      .eq('status', 'running')
+      .gte('started_at', fiveMinAgo)
+      .limit(1)
+      .maybeSingle();
+
+    if (runningSync) {
+      return NextResponse.json(
+        { error: 'A sync is already in progress. Please wait for it to complete.' },
+        { status: 409 }
+      );
+    }
 
     // Create sync log entry
     const { data: syncLog } = await supabaseAdmin

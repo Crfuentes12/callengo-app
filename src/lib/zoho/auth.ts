@@ -293,8 +293,13 @@ export async function getZohoClient(integration: ZohoIntegration): Promise<{
   const zohoFetch = async (path: string, init?: RequestInit): Promise<Response> => {
     const baseUrl = `${apiDomain}/crm/v5`;
     const url = path.startsWith('http') ? path : `${baseUrl}${path}`;
+    const timeoutSignal = AbortSignal.timeout(15000);
+    const signal = init?.signal
+      ? AbortSignal.any([init.signal, timeoutSignal])
+      : timeoutSignal;
     const res = await fetch(url, {
       ...init,
+      signal,
       headers: {
         Authorization: `Zoho-oauthtoken ${accessToken}`,
         'Content-Type': 'application/json',
@@ -310,8 +315,13 @@ export async function getZohoClient(integration: ZohoIntegration): Promise<{
 
       const retryBaseUrl = `${apiDomain}/crm/v5`;
       const retryUrl = path.startsWith('http') ? path : `${retryBaseUrl}${path}`;
+      const retryTimeoutSignal = AbortSignal.timeout(15000);
+      const retrySignal = init?.signal
+        ? AbortSignal.any([init.signal, retryTimeoutSignal])
+        : retryTimeoutSignal;
       return fetch(retryUrl, {
         ...init,
+        signal: retrySignal,
         headers: {
           Authorization: `Zoho-oauthtoken ${accessToken}`,
           'Content-Type': 'application/json',
