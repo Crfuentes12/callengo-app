@@ -35,6 +35,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid role. Must be member or admin.' }, { status: 400 });
     }
 
+    // FIX #8: Only owners can invite with admin role — prevents privilege escalation
+    // (The owner check is done after fetching userData below, but we validate early
+    // by deferring the actual check to after we know the inviter's role)
+
     // Get user data with company info
     const { data: userData } = await supabase
       .from('users')
@@ -49,6 +53,14 @@ export async function POST(req: NextRequest) {
     // Only owners and admins can invite
     if (userData.role !== 'owner' && userData.role !== 'admin') {
       return NextResponse.json({ error: 'Only owners and admins can invite team members' }, { status: 403 });
+    }
+
+    // FIX #8: Only owners can invite with admin role — prevent privilege escalation
+    if (role === 'admin' && userData.role !== 'owner') {
+      return NextResponse.json(
+        { error: 'Only the account owner can invite users with admin role' },
+        { status: 403 }
+      );
     }
 
     // Get company name for the invitation email

@@ -350,13 +350,22 @@ export async function assignNumberToCompany(
 
 /**
  * Release a dedicated number from a company.
- * Note: Does NOT release the number from Bland — it stays on the master account
- * and can be reassigned to another company later.
+ * FIX #6: Now also releases the number from Bland AI master account
+ * so we're not paying for numbers that are no longer assigned.
  */
 export async function releaseNumberFromCompany(
   companyId: string,
   addonId: string
 ): Promise<{ success: boolean; error?: string }> {
+  // Get the number details before marking as canceled
+  const { data: addon } = await supabaseAdminRaw
+    .from('company_addons')
+    .select('bland_number_id, dedicated_phone_number')
+    .eq('id', addonId)
+    .eq('company_id', companyId)
+    .eq('addon_type', 'dedicated_number')
+    .single();
+
   const { error } = await supabaseAdminRaw
     .from('company_addons')
     .update({ status: 'canceled' })
@@ -366,6 +375,28 @@ export async function releaseNumberFromCompany(
 
   if (error) {
     return { success: false, error: 'Failed to release number' };
+  }
+
+  // Release from Bland AI master account (best-effort, don't fail the whole operation)
+  if (addon?.bland_number_id && BLAND_MASTER_KEY) {
+    try {
+      const blandId = addon.bland_number_id;
+      const response = await fetch(`${BLAND_API_URL.replace('/v1', '')}/numbers/${encodeURIComponent(blandId)}/release`, {
+        method: 'POST',
+        headers: {
+          'Authorization': BLAND_MASTER_KEY,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        console.warn(`[bland/phone-numbers] Failed to release number ${blandId} from Bland (HTTP ${response.status})`);
+      } else {
+        console.log(`[bland/phone-numbers] Released number ${addon.dedicated_phone_number} from Bland master account`);
+      }
+    } catch (releaseErr) {
+      console.error('[bland/phone-numbers] Error releasing number from Bland:', releaseErr);
+      // Non-fatal — the number is already deactivated in our DB
+    }
   }
 
   // Check if company still has active numbers

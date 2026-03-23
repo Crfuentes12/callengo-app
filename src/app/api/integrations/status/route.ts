@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
+import { expensiveLimiter } from '@/lib/rate-limit';
 
 export async function GET() {
   try {
@@ -12,6 +13,12 @@ export async function GET() {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // FIX #7: Rate limit — this endpoint queries 8+ tables per request
+    const rateLimit = await expensiveLimiter.check(10, `integrations_status_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const { data: userData } = await supabase
@@ -67,6 +74,14 @@ export async function GET() {
     const { data: zohoIntegration } = await supabaseAdmin
       .from('zoho_integrations')
       .select('id, company_id, is_active, last_synced_at')
+      .eq('company_id', userData.company_id)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    // Get Dynamics 365 integration (FIX: was missing from status response)
+    const { data: dynamicsIntegration } = await supabaseAdmin
+      .from('dynamics_integrations')
+      .select('id, dynamics_org_name, dynamics_org_url, dynamics_user_email, last_synced_at')
       .eq('company_id', userData.company_id)
       .eq('is_active', true)
       .maybeSingle();
@@ -146,6 +161,14 @@ export async function GET() {
         connected: !!zohoIntegration,
         lastSynced: zohoIntegration?.last_synced_at || undefined,
         integrationId: zohoIntegration?.id || undefined,
+      },
+      dynamics: {
+        connected: !!dynamicsIntegration,
+        email: dynamicsIntegration?.dynamics_user_email || undefined,
+        orgName: dynamicsIntegration?.dynamics_org_name || undefined,
+        orgUrl: dynamicsIntegration?.dynamics_org_url || undefined,
+        lastSynced: dynamicsIntegration?.last_synced_at || undefined,
+        integrationId: dynamicsIntegration?.id || undefined,
       },
     };
 
