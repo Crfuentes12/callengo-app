@@ -1,7 +1,7 @@
 # CLAUDE.md — Contexto del Proyecto Callengo
 
 > Documento de contexto para Claude Code. Léelo antes de cada sesión de trabajo.
-> Última actualización: 23 Marzo 2026 (post-auditoría producción completa — 15 fixes aplicados)
+> Última actualización: 23 Marzo 2026 (env vars documentadas, reglas de actualización de docs, vault Obsidian 60 notas)
 
 ---
 
@@ -18,14 +18,16 @@ Callengo es una plataforma B2B SaaS de llamadas outbound automatizadas con IA. R
 | Capa | Tecnología |
 |------|------------|
 | **Frontend** | Next.js 16.1.1 (App Router), React 19.2.1, TypeScript 5.9.3, Tailwind CSS 4, shadcn/ui |
-| **Backend** | Next.js API Routes (90+ endpoints serverless) |
+| **Backend** | Next.js API Routes (142+ endpoints serverless) |
 | **Base de datos** | Supabase (PostgreSQL) con Row Level Security (RLS), 56 tablas |
 | **Auth** | Supabase Auth (email/password + OAuth: Google, GitHub) |
 | **Pagos** | Stripe 20.1.0 (suscripciones, metered billing para overage, add-ons) |
 | **Llamadas** | Bland AI (voz + transcripción) con arquitectura de master key única |
 | **Concurrencia** | Upstash Redis (rate limiting, concurrency tracking, call slots) |
 | **Análisis IA** | OpenAI GPT-4o-mini (temperature 0.1, JSON mode, post-call intelligence) |
+| **Analytics** | Google Analytics 4 (130+ eventos, Measurement Protocol) + PostHog (session replay, feature flags, group analytics) |
 | **Charts** | Recharts 3.8.0 |
+| **Email** | Resend (invitaciones de equipo, notificaciones transaccionales) |
 | **i18n** | 7 idiomas: en, es, fr, de, it, nl, pt (detección por geolocalización) |
 | **Deploy** | Vercel |
 
@@ -280,7 +282,24 @@ Panel de monitoreo en tiempo real para el owner de la plataforma. 6 tabs:
 
 ## Documentos de Referencia
 
-Todos en la carpeta `/docs/`:
+### Obsidian Knowledge Base (`docs/vault/`) — 60 notas, 13,800+ líneas
+
+Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsidian para navegación visual.
+
+| Sección | Notas | Contenido |
+|---------|-------|-----------|
+| `00-Overview/` | 3 | App Identity, Architecture Overview, ICP & Positioning |
+| `01-Entities/` | 14 | Company, User, Contact, Agent, Campaign, Call, Follow-Up, Voicemail, Calendar Event, Subscription, Add-on, Notification, Team Invitation, Webhook |
+| `02-Database/` | 4 | Schema Overview (56 tablas), RLS Patterns, Triggers & Functions, Migrations Timeline |
+| `03-API/` | 8 | API Overview (142+ endpoints), Admin, Auth, Billing, Bland AI, Calendar, Contacts, Integrations |
+| `04-Integrations/` | 14 | Bland AI, Stripe, OpenAI, Redis, 7 CRMs, Google Calendar, Outlook, Video Providers |
+| `05-Billing/` | 3 | Pricing Model V4, Plan Features, Usage Tracking |
+| `06-Workflows/` | 6 | Lead Qualification, Data Validation, Appointment Confirmation, Campaign Dispatch, Call Processing, Onboarding |
+| `07-Admin/` | 3 | Command Center, Platform Config, Audit Log |
+| `08-Analytics/` | 3 | Google Analytics 4, PostHog, Google Sheets |
+| `09-Security/` | 3 | Security & Encryption, Known Issues & Audit, Environment Variables |
+
+### Otros Documentos (`/docs/`)
 
 | Documento | Descripción |
 |-----------|-------------|
@@ -289,16 +308,19 @@ Todos en la carpeta `/docs/`:
 | `FULL-ARCHITECTURE-ANALYSIS.md` | Análisis arquitectónico profundo (Marzo 2026) |
 | `COMPREHENSIVE_SOFTWARE_AUDIT.md` | Auditoría completa con bugs y recomendaciones (v1, Marzo 5) |
 | `CRM_INTEGRATIONS.md` | Guía de todas las integraciones CRM |
+| `GOOGLE_ANALYTICS.md` | Setup y catálogo de eventos GA4 |
+| `POSTHOG.md` | Setup y catálogo de eventos PostHog |
 | `HUBSPOT_INTEGRATION_SETUP.md` | Setup específico HubSpot |
 | `PIPEDRIVE_INTEGRATION_SETUP.md` | Setup específico Pipedrive |
 | `ZOHO_CRM_INTEGRATION.md` | Setup específico Zoho |
 | `SIMPLYBOOK_INTEGRATION.md` | Setup específico SimplyBook |
 
-En la raíz del proyecto:
+### Raíz del Proyecto
 
 | Documento | Descripción |
 |-----------|-------------|
-| `AUDIT_LOG.md` | Log detallado de la auditoría de producción (23 Marzo 2026) — DB schema, billing, auth, call flow, admin, performance, 15 fixes aplicados, scorecard final |
+| `.env.example` | Referencia completa de 53 variables de entorno con documentación |
+| `AUDIT_LOG.md` | Log de auditoría de producción (23 Marzo 2026) — 15 fixes, scorecard |
 
 ---
 
@@ -340,6 +362,80 @@ En la raíz del proyecto:
 
 ---
 
+## Variables de Entorno (53 vars)
+
+Referencia completa en `.env.example` (raíz del proyecto). Copiar a `.env.local` para desarrollo local. En producción, configurar en Vercel → Environment Variables.
+
+### Variables Críticas (siempre requeridas)
+
+| Variable | Descripción |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (respeta RLS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role (bypasea RLS — NUNCA exponer al cliente) |
+| `NEXT_PUBLIC_APP_URL` | URL base de la app (`http://localhost:3000` en dev) |
+| `STRIPE_SECRET_KEY` | Stripe API key (`sk_test_...` o `sk_live_...`) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_test_...` o `pk_live_...`) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`) |
+| `BLAND_API_KEY` | Master API key de Bland AI (una sola para todas las empresas) |
+| `BLAND_WEBHOOK_SECRET` | HMAC-SHA256 para verificación de webhooks Bland |
+| `OPENAI_API_KEY` | OpenAI API key para GPT-4o-mini (análisis post-llamada) |
+| `UPSTASH_REDIS_REST_URL` | URL REST de Upstash Redis |
+| `UPSTASH_REDIS_REST_TOKEN` | Token REST de Upstash Redis |
+| `TOKEN_ENCRYPTION_KEY` | Clave AES-256-GCM para encriptar tokens OAuth. **Exactamente 64 caracteres hex** (32 bytes). Generar: `openssl rand -hex 32` |
+
+### Variables de Seguridad Interna
+
+| Variable | Descripción |
+|----------|-------------|
+| `INTERNAL_API_SECRET` | Auth servicio-a-servicio |
+| `QUEUE_PROCESSING_SECRET` | Auth para procesadores de cola |
+| `CRON_SECRET` | Auth para Vercel Cron jobs |
+| `OAUTH_STATE_SECRET` | HMAC para parámetros de estado OAuth (previene CSRF) |
+
+### Variables de Analytics (opcionales — degradación graceful)
+
+| Variable | Descripción |
+|----------|-------------|
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | GA4 measurement ID (`G-XXXXXXXXXX`) |
+| `GA_API_SECRET` | GA4 Measurement Protocol secret (eventos server-side) |
+| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project key (`phc_XXX`) |
+| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog host (default: `https://us.i.posthog.com`) |
+
+### Variables de Integraciones CRM (17 vars)
+
+Credenciales OAuth de cada CRM. Tokens de usuario se encriptan con AES-256-GCM al guardar en DB.
+
+| CRM | Variables | Plan |
+|-----|-----------|------|
+| HubSpot | `HUBSPOT_APP_ID`, `HUBSPOT_CLIENT_ID`, `HUBSPOT_CLIENT_SECRET`, `HUBSPOT_PRIVATE_APP_TOKEN` | Business+ |
+| HubSpot Marketing | `NEXT_PUBLIC_HUBSPOT_PORTAL_ID`, `NEXT_PUBLIC_HUBSPOT_CONTACT_FORM_ID` | — |
+| Salesforce | `SALESFORCE_CLIENT_ID`, `SALESFORCE_CLIENT_SECRET`, `SALESFORCE_LOGIN_URL` | Teams+ |
+| Pipedrive | `PIPEDRIVE_CLIENT_ID`, `PIPEDRIVE_CLIENT_SECRET` | Business+ |
+| Zoho | `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` | Business+ |
+| Dynamics 365 | `DYNAMICS_CLIENT_ID`, `DYNAMICS_CLIENT_SECRET`, `DYNAMICS_TENANT_ID` | Teams+ |
+| Clio | `CLIO_CLIENT_ID`, `CLIO_CLIENT_SECRET` | Business+ |
+
+### Variables de Calendario y Video (8 vars)
+
+| Integración | Variables | Plan |
+|-------------|-----------|------|
+| Google (Calendar + Sheets) | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Free+ |
+| Microsoft (Outlook) | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID` | Business+ |
+| Zoom | `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` | Free+ |
+
+### Otras Variables
+
+| Variable | Descripción |
+|----------|-------------|
+| `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET` | Slack integration |
+| `RESEND_API_KEY` | Email transaccional (invitaciones, notificaciones) |
+| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY` | reCAPTCHA v3 (protección de formularios auth) |
+| `BLAND_COST_PER_MINUTE` | Override del costo/min de Bland (default: `0.14`). Para cálculos de P&L. |
+| `AI_ANALYSIS_MODE` | `sync` (default, inline en webhook) o `async` (via `analysis_queue`) |
+
+---
+
 ## Reglas para Trabajar en Este Proyecto
 
 1. **Siempre leer el archivo antes de modificarlo** — no asumir su contenido
@@ -351,4 +447,45 @@ En la raíz del proyecto:
 7. **Supabase:** Usar `createServerSupabaseClient()` en server-side, `createBrowserSupabaseClient()` en client-side
 8. **No commitear a `main` directamente** — trabajar en branches feature
 9. **Encriptación de tokens:** Usar `encryptToken()` / `decryptToken()` de `src/lib/encryption.ts` para cualquier token OAuth o API key que se guarde en DB. Requiere env var `TOKEN_ENCRYPTION_KEY`.
-10. **Migraciones DB:** 44 migraciones en `supabase/migrations/`. Última: `20260323000002_production_audit_fixes.sql`. Usar prefijo timestamp para nuevas migraciones.
+10. **Migraciones DB:** 45 migraciones en `supabase/migrations/`. Última: `20260323000002_production_audit_fixes.sql`. Usar prefijo timestamp para nuevas migraciones.
+11. **Variables de entorno:** Referencia completa en `.env.example`. Si se agrega una nueva env var, actualizar también `.env.example` con documentación.
+
+---
+
+## Reglas de Actualización de Documentación
+
+Cada vez que se hagan cambios significativos al código, **actualizar la documentación correspondiente**:
+
+### Cuándo actualizar `CLAUDE.md`
+- Cuando se agregan/eliminan **API endpoints** → actualizar conteo en "Stack Tecnológico" y "Estructura del Proyecto"
+- Cuando se agregan/eliminan **tablas de DB** → actualizar conteo en "Base de Datos" y "Migraciones DB"
+- Cuando se agregan/eliminan **variables de entorno** → actualizar sección "Variables de Entorno" y `.env.example`
+- Cuando se corrigen **bugs conocidos** → mover de "Alta/Media Prioridad" a "Corregidos" con fecha
+- Cuando cambian **precios o planes** → actualizar tabla "Planes y Precios"
+- Cuando se agregan **integraciones CRM** → actualizar tabla "Integraciones CRM"
+- Cuando cambian **reglas de seguridad** → actualizar sección "Seguridad"
+- Cuando se agregan **nuevas migraciones** → actualizar número de migraciones y "Última migración"
+
+### Cuándo actualizar el Vault de Obsidian (`docs/vault/`)
+- Cuando se modifica una **entidad** (nueva columna, nuevo índice, nueva FK) → actualizar la nota correspondiente en `01-Entities/`
+- Cuando se agrega un **nuevo endpoint API** → actualizar la nota correspondiente en `03-API/`
+- Cuando se modifica una **integración** (nueva tabla, nuevo campo, cambio de auth) → actualizar en `04-Integrations/`
+- Cuando cambian **planes/precios/features** → actualizar `05-Billing/`
+- Cuando se modifica un **workflow** (nuevo paso, cambio de lógica) → actualizar en `06-Workflows/`
+- Cuando se agregan **nuevas migraciones** → actualizar `02-Database/Migrations Timeline.md`
+- Cuando se corrigen **bugs de seguridad** → actualizar `09-Security/Known Issues & Audit.md`
+- Cuando se agregan **nuevas env vars** → actualizar `09-Security/Environment Variables.md`
+- Cuando se agregan **nuevos eventos analytics** → actualizar `08-Analytics/`
+
+### Formato del Vault de Obsidian
+- Usar **frontmatter YAML** con tags en cada archivo
+- Usar **[[wikilinks]]** para interconectar notas
+- Incluir **tablas completas** con todas las columnas de DB (tipo, default, nullable, descripción)
+- Documentar **todos los índices, RLS policies, triggers, y FK** relevantes
+- Escribir en **prosa detallada** (no solo bullet points sueltos)
+- Mantener **consistencia** en formato entre archivos del mismo directorio
+
+### Cuándo actualizar `.env.example`
+- Cuando se agrega **cualquier nueva variable de entorno** en el código
+- Incluir: nombre, valor de ejemplo, comentario explicativo, indicar si es Public o Server-only
+- Agrupar por categoría (Core, Payments, Voice, AI, etc.)
