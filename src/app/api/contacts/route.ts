@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (cfChanged) {
-        merged.custom_fields = Object.keys(cleanedCf).filter(k => !k.startsWith('_') || cleanedCf[k]).length > 0
+        (merged as Record<string, unknown>).custom_fields = Object.keys(cleanedCf).filter(k => !k.startsWith('_') || cleanedCf[k]).length > 0
           ? cleanedCf
           : null;
       }
