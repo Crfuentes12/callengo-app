@@ -158,3 +158,113 @@ Previous audits flagged `companies` and `company_settings` tables as having `USI
 - `campaign_queue` referenced in types but not in schema JSON (may be renamed to `call_queue`)
 - `ai_conversation_messages` referenced in master doc but schema shows `ai_messages` (naming difference only)
 - No migration files available for version tracking audit
+
+---
+
+## BILLING/STRIPE + BLAND AI/CALLS MODULE — 2026-03-23
+
+### 🔴 CRITICAL
+
+- **[usage-tracker.ts:119] Optimistic lock silently drops usage after 3 retries**
+  `trackCallUsage()` uses optimistic locking on `usage_tracking.updated_at`. If 3 retries fail (high-concurrency scenario with multiple concurrent call completions), the function logs an error and **returns without recording usage**. The call happened and cost Bland AI money, but the company's usage counter is never incremented. This causes revenue leakage — the company uses more minutes than tracked.
+  **Call chain:** Bland webhook → `trackCallUsage()` → optimistic lock fails 3x → `return` (usage lost) → company continues making calls past their limit.
+  **Suggested fix:** After exhausting retries, use a `supabase.rpc('increment_usage_minutes', ...)` atomic increment (the RPC function already exists per billing audit docs) or fall back to a billing_events record flagged for reconciliation.
+
+### 🟡 WARNING
+
+- **[usage-tracker.ts:142-145] `reportUsage` uses `action: 'set'` instead of `'increment'`**
+  Each call to Stripe's usage reporting sets the total overage minutes rather than incrementing. If two webhook callbacks process simultaneously, the second call overwrites the first's total. Example: Call A finishes (5 overage min → set 5), Call B finishes concurrently (total should be 8 → but reads stale data → set 3). Stripe sees 3, not 8.
+  **Mitigated partially** by the optimistic lock on `usage_tracking` (ensures sequential reads), but the Stripe API call happens AFTER the lock is released. A crash between DB update and Stripe call means Stripe has stale data.
+  **Suggested fix:** Use `action: 'increment'` with per-call overage delta, or reconcile periodically (which `syncAllMeteredUsage` already does).
+
+- **[bland/webhook/route.ts:96-113] Bland webhook signature not enforced in non-production**
+  If `BLAND_WEBHOOK_SECRET` is not set, the webhook accepts unsigned requests. While this is gated to non-production (`NODE_ENV !== 'production'`), staging environments could receive forged webhooks. The signature verification IS enforced in production.
+  **Suggested fix:** Require `BLAND_WEBHOOK_SECRET` in all environments, or at minimum log a prominent warning.
+
+- **[campaigns/dispatch/route.ts:137-139] Batch insert into `campaign_queue` without idempotency**
+  Double-clicking "Launch Campaign" sends two POST requests. The dispatch endpoint has rate limiting (2/min), but two rapid requests within the same second could both pass. No idempotency key or unique constraint prevents duplicate queue entries for the same contact+campaign combination.
+  **Mitigated partially** by: rate limit of 2/min, agent_run status check (only dispatches if status is pending/running/active), and Redis contact cooldown (5-min gap between calls to same contact). However, duplicate queue entries would still be created.
+  **Suggested fix:** Add a unique constraint on `campaign_queue(agent_run_id, contact_id)` or use an idempotency key in the request.
+
+- **[bland/phone-numbers.ts] No Bland-side cleanup on number release**
+  `releaseNumberFromCompany()` marks the addon as 'canceled' in DB but doesn't call Bland API to release the number from the master account. Orphaned numbers accumulate on the Bland account, incurring ongoing charges.
+  **Suggested fix:** Call Bland's number release API, or document this as intentional if numbers are meant to be recycled.
+
+### 🟢 INFO
+
+- **[send-call/route.ts:90-97] Pre-registered call_log entry prevents TOCTOU race** — Good pattern. Creates a 'queued' call_log before throttle check so concurrent requests see each other. If throttle rejects, the pre-registered entry is cleaned up.
+
+- **[send-call/route.ts:42] Rate limiting applied** — `expensiveLimiter.check(10, user.id)` on send-call endpoint. Properly limits to 10 calls/min per user.
+
+- **[campaigns/dispatch/route.ts:48] Rate limiting applied** — 2 campaign dispatches/min per user.
+
+- **[report-usage/route.ts:14-25] Internal token verification uses timing-safe comparison** — Proper crypto.timingSafeEqual for service-to-service auth.
+
+- **[billing/call-throttle.ts] Comprehensive throttle checks** — Checks subscription status, period expiry, Redis concurrency, DB fallback concurrent/daily/hourly counts, minutes remaining, and overage budget. Well-structured defense-in-depth.
+
+### ✅ MITIGATED
+
+- **[Previous audit: "Usage tracker makes self-referential HTTP call"]** — Fixed. `trackCallUsage()` now writes directly to DB instead of calling its own API endpoint.
+
+- **[Previous audit: "Stripe webhook no idempotency"]** — Fixed. Atomic INSERT with unique constraint on `stripe_events.id` (code 23505 detection). Confirmed in webhook handler.
+
+- **[Previous audit: "No pre-dispatch throttle checks"]** — Fixed. `checkCallAllowed()` called before every dispatch in both `send-call/route.ts` and `campaigns/dispatch/route.ts`.
+
+### ✅ CLEAN
+
+- `src/lib/stripe.ts` — Well-structured wrapper. Proper error handling, webhook signature verification, no hardcoded secrets.
+- `src/app/api/webhooks/stripe/route.ts` — Idempotent, signature-verified, handles all subscription lifecycle events.
+- `src/lib/billing/overage-manager.ts` — Correctly prevents free plan overage, creates metered prices, handles enable/disable lifecycle.
+- `src/app/api/billing/create-checkout-session/route.ts` — Auth, rate limit, role check, input validation, all present.
+
+---
+
+## AUTH/ADMIN MODULE — 2026-03-23
+
+### 🔴 CRITICAL
+
+- **[DB: users table — see Phase DB] Role self-escalation via RLS UPDATE policy**
+  Already documented in Phase DB. The `users_update` RLS policy allows any authenticated user to update their own `role` column to 'admin'. This is the single most dangerous finding in the audit.
+
+### 🟡 WARNING
+
+- **[team/invite/route.ts:34-35] Admin can invite other admins**
+  Role validation accepts `['member', 'admin']`. An admin user can invite another admin. Combined with the role self-escalation bug above, this creates a lateral escalation path. Even after fixing the RLS bug, consider whether only owners should be able to invite admins.
+  **Suggested fix:** Restrict admin invitations to `owner` role only: `if (role === 'admin' && userData.role !== 'owner')`.
+
+- **[team/members/route.ts:42-49] N+1 query: getUserById for each team member**
+  For each team member, a separate `supabaseAdmin.auth.admin.getUserById()` call is made to fetch `last_sign_in_at`. A company with 20 members = 20 sequential auth API calls. This is slow and could hit Supabase rate limits.
+  **Suggested fix:** Use `supabaseAdmin.auth.admin.listUsers()` with a filter, or cache last_sign_in_at in the users table.
+
+### 🟢 INFO
+
+- **[team/accept-invite/route.ts:69-75] Invitation acceptance uses service_role for user update** — Correct pattern. The `supabaseAdmin` client bypasses RLS to update the user's company_id and role. This is necessary because the user's own RLS policy only allows self-updates.
+
+- **[seed/route.ts:64-84] Seed endpoint properly secured** — Requires `SEED_ENDPOINT_SECRET` env var. Uses timing-safe comparison. Disabled by default (returns 403 if env var not set). Previous audit concern about seed endpoint is resolved.
+
+### ✅ MITIGATED
+
+- **[Previous audit: "Seed endpoint accessible in non-production"]** — Fixed. Now requires `SEED_ENDPOINT_SECRET` regardless of environment. Timing-safe comparison used.
+
+- **[Previous audit: "Admin routes missing auth"]** — False positive. All 9 admin API routes verify `role === 'admin'` after auth check. Middleware also blocks non-admin page access.
+
+- **[Previous audit: "campaigns table missing RLS"]** — False positive. No `campaigns` table exists. App uses `agent_runs` which has proper company_id-scoped RLS.
+
+### ✅ CLEAN
+
+- `middleware.ts` — Comprehensive route protection. Auth check, email verification, onboarding redirect, admin role gate, user metadata caching.
+- `src/contexts/AuthContext.tsx` — Clean state management. Only handles sign-out redirect; lets middleware handle sign-in redirects (avoids conflicts).
+- `src/app/auth/callback/route.ts` — Safe redirect validation (`_safeRedirectUrl`), team invitation acceptance with optimistic locking, proper error handling.
+- `src/app/api/auth/verify-recaptcha/route.ts` — Rate limited, fail-closed in production, proper score/action validation.
+- `src/app/api/admin/command-center/route.ts` — Auth + admin check + rate limit. Comprehensive.
+- `src/app/api/admin/clients/route.ts` — Auth + admin check. Proper pagination.
+
+---
+
+## CHECKPOINT — 3 Modules Complete
+
+**Modules completed:** Billing/Stripe + Bland AI/Calls, Auth/Admin
+**Confirmed criticals:** 2 (users role self-escalation, usage-tracker silent data loss)
+**Confirmed warnings:** 6
+**Mitigated false positives:** 5 (from previous audits)
+**Next module:** Integrations
