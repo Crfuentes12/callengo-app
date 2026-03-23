@@ -1,7 +1,7 @@
 # CLAUDE.md — Contexto del Proyecto Callengo
 
 > Documento de contexto para Claude Code. Léelo antes de cada sesión de trabajo.
-> Última actualización: Marzo 2026 (post-auditoría billing + Command Center v2)
+> Última actualización: 23 Marzo 2026 (post-auditoría producción completa — 15 fixes aplicados)
 
 ---
 
@@ -54,7 +54,7 @@ src/
 │   ├── admin/              # Vista financiera interna
 │   ├── onboarding/
 │   ├── api/                # 90+ endpoints
-│   │   ├── admin/          # Command Center, clients, finances, reconcile
+│   │   ├── admin/          # Command Center, clients, finances, reconcile, monitor, cleanup-orphans
 │   │   ├── billing/        # 13 endpoints
 │   │   ├── bland/          # Webhooks + API Bland AI
 │   │   ├── integrations/   # 60+ endpoints OAuth y sync CRMs
@@ -95,6 +95,7 @@ src/
 │   ├── zoho/               # Zoho CRM (auth, sync)
 │   ├── supabase/           # client.ts, server.ts, service.ts
 │   ├── voices/             # Bland.ai voice catalog + utils
+│   ├── encryption.ts       # AES-256-GCM token encryption (encryptToken/decryptToken)
 │   ├── stripe.ts           # Stripe SDK wrapper (380 líneas)
 │   ├── rate-limit.ts       # Rate limiting (definido pero NO aplicado globalmente aún)
 │   ├── mock-data.ts        # Datos demo (687 líneas)
@@ -228,6 +229,10 @@ npm run stripe:sync:dry        # Dry-run para ver qué cambiaría
 - Stripe webhooks validados con firma (`webhooks.ts`)
 - Variables de entorno sensibles: nunca hardcodear keys en código
 - Middleware en Edge protege rutas autenticadas (`middleware.ts`)
+- **Encriptación de tokens OAuth:** AES-256-GCM via `src/lib/encryption.ts`. Todos los tokens de integración (11 proveedores) se encriptan al guardar y desencriptan al usar. Requiere `TOKEN_ENCRYPTION_KEY` (64 hex chars). `decryptToken()` es backward-compatible con datos plaintext existentes.
+- **RLS reforzado:** Trigger `trg_prevent_sensitive_field_changes` bloquea auto-cambios de `company_id` y `email` en tabla `users`. Subscriptions solo editables por `owner`/`admin`.
+- **CHECK constraints:** Status columns en 8 tablas validadas con CHECK constraints en DB (no solo aplicación).
+- **Soft-delete:** Tabla `companies` tiene columna `deleted_at` con 30 días de recuperación. RLS excluye compañías soft-deleted.
 
 ---
 
@@ -282,12 +287,18 @@ Todos en la carpeta `/docs/`:
 | `CALLENGO_MASTER_DOCUMENT.md` | Referencia completa del producto (negocio + técnica) |
 | `PRICING_MODEL.md` | Modelo de precios V4, unit economics, feature matrix |
 | `FULL-ARCHITECTURE-ANALYSIS.md` | Análisis arquitectónico profundo (Marzo 2026) |
-| `COMPREHENSIVE_SOFTWARE_AUDIT.md` | Auditoría completa con bugs y recomendaciones |
+| `COMPREHENSIVE_SOFTWARE_AUDIT.md` | Auditoría completa con bugs y recomendaciones (v1, Marzo 5) |
 | `CRM_INTEGRATIONS.md` | Guía de todas las integraciones CRM |
 | `HUBSPOT_INTEGRATION_SETUP.md` | Setup específico HubSpot |
 | `PIPEDRIVE_INTEGRATION_SETUP.md` | Setup específico Pipedrive |
 | `ZOHO_CRM_INTEGRATION.md` | Setup específico Zoho |
 | `SIMPLYBOOK_INTEGRATION.md` | Setup específico SimplyBook |
+
+En la raíz del proyecto:
+
+| Documento | Descripción |
+|-----------|-------------|
+| `AUDIT_LOG.md` | Log detallado de la auditoría de producción (23 Marzo 2026) — DB schema, billing, auth, call flow, admin, performance, 15 fixes aplicados, scorecard final |
 
 ---
 
@@ -301,15 +312,30 @@ Todos en la carpeta `/docs/`:
 ### Media Prioridad
 - Datos demo (seed) presentes en producción: 50 contactos, 6 campañas demo
 - Componentes muy grandes que dificultan el mantenimiento (AgentConfigModal, IntegrationsPage)
-- Falta de tests automatizados
+- Falta de tests automatizados (no hay test runner configurado)
 
-### Corregidos (Marzo 2026 — sesión de auditoría billing)
+### Corregidos (23 Marzo 2026 — auditoría producción completa, 15 fixes)
+- ~~**Tokens OAuth en plaintext**~~ — Encriptados con AES-256-GCM (`src/lib/encryption.ts`), 11 proveedores cubiertos
+- ~~**users RLS permitía auto-cambio de company_id/email**~~ — Trigger `trg_prevent_sensitive_field_changes` bloquea cambios
+- ~~**company_subscriptions editable por cualquier rol**~~ — RLS restringido a `owner`/`admin`
+- ~~**Status columns sin validación en DB**~~ — CHECK constraints en 8 tablas
+- ~~**Admin Command Center excluía rol owner**~~ — GET y POST ahora aceptan `admin` o `owner`
+- ~~**verify-session sin validación de session_id**~~ — Validación de prefijo `cs_`
+- ~~**Stripe webhook addon_type sin validación**~~ — Whitelist `VALID_ADDON_TYPES`
+- ~~**Seed DELETE inconsistente**~~ — Usa misma auth `SEED_ENDPOINT_SECRET` que POST
+- ~~**send-call metadata.contact_id sin validación UUID**~~ — Zod `.refine()` valida formato UUID
+- ~~**Command Center queries secuenciales**~~ — hourly + daily ahora en `Promise.all()` paralelo
+- ~~**N+1 en admin/monitor**~~ — `getCompanyBreakdown()` refactorizado a 5 queries batch paralelos
+- ~~**Cleanup-orphans secuencial**~~ — Usa `Promise.allSettled()` para loops Bland y archival
+- ~~**Compañías sin soft-delete**~~ — Columna `deleted_at` + RLS + partial index
+
+#### Corregidos previamente (sesión auditoría billing)
 - ~~**Billing period edge cases**~~ — overage tracking al cambiar de plan: corregido
-- ~~**Dispatch loop cleanup sin try-catch**~~ — operaciones delete en `campaigns/dispatch/route.ts` ahora envueltas en try-catch non-fatal
-- ~~**billing_cycle sin validación**~~ — `verify-session/route.ts` ahora sanitiza a `'monthly'` o `'annual'` únicamente
-- ~~**Health data mapping roto**~~ — `AdminCommandCenter.tsx` ahora mapea correctamente la respuesta nested del API
-- ~~**Bland plan "unknown"**~~ — Command Center ahora tiene dropdown con los 4 planes reales de Bland
-- ~~**Redis/concurrency invisible**~~ — Panel completo de Redis con gauges, active calls, per-company breakdown
+- ~~**Dispatch loop cleanup sin try-catch**~~ — operaciones delete envueltas en try-catch non-fatal
+- ~~**billing_cycle sin validación**~~ — `verify-session/route.ts` sanitiza a `'monthly'` o `'annual'`
+- ~~**Health data mapping roto**~~ — `AdminCommandCenter.tsx` mapea correctamente la respuesta nested
+- ~~**Bland plan "unknown"**~~ — Command Center con dropdown de 4 planes reales de Bland
+- ~~**Redis/concurrency invisible**~~ — Panel completo de Redis con gauges, active calls, per-company
 - ~~**Landing page default /dashboard**~~ — Cambiado a `/home` en root, login y OAuth callback
 
 ---
@@ -324,3 +350,5 @@ Todos en la carpeta `/docs/`:
 6. **Stripe:** Usar el wrapper `src/lib/stripe.ts`, no instanciar Stripe directamente en otros archivos
 7. **Supabase:** Usar `createServerSupabaseClient()` en server-side, `createBrowserSupabaseClient()` en client-side
 8. **No commitear a `main` directamente** — trabajar en branches feature
+9. **Encriptación de tokens:** Usar `encryptToken()` / `decryptToken()` de `src/lib/encryption.ts` para cualquier token OAuth o API key que se guarde en DB. Requiere env var `TOKEN_ENCRYPTION_KEY`.
+10. **Migraciones DB:** 44 migraciones en `supabase/migrations/`. Última: `20260323000002_production_audit_fixes.sql`. Usar prefijo timestamp para nuevas migraciones.
