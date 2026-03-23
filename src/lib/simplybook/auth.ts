@@ -3,6 +3,7 @@
 // Uses REST API v2 with username/password token-based auth (NOT OAuth)
 
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 import type {
   SimplyBookIntegration,
   SimplyBookTokenResponse,
@@ -155,12 +156,14 @@ export async function refreshSimplyBookToken(
     throw new Error('SimplyBook.me refresh token not available. Please reconnect.');
   }
 
+  const decryptedRefreshToken = decryptToken(integration.sb_refresh_token);
+
   const res = await fetch(`${adminBase}/auth/refresh-token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       company: integration.sb_company_login,
-      refresh_token: integration.sb_refresh_token,
+      refresh_token: decryptedRefreshToken,
     }),
   });
 
@@ -181,8 +184,8 @@ export async function refreshSimplyBookToken(
   await supabaseAdmin
     .from('simplybook_integrations')
     .update({
-      sb_token: newToken,
-      sb_refresh_token: newRefreshToken,
+      sb_token: encryptToken(newToken),
+      sb_refresh_token: encryptToken(newRefreshToken),
       token_expires_at: expiresAt,
       token_issued_at: new Date().toISOString(),
     })
@@ -203,7 +206,7 @@ export async function getSimplyBookClient(integration: SimplyBookIntegration): P
   fetch: (path: string, init?: RequestInit) => Promise<Response>;
   companyLogin: string;
 }> {
-  let token = integration.sb_token;
+  let token = decryptToken(integration.sb_token);
   const companyLogin = integration.sb_company_login;
 
   // Proactively refresh if token expires within 30 minutes

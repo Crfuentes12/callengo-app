@@ -11,6 +11,7 @@ import type {
   MicrosoftTokenResponse,
 } from '@/types/calendar';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 
 // ============================================================================
 // CONFIGURATION
@@ -137,10 +138,12 @@ async function refreshMicrosoftToken(
 
   const config = getMicrosoftConfig();
 
+  const decryptedRefreshToken = decryptToken(integration.refresh_token);
+
   const params = new URLSearchParams({
     client_id: config.clientId,
     client_secret: config.clientSecret,
-    refresh_token: integration.refresh_token,
+    refresh_token: decryptedRefreshToken,
     grant_type: 'refresh_token',
     scope: SCOPES.join(' '),
   });
@@ -159,13 +162,13 @@ async function refreshMicrosoftToken(
 
   // Update tokens in database
   const updatePayload: Record<string, unknown> = {
-    access_token: newAccessToken,
+    access_token: encryptToken(newAccessToken),
     token_expires_at: expiresAt,
   };
 
   // Microsoft may issue a new refresh token on each refresh
   if (response.data.refresh_token) {
-    updatePayload.refresh_token = response.data.refresh_token;
+    updatePayload.refresh_token = encryptToken(response.data.refresh_token);
   }
 
   await supabaseAdmin
@@ -183,7 +186,7 @@ async function refreshMicrosoftToken(
 export async function getMicrosoftCalendarClient(
   integration: CalendarIntegration
 ): Promise<AxiosInstance> {
-  let accessToken = integration.access_token;
+  let accessToken = integration.access_token ? decryptToken(integration.access_token) : integration.access_token;
 
   // Check if token is expired or about to expire (5 min buffer)
   const expiresAt = integration.token_expires_at

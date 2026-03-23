@@ -4,6 +4,7 @@
 import { google } from 'googleapis';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 
 // ============================================================================
 // CONFIGURATION
@@ -97,9 +98,11 @@ interface SheetsIntegration {
 /** Get an authenticated OAuth2 client for the integration, refreshing token if needed */
 async function getAuthenticatedClient(integration: SheetsIntegration) {
   const oauth2Client = createOAuth2Client();
+  const decryptedAccessToken = integration.access_token ? decryptToken(integration.access_token) : integration.access_token;
+  const decryptedRefreshToken = integration.refresh_token ? decryptToken(integration.refresh_token) : integration.refresh_token;
   oauth2Client.setCredentials({
-    access_token: integration.access_token,
-    refresh_token: integration.refresh_token,
+    access_token: decryptedAccessToken,
+    refresh_token: decryptedRefreshToken,
   });
 
   // Check if token needs refresh (5-minute buffer)
@@ -119,9 +122,9 @@ async function getAuthenticatedClient(integration: SheetsIntegration) {
       await supabaseAdmin
         .from('google_sheets_integrations')
         .update({
-          access_token: credentials.access_token,
+          access_token: credentials.access_token ? encryptToken(credentials.access_token) : credentials.access_token,
           token_expires_at: newExpiry,
-          ...(credentials.refresh_token ? { refresh_token: credentials.refresh_token } : {}),
+          ...(credentials.refresh_token ? { refresh_token: encryptToken(credentials.refresh_token) } : {}),
         })
         .eq('id', integration.id);
 

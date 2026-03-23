@@ -24,7 +24,10 @@ const sendCallSchema = z.object({
   voicemail_message: z.string().max(1000).optional(),
   answered_by_enabled: z.boolean().default(true),
   webhook: z.string().url().refine(val => val.startsWith('https://'), { message: 'Webhook URL must use HTTPS' }).optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).refine(
+    (m) => !m.contact_id || z.string().uuid().safeParse(m.contact_id).success,
+    { message: 'metadata.contact_id must be a valid UUID if provided' }
+  ).optional(),
   company_id: z.string().uuid({ message: 'Invalid company ID' }),
 });
 

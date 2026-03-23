@@ -169,67 +169,98 @@ async function getCompanyBreakdown() {
     .in('status', ['active', 'trialing'])
     .order('company_id');
 
-  if (!subscriptions) return [];
+  if (!subscriptions || subscriptions.length === 0) return [];
 
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
   const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
-  const companies = [];
+  // Collect all company IDs for batched queries (fixes N+1)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companyIds = (subscriptions as any[]).map(s => s.company_id);
+  const subIds = (subscriptions as any[]).map(s => s.id);
+
+  // Batch all per-company queries in parallel
+  const [
+    { data: allUsage },
+    { data: allActiveCalls },
+    { data: allTodayCalls },
+    { data: allCompanies },
+    { data: allAddons },
+  ] = await Promise.all([
+    // 1. Usage tracking for all subscriptions at once
+    supabaseAdmin
+      .from('usage_tracking')
+      .select('company_id, subscription_id, minutes_used, minutes_included')
+      .in('subscription_id', subIds)
+      .order('period_start', { ascending: false }),
+    // 2. Active calls grouped by company
+    supabaseAdmin
+      .from('call_logs')
+      .select('company_id')
+      .in('company_id', companyIds)
+      .in('status', ['in_progress', 'ringing', 'queued'])
+      .gte('created_at', fifteenMinAgo),
+    // 3. Today's calls grouped by company
+    supabaseAdmin
+      .from('call_logs')
+      .select('company_id')
+      .in('company_id', companyIds)
+      .not('status', 'in', '("failed","error")')
+      .gte('created_at', todayStart.toISOString()),
+    // 4. All company names at once
+    supabaseAdmin
+      .from('companies')
+      .select('id, name')
+      .in('id', companyIds),
+    // 5. Dedicated numbers for all companies at once
+    supabaseAdminRaw
+      .from('company_addons')
+      .select('company_id')
+      .in('company_id', companyIds)
+      .eq('addon_type', 'dedicated_number')
+      .eq('status', 'active'),
+  ]);
+
+  // Build lookup maps for O(1) access
+  const usageByCompany = new Map<string, { minutes_used: number; minutes_included: number }>();
+  for (const u of allUsage || []) {
+    if (!usageByCompany.has(u.company_id)) {
+      usageByCompany.set(u.company_id, u);
+    }
+  }
+
+  const activeCallsByCompany = new Map<string, number>();
+  for (const c of allActiveCalls || []) {
+    activeCallsByCompany.set(c.company_id, (activeCallsByCompany.get(c.company_id) || 0) + 1);
+  }
+
+  const todayCallsByCompany = new Map<string, number>();
+  for (const c of allTodayCalls || []) {
+    todayCallsByCompany.set(c.company_id, (todayCallsByCompany.get(c.company_id) || 0) + 1);
+  }
+
+  const companyNames = new Map<string, string>();
+  for (const c of allCompanies || []) {
+    companyNames.set(c.id, c.name);
+  }
+
+  const addonsByCompany = new Map<string, number>();
+  for (const a of allAddons || []) {
+    addonsByCompany.set(a.company_id, (addonsByCompany.get(a.company_id) || 0) + 1);
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const sub of subscriptions as any[]) {
+  return (subscriptions as any[]).map(sub => {
     const plan = sub.subscription_plans as Record<string, unknown>;
     const planSlug = (plan?.slug as string) || 'free';
     const features = CAMPAIGN_FEATURE_ACCESS[planSlug] || CAMPAIGN_FEATURE_ACCESS.free;
-
-    // Get current usage
-    const { data: usage } = await supabaseAdmin
-      .from('usage_tracking')
-      .select('minutes_used, minutes_included')
-      .eq('company_id', sub.company_id)
-      .eq('subscription_id', sub.id)
-      .order('period_start', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Active calls count
-    const { count: activeCalls } = await supabaseAdmin
-      .from('call_logs')
-      .select('id', { count: 'exact', head: true })
-      .eq('company_id', sub.company_id)
-      .in('status', ['in_progress', 'ringing', 'queued'])
-      .gte('created_at', fifteenMinAgo);
-
-    // Today's calls count
-    const { count: todayCalls } = await supabaseAdmin
-      .from('call_logs')
-      .select('id', { count: 'exact', head: true })
-      .eq('company_id', sub.company_id)
-      .not('status', 'in', '("failed","error")')
-      .gte('created_at', todayStart.toISOString());
-
-    // Get company name
-    const { data: company } = await supabaseAdmin
-      .from('companies')
-      .select('name')
-      .eq('id', sub.company_id)
-      .single();
-
-    // Dedicated numbers (use raw to avoid type error)
-    const { count: numNumbers } = await supabaseAdminRaw
-      .from('company_addons')
-      .select('id', { count: 'exact', head: true })
-      .eq('company_id', sub.company_id)
-      .eq('addon_type', 'dedicated_number')
-      .eq('status', 'active');
-
-    // Booster minutes
+    const usage = usageByCompany.get(sub.company_id);
     const boosterMinutes = (sub.addon_calls_booster_count || 0) * 225;
 
-    companies.push({
+    return {
       companyId: sub.company_id,
-      companyName: company?.name || 'Unknown',
+      companyName: companyNames.get(sub.company_id) || 'Unknown',
       plan: planSlug,
       status: sub.status,
       caps: {
@@ -245,8 +276,8 @@ async function getCompanyBreakdown() {
           : 0,
       },
       realtime: {
-        activeCalls: activeCalls || 0,
-        todayCalls: todayCalls || 0,
+        activeCalls: activeCallsByCompany.get(sub.company_id) || 0,
+        todayCalls: todayCallsByCompany.get(sub.company_id) || 0,
       },
       overage: {
         enabled: sub.overage_enabled,
@@ -254,14 +285,12 @@ async function getCompanyBreakdown() {
         spent: sub.overage_spent,
       },
       addons: {
-        dedicatedNumbers: numNumbers || 0,
+        dedicatedNumbers: addonsByCompany.get(sub.company_id) || 0,
         callsBoosters: sub.addon_calls_booster_count || 0,
         boosterMinutes,
       },
-    });
-  }
-
-  return companies;
+    };
+  });
 }
 
 // ================================================================

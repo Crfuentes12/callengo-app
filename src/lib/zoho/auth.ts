@@ -9,6 +9,7 @@ import type {
   ZohoOrgInfo,
 } from '@/types/zoho';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 
 // ============================================================================
 // CONFIGURATION
@@ -181,14 +182,14 @@ export async function refreshZohoToken(
     const latestExpiresAt = latestRow.token_expires_at && new Date(latestRow.token_expires_at).getTime() > Date.now()
       ? latestRow.token_expires_at : integration.token_expires_at ?? '';
     return {
-      access_token: latestRow.access_token,
+      access_token: decryptToken(latestRow.access_token),
       expires_at: latestExpiresAt,
       api_domain: latestRow.zoho_domain ?? integration.zoho_domain,
     };
   }
 
   // Use the latest refresh_token from DB in case it was rotated
-  const currentRefreshToken = latestRow?.refresh_token ?? integration.refresh_token;
+  const currentRefreshToken = decryptToken(latestRow?.refresh_token ?? integration.refresh_token);
 
   const { clientId, clientSecret } = getZohoConfig();
 
@@ -235,8 +236,8 @@ export async function refreshZohoToken(
   const { data: updateResult } = await supabaseAdmin
     .from('zoho_integrations')
     .update({
-      access_token: newAccessToken,
-      ...(newRefreshToken ? { refresh_token: newRefreshToken } : {}),
+      access_token: encryptToken(newAccessToken),
+      ...(newRefreshToken ? { refresh_token: encryptToken(newRefreshToken) } : {}),
       token_expires_at: expiresAt,
       zoho_domain: apiDomain,
       token_issued_at: newTokenIssuedAt,
@@ -254,7 +255,7 @@ export async function refreshZohoToken(
       .single();
     if (fallbackRow) {
       return {
-        access_token: fallbackRow.access_token,
+        access_token: decryptToken(fallbackRow.access_token),
         expires_at: fallbackRow.token_expires_at ?? expiresAt,
         api_domain: fallbackRow.zoho_domain ?? apiDomain,
       };
@@ -276,7 +277,7 @@ export async function getZohoClient(integration: ZohoIntegration): Promise<{
   fetch: (path: string, init?: RequestInit) => Promise<Response>;
   apiDomain: string;
 }> {
-  let accessToken = integration.access_token;
+  let accessToken = decryptToken(integration.access_token);
   let apiDomain = integration.zoho_domain || 'https://www.zohoapis.com';
 
   // Proactively refresh if token expires within 5 minutes

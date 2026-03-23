@@ -188,6 +188,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   // Handle add-on purchases (don't require plan_id)
   if (companyId && isAddon) {
     const addonType = session.metadata?.addon_type;
+    const VALID_ADDON_TYPES = ['dedicated_number', 'recording_vault', 'calls_booster'];
+    if (!addonType || !VALID_ADDON_TYPES.includes(addonType)) {
+      console.error(`Invalid addon_type in metadata: ${addonType}`);
+      return;
+    }
     const addonQuantity = Math.max(1, parseInt(session.metadata?.quantity || '1', 10));
     console.log(`📦 Add-on checkout completed: ${addonType} x${addonQuantity} for company ${companyId}`);
 

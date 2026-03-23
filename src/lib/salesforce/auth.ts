@@ -8,6 +8,7 @@ import type {
   SalesforceUserInfo,
 } from '@/types/salesforce';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 
 // ============================================================================
 // CONFIGURATION
@@ -126,13 +127,13 @@ export async function refreshSalesforceToken(
       latestRow.token_issued_at !== originalTokenIssuedAt) {
     // Token was already refreshed by a concurrent request — use the latest token
     return {
-      access_token: latestRow.access_token,
+      access_token: decryptToken(latestRow.access_token),
       instance_url: latestRow.instance_url ?? integration.instance_url,
     };
   }
 
   // Use the latest refresh_token from DB in case it was rotated
-  const currentRefreshToken = latestRow?.refresh_token ?? integration.refresh_token;
+  const currentRefreshToken = decryptToken(latestRow?.refresh_token ?? integration.refresh_token);
 
   const { clientId, clientSecret } = getSalesforceConfig();
 
@@ -170,9 +171,9 @@ export async function refreshSalesforceToken(
   const { data: updateResult } = await supabaseAdmin
     .from('salesforce_integrations')
     .update({
-      access_token: newAccessToken,
+      access_token: encryptToken(newAccessToken),
       instance_url: newInstanceUrl,
-      ...(newRefreshToken ? { refresh_token: newRefreshToken } : {}),
+      ...(newRefreshToken ? { refresh_token: encryptToken(newRefreshToken) } : {}),
       token_issued_at: newTokenIssuedAt,
     })
     .eq('id', integration.id)
@@ -188,7 +189,7 @@ export async function refreshSalesforceToken(
       .single();
     if (fallbackRow) {
       return {
-        access_token: fallbackRow.access_token,
+        access_token: decryptToken(fallbackRow.access_token),
         instance_url: fallbackRow.instance_url ?? newInstanceUrl,
       };
     }
@@ -209,7 +210,7 @@ export async function getSalesforceClient(integration: SalesforceIntegration): P
   fetch: (path: string, init?: RequestInit) => Promise<Response>;
   instanceUrl: string;
 }> {
-  let accessToken = integration.access_token;
+  let accessToken = decryptToken(integration.access_token);
   let instanceUrl = integration.instance_url;
 
   const sfFetch = async (path: string, init?: RequestInit): Promise<Response> => {

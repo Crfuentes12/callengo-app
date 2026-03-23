@@ -152,14 +152,14 @@ export async function DELETE() {
 
     const results: { table: string; deleted: number; error?: string }[] = [];
 
-    // 0. Deactivate Bland sub-accounts and reclaim credits BEFORE deleting settings
-    for (const orphan of orphans) {
-      try {
-        await deactivateBlandSubAccount(orphan.id);
-      } catch (blandError) {
-        console.error(`[cleanup] Failed to deactivate Bland sub-account for ${orphan.id}:`, blandError);
-      }
-    }
+    // 0. Deactivate Bland sub-accounts in parallel (non-fatal)
+    await Promise.allSettled(
+      orphans.map(orphan =>
+        deactivateBlandSubAccount(orphan.id).catch(err =>
+          console.error(`[cleanup] Failed to deactivate Bland sub-account for ${orphan.id}:`, err)
+        )
+      )
+    );
 
     // 1. Delete operational data for orphaned companies
     for (const table of OPERATIONAL_TABLES) {
@@ -176,21 +176,24 @@ export async function DELETE() {
       }
     }
 
-    // 2. Soft-delete: rename companies with [ARCHIVED] prefix
+    // 2. Soft-delete: rename companies with [ARCHIVED] prefix in parallel
     //    We do NOT delete the company row because ON DELETE CASCADE
     //    would destroy financial records (billing_history, billing_events, etc.)
-    let archivedCount = 0;
-    for (const orphan of orphans) {
-      const { error } = await supabaseAdmin
-        .from('companies')
-        .update({
-          name: `${ARCHIVED_PREFIX}${orphan.name}`,
-          description: `Archived on ${new Date().toISOString().split('T')[0]} — user deleted, no active users. Financial records preserved.`,
-        })
-        .eq('id', orphan.id);
-
-      if (!error) archivedCount++;
-    }
+    const archiveResults = await Promise.allSettled(
+      orphans.map(orphan =>
+        supabaseAdmin
+          .from('companies')
+          .update({
+            name: `${ARCHIVED_PREFIX}${orphan.name}`,
+            description: `Archived on ${new Date().toISOString().split('T')[0]} — user deleted, no active users. Financial records preserved.`,
+          })
+          .eq('id', orphan.id)
+      )
+    );
+    const archivedCount = archiveResults.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (r: any) => r.status === 'fulfilled' && !r.value?.error
+    ).length;
 
     return NextResponse.json({
       message: `Archived ${archivedCount} orphaned companies. Operational data cleaned, financial records preserved.`,

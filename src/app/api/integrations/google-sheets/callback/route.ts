@@ -6,6 +6,7 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { exchangeGoogleSheetsCode, getGoogleSheetsUserInfo } from '@/lib/google-sheets';
 import { verifySignedState } from '@/lib/oauth-state';
+import { encryptToken } from '@/lib/encryption';
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,8 +71,8 @@ export async function GET(request: NextRequest) {
     const integrationData = {
       company_id,
       user_id,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token || null,
+      access_token: encryptToken(tokens.access_token),
+      refresh_token: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
       token_expires_at: new Date(
         Date.now() + tokens.expires_in * 1000
       ).toISOString(),

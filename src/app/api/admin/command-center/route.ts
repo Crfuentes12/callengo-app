@@ -32,7 +32,7 @@ export async function GET() {
       .eq('id', user.id)
       .single();
 
-    if (!userData || userData.role !== 'admin') {
+    if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -264,13 +264,22 @@ export async function GET() {
       planDistribution[slug] = (planDistribution[slug] || 0) + 1;
     });
 
-    // Build hourly calls history (last 24 hours)
+    // Build hourly + daily calls history in parallel (moved out of sequential section)
     const last24hStart = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: hourlyCallsRaw } = await supabaseAdmin
-      .from('call_logs')
-      .select('created_at')
-      .gte('created_at', last24hStart)
-      .order('created_at', { ascending: true });
+    const last30dStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [{ data: hourlyCallsRaw }, { data: dailyCallsRaw }] = await Promise.all([
+      supabaseAdmin
+        .from('call_logs')
+        .select('created_at')
+        .gte('created_at', last24hStart)
+        .order('created_at', { ascending: true }),
+      supabaseAdmin
+        .from('call_logs')
+        .select('created_at')
+        .gte('created_at', last30dStart)
+        .order('created_at', { ascending: true }),
+    ]);
 
     const hourlyBuckets: { hour: string; calls: number }[] = [];
     for (let i = 23; i >= 0; i--) {
@@ -283,14 +292,6 @@ export async function GET() {
       }).length;
       hourlyBuckets.push({ hour: label, calls: count });
     }
-
-    // Build daily calls history (last 30 days)
-    const last30dStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: dailyCallsRaw } = await supabaseAdmin
-      .from('call_logs')
-      .select('created_at')
-      .gte('created_at', last30dStart)
-      .order('created_at', { ascending: true });
 
     const dailyBuckets: { date: string; calls: number }[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -760,7 +761,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (!userData || userData.role !== 'admin') {
+    if (!userData || (userData.role !== 'admin' && userData.role !== 'owner')) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 

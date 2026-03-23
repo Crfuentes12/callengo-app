@@ -6,6 +6,7 @@ import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { exchangeZohoCode, getZohoUserInfo, getZohoOrgInfo } from '@/lib/zoho';
 import { verifySignedState } from '@/lib/oauth-state';
+import { encryptToken } from '@/lib/encryption';
 
 export async function GET(request: NextRequest) {
   try {
@@ -76,8 +77,8 @@ export async function GET(request: NextRequest) {
     const integrationData = {
       company_id,
       user_id,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token || '',
+      access_token: encryptToken(tokens.access_token),
+      refresh_token: encryptToken(tokens.refresh_token || ''),
       token_expires_at: expiresAt,
       zoho_user_id: String(userInfo.id),
       zoho_user_name: userInfo.full_name || null,

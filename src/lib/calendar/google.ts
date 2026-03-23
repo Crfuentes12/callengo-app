@@ -9,6 +9,7 @@ import type {
   GoogleTokenResponse,
 } from '@/types/calendar';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 
 // ============================================================================
 // CONFIGURATION
@@ -105,9 +106,12 @@ export async function getGoogleCalendarClient(
 ): Promise<calendar_v3.Calendar> {
   const oauth2Client = createOAuth2Client();
 
+  const decryptedAccessToken = integration.access_token ? decryptToken(integration.access_token) : integration.access_token;
+  const decryptedRefreshToken = integration.refresh_token ? decryptToken(integration.refresh_token) : integration.refresh_token;
+
   oauth2Client.setCredentials({
-    access_token: integration.access_token,
-    refresh_token: integration.refresh_token,
+    access_token: decryptedAccessToken,
+    refresh_token: decryptedRefreshToken,
     expiry_date: integration.token_expires_at
       ? new Date(integration.token_expires_at).getTime()
       : undefined,
@@ -127,7 +131,7 @@ export async function getGoogleCalendarClient(
       await supabaseAdmin
         .from('calendar_integrations')
         .update({
-          access_token: credentials.access_token!,
+          access_token: encryptToken(credentials.access_token!),
           token_expires_at: credentials.expiry_date
             ? new Date(credentials.expiry_date).toISOString()
             : null,

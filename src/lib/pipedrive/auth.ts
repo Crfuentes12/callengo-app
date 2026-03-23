@@ -8,6 +8,7 @@ import type {
   PipedriveUserInfo,
 } from '@/types/pipedrive';
 import { getAppUrl } from '@/lib/config';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 
 // ============================================================================
 // CONFIGURATION
@@ -121,14 +122,14 @@ export async function refreshPipedriveToken(
     const latestExpiresAt = latestRow.expires_at && new Date(latestRow.expires_at).getTime() > Date.now()
       ? latestRow.expires_at : integration.expires_at ?? '';
     return {
-      access_token: latestRow.access_token,
+      access_token: decryptToken(latestRow.access_token),
       expires_at: latestExpiresAt,
       api_domain: latestRow.api_domain ?? integration.api_domain ?? 'https://api.pipedrive.com',
     };
   }
 
   // Use the latest refresh_token from DB in case it was rotated
-  const currentRefreshToken = latestRow?.refresh_token ?? integration.refresh_token;
+  const currentRefreshToken = decryptToken(latestRow?.refresh_token ?? integration.refresh_token);
 
   const { clientId, clientSecret } = getPipedriveConfig();
 
@@ -170,8 +171,8 @@ export async function refreshPipedriveToken(
   const { data: updateResult } = await supabaseAdmin
     .from('pipedrive_integrations')
     .update({
-      access_token: newAccessToken,
-      refresh_token: newRefreshToken,
+      access_token: encryptToken(newAccessToken),
+      refresh_token: encryptToken(newRefreshToken),
       expires_at: expiresAt,
       api_domain: apiDomain,
       token_issued_at: newTokenIssuedAt,
@@ -189,7 +190,7 @@ export async function refreshPipedriveToken(
       .single();
     if (fallbackRow) {
       return {
-        access_token: fallbackRow.access_token,
+        access_token: decryptToken(fallbackRow.access_token),
         expires_at: fallbackRow.expires_at ?? expiresAt,
         api_domain: fallbackRow.api_domain ?? apiDomain,
       };
@@ -211,7 +212,7 @@ export async function getPipedriveClient(integration: PipedriveIntegration): Pro
   fetch: (path: string, init?: RequestInit) => Promise<Response>;
   apiDomain: string;
 }> {
-  let accessToken = integration.access_token;
+  let accessToken = decryptToken(integration.access_token);
   let apiDomain = integration.api_domain || 'https://api.pipedrive.com';
 
   // Check if token is about to expire (within 5 minutes)
