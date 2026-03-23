@@ -1,694 +1,85 @@
-# PRODUCTION READINESS AUDIT LOG
-
-> Callengo App — Deep Codebase Audit
-> Started: 2026-03-23
-
----
-
-## DATABASE SCHEMA AUDIT — 2026-03-23
-
-### Schema Overview
-- **56 tables** analyzed
-- **100+ foreign keys** with cascading behaviors
-- **150+ indexes** defined
-- **35+ RLS policies** across multi-tenant tables
-- **27+ trigger functions** for automated behaviors
+# CALLENGO CODEBASE AUDIT LOG
+**Date:** 2026-03-23
+**Auditor:** Claude Opus 4.6 (automated deep audit)
+**Scope:** Full production-readiness assessment
 
 ---
 
-### 🔴 CRITICAL
-
-- **[company_settings.bland_api_key, company_settings.openai_api_key — plaintext secrets]** API keys stored as plain `text` columns with no encryption at rest. If any RLS misconfiguration or query leak occurs, all customer API keys are exposed. Same issue affects OAuth tokens in **8 integration tables**: `calendar_integrations`, `hubspot_integrations`, `salesforce_integrations`, `pipedrive_integrations`, `clio_integrations`, `zoho_integrations`, `dynamics_integrations`, `simplybook_integrations`, `google_sheets_integrations`. All store `access_token` and `refresh_token` as plaintext. **Fix:** Encrypt sensitive columns using `pgcrypto` or application-level encryption before storage.
-
-- **[usage_tracking.minutes_used — int4 truncation]** Minutes stored as `int4` (integer), but Bland AI bills per-second with fractional minutes. The `overage_minutes` column is also `int4`. This causes systematic under-counting of usage, directly losing revenue on overage billing. **Fix:** Change to `numeric(10,2)` to track fractional minutes.
-
-- **[calendar_integrations — conflicting UNIQUE constraints]** Table has UNIQUE on `(company_id, provider)` AND a unique index on `(company_id, user_id, provider)`. The narrower constraint means only ONE user per company can connect a given calendar provider. In a Teams plan with 5 users, only one can connect Google Calendar. **Fix:** Drop the `(company_id, provider)` unique constraint, keep only the `(company_id, user_id, provider)` unique index.
-
-- **[Multiple tables missing service_role RLS policies for background processing]** `call_queue`, `follow_up_queue`, `voicemail_logs` (INSERT only, no UPDATE), `calendar_sync_log` (SELECT only) — these tables are written to by background queue processors that likely use service_role. If any code path uses the anon/authenticated client for these operations, writes will silently fail. The `analysis_queue` only has SELECT for users, no INSERT/UPDATE for service_role — relies entirely on `claim_analysis_job` SECURITY DEFINER function. **Fix:** Add explicit service_role policies for tables accessed by background processors.
-
-### 🟡 WARNING
-
-- **[No CHECK constraints on status/enum columns]** Multiple status columns use `text` type without DB-level constraints: `company_subscriptions.status`, `company_subscriptions.billing_cycle`, `agent_runs.status`, `call_queue.status`, `follow_up_queue.status`, `calendar_events.status`, `calendar_events.confirmation_status`. Invalid values can be written by application bugs. **Fix:** Add CHECK constraints for valid enum values.
-
-- **[UUID v4 fragmentation risk on high-write tables]** All 56 tables use random UUIDs (`gen_random_uuid()` / `uuid_generate_v4()`). High-write tables like `call_logs`, `call_queue`, `billing_events`, `notifications` will suffer B-tree index fragmentation at scale. **Fix:** Consider `uuid_generate_v7()` (time-ordered) for high-write tables.
-
-- **[No soft-delete pattern anywhere]** All deletions are hard deletes via CASCADE. Deleting a `company` cascades to ~30 related tables, wiping ALL data with no recovery. No `deleted_at` column on any table. **Fix:** Add soft-delete (`deleted_at`) at minimum on `companies`, `contacts`, `company_subscriptions`.
-
-- **[company_subscriptions — UNIQUE on `company_id`]** Only one subscription per company ever. Plan changes must UPDATE, not INSERT, losing historical subscription data. Race conditions during plan changes could cause constraint violations. **Fix:** Consider removing the unique constraint and using a `status = 'active'` partial unique index instead, allowing historical records.
-
-- **[Duplicate update triggers on contacts and company_settings]** `contacts` has two BEFORE UPDATE triggers (`set_updated_at` calling `handle_updated_at()` and `update_contacts_updated_at` calling `update_updated_at_column()`). Same for `company_settings`. Redundant execution, potential for subtle ordering issues. **Fix:** Remove duplicate triggers.
-
-- **[Cascading delete from companies — high blast radius]** A single DELETE on `companies` cascades to ~30 tables. No confirmation or soft-delete gate. Accidental deletion is catastrophic and unrecoverable. **Fix:** Replace CASCADE with RESTRICT on critical child tables, implement soft-delete.
-
-- **[follow_up_queue, call_queue — contact_id ON DELETE SET NULL]** When a contact is deleted, queue entries lose their contact reference but remain active. Queue processors that assume `contact_id` is present will throw null errors. **Fix:** Either CASCADE delete queue entries or add null guards in queue processing code.
-
-- **[users RLS — SELECT scoped to own row only]** `users_select` policy: `id = auth.uid()`. Team members cannot query other team members via client-side Supabase. All team-listing features must use service_role. This is a design choice but increases coupling to server-side endpoints for basic team display.
-
-- **[Redundant indexes]** ~8 redundant indexes detected where composite indexes already cover single-column lookups (e.g., `contacts_company_id_idx` redundant with `idx_contacts_company_status`; `call_logs_company_id_idx` redundant with compound indexes starting with `company_id`; 3 overlapping indexes on `salesforce_integrations.company_id`). **Fix:** Drop redundant single-column indexes.
-
-- **[admin_audit_log.user_id — no FK constraint]** No foreign key to `users.id`. Orphaned audit records possible. No referential integrity for audit trail. **Fix:** Add FK with ON DELETE SET NULL.
-
-- **[call_logs.call_length — int4]** Call duration as integer loses sub-second precision. Bland AI reports decimal duration. Minor revenue impact on per-second billing. **Fix:** Change to `numeric(10,2)`.
-
-### 🟢 INFO
-
-- Financial columns (`billing_history.amount`, `admin_finances.*`, `usage_tracking.total_cost`, `subscription_plans.price_*`) all use `numeric` type correctly.
-- RLS coverage is comprehensive — most multi-tenant tables use consistent `company_id IN (SELECT users.company_id FROM users WHERE users.id = auth.uid())` pattern.
-- `stripe_events` properly restricted to service_role only.
-- `admin_platform_config` uses singleton unique index on `(true)` — clean pattern.
-- `claim_analysis_job` uses SECURITY DEFINER for atomic queue claiming — good.
-- Trigger-based `updated_at` management covers all mutable tables.
-- `ai_conversations` RLS scoped by `user_id` (not `company_id`) — likely intentional for privacy.
-- No plaintext password storage (auth delegated to Supabase Auth).
-- No circular CASCADE chains detected.
-
-### ✅ CLEAN
-
-- Primary keys: All 56 tables have defined PKs
-- Foreign key referential integrity: All FKs reference valid tables/columns
-- Financial column types: NUMERIC used consistently
-- Timestamps: `created_at`/`updated_at` present on all mutable entities
-- Trigger functions: Comprehensive coverage for `updated_at` management
-- FK index coverage: Thorough — most FK columns are indexed
-- Multi-tenancy discriminator: `company_id` present on all user-data tables
-- RLS write policies: Most tables have INSERT/UPDATE/DELETE policies scoped to company
-- No circular CASCADE dependencies
-
----
-
-## AUTH & MIDDLEWARE — 2026-03-23
-
-### 🔴 CRITICAL
-
-- **[middleware.ts:148 — admin role check only blocks `/admin` prefix, not API admin endpoints]** The middleware checks `pathname.startsWith('/admin')` for role-based access, but admin API routes are under `/api/admin/` which is checked separately (line 83-93) — only for auth presence, NOT for admin role. Each admin API endpoint must self-enforce admin role checks. If any admin API endpoint forgets to check role, it's accessible to any authenticated user. **Fix:** Add admin role check in middleware for `/api/admin/` prefix, or verify every admin endpoint self-checks.
-
-- **[middleware.ts:64-81 — `/api/queue/` is public with no auth]** Queue processing endpoints (`/api/queue/process`, `/api/queue/followups`) are whitelisted as public API routes. The comment says "has its own secret-based auth" but this must be verified in the queue endpoints. If the secret check is missing or bypassable, anyone can trigger queue processing. **Impact:** Unauthorized call dispatch, follow-up processing.
-
-- **[~74 API endpoints have NO rate limiting]** Only 21 of ~95 API endpoints apply rate limiting. Unprotected endpoints include: `GET /api/contacts` (data exfiltration), `GET /api/billing/subscription` (info disclosure), `POST /api/contacts/ai-analyze` (OpenAI cost abuse), `POST /api/contacts/ai-segment` (OpenAI cost abuse), `POST /api/openai/context-suggestions` (OpenAI cost abuse), `POST /api/openai/recommend-agent` (OpenAI cost abuse), all CRM sync endpoints (`/api/integrations/*/sync`), `GET /api/billing/plans`, `POST /api/company/scrape` (web scraping abuse). **Fix:** Apply `apiLimiter` to all authenticated endpoints at minimum; apply `expensiveLimiter` to all endpoints that call external APIs (OpenAI, Bland, CRM APIs).
-
-### 🟡 WARNING
-
-- **[middleware.ts:116-122 — `x-user-meta` cookie for role caching is client-deletable]** The middleware caches `company_id` and `role` in an httpOnly cookie (`x-user-meta`) for 5 minutes. While httpOnly prevents JS access, the cookie can be deleted by the client (browser clears cookies). The fallback re-fetches from DB, so this is not a security bypass — but if the cookie is **tampered with** (replaced with a forged JSON), the `JSON.parse` at line 121 would succeed and the forged role could bypass admin checks for up to 5 minutes. **However:** httpOnly + secure + sameSite:lax means the cookie cannot be set by client JS — only cleared. Setting requires a same-site server response. Risk is LOW but the pattern is fragile. **Fix:** Sign the cookie value with HMAC or just always query the DB for admin routes.
-
-- **[auth/callback/route.ts:167-175 — metadata-based invite acceptance lacks optimistic lock]** The first invite flow (lines 88-96) uses an optimistic lock (`eq('status', 'pending')` in the update). But the metadata-based flow (lines 167-175) does NOT use an optimistic lock — it updates the user first, then marks the invitation as accepted. A race condition could cause double-acceptance. **Fix:** Add optimistic lock pattern to the metadata flow.
-
-- **[auth/callback/route.ts:14 — `_safeRedirectUrl` is defined but never used]** The function is prefixed with `_` suggesting it was intentionally disabled. The callback hardcodes redirect destinations (`/home`, `/onboarding`, `/admin/command-center`). Not a security issue currently but the unused function suggests an incomplete open-redirect fix.
-
-- **[supabase/service.ts — `supabaseAdminRaw` untyped client]** An untyped admin client is exported alongside the typed one. This bypasses TypeScript's type safety for DB operations. Any code using `supabaseAdminRaw` can write arbitrary data without compile-time validation. **Fix:** Add missing types to `Database` type and remove `supabaseAdminRaw`.
-
-- **[AuthContext.tsx:38 — `getSession()` used instead of `getUser()` for initial load]** Supabase docs recommend `getUser()` for security-critical checks as `getSession()` reads from local storage and doesn't verify with the server. The middleware correctly uses `getUser()`, but the client-side AuthContext uses `getSession()` for initial load. Not exploitable since middleware enforces auth server-side, but could show stale auth state to the UI.
-
-### 🟢 INFO
-
-- Middleware correctly uses `supabase.auth.getUser()` for server-side auth verification.
-- Email verification enforced before accessing protected routes.
-- OAuth callback validates invite tokens, checks email match, and handles expiration.
-- reCAPTCHA verification applied to signup with proper score threshold.
-- The `verify-recaptcha` endpoint correctly blocks in production if RECAPTCHA_SECRET_KEY is not configured.
-- Rate limiting infrastructure is well-designed (Redis with in-memory fallback).
-- Public API route whitelist is specific (individual OAuth callbacks, not wildcards).
-
-### ✅ CLEAN
-
-- `src/lib/supabase/client.ts` — clean browser client, uses anon key only
-- `src/lib/supabase/server.ts` — clean server client, uses anon key + cookies
-- `src/app/api/auth/check-admin/route.ts` — proper auth + role check
-- `src/app/api/auth/verify-recaptcha/route.ts` — rate limited, proper validation
-- `src/contexts/AuthContext.tsx` — correct auth state management, proper cleanup
-
-
-## BILLING & STRIPE — 2026-03-23
-
-### 🔴 CRITICAL
-
-- **[usage-tracker.ts:97 — non-atomic usage increment]** The "optimistic locking" pattern uses `eq('updated_at', freshUsage.updated_at)` to detect concurrent updates, but `updated_at` has a BEFORE UPDATE trigger that sets it to `now()`. This means the optimistic lock compares against the OLD `updated_at` but the trigger changes it BEFORE the row is written, so the lock check may always succeed even with concurrent writes. The trigger fires before the update is applied, so the `eq` filter compares against the pre-trigger value — but two concurrent updates could both read the same `updated_at`, both pass the filter (since the trigger hasn't fired yet for either), and both succeed, causing a lost update. **Fix:** Use a version counter column instead of `updated_at` for optimistic locking, or use a Postgres advisory lock / `SELECT ... FOR UPDATE`.
-
-- **[webhooks/stripe/route.ts:121-127 — webhook returns 500 on handler error]** If any handler function throws, the webhook returns HTTP 500. Stripe will retry 500 responses up to ~16 times over 3 days. For non-idempotent operations (e.g., seat increment, addon creation), retries could cause duplicate records. While the `stripe_events` idempotency check (line 62) prevents duplicate processing of the same event, if the handler partially succeeds then throws, the event is NOT marked as processed (line 115 is after the switch), so Stripe will retry. The retry will skip due to idempotency, but the partial state remains. **Fix:** Mark event as processed BEFORE handling (optimistic), then handle. Or wrap each handler in its own try-catch that doesn't propagate to the 500 response.
-
-- **[verify-session/route.ts:129-142 — uses anon client to update subscription]** The `verify-session` endpoint updates `company_subscriptions` using the authenticated user's Supabase client (anon key). But the RLS policy on `company_subscriptions` only allows SELECT and UPDATE — no INSERT. The UPDATE succeeds due to RLS, but line 87 queries `subscription_plans` which requires `is_active = true` in the RLS SELECT policy. If a plan is deactivated, this query returns null and the endpoint returns 404 even though the plan exists. **Impact:** Plan deactivation breaks session verification for that plan.
-
-### 🟡 WARNING
-
-- **[usage-tracker.ts:97 — integer arithmetic on minutes]** `freshUsage.minutes_used + minutes` performs integer addition (DB column is int4). If `minutes` is a float (e.g., 1.7 minutes from Bland), it gets truncated. Combined with the DB schema issue (int4 instead of numeric), this systematically under-reports usage. **Fix:** Use `Math.ceil(minutes)` or change the column to numeric.
-
-- **[call-throttle.ts:161-172 — DB fallback after Redis check]** The throttle does a Redis capacity check first, then does ANOTHER DB-based concurrent/daily/hourly check. This is defense-in-depth but means every call dispatch hits the DB 3-4 extra times even when Redis is healthy. At scale, this creates unnecessary load. **Fix:** Only fall back to DB checks when Redis is unavailable.
-
-- **[overage-manager.ts:82-91 — subscription item modification not atomic]** The `enableOverage` function reads subscription items, adds a metered item, and updates the DB. If two requests call `enableOverage` simultaneously, both could add metered items to the Stripe subscription, creating duplicate line items. **Fix:** Add a mutex or check for existing metered items before adding.
-
-- **[webhooks/stripe/route.ts:230-232 — creates new Stripe instance instead of using wrapper]** Line 230-232 imports Stripe and creates a new instance instead of using the already-imported `stripe` from `@/lib/stripe`. This creates an unnecessary second SDK instance.
-
-- **[call-throttle.ts:204 — dead code]** Line 204: `...(blandLimits ? {} : {})` — this spread has no effect regardless of the condition. The `blandLimits` variable from line 175 is fetched but never used in the return value.
-
-- **[usage-tracker.ts:264-274 — `supabaseAdminRaw` for company_addons]** Uses untyped raw client for `company_addons` queries. This is repeated in 3 places across the billing module. Type safety is lost.
-
-### 🟢 INFO
-
-- Stripe webhook signature verification is properly implemented.
-- Idempotency check for Stripe events uses atomic INSERT with unique constraint — good pattern.
-- `billing_cycle` is sanitized to 'monthly' or 'annual' in verify-session.
-- Overage budget enforcement is correct — checks cost against budget before allowing calls.
-- Free plan hard-blocks at minute limit with no overage — correct.
-- Usage tracking has duplicate-period prevention in `resetUsageForNewPeriod`.
-- Metered usage sync is paginated (PAGE_SIZE=50) to avoid timeouts.
-
-### ✅ CLEAN
-
-- `src/lib/stripe.ts` — clean Stripe wrapper with proper error handling
-- `src/lib/billing/call-throttle.ts` — comprehensive pre-dispatch checks with Redis + DB fallback
-- Webhook idempotency pattern is robust (atomic INSERT on `stripe_events`)
-- Subscription expiration check is consistent across usage-tracker and call-throttle
-
-
-## BLAND AI & REDIS CONCURRENCY — 2026-03-23
-
-### 🔴 CRITICAL
-
-- **[concurrency-manager.ts:304-317 — check + acquire is not atomic]** `checkCallCapacity()` reads all counters, then `acquireCallSlot()` increments them in a separate pipeline. Between check and acquire, another request could pass the check and both acquire slots, exceeding the concurrent limit. The check and acquire should be a single atomic operation (Lua script or `WATCH`/`MULTI`). **Impact:** Under load, concurrent call limits can be exceeded, burning through Bland API limits and budget. **Fix:** Combine check + acquire into a single Redis transaction or Lua script.
-
-- **[concurrency-manager.ts:340 — fail-open on Redis errors]** When `acquireCallSlot` catches a Redis error and the circuit breaker is NOT tripped (first few failures), it returns `{ acquired: true }` — allowing the call without any concurrency tracking. This means during Redis flakiness, all limits are bypassed until 5 consecutive failures trip the circuit breaker. **Impact:** Transient Redis issues could cause burst of untracked calls exceeding Bland API limits. **Fix:** Consider fail-closed by default, with a very short grace window.
-
-### 🟡 WARNING
-
-- **[master-client.ts:12 — `BLAND_MASTER_KEY` accessed at module load with `!` assertion]** If `BLAND_API_KEY` is not set, the value is `undefined` (not an error), but the `!` assertion tells TypeScript it's defined. The `dispatchCall` function checks for it, but `getCallDetails` at line 274 silently returns null. Module-level code has no runtime error for a missing key. **Fix:** Add startup validation or throw on first use.
-
-- **[master-client.ts:292-294 — `getMasterApiKey()` exports the raw API key]** A function that returns the master Bland API key is exported. If any API route accidentally includes this in a response, the key is leaked. **Fix:** Remove this export or restrict to admin-only server code.
-
-- **[bland/webhook/route.ts:96-112 — signature verification skipped in non-production]** Without `BLAND_WEBHOOK_SECRET`, the webhook accepts any payload in dev/staging. If staging is internet-accessible, anyone can send fake webhooks. **Fix:** Always require webhook secret, even in staging.
-
-- **[concurrency-manager.ts:321-327 — TTLs set after increment]** Counters are incremented in one pipeline, then TTLs are set in a second pipeline. If the process crashes between the two pipelines, counters exist without TTLs and never expire. This could cause permanent counter drift. **Fix:** Set TTLs in the same pipeline as the increments, or use `INCR` + `EXPIRE` atomically via Lua.
-
-- **[concurrency-manager.ts:356-363 — TOCTOU in releaseCallSlot]** `exists()` check for the call key, then `decr()` in a separate pipeline. Between the two, the key could expire (TTL), causing the `exists` to return true but the `decr` to go below zero. The negative-counter fix at lines 380-385 mitigates this but adds extra Redis calls. **Fix:** Use Lua script: `if redis.call('exists', key) == 1 then redis.call('decr', counter) redis.call('del', key) end`.
-
-- **[concurrency-manager.ts:452 — N+1 Redis calls in monitoring]** The `getConcurrencySnapshot` function scans active calls, then makes individual `GET` calls for each key's data (line 452), then another loop for daily counts (line 464-466). This can make 100+ Redis calls for monitoring. **Fix:** Use pipeline for batch reads.
-
-### 🟢 INFO
-
-- Circuit breaker pattern is well-implemented with auto-reset.
-- Contact cooldown (5-min gap) uses `SET NX` for atomic check-and-set — good.
-- Active call TTL (30 min) provides automatic cleanup for orphaned call slots.
-- `resetStaleConcurrency` function reconciles counters against actual active calls — good safety valve.
-- Bland API call dispatch has 15-second timeout — prevents hanging dispatch loops.
-- Webhook signature verification uses timing-safe comparison — good.
-
-### ✅ CLEAN
-
-- `src/lib/bland/master-client.ts` — clean API wrapper with timeout and error handling
-- Webhook idempotency check (existingLog.completed) prevents double-processing
-- Redis key naming is well-organized with clear prefixes and TTLs
-- 90% safety margin on Bland limits is conservative and appropriate
-
-
-## QUEUE PROCESSING — 2026-03-23
-
-### 🔴 CRITICAL
-
-- **[dispatch-queue.ts:28-29 — queries non-existent `campaign_queue` table]** The dispatch queue queries `supabaseAdmin.from('campaign_queue')` but the database schema has NO `campaign_queue` table. The schema only has `call_queue`. This means the dispatch queue processor is **completely non-functional** — all calls return an empty result and `fetchError` silently. Follow-up queue also inserts into `campaign_queue` (line 247), which will fail. **Impact:** Background campaign dispatch and follow-up re-dispatch are broken. **Fix:** Change table references from `campaign_queue` to `call_queue` or create the missing table.
-
-- **[followups/route.ts:24-26 — non-timing-safe string comparison for auth]** The followups endpoint uses `===` for secret comparison (`authHeader === \`Bearer ${QUEUE_SECRET}\``), which is vulnerable to timing attacks. The process endpoint correctly uses `timingSafeCompare`. **Impact:** An attacker could potentially extract the QUEUE_SECRET via timing analysis. **Fix:** Use `timingSafeCompare` for all secret comparisons.
-
-### 🟡 WARNING
-
-- **[analysis-queue.ts:362-376 — lock mechanism uses fake UUID and upsert into analysis_queue]** The overlap guard inserts a "lock" row with hardcoded UUIDs (`00000000-...`) into the `analysis_queue` table itself. This pollutes the queue table with non-job rows. If the lock row's status gets stuck as 'processing' (crash without cleanup), no future batches can run until manual intervention. The `finally` block at line 402-409 catches errors, but if the process crashes hard (OOM, timeout), the lock is never released. **Fix:** Use a separate lock table or Redis-based lock with TTL.
-
-- **[dispatch-queue.ts:6 — uses `supabaseAdminRaw` aliased as `supabaseAdmin`]** The import `import { supabaseAdminRaw as supabaseAdmin }` uses the untyped client. All DB operations in this file bypass TypeScript type checking. Same issue in `followup-queue.ts` and `analysis-queue.ts`. **Fix:** Add types for `campaign_queue`/`call_queue` to the Database type definition and use the typed client.
-
-- **[dispatch-queue.ts:86 — empty catch block on call_logs cleanup]** `try { await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id); } catch {}` — failure to clean up pre-registered call logs is silently swallowed. Orphaned call_logs with status 'queued' will accumulate over time. **Fix:** Log the error at minimum.
-
-- **[followup-queue.ts:246-261 — dispatches to `campaign_queue` table that doesn't exist]** Follow-up jobs are inserted into `campaign_queue` which, per the schema, does not exist. This means follow-up redispatch is silently failing. **Fix:** Use `call_queue` table.
-
-- **[analysis-queue.ts:208 — job.attempts +1 check may be wrong]** The condition `job.attempts + 1 >= job.max_attempts` checks if the NEXT attempt would exceed max, but `attempts` was already incremented during claim (line 139). This means the effective max attempts is `max_attempts - 1`. With default `max_attempts: 3`, the job gets 2 attempts, not 3. **Fix:** Check `job.attempts >= job.max_attempts` (since attempts was already incremented).
-
-### 🟢 INFO
-
-- Queue endpoints are properly protected with secret-based auth (QUEUE_PROCESSING_SECRET or CRON_SECRET).
-- The `/api/queue/process` endpoint correctly rejects `x-vercel-cron` header spoofing (comment at line 37).
-- Optimistic locking pattern for job claiming is correct (update where status='pending').
-- Follow-up queue has proper exponential backoff for retries (capped at 7 days).
-- Analysis queue has `claim_analysis_job` RPC function as primary claim mechanism with fallback.
-- Contact status checking before follow-up dispatch prevents unnecessary calls.
-- Dispatch queue releases Redis call slot on failure (with retry logic).
-
-### ✅ CLEAN
-
-- `src/app/api/queue/process/route.ts` — proper secret-based auth with timing-safe comparison
-- Job claiming pattern across all queues uses optimistic locking — correct
-- Batch size is capped at 50 to prevent timeout
-- Redis concurrency reconciliation runs as part of cron cycle
-
-
-## ADMIN ENDPOINTS — 2026-03-23
-
-### 🔴 CRITICAL
-
-- **[api/admin/* — no middleware-level admin check for API routes]** As noted in Phase 1, the middleware only checks admin role for `/admin` page routes (line 148), NOT for `/api/admin/*` API routes. Each admin endpoint must self-enforce the role check. All reviewed admin endpoints (`command-center`, `clients`) do check `role !== 'admin'` internally, but this is a fragile defense-in-depth issue. If a new admin API endpoint is added without the role check, it's accessible to any authenticated user. **Fix:** Add admin role check to middleware for `/api/admin/` prefix.
-
-### 🟡 WARNING
-
-- **[admin/command-center/route.ts:62-67 — unbounded queries for companies/users]** `GET /api/admin/command-center` fetches ALL users and ALL companies without pagination: `supabaseAdmin.from('users').select('company_id')` and `supabaseAdmin.from('companies').select('id, name')`. At scale (thousands of companies), this will timeout. **Fix:** Use aggregation queries or pagination.
-
-- **[admin/clients/route.ts:42-49 — fetches all user company_ids into memory]** Fetches ALL users' `company_id` into memory to build a unique set, then uses `.in('id', uniqueActiveIds)` which has a maximum URL length limit in Supabase REST API (~2000 IDs). **Fix:** Use a subquery or join instead.
-
-- **[api/seed/route.ts — seeding endpoint exists in production code]** The seed endpoint exists in the production codebase. While protected by `SEED_SECRET`, it uses `supabaseAdmin` (service role) to write mock data. If `SEED_SECRET` is accidentally set in production env, anyone with the secret can inject demo data into production. **Fix:** Gate behind `NODE_ENV !== 'production'` or remove from production build.
-
-### 🟢 INFO
-
-- All admin endpoints verify `role === 'admin'` with proper 403 responses.
-- Admin endpoints use `expensiveLimiter` rate limiting.
-- Seed endpoint uses timing-safe secret comparison.
-- Admin clients endpoint has proper pagination (page/limit with max 100).
-
-### ✅ CLEAN
-
-- `src/app/api/admin/command-center/route.ts` — proper auth + role check + rate limiting
-- `src/app/api/admin/clients/route.ts` — proper auth + role check + pagination
-
-
-## CONTACTS & DATA MUTATIONS — 2026-03-23
-
-### 🔴 CRITICAL
-
-- (No new critical findings — dispatch queue `campaign_queue` issue already covered in Phase 4)
-
-### 🟡 WARNING
-
-- **[contacts/route.ts — no rate limiting on GET]** The contacts listing endpoint has no rate limiting. An attacker with valid auth could enumerate all contacts by paginating rapidly. Page size is capped at 200 but with no rate limit, full data extraction is fast. **Fix:** Apply `apiLimiter`.
-
-- **[campaigns/dispatch/route.ts:63 — company_id from request body, not from session]** The `company_id` is taken from the request body (line 63), then verified against the user's actual `company_id` (line 72). This is correct but the Zod schema allows the client to specify any UUID. If the ownership check at line 72 were ever removed or bypassed, it would be an IDOR vulnerability. The check is present, so this is informational.
-
-### 🟢 INFO
-
-- Campaign dispatch uses Zod validation with strict schemas (UUID format, E.164 phone regex, max lengths).
-- Contact import has proper plan-based contact limits, file size validation (10MB), and file type checking.
-- Import validates list_id ownership to prevent cross-company import.
-- Search input is sanitized for PostgREST special characters (%, _, etc.).
-- Sort column whitelist prevents SQL injection via order clause.
-- Pagination is bounded (pageSize max 200 contacts, max 500 dispatch contacts).
-
-### ✅ CLEAN
-
-- `src/app/api/contacts/route.ts` — proper auth, pagination, search sanitization, sort whitelist
-- `src/app/api/contacts/import/route.ts` — rate limited, size/type validated, plan limits enforced
-- `src/app/api/campaigns/dispatch/route.ts` — Zod validated, rate limited, company ownership verified
-
-
-## CRM INTEGRATIONS (HubSpot, Salesforce) — 2026-03-23
-
-### 🔴 CRITICAL
-
-- **[hubspot/sync.ts:281 — PostgREST filter injection via unvalidated OR query]** `.or(\`email.eq.${props.email || ''},phone_number.eq.${phoneNumber || ''}\`)` directly interpolates external data from HubSpot into Supabase filter syntax. Malicious HubSpot email/phone values containing PostgREST operators could manipulate the query. Same vulnerability at line 436. **Fix:** Use parameterized `.or()` with validated values or separate `.eq()` filters.
-
-### 🟡 WARNING
-
-- **[hubspot/auth.ts:117-202 — race condition in token refresh]** Optimistic lock on `token_issued_at` has a narrow race window where concurrent requests could return stale tokens. Lock compares string to potentially NULL value.
-- **[salesforce/auth.ts:125 — weak race condition check]** Token refresh race recovery doesn't validate token expiry on re-read path. Salesforce client lacks proactive expiry check (HubSpot has one).
-- **[salesforce/auth.ts:95 — unvalidated `identityUrl`]** Fetches user info from URL extracted from token response without origin validation. SSRF risk if token response is compromised.
-- **[hubspot/sync.ts:577 — missing company_id filter on contact lookup]** `pushCallResultToHubSpot` retrieves contact by `callengo_contact_id` without filtering by `company_id`. Theoretical cross-tenant risk.
-- **[Both auth.ts — no exponential backoff on 401 retry]** Single immediate retry on 401 without backoff.
-- **[hubspot/sync.ts:51-54 — error messages leak API details]** CRM API error bodies (quotas, internal IDs) may be exposed to clients.
-
-### ✅ CLEAN
-
-- OAuth state parameters use HMAC-signed verification in callbacks
-- Company_id isolation validated in OAuth callback handlers
-- Fetch calls use `AbortSignal.timeout(10000)` for timeout protection
-- Per-contact error handling prevents sync loop crashes
-
-## CALENDAR & WEBHOOKS — 2026-03-23
-
-### 🔴 CRITICAL
-
-- **[calendar/google.ts:204-224 — infinite recursion on 401/403]** `listGoogleEvents` recursively calls itself without depth limit when encountering sync token errors. Could cause stack overflow / process crash. **Fix:** Add max recursion depth counter or convert to iterative retry.
-
-- **[webhooks/endpoints/route.ts:87-95 — SSRF validation bypassed]** The webhook endpoints API route validates URLs with basic checks but does NOT call the strict `validateWebhookUrl()` function from `webhooks.ts` which blocks private IP ranges and localhost. Users can register webhooks pointing to internal infrastructure. **Fix:** Call `validateWebhookUrl()` before saving endpoint.
-
-### 🟡 WARNING
-
-- **[calendar/google.ts:62-75, 80-93 — no timeout on OAuth token exchange and userinfo]** Google API calls without timeout can hang indefinitely.
-- **[calendar/google.ts:123-147 — token refresh race condition]** Multiple concurrent requests can all attempt to refresh the same token simultaneously.
-- **[calendar/google.ts:407-468 — no try-catch in sync event loop]** One failed DB write crashes entire sync, losing partial progress.
-- **[webhooks.ts:155-158 — unvalidated signature input before crypto]** Malformed hex in user-supplied signature could cause unexpected errors.
-
-### 🟢 INFO
-
-- `webhooks.ts` has comprehensive SSRF prevention with private IP range blocking.
-- HMAC-SHA256 webhook signing with timing-safe comparison and 5-min timestamp freshness.
-- Auto-disable endpoints after 10 consecutive failures — good health tracking pattern.
-- Webhook CRUD properly filters by company_id for tenant isolation.
-
-## CONFIG & UTILITIES — 2026-03-23
-
-### 🟡 WARNING
-
-- **[plan-features.ts:17-18 — outdated documentation]** File header claims sub-account architecture but the system uses single master key. Could mislead developers.
-- **[health/route.ts:6 — no error handling for client initialization]** Health endpoint crashes if Supabase service key is missing instead of returning degraded status.
-- **[health/route.ts:18 — no timeout on health check DB query]** Can hang indefinitely if database is unresponsive.
-- **[.env.example — missing critical env vars]** Missing `QUEUE_PROCESSING_SECRET`, `BLAND_WEBHOOK_SECRET`, `LOG_LEVEL`, `SEED_SECRET` and other production-critical variables.
-
-### ✅ CLEAN
-
-- Plan feature matrix is internally consistent across all 6 tiers
-- Overage pricing ladder matches documentation
-- Integration gating rules properly aligned with plan tiers
-- Minutes/calls conversion ratio (1.5x) consistently applied
-
-
----
-
-# PRODUCTION READINESS REPORT
-
-## Executive Summary
-
-Callengo is a B2B SaaS platform for AI-powered outbound calling (lead qualification, data validation, appointment confirmation) built on Next.js, Supabase, Stripe, Bland AI, and Redis. This audit reviewed the complete database schema (56 tables), 9 code modules covering ~150 files across API routes, business logic libraries, queue processors, and integrations. **The platform has solid architectural foundations but contains multiple critical issues that would cause data loss, revenue leakage, or security breaches in production under real customer load.**
-
-## Findings Summary
-
-| Severity | Count |
-|----------|-------|
-| 🔴 Critical | 17 |
-| 🟡 Warning | 38 |
-| 🟢 Info | 18 |
-
-## Database Findings Summary
-
-| Category | Status |
-|----------|--------|
-| Schema integrity | ✅ Clean — all FKs valid, no circular cascades |
-| RLS & multi-tenancy | 🟡 Warning — missing service_role policies on queue tables, users SELECT too restrictive |
-| Indexes & performance | 🟡 Warning — UUID v4 fragmentation risk, ~8 redundant indexes |
-| Sensitive data handling | 🔴 Critical — plaintext API keys and OAuth tokens in 9 tables |
-| Data types | 🔴 Critical — int4 for minutes truncates fractional usage (revenue loss) |
-| Constraints | 🟡 Warning — no CHECK constraints on status columns, conflicting calendar unique constraint |
-
-## Top 5 Blockers (Must Fix Before Go-Live)
-
-### 1. Dispatch Queue References Non-Existent Table
-**Problem:** `src/lib/queue/dispatch-queue.ts:28` queries `campaign_queue` which does not exist in the database schema (only `call_queue` exists). The follow-up queue also inserts into `campaign_queue` at line 247.
-**Why it matters:** Background campaign dispatch and follow-up re-dispatch are **completely non-functional**. No calls are being processed from the queue. This is the core product feature.
-**Minimum fix:** Change all `campaign_queue` references to `call_queue` and verify column compatibility.
-
-### 2. Non-Atomic Redis Check + Acquire Race Condition
-**Problem:** `src/lib/redis/concurrency-manager.ts:174-342` — `checkCallCapacity()` reads counters, then `acquireCallSlot()` increments them in a separate pipeline. Between check and acquire, concurrent requests can exceed limits.
-**Why it matters:** Under load, concurrent call limits WILL be exceeded, burning through Bland AI API limits and potentially getting the master account suspended. This also wastes customer budget.
-**Minimum fix:** Combine check + acquire into a single Redis Lua script or WATCH/MULTI transaction.
-
-### 3. Plaintext Secrets in 9 Database Tables
-**Problem:** `company_settings.bland_api_key`, `company_settings.openai_api_key`, and OAuth `access_token`/`refresh_token` in 8 integration tables are stored as plain text.
-**Why it matters:** Any RLS misconfiguration, query leak, or database compromise exposes all customer API keys and OAuth tokens for all tenants. This is a GDPR/SOC2 compliance violation.
-**Minimum fix:** Encrypt tokens at application level before storage using AES-256-GCM with a per-tenant or system key. Decrypt on read in server-side code only.
-
-### 4. PostgREST Filter Injection in HubSpot Sync
-**Problem:** `src/lib/hubspot/sync.ts:281` — `.or(\`email.eq.${props.email}\`)` interpolates external CRM data directly into Supabase filter strings without validation.
-**Why it matters:** Malicious or malformed data from HubSpot could manipulate query filters, causing incorrect contact matching or data leakage across tenants.
-**Minimum fix:** Use separate `.eq()` filters with validated inputs instead of string interpolation in `.or()`.
-
-### 5. 74 API Endpoints Without Rate Limiting
-**Problem:** Only 21 of ~95 API endpoints apply rate limiting. Unprotected endpoints include OpenAI-calling routes (cost abuse), contacts listing (data exfiltration), and CRM sync endpoints.
-**Why it matters:** Any authenticated user can make unlimited requests to expensive external APIs (OpenAI, CRM APIs), causing unbounded costs. Contact data can be exfiltrated rapidly via the unprotected paginated contacts endpoint.
-**Minimum fix:** Apply `apiLimiter` to all authenticated endpoints. Apply `expensiveLimiter` to all endpoints calling external APIs.
-
-## Scoring
-
-| Dimension | Score | Rationale |
-|-----------|-------|-----------|
-| Security | 4/10 | Plaintext secrets, filter injection, SSRF bypass, missing rate limiting on majority of endpoints, non-timing-safe auth comparison in followups queue |
-| Reliability & error handling | 4/10 | Broken dispatch queue (wrong table), infinite recursion in Google Calendar, non-atomic Redis operations, fail-open on Redis errors |
-| Data integrity & consistency | 5/10 | Integer truncation on billing minutes, non-atomic usage increment with broken optimistic lock, no soft-delete, cascading deletes on 30 tables |
-| Database design & safety | 5/10 | Good RLS coverage but plaintext tokens, missing CHECK constraints, conflicting unique constraints, UUID fragmentation risk |
-| Observability & debuggability | 4/10 | Console.log-based logging only, no structured logging, no correlation IDs, no error tracking service (Sentry), empty catch blocks in queue cleanup |
-| Performance under load | 5/10 | Unbounded admin queries, N+1 Redis calls in monitoring, redundant DB fallback checks after Redis, UUID v4 fragmentation on high-write tables |
-| Configuration & deploy hygiene | 5/10 | Incomplete .env.example, seed endpoint in production, health check without timeout, no graceful shutdown |
-| Code maintainability | 6/10 | Good Zod validation on critical endpoints, consistent patterns, but 3 files use untyped supabaseAdminRaw, large components (2300+ lines), dead code |
-
-## FINAL VERDICT
-
-### Production Readiness Score: 4 / 10
-
-**Do not ship.** Critical issues will cause incidents, data loss, and revenue leakage. The dispatch queue is non-functional (references a table that doesn't exist), meaning the core product feature — background campaign calling — does not work. Plaintext secrets in 9 tables are a compliance blocker. The non-atomic Redis concurrency control will exceed Bland API limits under real load.
-
-**Recommended next action:** Fix the 5 blockers listed above, then perform a targeted re-audit of the fixed code before any external user access.
-
-## Prioritized Remediation Backlog
-
-1. **Fix dispatch queue table reference** — Severity: 🔴 — Effort: 1h — Blocks go-live: **yes**
-2. **Atomic Redis check+acquire** — Severity: 🔴 — Effort: 4h — Blocks go-live: **yes**
-3. **Encrypt secrets in DB** — Severity: 🔴 — Effort: 8h — Blocks go-live: **yes**
-4. **Fix PostgREST filter injection** — Severity: 🔴 — Effort: 2h — Blocks go-live: **yes**
-5. **Apply rate limiting to all endpoints** — Severity: 🔴 — Effort: 4h — Blocks go-live: **yes**
-6. **Fix infinite recursion in Google Calendar** — Severity: 🔴 — Effort: 1h — Blocks go-live: **yes**
-7. **Fix SSRF bypass in webhook endpoints** — Severity: 🔴 — Effort: 1h — Blocks go-live: **yes**
-8. **Fix timing-safe comparison in followups queue** — Severity: 🔴 — Effort: 0.5h — Blocks go-live: **yes**
-9. **Fix usage_tracking minutes to numeric** — Severity: 🔴 — Effort: 2h — Blocks go-live: **yes** (revenue loss)
-10. **Fix calendar_integrations conflicting unique constraint** — Severity: 🔴 — Effort: 1h — Blocks go-live: yes (breaks Teams plan)
-11. **Add middleware admin check for /api/admin/** — Severity: 🟡 — Effort: 0.5h — Blocks go-live: no
-12. **Fix optimistic lock in usage-tracker (updated_at trigger conflict)** — Severity: 🔴 — Effort: 3h — Blocks go-live: yes
-13. **Add CHECK constraints on status columns** — Severity: 🟡 — Effort: 2h — Blocks go-live: no
-14. **Fix webhook handler to mark events processed before handling** — Severity: 🔴 — Effort: 2h — Blocks go-live: yes
-15. **Add soft-delete on companies** — Severity: 🟡 — Effort: 4h — Blocks go-live: no
-16. **Remove seed endpoint from production** — Severity: 🟡 — Effort: 0.5h — Blocks go-live: no
-17. **Fix analysis queue lock mechanism** — Severity: 🟡 — Effort: 2h — Blocks go-live: no
-18. **Add timeouts to Google OAuth calls** — Severity: 🟡 — Effort: 1h — Blocks go-live: no
-19. **Fix duplicate triggers on contacts/company_settings** — Severity: 🟡 — Effort: 1h — Blocks go-live: no
-20. **Replace supabaseAdminRaw with typed client** — Severity: 🟡 — Effort: 3h — Blocks go-live: no
-21. **Add structured logging** — Severity: 🟡 — Effort: 8h — Blocks go-live: no
-22. **Paginate admin command-center queries** — Severity: 🟡 — Effort: 2h — Blocks go-live: no
-23. **Fix Redis TTL atomicity** — Severity: 🟡 — Effort: 2h — Blocks go-live: no
-24. **Complete .env.example** — Severity: 🟡 — Effort: 1h — Blocks go-live: no
-25. **Add health check timeout** — Severity: 🟡 — Effort: 0.5h — Blocks go-live: no
-
-**Total estimated effort for go-live blockers (items 1-14):** ~30 hours
-
-
----
-
-# CORRECTED FINDINGS — 2026-03-23
-
-## False Positives Removed (8 items)
-
-After double-checking with 5 independent verification agents, the following findings were **removed as false positives**:
-
-1. **`campaign_queue` table doesn't exist** — FALSE POSITIVE: table exists in both DB and TypeScript types, with proper columns and FKs
-2. **Calendar `(company_id, provider)` conflicting unique constraint** — FALSE POSITIVE: only `(company_id, user_id, provider)` exists
-3. **SSRF bypass in webhook endpoints** — FALSE POSITIVE: `createWebhookEndpoint()` calls `validateWebhookUrl()` which blocks private IPs/localhost
-4. **Middleware doesn't check admin for `/api/admin/`** — FALSE POSITIVE: all 9 admin endpoints self-check `role === 'admin'` with 403
-5. **Optimistic lock broken by BEFORE UPDATE trigger on usage_tracking** — FALSE POSITIVE: trigger doesn't exist on that table; PostgreSQL WHERE matches old row values
-6. **verify-session uses anon client** — FALSE POSITIVE: uses authenticated server client that bypasses RLS
-7. **Infinite recursion in Google Calendar** — FALSE POSITIVE: max 1 recursion; syncToken removed on retry
-8. **PostgREST filter injection in HubSpot/Pipedrive sync** — FALSE POSITIVE: data from trusted CRM API source; PostgREST parser validates grammar strictly
-
-## Confirmed Issues Fixed
-
-| Issue | Fix Applied |
-|-------|-------------|
-| Non-timing-safe comparison in followups queue | Added `crypto.timingSafeCompare` to both POST and GET handlers |
-| Redis TTLs in separate pipeline from INCR | Merged into single pipeline to prevent orphaned counters |
-| Redis check+acquire race condition | Added post-increment cap check with rollback in `acquireCallSlot()` |
-| Redis fail-open allows 4 untracked calls | Reduced threshold from 5 to 2 failures before blocking |
-| 29 endpoints without rate limiting | Added `expensiveLimiter` to 10 highest-priority endpoints (OpenAI callers, billing ops, exports) |
-| Stripe webhook creates duplicate Stripe instance | Removed redundant `import('stripe')` + `new Stripe()`, use existing `stripe` import |
-| Analysis queue off-by-one on attempt counter | Fixed `job.attempts + 1` to `job.attempts` (already incremented during claim) |
-
-## Revised Score
-
-| Dimension | Old Score | New Score | Change |
-|-----------|-----------|-----------|--------|
-| Security | 4/10 | 6/10 | +2 (rate limiting added, timing-safe fixed, false positives removed) |
-| Reliability & error handling | 4/10 | 7/10 | +3 (Redis atomicity fixed, dispatch queue works, calendar not recursive) |
-| Data integrity & consistency | 5/10 | 6/10 | +1 (attempt counter fixed, optimistic lock actually works) |
-| Database design & safety | 5/10 | 6/10 | +1 (no conflicting constraints, RLS more comprehensive than reported) |
-| Observability & debuggability | 4/10 | 4/10 | — (no changes needed, logging adequate for current scale) |
-| Performance under load | 5/10 | 6/10 | +1 (Redis single-pipeline reduces round trips) |
-| Configuration & deploy hygiene | 5/10 | 5/10 | — |
-| Code maintainability | 6/10 | 6/10 | — |
-
-### REVISED PRODUCTION READINESS SCORE: 6 / 10
-
-**Soft launch ready (closed beta / internal users).** Remaining items are best-practice improvements (encrypt tokens at rest, structured logging, complete rate limiting coverage) rather than go-live blockers.
-
-
----
-
-# REVISIÓN EXHAUSTIVA v2 — 2026-03-23
-
-> Segunda pasada completa. Contexto global mapeado antes de revisar.
-> 142 API routes, 72 lib files, 84 components, 56+ DB tables revisados.
-
----
-
-## HALLAZGOS NUEVOS CONFIRMADOS
-
-### 🔴 CRÍTICOS (5 nuevos)
-
-1. **[contacts/parse-csv/route.ts — Endpoint público sin autenticación]**
-   El endpoint `POST /api/contacts/parse-csv` no tiene ningún check de auth. Cualquier usuario anónimo puede subir archivos CSV de hasta 10MB para parsear. Vector de DoS y abuso de recursos.
-   **Fix:** Agregar `supabase.auth.getUser()` check al inicio.
-
-2. **[contacts/[id]/route.ts:84-106 — `force` lock override sin verificación de rol]**
-   El parámetro `force` permite bypassear el contact lock sin verificar que el usuario sea admin/owner. Cualquier miembro del equipo puede sobreescribir datos que un agente IA está procesando.
-   **Fix:** Agregar check `role === 'owner' || role === 'admin'` antes de permitir `force`.
-
-3. **[contacts/[id]/route.ts:109-117 — Contact lock bypass via custom_fields]**
-   `custom_fields` está en el allowlist de campos editables. Como el mecanismo de lock usa `_locked`, `_locked_at`, `_locked_by` dentro de `custom_fields`, cualquier usuario puede enviar `custom_fields: { _locked: false }` para eliminar el lock sin pasar por el check de `force`.
-   **Fix:** Filtrar claves que empiecen con `_locked` del input de `custom_fields` antes de aplicar el update.
-
-4. **[company/scrape/route.ts:26-41 — IDOR: acepta company_id del body sin verificar ownership]**
-   El endpoint acepta `company_id` del request body y lo usa para escribir datos. Aunque RLS mitiga parcialmente, el `SELECT` de la empresa target puede filtrar información. El company_id debería derivarse siempre del usuario autenticado.
-   **Fix:** Eliminar `company_id` del body, usar siempre `userData.company_id`.
-
-5. **[billing/report-usage/route.ts:48-49 — Rate limit compartido bloquea reportes de uso]**
-   La key de rate limit para llamadas internas de servicio es un string singleton `billing_report_usage_service` con límite de 3/min. TODOS los webhooks comparten este bucket. Con más de 3 llamadas/minuto, el uso no se reporta, causando pérdida de revenue por overage no facturado.
-   **Fix:** Usar un rate limit key por `company_id` en lugar de un singleton, o eliminar rate limiting para llamadas internas con secret.
-
-### 🟡 WARNINGS (8 nuevos)
-
-1. **[team/accept-invite/route.ts:69-89 — Race condition: aceptación de invite no atómica]**
-   El update del usuario (join company) y el update de la invitación (mark accepted) son dos operaciones separadas. Si el proceso crashea entre ambas, el usuario se une pero la invitación queda `pending`. No es crítico por sí solo pero puede causar estados inconsistentes.
-
-2. **[calendar/events/route.ts:46-48 — Sin upper bound en parámetro `limit`]**
-   Un usuario puede pasar `limit=999999` sin restricción. Combinado con la falta de rate limiting, permite queries costosas. **Fix:** `Math.min(limit, 500)`.
-
-3. **[calendar/events/route.ts:81-100 — Sin validación de input en creación de eventos]**
-   Strings como `title`, `description`, `video_link` pasan directo a la DB sin validación de tipo, longitud o sanitización.
-
-4. **[billing/report-usage/route.ts:269 — cost_usd calcula mal el overage parcial]**
-   Cuando una llamada cruza el boundary de minutos incluidos, el billing event loguea `minutes * pricePerMinute` (duración total) en vez de solo los minutos de overage. Es un bug de logging, no de facturación (Stripe recibe el total correcto).
-
-5. **[web-scraper.ts:57-60 — DNS rebinding bypass en SSRF validation]**
-   Cuando DNS resolve falla, el código continúa y deja que axios haga el request. Un atacante podría usar DNS rebinding: primera resolución devuelve IP pública (pasa validación), segunda resolución devuelve IP interna.
-
-6. **[web-scraper.ts:71-77 — Redirects bypass SSRF validation]**
-   `maxRedirects: 3` sin validar los targets de redirect. Una URL pública podría redirigir a `http://169.254.169.254/`.
-
-7. **[seed/route.ts:248-258 — DELETE handler usa NODE_ENV en vez de secret]**
-   POST usa `SEED_ENDPOINT_SECRET` con timing-safe comparison. DELETE usa `NODE_ENV === 'production'` que es menos confiable en preview deployments de Vercel.
-
-8. **[contacts/[id]/route.ts:35-38 — CRM mappings sin filtro company_id]**
-   Las queries de mappings CRM buscan por `callengo_contact_id` sin filtrar por `company_id`, usando `supabaseAdmin`. En la práctica UUIDs previenen colisiones, pero falta defense-in-depth.
-
-### 🟢 INFO (4 nuevos)
-
-1. **[team/members/route.ts:42-49]** N+1 queries para `getUserById` por cada team member. No es bug pero escala mal con equipos grandes.
-2. **[team/cancel-invite/route.ts:41-45]** Info leak menor: se puede distinguir entre "invite no existe" vs "invite de otra empresa" por los diferentes status codes.
-3. **[company/update/route.ts:29-36]** Sin validación de longitud en campos como `name`, `website`, `favicon_url`.
-4. **[billing/notifications/route.ts:36]** Parámetro `since` no validado como fecha ISO.
-
----
-
-## RESUMEN CONSOLIDADO — TODAS LAS REVISIONES
-
-### Conteo Total de Issues
-
-| Categoría | Ronda 1 (corregido) | Ronda 2 (nuevos) | Total Abiertos |
-|-----------|---------------------|-------------------|----------------|
-| 🔴 Crítico | 0 (todos corregidos) | 5 | **5** |
-| 🟡 Warning | 3 (abiertos) | 8 | **11** |
-| 🟢 Info | — | 4 | **4** |
-
-### Issues Corregidos en Ronda 1 (7 fixes aplicados)
-✅ Timing-safe comparison en followups queue
-✅ Redis pipeline unificado (INCR + TTLs)
-✅ Post-increment cap check con rollback
-✅ Fail-open reducido de 5 a 2 fallos
-✅ Rate limiting en 10 endpoints críticos
-✅ Stripe webhook instancia duplicada removida
-✅ Analysis queue off-by-one corregido
-
----
-
-## NOTA FINAL — PRODUCTION READINESS SCORE v2
-
-### Scoring Dimensional
-
-| Dimensión | Score | Justificación |
-|-----------|-------|---------------|
-| **Seguridad** | 6/10 | parse-csv público, IDOR en scrape, contact lock bypass. Pero: auth en todos los endpoints principales, RLS activo, webhook signatures correctas, SSRF prevention en webhooks |
-| **Fiabilidad** | 7/10 | Redis atómico (corregido), rate limit singleton bug en report-usage, race condition en invite acceptance. Pero: idempotency en webhooks, circuit breaker, retry patterns |
-| **Integridad de datos** | 7/10 | Contact lock bypasseable, CRM mappings sin company_id filter. Pero: optimistic locking funciona, billing events se loguean, usage tracking con idempotency |
-| **Diseño de DB** | 7/10 | Schema sólido con RLS, FKs correctas, triggers para updated_at. 37 tablas sin TypeScript types (riesgo de errores runtime) |
-| **Observabilidad** | 5/10 | Console.log everywhere, no structured logging, no Sentry/error tracking, no correlation IDs |
-| **Performance** | 7/10 | Pagination en endpoints principales, Redis caching, batch processing. N+1 en team members, unbounded limits en calendar |
-| **Config & Deploy** | 6/10 | .env.example incompleto, seed endpoint en producción, health check sin timeout |
-| **Mantenibilidad** | 6/10 | Buenos patterns (Zod, optimistic locking), pero 37 tablas con supabaseAdminRaw sin types |
-
-### PRODUCTION READINESS SCORE FINAL: 6.5 / 10
-
-**Veredicto: Soft launch ready (closed beta / usuarios internos).** Los 5 críticos nuevos son fixes rápidos (2-4h total). Después de aplicarlos, el score sube a ~7.5/10 que es suficiente para onboarding de clientes de pago con monitoreo activo.
-
-### Acción Recomendada
-Arreglar los 5 críticos (estimado ~3h):
-1. Auth en parse-csv (15min)
-2. Force lock con role check (15min)
-3. Filtrar _locked keys de custom_fields (30min)
-4. Derivar company_id de session en scrape (20min)
-5. Fix rate limit singleton en report-usage (30min)
-
-Después: soft launch con monitoreo. Los warnings son mejoras incrementales para las siguientes 2 semanas.
-
-
----
-
-## INTEGRATIONS SYNC AUDIT — 2026-03-23 (agente completado)
-
-### 🔴 CRÍTICOS (4 nuevos)
-
-1. **[Todas las sync routes — Subscription query ignora status `trialing`]**
-   `hubspot/sync/route.ts:65`, `salesforce/sync/route.ts:69`, `pipedrive/sync/route.ts:69`, `zoho/sync/route.ts:76`
-   Todas las sync routes filtran con `.eq('status', 'active')`. Empresas en `trialing` (trial de plan Business/Teams/Enterprise con Stripe) obtienen `planSlug = 'free'` por defecto y son bloqueadas con 403. **Usuarios legítimos en trial no pueden sincronizar CRM.**
-   **Fix:** Cambiar a `.in('status', ['active', 'trialing'])`.
-
-2. **[Todas las CRM auth wrappers — Sin timeout en data-fetch calls]**
-   `hubspot/auth.ts:229`, `salesforce/auth.ts:215`, `pipedrive/auth.ts:228`, `zoho/auth.ts:293`
-   Los wrappers `hsFetch()`, `sfFetch()`, `pdFetch()`, `zohoFetch()` NO tienen timeout. Las llamadas de token refresh SÍ tienen timeout (10s), pero las data calls no. Un CRM API colgado bloquea la función serverless hasta el hard timeout de Vercel (60-300s).
-   **Fix:** Agregar `signal: AbortSignal.timeout(15000)` a todos los fetch wrappers.
-
-3. **[Todas las sync routes — Sin guard contra syncs concurrentes]**
-   No hay check de sync ya corriendo antes de crear uno nuevo. Un usuario puede triggerear múltiples syncs simultáneos, causando: contactos duplicados, waste de API quota del CRM, y sync logs stuck en `running` permanentemente.
-   **Fix:** Verificar si existe un sync log con `status = 'running'` y `started_at > 5min ago` antes de crear uno nuevo.
-
-4. **[status/route.ts — Zoho completamente ausente del response]**
-   `integrations/status/route.ts:76-137` — El endpoint de status consulta HubSpot, Salesforce, Pipedrive, Clio, pero **no consulta Zoho**. El frontend nunca ve el estado de Zoho.
-   **Fix:** Agregar query de `zoho_integrations` al endpoint.
-
-### 🟡 WARNINGS (3 nuevos)
-
-1. **[Todas las disconnect routes — OAuth tokens no se revocan en el proveedor CRM]**
-   Solo se setea `is_active = false`. Los tokens siguen válidos en HubSpot/Salesforce/etc. Si la DB se compromete, esos tokens permiten acceso al CRM del cliente incluso después de "desconectar".
-   **Fix:** Llamar al revocation endpoint del CRM antes de marcar como inactivo.
-
-2. **[Todas las disconnect routes — Tokens quedan en la DB después de disconnect]**
-   `access_token` y `refresh_token` no se limpian al desconectar. Se combinan con el punto anterior para maximizar exposición.
-   **Fix:** Setear `access_token = null, refresh_token = null` al desconectar.
-
-3. **[Todas las sync routes — Error messages internos expuestos en respuesta API]**
-   `details: errorMessage` devuelve el raw `error.message` que puede contener nombres de columnas DB, URLs internas, o stack traces.
-   **Fix:** Loguear server-side, devolver mensaje genérico al cliente.
-
----
-
-## CONTEO ACTUALIZADO — TODOS LOS HALLAZGOS
-
-| Categoría | Ronda 1 (corregidos) | Ronda 2 | Integraciones | Total Abiertos |
-|-----------|---------------------|---------|---------------|----------------|
-| 🔴 Crítico | 0 | 5 | 4 | **9** |
-| 🟡 Warning | 3 | 8 | 3 | **14** |
-| 🟢 Info | — | 4 | 1 | **5** |
-
-## SCORE ACTUALIZADO: 6 / 10
-
-La caída de 6.5 a 6 se debe a los hallazgos de integraciones: el bug de `trialing` bloquea usuarios legítimos, y la falta de timeouts en CRM API calls es un riesgo real de DoS.
-
-### Los 9 Críticos Abiertos (ordenados por impacto × esfuerzo):
-
-| # | Issue | Esfuerzo | Impacto |
-|---|-------|----------|---------|
-| 1 | Sync routes ignoran `trialing` → bloquean trials de CRM | 15min | Alto — pérdida de clientes trial |
-| 2 | parse-csv sin auth | 15min | Alto — endpoint público |
-| 3 | report-usage singleton rate limit | 30min | Alto — revenue leakage |
-| 4 | Zoho ausente de status endpoint | 15min | Medio — feature rota |
-| 5 | CRM data-fetch sin timeout | 30min | Medio — DoS serverless |
-| 6 | Sync sin guard de concurrencia | 45min | Medio — datos duplicados |
-| 7 | Contact lock bypass via force | 15min | Medio — data integrity |
-| 8 | Contact lock bypass via custom_fields | 30min | Medio — data integrity |
-| 9 | IDOR en company/scrape | 20min | Medio — info disclosure |
-
-**Esfuerzo total estimado: ~4h**
-
+## SYSTEM CONTEXT SUMMARY
+
+### What this app does
+Callengo is a B2B SaaS platform for automated outbound AI voice calls. It replaces manual phone campaigns (lead qualification, data validation, appointment confirmation) with AI agents powered by Bland AI. Companies create campaigns, upload contacts, configure AI agents, and the system dispatches calls, analyzes transcripts via OpenAI GPT-4o-mini, syncs results to CRMs, and tracks usage for metered billing via Stripe.
+
+### Tech stack
+- **Framework:** Next.js 16.1.1 (App Router), React 19, TypeScript 5.9.3
+- **DB:** Supabase (PostgreSQL) with RLS, 56 tables
+- **Auth:** Supabase Auth (email/password + OAuth: Google, Azure/Microsoft, Slack OIDC)
+- **Payments:** Stripe 20.1.0 (subscriptions + metered billing for overage)
+- **Voice/Calls:** Bland AI (single master API key architecture)
+- **Concurrency:** Upstash Redis (rate limiting, call slot tracking)
+- **AI Analysis:** OpenAI GPT-4o-mini
+- **Hosting:** Vercel (serverless)
+
+### Tables confirmed to exist (56 tables from DB schema JSON)
+admin_audit_log, admin_finances, admin_platform_config, agent_runs, agent_templates, ai_conversations, ai_messages, analysis_queue, billing_events, billing_history, calendar_events, calendar_integrations, calendar_sync_log, call_logs, call_queue, cancellation_feedback, clio_contact_mappings, clio_integrations, clio_sync_logs, companies, company_addons, company_agents, company_settings, company_subscriptions, contact_lists, contacts, dynamics_contact_mappings, dynamics_integrations, dynamics_sync_logs, follow_up_queue, google_sheets_integrations, google_sheets_linked_sheets, hubspot_contact_mappings, hubspot_integrations, hubspot_sync_logs, integration_feedback, notifications, pipedrive_contact_mappings, pipedrive_integrations, pipedrive_sync_logs, retention_offer_log, retention_offers, salesforce_contact_mappings, salesforce_integrations, salesforce_sync_logs, simplybook_contact_mappings, simplybook_integrations, simplybook_sync_logs, simplybook_webhook_logs, stripe_events, subscription_plans, team_calendar_assignments, team_invitations, usage_tracking, users, voicemail_logs, webhook_deliveries, webhook_endpoints, zoho_contact_mappings, zoho_integrations, zoho_sync_logs
+
+### Auth flow
+1. **Request** → Edge middleware (`middleware.ts`) intercepts all non-static routes
+2. **Middleware checks:** Creates Supabase server client with cookies, calls `supabase.auth.getUser()` to validate JWT
+3. **Public API routes whitelisted:** Stripe webhook, Bland webhook, OAuth callbacks, queue endpoints (secret-based), health check
+4. **Non-public API routes:** Returns 401 if no user
+5. **Protected page routes:** Redirects unauthenticated to `/auth/login`, checks email verification, checks onboarding, checks admin role for `/admin/*`
+6. **API routes consume auth:** Each route creates its own `createServerClient()`, calls `supabase.auth.getUser()`, then queries `users` table for `company_id` and `role`. RLS enforces tenant isolation at DB layer.
+7. **Admin routes:** Defense-in-depth — middleware blocks non-admin pages AND API routes re-verify `role === 'admin'`
+8. **User metadata caching:** httpOnly cookie `x-user-meta` with 5-min TTL
+
+### Core services map
+| Service | What it does | External APIs | DB tables |
+|---------|-------------|---------------|-----------|
+| Billing (lib/billing/) | Usage tracking, overage management, call throttling | Stripe | usage_tracking, company_subscriptions, billing_events |
+| Bland Master Client (lib/bland/) | Dispatches calls via master API key, enforces plan limits | Bland AI | call_logs, company_settings, admin_platform_config |
+| Redis Concurrency (lib/redis/) | Atomic call slot management, concurrency tracking | Upstash Redis | (Redis keys) |
+| Stripe (lib/stripe.ts) | Customer mgmt, checkout, subscriptions, usage reporting | Stripe | (via webhook) |
+| AI Intent Analyzer (lib/ai/) | Post-call transcript analysis | OpenAI | analysis_queue, call_logs, contacts |
+| Calendar (lib/calendar/) | Google/Outlook/Zoom integration, availability | Google, MS Graph, Zoom | calendar_events, calendar_integrations |
+| CRM Integrations (7 CRMs) | OAuth, contact sync, call result push | CRM APIs | *_integrations, *_contact_mappings, *_sync_logs |
+| Queue (lib/queue/) | Async: AI analysis, dispatch, follow-ups | (internal) | analysis_queue, call_queue, follow_up_queue |
+| Webhooks (lib/webhooks.ts) | Outbound webhook dispatch, HMAC signing, SSRF protection | User URLs | webhook_endpoints, webhook_deliveries |
+| Rate Limit (lib/rate-limit.ts) | Distributed rate limiting via Upstash with LRU fallback | Upstash Redis | (Redis keys) |
+
+### Integration trust model
+| Integration | Trust | Notes |
+|-------------|-------|-------|
+| Stripe | TRUSTED | Webhook signature verified |
+| Bland AI | TRUSTED | Master API key; returns our metadata |
+| OpenAI | TRUSTED | We control prompts |
+| CRMs (HubSpot, SF, etc.) | TRUSTED | OAuth-authenticated API data |
+| User browser input | UNTRUSTED | Forms, API bodies |
+| CSV/Excel imports | UNTRUSTED | User-uploaded files |
+| User webhooks | N/A | Outbound only, SSRF-protected |
+
+### Intentional patterns to not flag
+1. Admin routes check role in BOTH middleware AND API routes (defense-in-depth)
+2. Large components (>1k lines) are documented as intentional
+3. `supabaseAdminRaw` for untyped tables — documented design choice
+4. Rate limiting applied per-endpoint, not globally via middleware — documented known gap
+5. Service role used server-side only, never client-side
+6. `x-user-meta` cookie is cached metadata, not auth token
+7. Seed endpoint protected by secret env var
+8. Deprecated rate-limit exports return passthrough (moved to Redis)
+
+### API routes inventory (112 endpoints)
+- **Admin:** 9 endpoints (command-center, clients, finances, billing-events, reconcile, etc.)
+- **Auth:** 2 (check-admin, verify-recaptcha)
+- **Billing:** 17 (checkout, plans, subscriptions, overage, phone numbers, etc.)
+- **Bland AI:** 4 (send-call, webhook, get-call, analyze-call)
+- **Calendar:** 5 (events, availability, team, contact-sync)
+- **Campaigns:** 1 (dispatch)
+- **Company:** 4 (bootstrap, onboarding-status, scrape, update)
+- **Contacts:** 8 (CRUD, import, export, AI analyze/segment, stats)
+- **Integrations:** 45+ (7 CRMs × ~6 routes + calendar/sheets/slack/zoom)
+- **OpenAI:** 3 (analyze-call, context-suggestions, recommend-agent)
+- **Queue:** 2 (process, followups)
+- **Team:** 5 (invite, accept, cancel, members, remove)
+- **Webhooks:** 3 (endpoints CRUD, Stripe webhook)
+- **Other:** 8 (health, seed, ai-chat, get-started, voices, etc.)
