@@ -59,17 +59,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'transcript is required' }, { status: 400 });
     }
 
-    // Verify user belongs to the specified company
-    if (companyId) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('company_id')
-        .eq('id', user.id)
-        .single();
+    // Verify user belongs to a company (required to prevent unauthorized API usage)
+    const { data: userData } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
 
-      if (userData?.company_id !== companyId) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
+    if (!userData?.company_id) {
+      return NextResponse.json({ error: 'No company found' }, { status: 404 });
+    }
+
+    // If companyId was specified, verify ownership
+    if (companyId && userData.company_id !== companyId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const apiKey = process.env.OPENAI_API_KEY;

@@ -457,6 +457,32 @@ export async function releaseCallSlot(
   }
 }
 
+/**
+ * Transfer a call slot from one callId to another (e.g., pre_* → real Bland callId).
+ * This ensures releaseCallSlot() can find the slot when the webhook arrives with the real callId.
+ */
+export async function transferCallSlot(
+  companyId: string,
+  oldCallId: string,
+  newCallId: string
+): Promise<void> {
+  if (!redis) return;
+
+  try {
+    // Read the old active call data
+    const data = await redis.get<{ companyId: string; contactId?: string; ts: number }>(KEYS.activeCall(oldCallId));
+    if (!data) return; // Old slot already expired or doesn't exist
+
+    // Atomically: set new key with same data + TTL, delete old key
+    const pipeline = redis.pipeline();
+    pipeline.set(KEYS.activeCall(newCallId), JSON.stringify({ ...data, companyId }), { ex: 1800 });
+    pipeline.del(KEYS.activeCall(oldCallId));
+    await pipeline.exec();
+  } catch (error) {
+    console.error('[concurrency-manager] transferCallSlot error:', error);
+  }
+}
+
 // ================================================================
 // Monitoring — For Admin Command Center
 // ================================================================

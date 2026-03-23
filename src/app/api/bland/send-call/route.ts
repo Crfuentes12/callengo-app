@@ -9,7 +9,7 @@ import { expensiveLimiter } from '@/lib/rate-limit';
 import { checkCallAllowed, getMaxCallDuration } from '@/lib/billing/call-throttle';
 import { dispatchCall } from '@/lib/bland/master-client';
 import { getCompanyCallerNumber } from '@/lib/bland/phone-numbers';
-import { acquireCallSlot } from '@/lib/redis/concurrency-manager';
+import { acquireCallSlot, transferCallSlot } from '@/lib/redis/concurrency-manager';
 
 // ALTA-006 + ALTA-007: Zod schema for input validation
 const sendCallSchema = z.object({
@@ -180,6 +180,12 @@ export async function POST(request: NextRequest) {
         await supabaseAdmin.from('call_logs')
           .update({ call_id: result.callId, status: 'in_progress' })
           .eq('id', preLog.id);
+      }
+
+      // Transfer Redis active call slot from pre_* ID to real Bland call_id
+      // so releaseCallSlot() in the webhook can find it by the real call_id
+      if (result.callId) {
+        await transferCallSlot(company_id, preCallId, result.callId);
       }
 
       return NextResponse.json({
