@@ -504,3 +504,122 @@ After double-checking with 5 independent verification agents, the following find
 
 **Soft launch ready (closed beta / internal users).** Remaining items are best-practice improvements (encrypt tokens at rest, structured logging, complete rate limiting coverage) rather than go-live blockers.
 
+
+---
+
+# REVISIÓN EXHAUSTIVA v2 — 2026-03-23
+
+> Segunda pasada completa. Contexto global mapeado antes de revisar.
+> 142 API routes, 72 lib files, 84 components, 56+ DB tables revisados.
+
+---
+
+## HALLAZGOS NUEVOS CONFIRMADOS
+
+### 🔴 CRÍTICOS (5 nuevos)
+
+1. **[contacts/parse-csv/route.ts — Endpoint público sin autenticación]**
+   El endpoint `POST /api/contacts/parse-csv` no tiene ningún check de auth. Cualquier usuario anónimo puede subir archivos CSV de hasta 10MB para parsear. Vector de DoS y abuso de recursos.
+   **Fix:** Agregar `supabase.auth.getUser()` check al inicio.
+
+2. **[contacts/[id]/route.ts:84-106 — `force` lock override sin verificación de rol]**
+   El parámetro `force` permite bypassear el contact lock sin verificar que el usuario sea admin/owner. Cualquier miembro del equipo puede sobreescribir datos que un agente IA está procesando.
+   **Fix:** Agregar check `role === 'owner' || role === 'admin'` antes de permitir `force`.
+
+3. **[contacts/[id]/route.ts:109-117 — Contact lock bypass via custom_fields]**
+   `custom_fields` está en el allowlist de campos editables. Como el mecanismo de lock usa `_locked`, `_locked_at`, `_locked_by` dentro de `custom_fields`, cualquier usuario puede enviar `custom_fields: { _locked: false }` para eliminar el lock sin pasar por el check de `force`.
+   **Fix:** Filtrar claves que empiecen con `_locked` del input de `custom_fields` antes de aplicar el update.
+
+4. **[company/scrape/route.ts:26-41 — IDOR: acepta company_id del body sin verificar ownership]**
+   El endpoint acepta `company_id` del request body y lo usa para escribir datos. Aunque RLS mitiga parcialmente, el `SELECT` de la empresa target puede filtrar información. El company_id debería derivarse siempre del usuario autenticado.
+   **Fix:** Eliminar `company_id` del body, usar siempre `userData.company_id`.
+
+5. **[billing/report-usage/route.ts:48-49 — Rate limit compartido bloquea reportes de uso]**
+   La key de rate limit para llamadas internas de servicio es un string singleton `billing_report_usage_service` con límite de 3/min. TODOS los webhooks comparten este bucket. Con más de 3 llamadas/minuto, el uso no se reporta, causando pérdida de revenue por overage no facturado.
+   **Fix:** Usar un rate limit key por `company_id` en lugar de un singleton, o eliminar rate limiting para llamadas internas con secret.
+
+### 🟡 WARNINGS (8 nuevos)
+
+1. **[team/accept-invite/route.ts:69-89 — Race condition: aceptación de invite no atómica]**
+   El update del usuario (join company) y el update de la invitación (mark accepted) son dos operaciones separadas. Si el proceso crashea entre ambas, el usuario se une pero la invitación queda `pending`. No es crítico por sí solo pero puede causar estados inconsistentes.
+
+2. **[calendar/events/route.ts:46-48 — Sin upper bound en parámetro `limit`]**
+   Un usuario puede pasar `limit=999999` sin restricción. Combinado con la falta de rate limiting, permite queries costosas. **Fix:** `Math.min(limit, 500)`.
+
+3. **[calendar/events/route.ts:81-100 — Sin validación de input en creación de eventos]**
+   Strings como `title`, `description`, `video_link` pasan directo a la DB sin validación de tipo, longitud o sanitización.
+
+4. **[billing/report-usage/route.ts:269 — cost_usd calcula mal el overage parcial]**
+   Cuando una llamada cruza el boundary de minutos incluidos, el billing event loguea `minutes * pricePerMinute` (duración total) en vez de solo los minutos de overage. Es un bug de logging, no de facturación (Stripe recibe el total correcto).
+
+5. **[web-scraper.ts:57-60 — DNS rebinding bypass en SSRF validation]**
+   Cuando DNS resolve falla, el código continúa y deja que axios haga el request. Un atacante podría usar DNS rebinding: primera resolución devuelve IP pública (pasa validación), segunda resolución devuelve IP interna.
+
+6. **[web-scraper.ts:71-77 — Redirects bypass SSRF validation]**
+   `maxRedirects: 3` sin validar los targets de redirect. Una URL pública podría redirigir a `http://169.254.169.254/`.
+
+7. **[seed/route.ts:248-258 — DELETE handler usa NODE_ENV en vez de secret]**
+   POST usa `SEED_ENDPOINT_SECRET` con timing-safe comparison. DELETE usa `NODE_ENV === 'production'` que es menos confiable en preview deployments de Vercel.
+
+8. **[contacts/[id]/route.ts:35-38 — CRM mappings sin filtro company_id]**
+   Las queries de mappings CRM buscan por `callengo_contact_id` sin filtrar por `company_id`, usando `supabaseAdmin`. En la práctica UUIDs previenen colisiones, pero falta defense-in-depth.
+
+### 🟢 INFO (4 nuevos)
+
+1. **[team/members/route.ts:42-49]** N+1 queries para `getUserById` por cada team member. No es bug pero escala mal con equipos grandes.
+2. **[team/cancel-invite/route.ts:41-45]** Info leak menor: se puede distinguir entre "invite no existe" vs "invite de otra empresa" por los diferentes status codes.
+3. **[company/update/route.ts:29-36]** Sin validación de longitud en campos como `name`, `website`, `favicon_url`.
+4. **[billing/notifications/route.ts:36]** Parámetro `since` no validado como fecha ISO.
+
+---
+
+## RESUMEN CONSOLIDADO — TODAS LAS REVISIONES
+
+### Conteo Total de Issues
+
+| Categoría | Ronda 1 (corregido) | Ronda 2 (nuevos) | Total Abiertos |
+|-----------|---------------------|-------------------|----------------|
+| 🔴 Crítico | 0 (todos corregidos) | 5 | **5** |
+| 🟡 Warning | 3 (abiertos) | 8 | **11** |
+| 🟢 Info | — | 4 | **4** |
+
+### Issues Corregidos en Ronda 1 (7 fixes aplicados)
+✅ Timing-safe comparison en followups queue
+✅ Redis pipeline unificado (INCR + TTLs)
+✅ Post-increment cap check con rollback
+✅ Fail-open reducido de 5 a 2 fallos
+✅ Rate limiting en 10 endpoints críticos
+✅ Stripe webhook instancia duplicada removida
+✅ Analysis queue off-by-one corregido
+
+---
+
+## NOTA FINAL — PRODUCTION READINESS SCORE v2
+
+### Scoring Dimensional
+
+| Dimensión | Score | Justificación |
+|-----------|-------|---------------|
+| **Seguridad** | 6/10 | parse-csv público, IDOR en scrape, contact lock bypass. Pero: auth en todos los endpoints principales, RLS activo, webhook signatures correctas, SSRF prevention en webhooks |
+| **Fiabilidad** | 7/10 | Redis atómico (corregido), rate limit singleton bug en report-usage, race condition en invite acceptance. Pero: idempotency en webhooks, circuit breaker, retry patterns |
+| **Integridad de datos** | 7/10 | Contact lock bypasseable, CRM mappings sin company_id filter. Pero: optimistic locking funciona, billing events se loguean, usage tracking con idempotency |
+| **Diseño de DB** | 7/10 | Schema sólido con RLS, FKs correctas, triggers para updated_at. 37 tablas sin TypeScript types (riesgo de errores runtime) |
+| **Observabilidad** | 5/10 | Console.log everywhere, no structured logging, no Sentry/error tracking, no correlation IDs |
+| **Performance** | 7/10 | Pagination en endpoints principales, Redis caching, batch processing. N+1 en team members, unbounded limits en calendar |
+| **Config & Deploy** | 6/10 | .env.example incompleto, seed endpoint en producción, health check sin timeout |
+| **Mantenibilidad** | 6/10 | Buenos patterns (Zod, optimistic locking), pero 37 tablas con supabaseAdminRaw sin types |
+
+### PRODUCTION READINESS SCORE FINAL: 6.5 / 10
+
+**Veredicto: Soft launch ready (closed beta / usuarios internos).** Los 5 críticos nuevos son fixes rápidos (2-4h total). Después de aplicarlos, el score sube a ~7.5/10 que es suficiente para onboarding de clientes de pago con monitoreo activo.
+
+### Acción Recomendada
+Arreglar los 5 críticos (estimado ~3h):
+1. Auth en parse-csv (15min)
+2. Force lock con role check (15min)
+3. Filtrar _locked keys de custom_fields (30min)
+4. Derivar company_id de session en scrape (20min)
+5. Fix rate limit singleton en report-usage (30min)
+
+Después: soft launch con monitoreo. Los warnings son mejoras incrementales para las siguientes 2 semanas.
+
