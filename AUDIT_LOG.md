@@ -224,14 +224,121 @@
 
 ---
 
-## CHECKPOINT — 3 Modules Complete
+## ADMIN & CONTACTS & INTEGRATIONS MODULE — 2026-03-23
 
-| Metric | Count |
-|--------|-------|
-| Modules completed | 3 (Billing, Auth/Security, Core Call Flow) |
-| Confirmed 🔴 CRITICAL (code) | 0 |
-| Confirmed 🟡 WARNING (code) | 4 |
-| ✅ MITIGATED (false positives caught) | 7 |
-| Next module | Admin & Contacts & Integrations |
+### 🔴 CRITICAL
+
+*None found.* Admin endpoints enforce `role === 'admin'`. OAuth callbacks use signed state (HMAC-SHA256) with user/company verification. Contacts are scoped by company_id via RLS.
+
+### 🟡 WARNING
+
+- **src/app/api/admin/command-center/route.ts:35** — Admin role check only allows `role === 'admin'`, but CLAUDE.md says "Solo roles `admin` y `owner`" should have access. `owner` role is excluded from the command center. **Impact:** Medium — platform owner can't access their own admin panel if they have `owner` role instead of `admin`. **Fix:** Check `['admin', 'owner'].includes(userData.role)`.
+
+- **src/app/api/admin/command-center/route.ts:269-293** — Two additional sequential DB queries for hourly and daily call history charts are made AFTER the initial `Promise.all()` batch of 14 parallel queries. These could be moved into the parallel batch. **Impact:** Low — adds ~100-200ms latency to admin dashboard load. **Fix:** Include in the initial `Promise.all()`.
+
+### 🟢 INFO — PERFORMANCE
+
+- **src/app/api/admin/monitor/route.ts:181-262** — N+1 query pattern: `getCompanyBreakdown()` runs 5 sequential DB queries per company inside a for loop. With 10 companies = 50 queries. **Impact:** Admin-only, infrequent access. **Fix:** Batch with `.in()` clauses + single `Promise.all()`.
+
+- **src/app/api/admin/cleanup-orphans/route.ts:156-162** — Sequential Bland API calls in a loop for deactivation. Could use `Promise.allSettled()`.
+
+- **71 occurrences of `select('*')` across 47 API files.** Most are in admin/billing routes. Not a security issue but fetches unnecessary columns.
+
+### ✅ MITIGATED
+
+- **Admin Command Center POST — Bland plan write** — Looked like any admin could change Bland plan limits. But POST handler validates plan against `BLAND_PLAN_LIMITS` whitelist (line 775) and only persists to `admin_platform_config`. ✅ Mitigated.
+
+- **Contact import injection** — CSV import could inject malicious data into DB. But `contacts/import/route.ts` uses `mapRowToContact()` for structured parsing, validates file size (10MB), row count (10K max), file type (.csv/.txt), plan contact limits, and deduplicates by phone number. ✅ Mitigated.
+
+- **OAuth callback cross-tenant hijack** — All 11 OAuth callback routes (HubSpot, Salesforce, Pipedrive, Zoho, Clio, Dynamics, Google Calendar, Google Sheets, Outlook, Slack, Zoom) use `verifySignedState()` from `src/lib/oauth-state.ts` (HMAC-SHA256 with timing-safe comparison) AND verify the authenticated user matches the state user_id AND verify the company_id matches. ✅ Mitigated.
+
+- **Open redirect in OAuth callbacks** — `return_to` param from state could redirect to external URLs. But all callbacks sanitize: `return_to.startsWith('/') && !return_to.startsWith('//')`. ✅ Mitigated.
+
+- **Contacts search injection** — Search parameter in `/api/contacts/route.ts` could manipulate PostgREST filters. But line 52-58 sanitizes `%`, `_`, commas, dots, and parentheses. Sort column is whitelisted (line 35-40). Page size capped at 200. ✅ Mitigated.
+
+### ✅ CLEAN
+- `admin/command-center/route.ts`: Auth + admin role check, rate limiting, parallel query pattern, Bland plan validation, Redis cache sync.
+- `contacts/route.ts`: Auth, company scoping, sort column whitelist, search sanitization, pagination limits.
+- `contacts/import/route.ts`: Auth, rate limiting, file validation, plan limits, deduplication, cross-company list_id verification.
+- `integrations/*/callback/route.ts`: Signed state verification, user/company matching, open redirect prevention.
+- `lib/oauth-state.ts`: HMAC-SHA256 signed state with timing-safe verification, base64url encoding.
+
+---
+
+## PERFORMANCE AUDIT — 2026-03-23
+
+### 🟡 WARNING — N+1 Query Patterns
+
+| File | Function | Queries per N | Severity |
+|------|----------|--------------|----------|
+| `admin/monitor/route.ts` | `getCompanyBreakdown()` | 5 per subscription | High (admin-only) |
+| `admin/cleanup-orphans/route.ts` | DELETE handler | 2 per orphan | Medium (rare op) |
+| `admin/monitor/route.ts` | `getContactCooldowns()` | 1 Redis call per key | Medium (admin-only) |
+
+### 🟢 INFO — General Performance
+
+- **Command Center** makes 14 parallel DB queries in single `Promise.all()` — good parallelization pattern.
+- **Contact import** batches deduplication queries in groups of 500 — avoids single huge IN clause.
+- **Stripe webhook** fetches subscription periods from Stripe API (network call) — has fallback to calculated dates.
+- **`select('*')` usage:** 71 occurrences across 47 files. For production, consider selecting only needed columns on high-traffic endpoints (contacts, calls, dashboard).
+
+---
+
+## TEST COVERAGE AUDIT — 2026-03-23
+
+### 🟡 WARNING — No automated tests
+
+- No test files found (`*.test.ts`, `*.spec.ts`, `__tests__/`).
+- No test runner configured in `package.json` (no jest, vitest, or playwright).
+- **Impact:** High — no regression safety net for billing, webhook handling, or auth flows.
+- **Priority:** Critical flows that need tests first:
+  1. Stripe webhook handler (subscription lifecycle)
+  2. `checkCallAllowed()` throttle logic
+  3. OAuth state signing/verification
+  4. Redis concurrency manager (slot acquire/release)
+  5. Contact import CSV parsing
+
+---
+
+## FINAL CHECKPOINT — All Modules Complete
+
+| Category | 🔴 CRITICAL | 🟡 WARNING | ✅ MITIGATED |
+|----------|------------|------------|-------------|
+| Database Schema | 1 (plaintext tokens) | 5 | 1 |
+| Billing & Payments | 0 | 2 | 3 |
+| Auth & Security | 0 | 2 | 2 |
+| Core Call Flow | 0 | 1 | 2 |
+| Admin/Contacts/Integrations | 0 | 2 | 5 |
+| Performance | 0 | 1 (N+1) | 0 |
+| Test Coverage | 0 | 1 (no tests) | 0 |
+| **TOTAL** | **1** | **14** | **13** |
+
+---
+
+## PRODUCTION READINESS VERDICT
+
+### GO with conditions
+
+The codebase is **production-ready with caveats**. The architecture is sound: proper auth, RLS, rate limiting, Zod validation, webhook verification, idempotency, and Redis-based concurrency control are all in place. 13 potential issues were investigated and found to be already mitigated.
+
+### Must-fix before production (P0)
+
+1. **🔴 Encrypt OAuth tokens at rest** — All CRM integration tokens (HubSpot, Salesforce, etc.) are stored as plaintext in Supabase. Implement AES-256-GCM encryption with a KMS-managed key. This is the only critical finding.
+
+### Should-fix soon after launch (P1)
+
+2. **🟡 Restrict `users` table self-update RLS** — Prevent users from changing their own `company_id` via direct Supabase client calls. Add trigger or column-restricted policy.
+3. **🟡 Restrict `company_subscriptions` update to owner/admin** — Add role check to RLS policy.
+4. **🟡 Add CHECK constraints on status columns** — Prevent invalid status values.
+5. **🟡 Fix admin command center to allow `owner` role** — Currently only `admin` can access.
+
+### Nice-to-have (P2)
+
+6. Add automated tests for critical paths (webhook, throttle, OAuth state)
+7. Fix N+1 queries in admin monitor
+8. Add session_id format validation in verify-session
+9. Add soft-delete for companies
+10. Implement periodic reconciliation for denormalized counters
+11. Select specific columns instead of `*` on high-traffic endpoints
 
 ---
