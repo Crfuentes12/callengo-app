@@ -89,28 +89,21 @@ function verifyBlandSignature(rawBody: string, signature: string | null, secret:
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify webhook signature — REQUIRED in production
+    // FIX #5: Require webhook signature in ALL environments (not just production).
+    // This prevents forged webhook payloads in staging/preview deployments.
     const webhookSecret = process.env.BLAND_WEBHOOK_SECRET;
-    let body: Record<string, unknown>;
-
-    if (!webhookSecret && process.env.NODE_ENV === 'production') {
-      console.error('BLAND_WEBHOOK_SECRET is required in production');
+    if (!webhookSecret) {
+      console.error('BLAND_WEBHOOK_SECRET is required — set it in all environments');
       return NextResponse.json({ error: 'Webhook configuration error' }, { status: 500 });
     }
 
-    if (webhookSecret) {
-      const rawBody = await request.text();
-      const signature = request.headers.get('x-bland-signature') || request.headers.get('x-webhook-signature');
-      if (!verifyBlandSignature(rawBody, signature, webhookSecret)) {
-        console.error('Invalid Bland webhook signature');
-        return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
-      }
-      body = JSON.parse(rawBody);
-    } else {
-      // Only allowed in development/staging
-      body = await request.json();
-      console.warn('BLAND_WEBHOOK_SECRET not configured — webhook signature verification skipped (dev only)');
+    const rawBody = await request.text();
+    const signature = request.headers.get('x-bland-signature') || request.headers.get('x-webhook-signature');
+    if (!verifyBlandSignature(rawBody, signature, webhookSecret)) {
+      console.error('Invalid Bland webhook signature');
+      return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
     }
+    const body: Record<string, unknown> = JSON.parse(rawBody);
 
     const call_id = body.call_id as string | undefined;
     const status = body.status as string | undefined;

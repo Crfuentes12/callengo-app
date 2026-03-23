@@ -4,6 +4,7 @@
  */
 
 import { supabaseAdmin as supabase, supabaseAdminRaw } from '@/lib/supabase/service';
+// supabaseAdminRaw used for atomic_increment_usage RPC fallback (Fix #2)
 import { reportUsage } from '@/lib/stripe';
 
 export interface UsageReport {
@@ -116,7 +117,32 @@ export async function trackCallUsage(params: UsageReport): Promise<void> {
           await new Promise(r => setTimeout(r, 50 * Math.pow(2, attempt)));
           continue;
         }
-        console.error('[usage-tracker] Failed to update usage after retries');
+        // FIX #2: Atomic fallback instead of silently dropping usage data.
+        // If optimistic lock fails after all retries, fall back to atomic SQL increment
+        // so usage is never lost (even if overage/cost recalculation is slightly stale).
+        console.warn('[usage-tracker] Optimistic lock exhausted, falling back to atomic increment');
+        const { error: atomicError } = await supabaseAdminRaw
+          .rpc('atomic_increment_usage', {
+            p_usage_id: usage.id,
+            p_minutes: minutes,
+          });
+        if (atomicError) {
+          // Last resort: log a billing event so reconciliation can catch it
+          console.error('[usage-tracker] CRITICAL: Atomic fallback also failed:', atomicError);
+          await supabase.from('billing_events').insert({
+            company_id: companyId,
+            subscription_id: subscription.id,
+            event_type: 'usage_tracking_failed',
+            event_data: {
+              call_id: callId,
+              minutes,
+              error: atomicError.message,
+              needs_reconciliation: true,
+            },
+            minutes_consumed: minutes,
+            cost_usd: 0,
+          });
+        }
         return;
       }
 
@@ -137,6 +163,10 @@ export async function trackCallUsage(params: UsageReport): Promise<void> {
       });
 
       // Report to Stripe if overage
+      // FIX #4: Use 'set' with the total overage (not increment) because we track the
+      // cumulative total in usage_tracking.minutes_used. The periodic syncAllMeteredUsage()
+      // is the authoritative reconciliation point. Per-call reporting uses 'set' with the
+      // latest total to avoid double-counting if a call's webhook is retried.
       if (subscription.overage_enabled && overageMinutes > 0 && subscription.stripe_subscription_item_id) {
         try {
           await reportUsage({

@@ -133,15 +133,27 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Batch insert into campaign_queue (Supabase supports bulk insert)
-    const { error: queueError } = await supabaseAdmin
+    // FIX #3: Batch insert with conflict handling for idempotency.
+    // The unique partial index (agent_run_id, contact_id) WHERE status IN ('pending','processing')
+    // prevents duplicate dispatches. On conflict, we skip duplicates gracefully.
+    const { data: insertedEntries, error: queueError } = await supabaseAdmin
       .from('campaign_queue')
-      .insert(queueEntries);
+      .insert(queueEntries)
+      .select('contact_id');
 
     if (queueError) {
+      // Check if it's a unique constraint violation (duplicate dispatch)
+      if (queueError.code === '23505') {
+        return NextResponse.json(
+          { error: 'This campaign is already being dispatched. Please wait for it to complete.' },
+          { status: 409 }
+        );
+      }
       console.error('[dispatch] Failed to enqueue contacts:', queueError);
       return NextResponse.json({ error: 'Failed to enqueue contacts for dispatch' }, { status: 500 });
     }
+
+    const actualQueued = insertedEntries?.length ?? queueEntries.length;
 
     // Update agent_run status to 'dispatching'
     if (agent_run_id) {
@@ -156,14 +168,14 @@ export async function POST(request: NextRequest) {
       status: 'queued',
       summary: {
         total: contacts.length,
-        queued: queueEntries.length,
+        queued: actualQueued,
         failed: invalidContacts.length,
       },
       results: [
         ...queueEntries.map(e => ({ contact_id: e.contact_id, status: 'queued' as const })),
         ...invalidContacts,
       ],
-      message: `${queueEntries.length} contacts queued for dispatch. Processing will begin shortly.`,
+      message: `${actualQueued} contacts queued for dispatch. Processing will begin shortly.`,
     });
   } catch (error) {
     console.error('[dispatch] Campaign dispatch error:', error);

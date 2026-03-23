@@ -1,27 +1,48 @@
 /**
- * Structured Logger
+ * Structured Logger with Correlation IDs
  * Provides consistent, structured logging across the application.
  * Ready to be connected to external services (Sentry, Datadog, etc.)
  *
+ * FIX #11: Added correlation ID support for request tracing and
+ * createLogger() factory for module-scoped loggers.
+ *
  * Usage:
- *   import { logger } from '@/lib/logger';
+ *   import { logger, createLogger } from '@/lib/logger';
+ *
+ *   // Global logger (simple usage)
  *   logger.error('Payment failed', { companyId, error });
- *   logger.warn('Rate limit approaching', { userId, remaining });
- *   logger.info('Sync completed', { provider: 'hubspot', created: 5 });
+ *
+ *   // Module-scoped logger with correlation ID (for request tracing)
+ *   const log = createLogger('webhook', { correlationId: callId });
+ *   log.info('Processing call webhook', { companyId });
+ *   log.error('Failed to process', { error: err.message });
  */
+
+import crypto from 'crypto';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
   level: LogLevel;
+  module?: string;
   message: string;
   timestamp: string;
+  correlationId?: string;
   context?: Record<string, unknown>;
   error?: {
     name: string;
     message: string;
     stack?: string;
   };
+}
+
+interface LoggerInstance {
+  debug: (message: string, context?: Record<string, unknown>) => void;
+  info: (message: string, context?: Record<string, unknown>) => void;
+  warn: (message: string, context?: Record<string, unknown>) => void;
+  error: (message: string, context?: Record<string, unknown>) => void;
+  /** Create a child logger that inherits module + correlation ID and adds extra context */
+  child: (extraContext: Record<string, unknown>) => LoggerInstance;
 }
 
 function formatError(err: unknown): LogEntry['error'] | undefined {
@@ -35,6 +56,8 @@ function formatError(err: unknown): LogEntry['error'] | undefined {
 function createLogEntry(
   level: LogLevel,
   message: string,
+  module?: string,
+  correlationId?: string,
   context?: Record<string, unknown>
 ): LogEntry {
   const entry: LogEntry = {
@@ -42,6 +65,9 @@ function createLogEntry(
     message,
     timestamp: new Date().toISOString(),
   };
+
+  if (module) entry.module = module;
+  if (correlationId) entry.correlationId = correlationId;
 
   if (context) {
     // Separate error objects from context
@@ -53,17 +79,13 @@ function createLogEntry(
   return entry;
 }
 
-function log(level: LogLevel, message: string, context?: Record<string, unknown>) {
-  const entry = createLogEntry(level, message, context);
-
+function emitLog(level: LogLevel, entry: LogEntry) {
   // Structured JSON output for production (parseable by log aggregators)
   const output = JSON.stringify(entry);
 
   switch (level) {
     case 'error':
       console.error(output);
-      // TODO: Send to Sentry/Datadog when configured
-      // if (process.env.SENTRY_DSN) Sentry.captureException(...)
       break;
     case 'warn':
       console.warn(output);
@@ -79,9 +101,45 @@ function log(level: LogLevel, message: string, context?: Record<string, unknown>
   }
 }
 
+function log(level: LogLevel, message: string, context?: Record<string, unknown>) {
+  const entry = createLogEntry(level, message, undefined, undefined, context);
+  emitLog(level, entry);
+}
+
+/** Global logger (backwards-compatible) */
 export const logger = {
   debug: (message: string, context?: Record<string, unknown>) => log('debug', message, context),
   info: (message: string, context?: Record<string, unknown>) => log('info', message, context),
   warn: (message: string, context?: Record<string, unknown>) => log('warn', message, context),
   error: (message: string, context?: Record<string, unknown>) => log('error', message, context),
 };
+
+/**
+ * Create a module-scoped logger with optional correlation ID.
+ * All log entries include the module name and correlation ID for tracing.
+ */
+export function createLogger(
+  module: string,
+  initialContext: { correlationId?: string; [key: string]: unknown } = {}
+): LoggerInstance {
+  const { correlationId, ...baseContext } = initialContext;
+
+  function moduleLog(level: LogLevel, message: string, data?: Record<string, unknown>) {
+    const mergedContext = { ...baseContext, ...data };
+    const entry = createLogEntry(level, message, module, correlationId, mergedContext);
+    emitLog(level, entry);
+  }
+
+  return {
+    debug: (message, data) => moduleLog('debug', message, data),
+    info: (message, data) => moduleLog('info', message, data),
+    warn: (message, data) => moduleLog('warn', message, data),
+    error: (message, data) => moduleLog('error', message, data),
+    child: (extraContext) => createLogger(module, { correlationId, ...baseContext, ...extraContext }),
+  };
+}
+
+/** Generate a unique correlation ID for request tracing */
+export function generateCorrelationId(): string {
+  return crypto.randomUUID();
+}

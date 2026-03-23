@@ -38,16 +38,32 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
     }
 
-    // Get last sign-in from auth.users for each member
-    const membersWithActivity = await Promise.all(
-      (members || []).map(async (member) => {
-        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(member.id);
-        return {
-          ...member,
-          last_sign_in_at: authUser?.user?.last_sign_in_at || null,
-        };
-      })
-    );
+    // FIX #9: Batch fetch last_sign_in instead of N+1 getUserById calls.
+    // Use listUsers with filter to get all team members in one API call.
+    const memberIds = new Set((members || []).map(m => m.id));
+    const authUsersMap = new Map<string, string | null>();
+
+    // Supabase admin.listUsers returns paginated results; fetch enough for the team
+    try {
+      const { data: authList } = await supabaseAdmin.auth.admin.listUsers({
+        perPage: Math.max(50, memberIds.size),
+      });
+      if (authList?.users) {
+        for (const authUser of authList.users) {
+          if (memberIds.has(authUser.id)) {
+            authUsersMap.set(authUser.id, authUser.last_sign_in_at || null);
+          }
+        }
+      }
+    } catch (authErr) {
+      console.error('Failed to batch-fetch auth users:', authErr);
+      // Gracefully degrade — last_sign_in_at will be null
+    }
+
+    const membersWithActivity = (members || []).map((member) => ({
+      ...member,
+      last_sign_in_at: authUsersMap.get(member.id) || null,
+    }));
 
     // Fetch pending invitations
     const { data: invites, error: invitesError } = await supabaseAdminRaw

@@ -19,9 +19,54 @@ import {
   deactivateBlandSubAccount,
 } from '@/lib/bland/subaccount-manager';
 import { resetUsageForNewPeriod } from '@/lib/billing/usage-tracker';
+import { isPlanAllowedForIntegration } from '@/config/plan-features';
 
 // Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';
+
+/**
+ * FIX #10: Deactivate CRM integrations that the new plan doesn't support.
+ * Called on plan downgrade to prevent unauthorized data sync.
+ */
+async function deactivateIneligibleIntegrations(companyId: string, newPlanSlug: string) {
+  const integrationTables: Array<{ table: string; provider: string }> = [
+    { table: 'hubspot_integrations', provider: 'hubspot' },
+    { table: 'pipedrive_integrations', provider: 'pipedrive' },
+    { table: 'zoho_integrations', provider: 'zoho' },
+    { table: 'clio_integrations', provider: 'clio' },
+    { table: 'salesforce_integrations', provider: 'salesforce' },
+    { table: 'dynamics_integrations', provider: 'dynamics' },
+  ];
+
+  for (const { table, provider } of integrationTables) {
+    if (!isPlanAllowedForIntegration(newPlanSlug, provider)) {
+      const { data: active } = await supabaseAdminRaw
+        .from(table)
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('is_active', true);
+
+      if (active && active.length > 0) {
+        await supabaseAdminRaw
+          .from(table)
+          .update({ is_active: false })
+          .eq('company_id', companyId)
+          .eq('is_active', true);
+
+        console.log(`[subscription.updated] Deactivated ${provider} integration for company ${companyId} (plan: ${newPlanSlug})`);
+
+        // Log billing event for audit trail
+        await supabase.from('billing_events').insert({
+          company_id: companyId,
+          event_type: 'integration_deactivated_downgrade',
+          event_data: { provider, new_plan: newPlanSlug },
+          minutes_consumed: 0,
+          cost_usd: 0,
+        });
+      }
+    }
+  }
+}
 
 /**
  * Stripe Webhook Handler
@@ -668,6 +713,14 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription & Rec
             }
           } catch (downgradeCheckError) {
             console.error('⚠️ Downgrade minutes check failed (non-fatal):', downgradeCheckError);
+          }
+
+          // FIX #10: Deactivate CRM integrations that the new (lower) plan doesn't support.
+          // This prevents downgraded companies from syncing data with premium CRMs.
+          try {
+            await deactivateIneligibleIntegrations(existingSub.company_id, newPlan.slug);
+          } catch (deactivateError) {
+            console.error('⚠️ Integration deactivation on downgrade failed (non-fatal):', deactivateError);
           }
         }
       }
