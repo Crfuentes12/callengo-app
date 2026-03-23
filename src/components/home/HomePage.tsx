@@ -378,8 +378,8 @@ export default function HomePage({ userName, companyId, companyName, completedTa
         )}
       </div>
 
-      {/* Learn Section - Videos */}
-      <div>
+      {/* Learn Section - Videos (HIDDEN: using test videos, uncomment when real video URLs are ready) */}
+      {/* <div>
         <h2 className="text-base font-bold text-[var(--color-ink)] mb-3">{t.common.info}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {VIDEOS.map((video) => (
@@ -389,7 +389,6 @@ export default function HomePage({ userName, companyId, companyName, completedTa
               className="bg-white border border-[var(--border-default)] rounded-xl overflow-hidden hover:shadow-md hover:border-[var(--color-primary-200)] transition-all group text-left"
             >
               <div className="relative aspect-video bg-[var(--color-neutral-100)]">
-                {/* eslint-disable-next-line @next/next/no-img-element -- External YouTube thumbnail with dynamic URL */}
                 <img
                   src={`https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`}
                   alt={video.title}
@@ -409,10 +408,10 @@ export default function HomePage({ userName, companyId, companyName, completedTa
             </button>
           ))}
         </div>
-      </div>
+      </div> */}
 
-      {/* Video Modal */}
-      {videoModal && (
+      {/* Video Modal (HIDDEN: uncomment with Learn Section above) */}
+      {/* {videoModal && (
         <div className="fixed inset-0 bg-[var(--color-neutral-900)]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setVideoModal(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)]">
@@ -434,7 +433,7 @@ export default function HomePage({ userName, companyId, companyName, completedTa
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Onboarding Wizard Modal — overlay on top of home page */}
       {showOnboardingWizard && (
