@@ -623,3 +623,72 @@ Arreglar los 5 críticos (estimado ~3h):
 
 Después: soft launch con monitoreo. Los warnings son mejoras incrementales para las siguientes 2 semanas.
 
+
+---
+
+## INTEGRATIONS SYNC AUDIT — 2026-03-23 (agente completado)
+
+### 🔴 CRÍTICOS (4 nuevos)
+
+1. **[Todas las sync routes — Subscription query ignora status `trialing`]**
+   `hubspot/sync/route.ts:65`, `salesforce/sync/route.ts:69`, `pipedrive/sync/route.ts:69`, `zoho/sync/route.ts:76`
+   Todas las sync routes filtran con `.eq('status', 'active')`. Empresas en `trialing` (trial de plan Business/Teams/Enterprise con Stripe) obtienen `planSlug = 'free'` por defecto y son bloqueadas con 403. **Usuarios legítimos en trial no pueden sincronizar CRM.**
+   **Fix:** Cambiar a `.in('status', ['active', 'trialing'])`.
+
+2. **[Todas las CRM auth wrappers — Sin timeout en data-fetch calls]**
+   `hubspot/auth.ts:229`, `salesforce/auth.ts:215`, `pipedrive/auth.ts:228`, `zoho/auth.ts:293`
+   Los wrappers `hsFetch()`, `sfFetch()`, `pdFetch()`, `zohoFetch()` NO tienen timeout. Las llamadas de token refresh SÍ tienen timeout (10s), pero las data calls no. Un CRM API colgado bloquea la función serverless hasta el hard timeout de Vercel (60-300s).
+   **Fix:** Agregar `signal: AbortSignal.timeout(15000)` a todos los fetch wrappers.
+
+3. **[Todas las sync routes — Sin guard contra syncs concurrentes]**
+   No hay check de sync ya corriendo antes de crear uno nuevo. Un usuario puede triggerear múltiples syncs simultáneos, causando: contactos duplicados, waste de API quota del CRM, y sync logs stuck en `running` permanentemente.
+   **Fix:** Verificar si existe un sync log con `status = 'running'` y `started_at > 5min ago` antes de crear uno nuevo.
+
+4. **[status/route.ts — Zoho completamente ausente del response]**
+   `integrations/status/route.ts:76-137` — El endpoint de status consulta HubSpot, Salesforce, Pipedrive, Clio, pero **no consulta Zoho**. El frontend nunca ve el estado de Zoho.
+   **Fix:** Agregar query de `zoho_integrations` al endpoint.
+
+### 🟡 WARNINGS (3 nuevos)
+
+1. **[Todas las disconnect routes — OAuth tokens no se revocan en el proveedor CRM]**
+   Solo se setea `is_active = false`. Los tokens siguen válidos en HubSpot/Salesforce/etc. Si la DB se compromete, esos tokens permiten acceso al CRM del cliente incluso después de "desconectar".
+   **Fix:** Llamar al revocation endpoint del CRM antes de marcar como inactivo.
+
+2. **[Todas las disconnect routes — Tokens quedan en la DB después de disconnect]**
+   `access_token` y `refresh_token` no se limpian al desconectar. Se combinan con el punto anterior para maximizar exposición.
+   **Fix:** Setear `access_token = null, refresh_token = null` al desconectar.
+
+3. **[Todas las sync routes — Error messages internos expuestos en respuesta API]**
+   `details: errorMessage` devuelve el raw `error.message` que puede contener nombres de columnas DB, URLs internas, o stack traces.
+   **Fix:** Loguear server-side, devolver mensaje genérico al cliente.
+
+---
+
+## CONTEO ACTUALIZADO — TODOS LOS HALLAZGOS
+
+| Categoría | Ronda 1 (corregidos) | Ronda 2 | Integraciones | Total Abiertos |
+|-----------|---------------------|---------|---------------|----------------|
+| 🔴 Crítico | 0 | 5 | 4 | **9** |
+| 🟡 Warning | 3 | 8 | 3 | **14** |
+| 🟢 Info | — | 4 | 1 | **5** |
+
+## SCORE ACTUALIZADO: 6 / 10
+
+La caída de 6.5 a 6 se debe a los hallazgos de integraciones: el bug de `trialing` bloquea usuarios legítimos, y la falta de timeouts en CRM API calls es un riesgo real de DoS.
+
+### Los 9 Críticos Abiertos (ordenados por impacto × esfuerzo):
+
+| # | Issue | Esfuerzo | Impacto |
+|---|-------|----------|---------|
+| 1 | Sync routes ignoran `trialing` → bloquean trials de CRM | 15min | Alto — pérdida de clientes trial |
+| 2 | parse-csv sin auth | 15min | Alto — endpoint público |
+| 3 | report-usage singleton rate limit | 30min | Alto — revenue leakage |
+| 4 | Zoho ausente de status endpoint | 15min | Medio — feature rota |
+| 5 | CRM data-fetch sin timeout | 30min | Medio — DoS serverless |
+| 6 | Sync sin guard de concurrencia | 45min | Medio — datos duplicados |
+| 7 | Contact lock bypass via force | 15min | Medio — data integrity |
+| 8 | Contact lock bypass via custom_fields | 30min | Medio — data integrity |
+| 9 | IDOR en company/scrape | 20min | Medio — info disclosure |
+
+**Esfuerzo total estimado: ~4h**
+
