@@ -93,7 +93,12 @@ admin_audit_log, admin_finances, admin_platform_config, agent_runs, agent_templa
 
 ### 🔴 CRITICAL
 
-_None found._
+- **`users` table RLS allows self-escalation to admin role**
+  The `users_update` policy is `CHECK (id = auth.uid())` — it restricts users to updating their own row but does NOT restrict which columns they can update. The `role` column (text, default 'member') has no CHECK constraint or trigger preventing changes. A malicious user can execute `supabase.from('users').update({ role: 'admin' })` from the browser console, gaining full admin access to: Command Center, all client data, financial data, platform config, and all company data via admin RLS policies.
+  **Call chain traced:** Browser Supabase client (anon key) → RLS `users_update` policy (allows own row update) → `role` column updated → middleware reads `role` from DB → grants `/admin/*` access + admin API endpoints verify `role === 'admin'`.
+  **Suggested fix (choose one):**
+  1. Add a trigger: `CREATE OR REPLACE FUNCTION prevent_role_self_update() RETURNS trigger AS $$ BEGIN IF NEW.role <> OLD.role AND current_setting('role') <> 'service_role' THEN RAISE EXCEPTION 'Cannot modify own role'; END IF; RETURN NEW; END; $$ LANGUAGE plpgsql; CREATE TRIGGER trg_prevent_role_update BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION prevent_role_self_update();`
+  2. Or restrict the UPDATE policy to specific columns: Use a CHECK that `NEW.role = OLD.role` for non-service-role callers.
 
 Previous audits flagged `companies` and `company_settings` tables as having `USING(true)` RLS policies. **Verified: BOTH have been fixed.** The current `companies_select` policy scopes to `users.company_id` matching `auth.uid()`. The `company_settings_all` policy scopes to `company_id` via the same pattern.
 
