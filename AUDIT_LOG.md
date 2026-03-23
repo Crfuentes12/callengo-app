@@ -351,3 +351,109 @@
 - Integration gating rules properly aligned with plan tiers
 - Minutes/calls conversion ratio (1.5x) consistently applied
 
+
+---
+
+# PRODUCTION READINESS REPORT
+
+## Executive Summary
+
+Callengo is a B2B SaaS platform for AI-powered outbound calling (lead qualification, data validation, appointment confirmation) built on Next.js, Supabase, Stripe, Bland AI, and Redis. This audit reviewed the complete database schema (56 tables), 9 code modules covering ~150 files across API routes, business logic libraries, queue processors, and integrations. **The platform has solid architectural foundations but contains multiple critical issues that would cause data loss, revenue leakage, or security breaches in production under real customer load.**
+
+## Findings Summary
+
+| Severity | Count |
+|----------|-------|
+| 🔴 Critical | 17 |
+| 🟡 Warning | 38 |
+| 🟢 Info | 18 |
+
+## Database Findings Summary
+
+| Category | Status |
+|----------|--------|
+| Schema integrity | ✅ Clean — all FKs valid, no circular cascades |
+| RLS & multi-tenancy | 🟡 Warning — missing service_role policies on queue tables, users SELECT too restrictive |
+| Indexes & performance | 🟡 Warning — UUID v4 fragmentation risk, ~8 redundant indexes |
+| Sensitive data handling | 🔴 Critical — plaintext API keys and OAuth tokens in 9 tables |
+| Data types | 🔴 Critical — int4 for minutes truncates fractional usage (revenue loss) |
+| Constraints | 🟡 Warning — no CHECK constraints on status columns, conflicting calendar unique constraint |
+
+## Top 5 Blockers (Must Fix Before Go-Live)
+
+### 1. Dispatch Queue References Non-Existent Table
+**Problem:** `src/lib/queue/dispatch-queue.ts:28` queries `campaign_queue` which does not exist in the database schema (only `call_queue` exists). The follow-up queue also inserts into `campaign_queue` at line 247.
+**Why it matters:** Background campaign dispatch and follow-up re-dispatch are **completely non-functional**. No calls are being processed from the queue. This is the core product feature.
+**Minimum fix:** Change all `campaign_queue` references to `call_queue` and verify column compatibility.
+
+### 2. Non-Atomic Redis Check + Acquire Race Condition
+**Problem:** `src/lib/redis/concurrency-manager.ts:174-342` — `checkCallCapacity()` reads counters, then `acquireCallSlot()` increments them in a separate pipeline. Between check and acquire, concurrent requests can exceed limits.
+**Why it matters:** Under load, concurrent call limits WILL be exceeded, burning through Bland AI API limits and potentially getting the master account suspended. This also wastes customer budget.
+**Minimum fix:** Combine check + acquire into a single Redis Lua script or WATCH/MULTI transaction.
+
+### 3. Plaintext Secrets in 9 Database Tables
+**Problem:** `company_settings.bland_api_key`, `company_settings.openai_api_key`, and OAuth `access_token`/`refresh_token` in 8 integration tables are stored as plain text.
+**Why it matters:** Any RLS misconfiguration, query leak, or database compromise exposes all customer API keys and OAuth tokens for all tenants. This is a GDPR/SOC2 compliance violation.
+**Minimum fix:** Encrypt tokens at application level before storage using AES-256-GCM with a per-tenant or system key. Decrypt on read in server-side code only.
+
+### 4. PostgREST Filter Injection in HubSpot Sync
+**Problem:** `src/lib/hubspot/sync.ts:281` — `.or(\`email.eq.${props.email}\`)` interpolates external CRM data directly into Supabase filter strings without validation.
+**Why it matters:** Malicious or malformed data from HubSpot could manipulate query filters, causing incorrect contact matching or data leakage across tenants.
+**Minimum fix:** Use separate `.eq()` filters with validated inputs instead of string interpolation in `.or()`.
+
+### 5. 74 API Endpoints Without Rate Limiting
+**Problem:** Only 21 of ~95 API endpoints apply rate limiting. Unprotected endpoints include OpenAI-calling routes (cost abuse), contacts listing (data exfiltration), and CRM sync endpoints.
+**Why it matters:** Any authenticated user can make unlimited requests to expensive external APIs (OpenAI, CRM APIs), causing unbounded costs. Contact data can be exfiltrated rapidly via the unprotected paginated contacts endpoint.
+**Minimum fix:** Apply `apiLimiter` to all authenticated endpoints. Apply `expensiveLimiter` to all endpoints calling external APIs.
+
+## Scoring
+
+| Dimension | Score | Rationale |
+|-----------|-------|-----------|
+| Security | 4/10 | Plaintext secrets, filter injection, SSRF bypass, missing rate limiting on majority of endpoints, non-timing-safe auth comparison in followups queue |
+| Reliability & error handling | 4/10 | Broken dispatch queue (wrong table), infinite recursion in Google Calendar, non-atomic Redis operations, fail-open on Redis errors |
+| Data integrity & consistency | 5/10 | Integer truncation on billing minutes, non-atomic usage increment with broken optimistic lock, no soft-delete, cascading deletes on 30 tables |
+| Database design & safety | 5/10 | Good RLS coverage but plaintext tokens, missing CHECK constraints, conflicting unique constraints, UUID fragmentation risk |
+| Observability & debuggability | 4/10 | Console.log-based logging only, no structured logging, no correlation IDs, no error tracking service (Sentry), empty catch blocks in queue cleanup |
+| Performance under load | 5/10 | Unbounded admin queries, N+1 Redis calls in monitoring, redundant DB fallback checks after Redis, UUID v4 fragmentation on high-write tables |
+| Configuration & deploy hygiene | 5/10 | Incomplete .env.example, seed endpoint in production, health check without timeout, no graceful shutdown |
+| Code maintainability | 6/10 | Good Zod validation on critical endpoints, consistent patterns, but 3 files use untyped supabaseAdminRaw, large components (2300+ lines), dead code |
+
+## FINAL VERDICT
+
+### Production Readiness Score: 4 / 10
+
+**Do not ship.** Critical issues will cause incidents, data loss, and revenue leakage. The dispatch queue is non-functional (references a table that doesn't exist), meaning the core product feature — background campaign calling — does not work. Plaintext secrets in 9 tables are a compliance blocker. The non-atomic Redis concurrency control will exceed Bland API limits under real load.
+
+**Recommended next action:** Fix the 5 blockers listed above, then perform a targeted re-audit of the fixed code before any external user access.
+
+## Prioritized Remediation Backlog
+
+1. **Fix dispatch queue table reference** — Severity: 🔴 — Effort: 1h — Blocks go-live: **yes**
+2. **Atomic Redis check+acquire** — Severity: 🔴 — Effort: 4h — Blocks go-live: **yes**
+3. **Encrypt secrets in DB** — Severity: 🔴 — Effort: 8h — Blocks go-live: **yes**
+4. **Fix PostgREST filter injection** — Severity: 🔴 — Effort: 2h — Blocks go-live: **yes**
+5. **Apply rate limiting to all endpoints** — Severity: 🔴 — Effort: 4h — Blocks go-live: **yes**
+6. **Fix infinite recursion in Google Calendar** — Severity: 🔴 — Effort: 1h — Blocks go-live: **yes**
+7. **Fix SSRF bypass in webhook endpoints** — Severity: 🔴 — Effort: 1h — Blocks go-live: **yes**
+8. **Fix timing-safe comparison in followups queue** — Severity: 🔴 — Effort: 0.5h — Blocks go-live: **yes**
+9. **Fix usage_tracking minutes to numeric** — Severity: 🔴 — Effort: 2h — Blocks go-live: **yes** (revenue loss)
+10. **Fix calendar_integrations conflicting unique constraint** — Severity: 🔴 — Effort: 1h — Blocks go-live: yes (breaks Teams plan)
+11. **Add middleware admin check for /api/admin/** — Severity: 🟡 — Effort: 0.5h — Blocks go-live: no
+12. **Fix optimistic lock in usage-tracker (updated_at trigger conflict)** — Severity: 🔴 — Effort: 3h — Blocks go-live: yes
+13. **Add CHECK constraints on status columns** — Severity: 🟡 — Effort: 2h — Blocks go-live: no
+14. **Fix webhook handler to mark events processed before handling** — Severity: 🔴 — Effort: 2h — Blocks go-live: yes
+15. **Add soft-delete on companies** — Severity: 🟡 — Effort: 4h — Blocks go-live: no
+16. **Remove seed endpoint from production** — Severity: 🟡 — Effort: 0.5h — Blocks go-live: no
+17. **Fix analysis queue lock mechanism** — Severity: 🟡 — Effort: 2h — Blocks go-live: no
+18. **Add timeouts to Google OAuth calls** — Severity: 🟡 — Effort: 1h — Blocks go-live: no
+19. **Fix duplicate triggers on contacts/company_settings** — Severity: 🟡 — Effort: 1h — Blocks go-live: no
+20. **Replace supabaseAdminRaw with typed client** — Severity: 🟡 — Effort: 3h — Blocks go-live: no
+21. **Add structured logging** — Severity: 🟡 — Effort: 8h — Blocks go-live: no
+22. **Paginate admin command-center queries** — Severity: 🟡 — Effort: 2h — Blocks go-live: no
+23. **Fix Redis TTL atomicity** — Severity: 🟡 — Effort: 2h — Blocks go-live: no
+24. **Complete .env.example** — Severity: 🟡 — Effort: 1h — Blocks go-live: no
+25. **Add health check timeout** — Severity: 🟡 — Effort: 0.5h — Blocks go-live: no
+
+**Total estimated effort for go-live blockers (items 1-14):** ~30 hours
+
