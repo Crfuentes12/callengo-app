@@ -290,3 +290,64 @@
 - `src/app/api/contacts/import/route.ts` — rate limited, size/type validated, plan limits enforced
 - `src/app/api/campaigns/dispatch/route.ts` — Zod validated, rate limited, company ownership verified
 
+
+## CRM INTEGRATIONS (HubSpot, Salesforce) — 2026-03-23
+
+### 🔴 CRITICAL
+
+- **[hubspot/sync.ts:281 — PostgREST filter injection via unvalidated OR query]** `.or(\`email.eq.${props.email || ''},phone_number.eq.${phoneNumber || ''}\`)` directly interpolates external data from HubSpot into Supabase filter syntax. Malicious HubSpot email/phone values containing PostgREST operators could manipulate the query. Same vulnerability at line 436. **Fix:** Use parameterized `.or()` with validated values or separate `.eq()` filters.
+
+### 🟡 WARNING
+
+- **[hubspot/auth.ts:117-202 — race condition in token refresh]** Optimistic lock on `token_issued_at` has a narrow race window where concurrent requests could return stale tokens. Lock compares string to potentially NULL value.
+- **[salesforce/auth.ts:125 — weak race condition check]** Token refresh race recovery doesn't validate token expiry on re-read path. Salesforce client lacks proactive expiry check (HubSpot has one).
+- **[salesforce/auth.ts:95 — unvalidated `identityUrl`]** Fetches user info from URL extracted from token response without origin validation. SSRF risk if token response is compromised.
+- **[hubspot/sync.ts:577 — missing company_id filter on contact lookup]** `pushCallResultToHubSpot` retrieves contact by `callengo_contact_id` without filtering by `company_id`. Theoretical cross-tenant risk.
+- **[Both auth.ts — no exponential backoff on 401 retry]** Single immediate retry on 401 without backoff.
+- **[hubspot/sync.ts:51-54 — error messages leak API details]** CRM API error bodies (quotas, internal IDs) may be exposed to clients.
+
+### ✅ CLEAN
+
+- OAuth state parameters use HMAC-signed verification in callbacks
+- Company_id isolation validated in OAuth callback handlers
+- Fetch calls use `AbortSignal.timeout(10000)` for timeout protection
+- Per-contact error handling prevents sync loop crashes
+
+## CALENDAR & WEBHOOKS — 2026-03-23
+
+### 🔴 CRITICAL
+
+- **[calendar/google.ts:204-224 — infinite recursion on 401/403]** `listGoogleEvents` recursively calls itself without depth limit when encountering sync token errors. Could cause stack overflow / process crash. **Fix:** Add max recursion depth counter or convert to iterative retry.
+
+- **[webhooks/endpoints/route.ts:87-95 — SSRF validation bypassed]** The webhook endpoints API route validates URLs with basic checks but does NOT call the strict `validateWebhookUrl()` function from `webhooks.ts` which blocks private IP ranges and localhost. Users can register webhooks pointing to internal infrastructure. **Fix:** Call `validateWebhookUrl()` before saving endpoint.
+
+### 🟡 WARNING
+
+- **[calendar/google.ts:62-75, 80-93 — no timeout on OAuth token exchange and userinfo]** Google API calls without timeout can hang indefinitely.
+- **[calendar/google.ts:123-147 — token refresh race condition]** Multiple concurrent requests can all attempt to refresh the same token simultaneously.
+- **[calendar/google.ts:407-468 — no try-catch in sync event loop]** One failed DB write crashes entire sync, losing partial progress.
+- **[webhooks.ts:155-158 — unvalidated signature input before crypto]** Malformed hex in user-supplied signature could cause unexpected errors.
+
+### 🟢 INFO
+
+- `webhooks.ts` has comprehensive SSRF prevention with private IP range blocking.
+- HMAC-SHA256 webhook signing with timing-safe comparison and 5-min timestamp freshness.
+- Auto-disable endpoints after 10 consecutive failures — good health tracking pattern.
+- Webhook CRUD properly filters by company_id for tenant isolation.
+
+## CONFIG & UTILITIES — 2026-03-23
+
+### 🟡 WARNING
+
+- **[plan-features.ts:17-18 — outdated documentation]** File header claims sub-account architecture but the system uses single master key. Could mislead developers.
+- **[health/route.ts:6 — no error handling for client initialization]** Health endpoint crashes if Supabase service key is missing instead of returning degraded status.
+- **[health/route.ts:18 — no timeout on health check DB query]** Can hang indefinitely if database is unresponsive.
+- **[.env.example — missing critical env vars]** Missing `QUEUE_PROCESSING_SECRET`, `BLAND_WEBHOOK_SECRET`, `LOG_LEVEL`, `SEED_SECRET` and other production-critical variables.
+
+### ✅ CLEAN
+
+- Plan feature matrix is internally consistent across all 6 tiers
+- Overage pricing ladder matches documentation
+- Integration gating rules properly aligned with plan tiers
+- Minutes/calls conversion ratio (1.5x) consistently applied
+
