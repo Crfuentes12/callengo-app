@@ -75,10 +75,53 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- FIX #3: Add unique constraint on campaign_queue (agent_run_id, contact_id)
--- Prevents duplicate queue entries when the same campaign is dispatched twice.
--- Only applies when agent_run_id is NOT NULL (single ad-hoc calls don't have one).
+-- FIX #3: Create campaign_queue table (missing from schema) and add
+-- unique partial index to prevent duplicate dispatches.
 -- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS campaign_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  campaign_id UUID,
+  agent_run_id UUID,
+  contact_id UUID NOT NULL,
+  phone_number TEXT NOT NULL,
+  contact_name TEXT,
+  call_config JSONB NOT NULL DEFAULT '{}',
+  webhook_url TEXT,
+  dedicated_number TEXT,
+  effective_max_duration INTEGER,
+  status TEXT NOT NULL DEFAULT 'pending',
+  priority INTEGER NOT NULL DEFAULT 0,
+  call_id TEXT,
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ
+);
+
+-- Indexes for queue processing
+CREATE INDEX IF NOT EXISTS idx_campaign_queue_status_priority
+  ON campaign_queue (status, priority, created_at)
+  WHERE status = 'pending';
+
+CREATE INDEX IF NOT EXISTS idx_campaign_queue_company
+  ON campaign_queue (company_id);
+
+-- Unique partial index: prevents duplicate queue entries for the same
+-- agent_run + contact while the entry is still pending/processing.
 CREATE UNIQUE INDEX IF NOT EXISTS campaign_queue_agent_run_contact_unique
   ON campaign_queue (agent_run_id, contact_id)
   WHERE agent_run_id IS NOT NULL AND status IN ('pending', 'processing');
+
+-- RLS
+ALTER TABLE campaign_queue ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY campaign_queue_select ON campaign_queue
+  FOR SELECT USING (
+    company_id IN (SELECT company_id FROM users WHERE id = auth.uid())
+  );
+
+CREATE POLICY campaign_queue_insert ON campaign_queue
+  FOR INSERT WITH CHECK (
+    company_id IN (SELECT company_id FROM users WHERE id = auth.uid())
+  );
