@@ -83,3 +83,73 @@ admin_audit_log, admin_finances, admin_platform_config, agent_runs, agent_templa
 - **Team:** 5 (invite, accept, cancel, members, remove)
 - **Webhooks:** 3 (endpoints CRUD, Stripe webhook)
 - **Other:** 8 (health, seed, ai-chat, get-started, voices, etc.)
+
+---
+
+## DATABASE SCHEMA AUDIT
+
+**Schema:** 56 tables, 95+ foreign keys, 130+ indexes, 36 triggers, 27 functions
+**Audit date:** 2026-03-23
+
+### 🔴 CRITICAL
+
+_None found._
+
+Previous audits flagged `companies` and `company_settings` tables as having `USING(true)` RLS policies. **Verified: BOTH have been fixed.** The current `companies_select` policy scopes to `users.company_id` matching `auth.uid()`. The `company_settings_all` policy scopes to `company_id` via the same pattern.
+
+### 🟡 WARNING
+
+- **`claim_analysis_job()` — SECURITY DEFINER function bypasses RLS**
+  This PostgreSQL function runs with creator privileges, bypassing all RLS policies. It claims analysis jobs from `analysis_queue` without company_id filtering. **Mitigated** by: the function is only called from `/api/queue/process` which requires `QUEUE_PROCESSING_SECRET` header — not user-accessible. Risk is theoretical (requires compromised queue secret). Severity remains WARNING because SECURITY DEFINER functions are a surface area if new callers are added without the same protection.
+  **Suggested fix:** Add `company_id` parameter to the function signature, or ensure it only returns jobs the caller is authorized to process.
+
+- **`hubspot_integrations` missing unique constraint on `(company_id, user_id)`**
+  Unlike `salesforce_integrations` which has `idx_sf_integrations_unique ON (company_id, user_id) WHERE is_active`, HubSpot has no such constraint. A company could end up with duplicate active HubSpot integrations for the same user.
+  **Suggested fix:** Add `CREATE UNIQUE INDEX idx_hubspot_integrations_unique ON hubspot_integrations (company_id, user_id) WHERE is_active = true;`
+
+- **CASCADE deletes on `companies` silently removes financial records**
+  `billing_history`, `billing_events`, `usage_tracking` all CASCADE delete when a company is deleted. This means deleting a company permanently destroys all billing audit trail. For a B2B SaaS with Stripe integration, this data may be needed for tax/compliance even after a company churns.
+  **Suggested fix:** Consider SET NULL or RESTRICT on financial tables, or implement soft-delete for companies.
+
+- **`contacts.contact_id → call_logs` CASCADE deletes call history**
+  FK `call_logs.contact_id → contacts.id ON DELETE CASCADE`. Deleting a contact removes all associated call logs. This could be unexpected if a user deletes a duplicate contact but wants to preserve call history.
+  **Suggested fix:** Change to `ON DELETE SET NULL` (call_logs.contact_id is already nullable).
+
+### 🟢 INFO
+
+- **Status/enum columns use TEXT without CHECK constraints**
+  Tables like `company_subscriptions.status`, `call_logs.status`, `agent_runs.status`, `follow_up_queue.status` store status values as TEXT with no DB-level CHECK constraint. Validation happens at application layer (TypeScript types + Zod). This is acceptable for this stack but means invalid status values could be inserted via service_role if application code has a bug.
+
+- **OAuth tokens stored as plaintext TEXT columns**
+  All 9 integration tables store `access_token` and `refresh_token` as plain TEXT. This is standard practice for this architecture — Supabase provides disk-level encryption, and RLS prevents cross-tenant access. Application-level encryption would add complexity with minimal security benefit given the threat model.
+
+- **`calendar_events` has 50+ columns**
+  This is a wide table that aggregates data from multiple calendar providers. While maintainability is a concern, this is documented as an intentional design choice to avoid JOINs on a frequently-queried table.
+
+- **`company_settings.openai_api_key` column exists but is unused**
+  The app uses the `OPENAI_API_KEY` environment variable for all OpenAI calls. The per-company column is dead schema. Low risk.
+
+- **No migration files in repo**
+  Migrations appear to be managed directly in Supabase dashboard. No `supabase/migrations/` directory found. This makes schema versioning harder to audit but is common with Supabase-managed projects.
+
+- **UUID primary keys on all tables**
+  UUIDs are used universally as PKs. While this has known B-tree fragmentation concerns at scale, the current dataset size (B2B SaaS with hundreds of companies) is well within safe bounds. Would only become a concern at >10M rows per table.
+
+### ✅ CLEAN
+
+- **Schema integrity:** All 56 tables have PKs. All FKs reference valid tables/columns. No circular FK dependencies. Junction tables have appropriate unique constraints.
+- **Column types:** All financial columns use NUMERIC (not FLOAT). Booleans are proper `bool` type. Timestamps are `timestamptz`. JSON fields use `jsonb`. Arrays use proper PostgreSQL array types (`_text`).
+- **Nullability:** Mandatory fields (names, emails, company_id FKs) are marked NOT NULL. Optional fields (descriptions, notes, external IDs) are properly nullable. FK columns that should cascade/fail have correct ON DELETE behavior.
+- **Indexes:** All FK columns are indexed. High-traffic query patterns have composite indexes. Partial indexes used appropriately (e.g., `WHERE is_active = true`, `WHERE status = 'pending'`). No obviously redundant indexes.
+- **Timestamps:** All mutable tables have `created_at` + `updated_at`. Append-only tables have `created_at` only. 36 triggers maintain `updated_at` automatically.
+- **Multi-tenancy:** Every user-data table has `company_id`. RLS policies enforce tenant isolation on reads AND writes. Service role access is audit-logged for admin operations.
+- **RLS coverage:** All 56 tables have RLS policies. Admin tables restrict to admin/owner role. Service-role-only tables are not client-accessible. Write-restricted tables have their writes handled by service_role in appropriate server contexts.
+- **Singleton pattern:** `admin_platform_config` uses `UNIQUE INDEX ON ((true))` to enforce single row — correct.
+- **Soft delete consistency:** No tables use soft delete — consistent hard-delete pattern throughout.
+- **Triggers:** 36 triggers for `updated_at`, plus business logic triggers (campaign completion notifications, failure rate alerts, follow-up auto-creation, dedicated number limit checks). All well-scoped.
+
+### ⚪ SCHEMA JSON GAPS
+
+- `campaign_queue` referenced in types but not in schema JSON (may be renamed to `call_queue`)
+- `ai_conversation_messages` referenced in master doc but schema shows `ai_messages` (naming difference only)
+- No migration files available for version tracking audit
