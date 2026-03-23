@@ -99,6 +99,7 @@ export async function exchangeDynamicsCode(
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString(),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -121,6 +122,7 @@ export async function exchangeDynamicsCode(
 export async function getDynamicsUserInfo(accessToken: string): Promise<DynamicsUserInfo> {
   const res = await fetch('https://graph.microsoft.com/v1.0/me', {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -152,6 +154,7 @@ export async function getDynamicsOrgInfo(
     // WhoAmI to get org and user IDs
     const whoAmIRes = await fetch(`${baseUrl}/api/data/v9.2/WhoAmI`, {
       headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!whoAmIRes.ok) return null;
@@ -168,6 +171,7 @@ export async function getDynamicsOrgInfo(
         `${baseUrl}/api/data/v9.2/organizations(${organizationId})?$select=name,uniquename,version`,
         {
           headers: { Authorization: `Bearer ${accessToken}` },
+          signal: AbortSignal.timeout(10000),
         }
       );
       if (orgRes.ok) {
@@ -245,6 +249,7 @@ export async function refreshDynamicsToken(
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString(),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {

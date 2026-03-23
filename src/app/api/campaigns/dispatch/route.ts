@@ -1,16 +1,13 @@
 // app/api/campaigns/dispatch/route.ts
 // Server-side campaign batch dispatch — single master API key architecture
-// Processes contacts sequentially with throttling and Redis concurrency control.
+// Enqueues contacts into campaign_queue for background processing (avoids Vercel timeout).
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/service';
 import { checkCallAllowed, getMaxCallDuration } from '@/lib/billing/call-throttle';
 import { expensiveLimiter } from '@/lib/rate-limit';
-import { dispatchCall } from '@/lib/bland/master-client';
 import { getCompanyCallerNumber } from '@/lib/bland/phone-numbers';
-import { acquireCallSlot, releaseCallSlot } from '@/lib/redis/concurrency-manager';
 
 const dispatchSchema = z.object({
   company_id: z.string().uuid(),
@@ -63,7 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { company_id, campaign_id, agent_run_id, contacts, call_config, webhook_url, delay_between_calls_ms } = parseResult.data;
+    const { company_id, campaign_id, agent_run_id, contacts, call_config, webhook_url } = parseResult.data;
 
     // Verify user belongs to the company
     const { data: userData } = await supabase
@@ -105,175 +102,68 @@ export async function POST(request: NextRequest) {
       .in('id', contactIds);
     const validContactIds = new Set((validContacts || []).map(c => c.id));
 
-    // Process contacts sequentially with delays
-    const results: { contact_id: string; status: 'dispatched' | 'throttled' | 'failed' | 'cooldown'; call_id?: string; error?: string }[] = [];
-    let dispatched = 0;
-    let throttled = 0;
-    let failed = 0;
+    // Insert contacts into dispatch queue for background processing
+    const queueEntries = contacts
+      .filter(c => validContactIds.has(c.contact_id))
+      .map((contact, index) => ({
+        company_id,
+        campaign_id: campaign_id || null,
+        agent_run_id: agent_run_id || null,
+        contact_id: contact.contact_id,
+        phone_number: contact.phone_number,
+        contact_name: contact.contact_name || null,
+        call_config: JSON.parse(JSON.stringify(call_config)),
+        webhook_url: webhook_url || platformWebhook,
+        dedicated_number: dedicatedNumber || null,
+        effective_max_duration: effectiveMaxDuration,
+        status: 'pending',
+        priority: index, // Preserve dispatch order
+        created_at: new Date().toISOString(),
+      }));
 
-    for (let i = 0; i < contacts.length; i++) {
-      const contact = contacts[i];
+    const invalidContacts = contacts
+      .filter(c => !validContactIds.has(c.contact_id))
+      .map(c => ({ contact_id: c.contact_id, status: 'failed' as const, error: 'Contact not found in company' }));
 
-      // Validate contact belongs to this company
-      if (!validContactIds.has(contact.contact_id)) {
-        results.push({ contact_id: contact.contact_id, status: 'failed', error: 'Contact not found in company' });
-        failed++;
-        continue;
-      }
-
-      try {
-        // FIX: Pre-register call_log BEFORE throttle re-check to prevent TOCTOU race.
-        const preCallId = `pre_${Date.now()}_${crypto.randomUUID()}`;
-        const { data: preLog } = await supabaseAdmin.from('call_logs').insert({
-          company_id,
-          contact_id: contact.contact_id,
-          call_id: preCallId,
-          status: 'queued',
-          completed: false,
-        }).select('id').single();
-
-        // Re-check throttle AFTER pre-registration (entry is already counted)
-        if (i > 0) {
-          const throttleRecheck = await checkCallAllowed(company_id);
-          if (!throttleRecheck.allowed) {
-            // Clean up pre-registered entry (non-fatal if delete fails)
-            try {
-              if (preLog?.id) {
-                await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
-              }
-            } catch (cleanupErr) {
-              console.error('[dispatch] Failed to cleanup pre-log on throttle:', cleanupErr);
-            }
-            // Mark remaining contacts as throttled
-            results.push({ contact_id: contact.contact_id, status: 'throttled', error: throttleRecheck.reason });
-            throttled++;
-            for (let j = i + 1; j < contacts.length; j++) {
-              results.push({ contact_id: contacts[j].contact_id, status: 'throttled', error: throttleRecheck.reason });
-              throttled++;
-            }
-            break;
-          }
-        }
-
-        // Acquire Redis call slot (checks contact cooldown + all limits)
-        const slot = await acquireCallSlot(company_id, preCallId, contact.contact_id);
-        if (!slot.acquired) {
-          try {
-            if (preLog?.id) {
-              await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
-            }
-          } catch (cleanupErr) {
-            console.error('[dispatch] Failed to cleanup pre-log on slot reject:', cleanupErr);
-          }
-          results.push({ contact_id: contact.contact_id, status: 'cooldown', error: slot.error || 'Call slot unavailable' });
-          continue; // Skip this contact but try next
-        }
-
-        // Dispatch via master API key — wrapped in try-finally to guarantee slot release on ANY exception
-        let dispatchSuccess = false;
-        try {
-          const result = await dispatchCall({
-            phone_number: contact.phone_number,
-            task: call_config.task,
-            voice: call_config.voice,
-            wait_for_greeting: true,
-            record: true,
-            max_duration: effectiveMaxDuration,
-            voicemail_action: call_config.voicemail_action,
-            answered_by_enabled: true,
-            webhook: webhook_url || platformWebhook,
-            metadata: {
-              company_id,
-              contact_id: contact.contact_id,
-              campaign_id: campaign_id || null,
-              agent_run_id: agent_run_id || null,
-              agent_name: call_config.agent_name || 'AI Agent',
-              agent_template_slug: call_config.agent_template_slug || null,
-              contact_name: contact.contact_name || null,
-            },
-            first_sentence: call_config.first_sentence,
-            voicemail_message: call_config.voicemail_message,
-            from: dedicatedNumber || undefined,
-          });
-
-          if (result.success && result.callId) {
-            dispatchSuccess = true;
-            // Update pre-registered call_log with real call_id — must succeed to maintain consistency
-            if (preLog?.id) {
-              const { error: linkError } = await supabaseAdmin.from('call_logs')
-                .update({ call_id: result.callId, status: 'in_progress' })
-                .eq('id', preLog.id);
-              if (linkError) {
-                console.error(`[dispatch] CRITICAL: Failed to link pre-log ${preLog.id} to real call ${result.callId}:`, linkError);
-              }
-            }
-            results.push({ contact_id: contact.contact_id, status: 'dispatched', call_id: result.callId });
-            dispatched++;
-          } else {
-            results.push({ contact_id: contact.contact_id, status: 'failed', error: result.error || 'Bland API error' });
-            failed++;
-          }
-        } catch (dispatchError) {
-          results.push({ contact_id: contact.contact_id, status: 'failed', error: 'Dispatch error' });
-          failed++;
-          console.error(`[dispatch] Failed to dispatch call to ${contact.phone_number}:`, dispatchError);
-        } finally {
-          // CRITICAL: Always clean up on failure to prevent Redis slot leaks
-          if (!dispatchSuccess) {
-            try {
-              if (preLog?.id) {
-                await supabaseAdmin.from('call_logs').delete().eq('id', preLog.id);
-              }
-            } catch (dbCleanupErr) {
-              console.error(`[dispatch] Failed to cleanup pre-log ${preLog?.id} (non-fatal):`, dbCleanupErr);
-            }
-            // Retry slot release up to 3 times to prevent counter drift
-            for (let releaseAttempt = 0; releaseAttempt < 3; releaseAttempt++) {
-              try {
-                await releaseCallSlot(company_id, preCallId);
-                break; // Success
-              } catch (releaseErr) {
-                console.error(`[dispatch] CRITICAL: Failed to release slot ${preCallId} (attempt ${releaseAttempt + 1}/3):`, releaseErr);
-                if (releaseAttempt < 2) {
-                  await new Promise(r => setTimeout(r, 100 * Math.pow(2, releaseAttempt)));
-                }
-              }
-            }
-          }
-        }
-      } catch (callError) {
-        results.push({ contact_id: contact.contact_id, status: 'failed', error: 'Pre-dispatch error' });
-        failed++;
-        console.error(`[dispatch] Pre-dispatch error for ${contact.phone_number}:`, callError);
-      }
-
-      // Delay between calls (except for the last one)
-      if (i < contacts.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, delay_between_calls_ms));
-      }
+    if (queueEntries.length === 0) {
+      return NextResponse.json({
+        status: 'completed',
+        summary: { total: contacts.length, queued: 0, failed: invalidContacts.length },
+        results: invalidContacts,
+      });
     }
 
-    // Update campaign/agent_run status if provided (only if still running)
+    // Batch insert into campaign_queue (Supabase supports bulk insert)
+    const { error: queueError } = await supabaseAdmin
+      .from('campaign_queue')
+      .insert(queueEntries);
+
+    if (queueError) {
+      console.error('[dispatch] Failed to enqueue contacts:', queueError);
+      return NextResponse.json({ error: 'Failed to enqueue contacts for dispatch' }, { status: 500 });
+    }
+
+    // Update agent_run status to 'dispatching'
     if (agent_run_id) {
       await supabaseAdmin
         .from('agent_runs')
-        .update({
-          status: throttled > 0 ? 'partially_completed' : 'completed',
-          completed_at: new Date().toISOString(),
-        })
+        .update({ status: 'dispatching' })
         .eq('id', agent_run_id)
-        .in('status', ['running', 'active', 'dispatching']); // Only transition from active states
+        .in('status', ['pending', 'running', 'active']);
     }
 
     return NextResponse.json({
-      status: 'completed',
+      status: 'queued',
       summary: {
         total: contacts.length,
-        dispatched,
-        throttled,
-        failed,
+        queued: queueEntries.length,
+        failed: invalidContacts.length,
       },
-      results,
+      results: [
+        ...queueEntries.map(e => ({ contact_id: e.contact_id, status: 'queued' as const })),
+        ...invalidContacts,
+      ],
+      message: `${queueEntries.length} contacts queued for dispatch. Processing will begin shortly.`,
     });
   } catch (error) {
     console.error('[dispatch] Campaign dispatch error:', error);

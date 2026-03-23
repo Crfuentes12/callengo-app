@@ -4,6 +4,7 @@
 // and updates statuses. Designed to be triggered by a cron job.
 
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
+import { checkCallAllowed } from '@/lib/billing/call-throttle';
 
 // ============================================================================
 // TYPES
@@ -222,6 +223,22 @@ async function executeFollowUp(job: FollowUpJob): Promise<{
       .update({ status: 'completed' })
       .eq('id', job.id);
     return { dispatched: false, error: 'Agent run not found or cancelled' };
+  }
+
+  // Verify company still has call allowance before dispatching follow-up
+  const throttleCheck = await checkCallAllowed(job.company_id);
+  if (!throttleCheck.allowed) {
+    console.log(`[followup-queue] Company ${job.company_id} throttled (${throttleCheck.reason}), rescheduling job ${job.id}`);
+    // Don't mark as failed — reschedule for later when they may have capacity
+    const retryHours = Math.min(24, Math.pow(2, job.attempt_number));
+    await supabaseAdmin
+      .from('follow_up_queue')
+      .update({
+        status: 'pending',
+        next_attempt_at: new Date(Date.now() + retryHours * 60 * 60 * 1000).toISOString(),
+      })
+      .eq('id', job.id);
+    return { dispatched: false, error: throttleCheck.reason };
   }
 
   // Enqueue the contact for a new call via the existing dispatch system

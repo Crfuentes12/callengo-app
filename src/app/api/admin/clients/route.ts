@@ -37,36 +37,34 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '50')));
     const offset = (page - 1) * limit;
 
-    // Get all companies with subscriptions and settings
-    const { data: allCompanies, count: totalCount } = await supabaseAdmin
-      .from('companies')
-      .select('id, name, created_at', { count: 'exact' })
-      .order('created_at', { ascending: false });
-
-    if (!allCompanies || allCompanies.length === 0) {
-      return NextResponse.json({ clients: [] });
-    }
-
-    // Filter out orphaned companies (no users associated)
-    const { data: usersWithCompanies } = await supabaseAdmin
+    // Get active companies with DB-level pagination (avoids fetching all companies into JS).
+    // Use an inner join via users table to exclude orphaned companies.
+    const { data: activeCompanyIds } = await supabaseAdmin
       .from('users')
-      .select('company_id');
+      .select('company_id')
+      .not('company_id', 'is', null);
 
-    const activeCompanyIds = new Set(
-      (usersWithCompanies || []).map(u => u.company_id).filter(Boolean)
-    );
+    const uniqueActiveIds = [...new Set(
+      (activeCompanyIds || []).map(u => u.company_id).filter(Boolean)
+    )];
 
-    const allActiveCompanies = allCompanies.filter(c =>
-      activeCompanyIds.has(c.id) && !c.name.startsWith('[ARCHIVED] ')
-    );
-    const filteredTotal = allActiveCompanies.length;
-
-    if (filteredTotal === 0) {
+    if (uniqueActiveIds.length === 0) {
       return NextResponse.json({ clients: [], total: 0, page, limit });
     }
 
-    // Apply pagination
-    const companies = allActiveCompanies.slice(offset, offset + limit);
+    // Paginated query with count
+    const { data: companies, count: filteredTotal } = await supabaseAdmin
+      .from('companies')
+      .select('id, name, created_at', { count: 'exact' })
+      .in('id', uniqueActiveIds)
+      .not('name', 'like', '[ARCHIVED] %')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (!companies || companies.length === 0) {
+      return NextResponse.json({ clients: [], total: filteredTotal || 0, page, limit });
+    }
+
     const companyIds = companies.map(c => c.id);
 
     // Parallel queries for all data

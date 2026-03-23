@@ -167,18 +167,32 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     console.log(`💺 Seat checkout completed: ${seatQuantity} seats for company ${companyId}`);
 
     try {
-      // Fetch current seat count and increment
-      const { data: currentSub } = await supabase
-        .from('company_subscriptions')
-        .select('extra_users')
-        .eq('company_id', companyId)
-        .single();
-
-      if (currentSub) {
-        await supabase
+      // Atomic seat increment with optimistic locking to prevent race conditions.
+      // Two concurrent seat purchases won't overwrite each other.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: currentSub } = await supabase
           .from('company_subscriptions')
-          .update({ extra_users: (currentSub.extra_users || 0) + seatQuantity })
-          .eq('company_id', companyId);
+          .select('id, extra_users')
+          .eq('company_id', companyId)
+          .single();
+
+        if (!currentSub) break;
+
+        const currentSeats = currentSub.extra_users || 0;
+        const { data: updated } = await supabase
+          .from('company_subscriptions')
+          .update({ extra_users: currentSeats + seatQuantity })
+          .eq('id', currentSub.id)
+          .eq('extra_users', currentSeats) // Optimistic lock: only update if value hasn't changed
+          .select('id')
+          .maybeSingle();
+
+        if (updated) {
+          console.log(`Seat increment success: ${currentSeats} -> ${currentSeats + seatQuantity}`);
+          break; // Success
+        }
+        // Another request changed extra_users — retry
+        if (attempt < 2) await new Promise(r => setTimeout(r, 100));
       }
     } catch (seatError) {
       console.error('Failed to record seat purchase:', seatError);
@@ -206,13 +220,41 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  // Calculate period
-  const currentPeriodStart = new Date();
-  const currentPeriodEnd = new Date();
-  if (billingCycle === 'annual') {
-    currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
+  // Use Stripe's actual subscription period dates instead of calculating from Date.now()
+  // This prevents drift between Callengo and Stripe billing periods.
+  let currentPeriodStart: Date;
+  let currentPeriodEnd: Date;
+
+  if (subscriptionId) {
+    try {
+      const { default: Stripe } = await import('stripe');
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+      const stripeSub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['items.data'] });
+      const item = stripeSub.items?.data?.[0];
+      if (item) {
+        currentPeriodStart = new Date(item.current_period_start * 1000);
+        currentPeriodEnd = new Date(item.current_period_end * 1000);
+      } else {
+        throw new Error('No subscription items found');
+      }
+    } catch (stripeErr) {
+      console.warn('Failed to fetch Stripe subscription period, using calculated dates:', stripeErr);
+      currentPeriodStart = new Date();
+      currentPeriodEnd = new Date();
+      if (billingCycle === 'annual') {
+        currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
+      } else {
+        currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+      }
+    }
   } else {
-    currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+    currentPeriodStart = new Date();
+    currentPeriodEnd = new Date();
+    if (billingCycle === 'annual') {
+      currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
+    } else {
+      currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+    }
   }
 
   // Update existing subscription record (use .update().eq() instead of upsert

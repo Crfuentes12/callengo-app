@@ -1,6 +1,7 @@
 // app/api/contacts/import/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { expensiveLimiter } from '@/lib/rate-limit';
 import { parseCSV, mapRowToContact } from '@/lib/call-agent-utils';
 import { ColumnMapping } from '@/types/call-agent';
 import { trackServerEvent } from '@/lib/analytics';
@@ -26,6 +27,12 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit: 3 imports per minute per user (heavy DB operation)
+    const rateLimit = await expensiveLimiter.check(3, `contacts_import_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many import requests. Please wait.' }, { status: 429 });
     }
 
     const { data: userData } = await supabase

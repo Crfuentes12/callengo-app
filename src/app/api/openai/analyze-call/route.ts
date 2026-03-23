@@ -1,6 +1,7 @@
 // app/api/openai/analyze-call/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { expensiveLimiter } from '@/lib/rate-limit';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -16,7 +17,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-     
+    // Rate limit: 5 analysis requests per minute per user (each triggers OpenAI API call)
+    const rateLimit = await expensiveLimiter.check(5, `openai_analyze_${user.id}`);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many analysis requests. Please wait.' }, { status: 429 });
+    }
+
     const { transcripts, agentType: _agentType, demoData } = await request.json();
 
     if (!transcripts || !Array.isArray(transcripts)) {

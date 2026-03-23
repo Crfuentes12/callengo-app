@@ -912,6 +912,170 @@ export type Database = {
           }
         ]
       }
+      campaign_queue: {
+        Row: {
+          id: string
+          company_id: string
+          campaign_id: string | null
+          agent_run_id: string | null
+          contact_id: string | null
+          phone_number: string | null
+          contact_name: string | null
+          call_config: Json
+          webhook_url: string | null
+          dedicated_number: string | null
+          effective_max_duration: number | null
+          status: string
+          priority: number
+          started_at: string | null
+          completed_at: string | null
+          call_id: string | null
+          error_message: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          campaign_id?: string | null
+          agent_run_id?: string | null
+          contact_id?: string | null
+          phone_number?: string | null
+          contact_name?: string | null
+          call_config?: Json
+          webhook_url?: string | null
+          dedicated_number?: string | null
+          effective_max_duration?: number | null
+          status?: string
+          priority?: number
+          started_at?: string | null
+          completed_at?: string | null
+          call_id?: string | null
+          error_message?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          campaign_id?: string | null
+          agent_run_id?: string | null
+          contact_id?: string | null
+          phone_number?: string | null
+          contact_name?: string | null
+          call_config?: Json
+          webhook_url?: string | null
+          dedicated_number?: string | null
+          effective_max_duration?: number | null
+          status?: string
+          priority?: number
+          started_at?: string | null
+          completed_at?: string | null
+          call_id?: string | null
+          error_message?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_queue_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_queue_contact_id_fkey"
+            columns: ["contact_id"]
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_queue_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      analysis_queue: {
+        Row: {
+          id: string
+          company_id: string
+          call_log_id: string
+          contact_id: string | null
+          agent_run_id: string | null
+          template_slug: string
+          transcript: string
+          call_metadata: Json
+          status: string
+          result: Json | null
+          error_message: string | null
+          attempts: number
+          max_attempts: number
+          created_at: string
+          started_at: string | null
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          call_log_id: string
+          contact_id?: string | null
+          agent_run_id?: string | null
+          template_slug: string
+          transcript: string
+          call_metadata?: Json
+          status?: string
+          result?: Json | null
+          error_message?: string | null
+          attempts?: number
+          max_attempts?: number
+          created_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          call_log_id?: string
+          contact_id?: string | null
+          agent_run_id?: string | null
+          template_slug?: string
+          transcript?: string
+          call_metadata?: Json
+          status?: string
+          result?: Json | null
+          error_message?: string | null
+          attempts?: number
+          max_attempts?: number
+          created_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_queue_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_queue_call_log_id_fkey"
+            columns: ["call_log_id"]
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_queue_contact_id_fkey"
+            columns: ["contact_id"]
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       call_queue: {
         Row: {
           id: string
@@ -1850,6 +2014,7 @@ export type CompanySubscription = Database['public']['Tables']['company_subscrip
 export type UsageTracking = Database['public']['Tables']['usage_tracking']['Row'];
 export type BillingHistory = Database['public']['Tables']['billing_history']['Row'];
 export type CallQueue = Database['public']['Tables']['call_queue']['Row'];
+export type CampaignQueue = Database['public']['Tables']['campaign_queue']['Row'];
 export type BillingEvent = Database['public']['Tables']['billing_events']['Row'];
 export type AdminFinance = Database['public']['Tables']['admin_finances']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];

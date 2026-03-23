@@ -82,26 +82,45 @@ export async function GET(request: NextRequest) {
           if (invitation && new Date(invitation.expires_at) > new Date()) {
             // Verify email matches
             if (user.email?.toLowerCase() === invitation.email.toLowerCase()) {
-              // Accept the invitation: assign user to company with the invited role
-              await adminClient
-                .from('users')
-                .update({
-                  company_id: invitation.company_id,
-                  role: invitation.role,
-                })
-                .eq('id', user.id);
-
-              // Mark invitation as accepted
-              await adminClient
+              // Accept the invitation atomically: mark invitation as accepted FIRST
+              // (acts as a lock), then assign user to company.
+              // This prevents double-acceptance of the same invitation.
+              const { data: claimed } = await adminClient
                 .from('team_invitations')
                 .update({
                   status: 'accepted',
                   accepted_at: new Date().toISOString(),
                 })
-                .eq('id', invitation.id);
+                .eq('id', invitation.id)
+                .eq('status', 'pending') // Only claim if still pending (optimistic lock)
+                .select('id')
+                .maybeSingle();
 
-              console.log(`Team invitation accepted: ${user.email} joined company ${invitation.company_id}`);
-              return NextResponse.redirect(`${origin}/home?team_joined=true`);
+              if (claimed) {
+                // Invitation claimed successfully — assign user to company
+                const { error: assignError } = await adminClient
+                  .from('users')
+                  .update({
+                    company_id: invitation.company_id,
+                    role: invitation.role,
+                  })
+                  .eq('id', user.id);
+
+                if (assignError) {
+                  // Roll back invitation status if user assignment fails
+                  console.error('Failed to assign user to company, rolling back invitation:', assignError);
+                  await adminClient
+                    .from('team_invitations')
+                    .update({ status: 'pending', accepted_at: null })
+                    .eq('id', invitation.id);
+                } else {
+                  console.log(`Team invitation accepted: ${user.email} joined company ${invitation.company_id}`);
+                  // Invalidate middleware cache cookie since company_id changed
+                  const response = NextResponse.redirect(`${origin}/home?team_joined=true`);
+                  response.cookies.delete('x-user-meta');
+                  return response;
+                }
+              }
             }
           }
         } catch (inviteError) {

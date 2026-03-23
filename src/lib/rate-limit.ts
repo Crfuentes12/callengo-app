@@ -68,17 +68,31 @@ function createInMemoryLimiter(defaultLimit: number, intervalMs: number): Limite
 // ============================================================
 function createRedisLimiter(defaultLimit: number, windowMs: number): Limiter {
   const windowSec = Math.ceil(windowMs / 1000);
-  const limiter = new Ratelimit({
-    redis: redis!,
-    limiter: Ratelimit.slidingWindow(defaultLimit, `${windowSec} s`),
-    analytics: false,
-    prefix: 'callengo_rl',
-  });
+
+  // Cache Ratelimit instances per limit value to avoid creating new ones on every call
+  const limiterCache = new Map<number, Ratelimit>();
+
+  function getLimiter(limit: number): Ratelimit {
+    let instance = limiterCache.get(limit);
+    if (!instance) {
+      instance = new Ratelimit({
+        redis: redis!,
+        limiter: Ratelimit.slidingWindow(limit, `${windowSec} s`),
+        analytics: false,
+        prefix: `callengo_rl_${limit}`,
+      });
+      limiterCache.set(limit, instance);
+    }
+    return instance;
+  }
+
+  // Pre-create the default limiter
+  getLimiter(defaultLimit);
 
   return {
-    // Returns a Promise<RateLimitResult>. All callers are in async functions
-    // so they can await this (or it auto-resolves).
-    async check(_limit: number, token: string): Promise<RateLimitResult> {
+    async check(limit: number, token: string): Promise<RateLimitResult> {
+      const effectiveLimit = limit || defaultLimit;
+      const limiter = getLimiter(effectiveLimit);
       const result = await limiter.limit(token);
       return {
         success: result.success,

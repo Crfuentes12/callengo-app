@@ -74,6 +74,7 @@ export async function exchangeSalesforceCode(code: string): Promise<SalesforceTo
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -93,6 +94,7 @@ export async function getSalesforceUserInfo(
 ): Promise<SalesforceUserInfo> {
   const res = await fetch(identityUrl, {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -145,6 +147,7 @@ export async function refreshSalesforceToken(
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {

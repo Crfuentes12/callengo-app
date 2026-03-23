@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAppUrl } from '@/lib/config';
+import { verifySignedState } from '@/lib/oauth-state';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,15 +19,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/integrations?error=missing_params', request.url));
     }
 
-    const state = JSON.parse(Buffer.from(stateB64, 'base64url').toString());
-    const { userId, companyId, returnTo } = state;
+    // Verify signed state parameter (HMAC-SHA256)
+    const stateData = verifySignedState(stateB64);
+    if (!stateData) {
+      return NextResponse.redirect(new URL('/integrations?error=slack_auth_invalid_state', request.url));
+    }
+    const userId = stateData.userId as string;
+    const companyId = stateData.companyId as string;
+    const returnTo = (stateData.returnTo as string | undefined) || '/integrations';
+    // Sanitize returnTo to prevent open redirect
+    const safeReturnTo = (returnTo.startsWith('/') && !returnTo.startsWith('//'))
+      ? returnTo : '/integrations';
 
     // ALTA-005: Verify authenticated user matches the OAuth state
     const supabaseAuth = await createServerClient();
     const { data: { user: currentUser } } = await supabaseAuth.auth.getUser();
     if (!currentUser || currentUser.id !== userId) {
-      const errorRedirect = returnTo || '/integrations';
-      return NextResponse.redirect(new URL(`${errorRedirect}?error=user_mismatch`, request.url));
+      return NextResponse.redirect(new URL(`${safeReturnTo}?error=user_mismatch`, request.url));
+    }
+
+    // Verify company_id matches authenticated user's actual company
+    const { data: userData } = await supabaseAuth.from('users').select('company_id').eq('id', currentUser.id).single();
+    if (!userData || userData.company_id !== companyId) {
+      return NextResponse.redirect(new URL(`${safeReturnTo}?error=company_mismatch`, request.url));
     }
 
     const clientId = process.env.SLACK_CLIENT_ID!;
@@ -50,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     if (!tokenData.ok) {
       console.error('Slack token exchange failed:', tokenData.error);
-      return NextResponse.redirect(new URL(`${returnTo}?error=token_exchange_failed`, request.url));
+      return NextResponse.redirect(new URL(`${safeReturnTo}?error=token_exchange_failed`, request.url));
     }
 
     // Get current company settings
@@ -84,7 +99,7 @@ export async function GET(request: NextRequest) {
       .eq('company_id', companyId);
 
     return NextResponse.redirect(
-      new URL(`${returnTo}?integration=slack&status=connected`, request.url)
+      new URL(`${safeReturnTo}?integration=slack&status=connected`, request.url)
     );
   } catch (error) {
     console.error('Slack callback error:', error);

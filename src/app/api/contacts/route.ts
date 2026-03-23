@@ -47,8 +47,17 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (search) {
+      // Sanitize search input: escape PostgREST special characters (%, _, comma, dot, parentheses)
+      // to prevent filter manipulation via malicious search values.
+      const sanitized = search
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')
+        .replace(/,/g, '')
+        .replace(/\./g, '')
+        .replace(/[()]/g, '');
       query = query.or(
-        `company_name.ilike.%${search}%,phone_number.ilike.%${search}%,contact_name.ilike.%${search}%,email.ilike.%${search}%,city.ilike.%${search}%`
+        `company_name.ilike.%${sanitized}%,phone_number.ilike.%${sanitized}%,contact_name.ilike.%${sanitized}%,email.ilike.%${sanitized}%,city.ilike.%${sanitized}%`
       );
     }
     if (status) query = query.eq('status', status);

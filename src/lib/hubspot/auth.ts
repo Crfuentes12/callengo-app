@@ -76,6 +76,7 @@ export async function exchangeHubSpotCode(code: string): Promise<HubSpotTokenRes
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -94,6 +95,7 @@ export async function getHubSpotTokenInfo(
 ): Promise<HubSpotUserInfo> {
   const res = await fetch(`${HUBSPOT_TOKEN_INFO_URL}/${accessToken}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -150,6 +152,7 @@ export async function refreshHubSpotToken(
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {

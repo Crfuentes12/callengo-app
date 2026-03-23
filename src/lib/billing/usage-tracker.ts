@@ -1,10 +1,10 @@
 /**
  * Usage Tracker Service
- * Automatically tracks and reports usage to Stripe
+ * Tracks usage directly via DB + Stripe (no self-calling HTTP)
  */
 
 import { supabaseAdmin as supabase, supabaseAdminRaw } from '@/lib/supabase/service';
-import { getAppUrl } from '@/lib/config';
+import { reportUsage } from '@/lib/stripe';
 
 export interface UsageReport {
   companyId: string;
@@ -31,40 +31,141 @@ export interface UsageCheckResult {
 }
 
 /**
- * Track call usage and report to billing system
+ * Track call usage and report to billing system.
+ * Calls billing logic directly instead of via HTTP self-call.
  */
 export async function trackCallUsage(params: UsageReport): Promise<void> {
-  const { companyId, minutes, callId, metadata = {} } = params;
+  const { companyId, minutes, callId } = params;
 
   try {
-    // Call the report-usage API endpoint with internal service token
-    const response = await fetch(
-      `${getAppUrl()}/api/billing/report-usage`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-service-key': process.env.INTERNAL_API_SECRET || '',
-        },
-        body: JSON.stringify({
-          companyId,
-          minutes,
-          callId,
-          metadata,
-        }),
-      }
-    );
+    // Idempotency: if callId is provided, check if usage was already reported
+    if (callId) {
+      const { data: existingEvent } = await supabase
+        .from('billing_events')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('event_type', 'usage_recorded')
+        .filter('event_data->>call_id', 'eq', callId)
+        .maybeSingle();
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Failed to track usage:', error);
-      throw new Error(error.error || 'Failed to track usage');
+      if (existingEvent) {
+        console.log(`[usage-tracker] Usage already reported for call ${callId}, skipping`);
+        return;
+      }
     }
 
-    const data = await response.json();
-    console.log('✅ Usage tracked successfully:', data);
+    // Get company subscription
+    const { data: subscription, error: subError } = await supabase
+      .from('company_subscriptions')
+      .select('*, subscription_plans(*)')
+      .eq('company_id', companyId)
+      .single();
+
+    if (subError || !subscription) {
+      console.error('[usage-tracker] No active subscription for company:', companyId);
+      return;
+    }
+
+    // Get current usage tracking
+    const now = new Date().toISOString();
+    const { data: usage } = await supabase
+      .from('usage_tracking')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('subscription_id', subscription.id)
+      .lte('period_start', now)
+      .gte('period_end', now)
+      .order('period_start', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!usage) {
+      console.error('[usage-tracker] Usage tracking record not found for company:', companyId);
+      return;
+    }
+
+    // Atomic increment with optimistic locking (retry up to 3 times)
+    for (let attempt = 0; attempt <= 3; attempt++) {
+      const freshUsage = attempt === 0 ? usage : (await supabase
+        .from('usage_tracking')
+        .select('*')
+        .eq('id', usage.id)
+        .single()).data;
+
+      if (!freshUsage) break;
+
+      const newMinutesUsed = freshUsage.minutes_used + minutes;
+      const minutesIncluded = subscription.subscription_plans?.minutes_included || 0;
+      const overageMinutes = Math.max(0, newMinutesUsed - minutesIncluded);
+      const pricePerMinute = subscription.subscription_plans?.price_per_extra_minute || 0;
+      const overageCost = overageMinutes * pricePerMinute;
+
+      const { data: updated } = await supabase
+        .from('usage_tracking')
+        .update({
+          minutes_used: newMinutesUsed,
+          total_cost: overageCost,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', freshUsage.id)
+        .eq('updated_at', freshUsage.updated_at) // Optimistic lock
+        .select('id');
+
+      if (!updated || updated.length === 0) {
+        if (attempt < 3) {
+          await new Promise(r => setTimeout(r, 50 * Math.pow(2, attempt)));
+          continue;
+        }
+        console.error('[usage-tracker] Failed to update usage after retries');
+        return;
+      }
+
+      // Update overage tracking
+      await supabase
+        .from('company_subscriptions')
+        .update({ overage_spent: overageCost })
+        .eq('id', subscription.id);
+
+      // Log billing event
+      await supabase.from('billing_events').insert({
+        company_id: companyId,
+        subscription_id: subscription.id,
+        event_type: 'usage_recorded',
+        event_data: { call_id: callId, minutes, total_minutes: newMinutesUsed, overage_minutes: overageMinutes },
+        minutes_consumed: minutes,
+        cost_usd: newMinutesUsed > minutesIncluded ? minutes * pricePerMinute : 0,
+      });
+
+      // Report to Stripe if overage
+      if (subscription.overage_enabled && overageMinutes > 0 && subscription.stripe_subscription_item_id) {
+        try {
+          await reportUsage({
+            subscriptionItemId: subscription.stripe_subscription_item_id,
+            quantity: Math.ceil(overageMinutes),
+            action: 'set',
+          });
+        } catch (stripeError) {
+          console.error('[usage-tracker] CRITICAL: Stripe usage report failed:', stripeError);
+          await supabase.from('billing_events').insert({
+            company_id: companyId,
+            subscription_id: subscription.id,
+            event_type: 'stripe_usage_report_failed',
+            event_data: {
+              overage_minutes: overageMinutes,
+              error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+              needs_reconciliation: true,
+            },
+            minutes_consumed: overageMinutes,
+            cost_usd: 0,
+          });
+        }
+      }
+
+      console.log(`[usage-tracker] Usage tracked: ${newMinutesUsed}min for company ${companyId}`);
+      break; // Success
+    }
   } catch (error) {
-    console.error('Error tracking call usage:', error);
+    console.error('[usage-tracker] Error tracking call usage:', error);
     throw error;
   }
 }

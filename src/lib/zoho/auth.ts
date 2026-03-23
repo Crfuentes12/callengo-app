@@ -78,6 +78,7 @@ export async function exchangeZohoCode(code: string): Promise<ZohoTokenResponse>
 
   const res = await fetch(`${ZOHO_TOKEN_URL}?${params.toString()}`, {
     method: 'POST',
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -100,6 +101,7 @@ export async function exchangeZohoCode(code: string): Promise<ZohoTokenResponse>
 export async function getZohoUserInfo(accessToken: string, apiDomain: string): Promise<ZohoUserInfo> {
   const res = await fetch(`${apiDomain}/crm/v5/users?type=CurrentUser`, {
     headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -131,6 +133,7 @@ export async function getZohoOrgInfo(accessToken: string, apiDomain: string): Pr
   try {
     const res = await fetch(`${apiDomain}/crm/v5/org`, {
       headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!res.ok) return null;
@@ -198,6 +201,7 @@ export async function refreshZohoToken(
 
   const res = await fetch(`${ZOHO_TOKEN_URL}?${params.toString()}`, {
     method: 'POST',
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {

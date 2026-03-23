@@ -67,6 +67,7 @@ export async function exchangeClioCode(code: string): Promise<ClioTokenResponse>
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -83,6 +84,7 @@ export async function exchangeClioCode(code: string): Promise<ClioTokenResponse>
 export async function getClioUserInfo(accessToken: string): Promise<ClioUserInfo> {
   const res = await fetch(`${CLIO_API_URL}/users/who_am_i.json?fields=id,name,first_name,last_name,email,enabled,subscription_type,account_owner`, {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -139,6 +141,7 @@ export async function refreshClioToken(
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
