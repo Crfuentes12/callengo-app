@@ -1,7 +1,7 @@
 # CALLENGO — Complete Platform Master Document
 
-> **Version:** 1.4.0
-> **Last Updated:** March 2026 (Single master key architecture, Command Center v2 with Operations tab, billing audit fixes)
+> **Version:** 1.5.0
+> **Last Updated:** March 23, 2026 (Production readiness audit — 15 security/performance fixes, token encryption, DB hardening)
 > **Purpose:** Comprehensive reference for the entire Callengo platform — business strategy, target market, architecture, features, pricing, database schema, API endpoints, integrations, and business logic.
 
 ---
@@ -1235,6 +1235,7 @@ The Command Center (`/admin/command-center`) provides real-time monitoring with 
 | context_data | json? | Scraped company context |
 | context_summary | text? | AI-generated summary |
 | context_extracted_at | timestamp? | |
+| deleted_at | timestamp? | Soft-delete (RLS excludes when set, 30-day recovery) |
 | created_at | timestamp | |
 | updated_at | timestamp | |
 
@@ -1917,20 +1918,30 @@ Each CRM has an integration table + sync log table + contact mapping table:
 ### Role-Based Access
 | Role | Permissions |
 |---|---|
-| `admin` | Full access, team management, billing |
-| `member` | Standard access, no team/billing management |
+| `owner` | Full access, team management, billing, subscription changes, Command Center |
+| `admin` | Full access, team management, billing, Command Center |
+| `member` | Standard access, no team/billing/subscription management |
 
 ### Data Protection
-- Encrypted integration credentials (OAuth tokens, API keys)
+- **Token encryption at rest:** All OAuth tokens and API keys encrypted with AES-256-GCM via `src/lib/encryption.ts`. Uses `TOKEN_ENCRYPTION_KEY` env var (64 hex chars = 32-byte key). Backward-compatible: `decryptToken()` handles both encrypted and legacy plaintext data.
+- **Integrations covered:** HubSpot, Salesforce, Pipedrive, Zoho, Clio, Dynamics 365, Google Calendar, Microsoft Outlook, Google Sheets, SimplyBook, Slack (11 providers, 22 files modified)
 - No price/cost data shown to regular users in frontend
 - Bland AI call prices stored but never displayed
 - Company-scoped multi-tenancy
+- **Soft-delete for companies:** `deleted_at` column with partial index and RLS exclusion. 30-day recovery window before permanent deletion.
+
+### Database Hardening (March 2026 Audit)
+- **RLS self-update restriction:** Trigger `trg_prevent_sensitive_field_changes` blocks users from changing their own `company_id` or `email` via direct Supabase client
+- **Subscription RLS:** `company_subscriptions` update restricted to `owner`/`admin` roles only
+- **CHECK constraints:** Status columns validated at DB level on 8 tables: `company_subscriptions`, `contacts`, `agent_runs`, `call_queue`, `campaign_queue`, `follow_up_queue`, `team_invitations`, `company_addons`
+- **Role escalation prevention:** Trigger `trg_prevent_role_self_escalation` blocks role self-changes (pre-existing)
 
 ### Compliance
 - AI disclosure checkbox in campaign creation
 - User consent collection
 - Privacy policy and Terms of Service links
-- Rate limiting on API routes (`/lib/rate-limit.ts`)
+- Rate limiting on API routes (`/lib/rate-limit.ts`) — defined but not yet globally applied
+- **Input validation:** Zod schemas on all API routes with specific validations (session_id `cs_` prefix, UUID format for contact_id, addon_type whitelist)
 
 ---
 
@@ -2132,6 +2143,10 @@ Each CRM has an integration table + sync log table + contact mapping table:
 | `ZOOM_ACCOUNT_ID` / `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` | Zoom S2S OAuth |
 | `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` | Slack OAuth |
 | `SLACK_SIGNING_SECRET` | Slack webhook signature verification |
+| `TOKEN_ENCRYPTION_KEY` | AES-256-GCM key for OAuth token encryption (64 hex chars = 32 bytes) |
+| `SEED_ENDPOINT_SECRET` | Secret for seed data endpoint (POST and DELETE) |
+| `QUEUE_PROCESSING_SECRET` | Secret for queue processing endpoint auth |
+| `CRON_SECRET` | Secret for cron/followup processing endpoint auth |
 
 ### Build & Deploy
 - **Build:** `next build` (TypeScript compilation, Tailwind, ESLint)
@@ -2864,8 +2879,8 @@ Each CRM integration stores its connection data in a dedicated table:
 **Common Columns (all tables):**
 - `id` (uuid, PK)
 - `company_id` (uuid, FK)
-- `access_token` (text, encrypted)
-- `refresh_token` (text, encrypted, nullable)
+- `access_token` (text, encrypted with AES-256-GCM at application level via `src/lib/encryption.ts`)
+- `refresh_token` (text, encrypted with AES-256-GCM, nullable)
 - `is_active` (boolean)
 - `last_synced_at` (timestamp, nullable)
 - `created_at` (timestamp)
@@ -2919,4 +2934,43 @@ Delivery log in `webhook_deliveries` table:
 
 ---
 
-*End of Callengo Master Document v1.3.0*
+## 28. Production Readiness Audit (March 23, 2026)
+
+Full audit log: `AUDIT_LOG.md` (root). Migration: `supabase/migrations/20260323000002_production_audit_fixes.sql`.
+
+### Summary
+- **Scope:** Database schema (56 tables), billing/payments, auth/security, core call flow, admin/contacts/integrations, performance
+- **Result:** 0 critical issues remaining, 1 warning (no automated tests), 15 issues fixed, 13 potential issues investigated and confirmed mitigated
+
+### Fixes Applied (15)
+
+| # | Fix | Category |
+|---|-----|----------|
+| 1 | OAuth tokens encrypted at rest (AES-256-GCM, 11 providers, 22 files) | Security |
+| 2 | Users table RLS: blocked self-update of `company_id` and `email` | Security |
+| 3 | `company_subscriptions` update restricted to `owner`/`admin` | Security |
+| 4 | CHECK constraints on status columns (8 tables) | Data Integrity |
+| 5 | Admin Command Center role check: added `owner` role | Auth |
+| 6 | `verify-session` session_id `cs_` prefix validation | Input Validation |
+| 7 | Stripe webhook `addon_type` whitelist validation | Input Validation |
+| 8 | Seed DELETE route: consistent `SEED_ENDPOINT_SECRET` auth | Auth |
+| 9 | `send-call` metadata.contact_id UUID validation | Input Validation |
+| 10 | Command Center query parallelization (hourly + daily) | Performance |
+| 11 | Admin monitor N+1 refactored to batch parallel queries | Performance |
+| 12 | Cleanup-orphans: `Promise.allSettled()` for loops | Performance |
+| 13 | Soft-delete for companies (`deleted_at` + RLS + partial index) | Data Safety |
+| 14 | Seed endpoint protection consistency | Security |
+| 15 | Slack callback state validation standardized | Security |
+
+### Remaining Open Items
+- **No automated tests** — Test framework not configured. Recommended: Vitest + test critical paths (webhooks, throttle, OAuth state, Redis concurrency, CSV import)
+- **Rate limiting not globally applied** — `rate-limit.ts` defined but not enforced on all endpoints
+- **Exchange rates static** — EUR/GBP hardcoded, no dynamic updates
+- **`select('*')` optimization** — 71 occurrences across 47 files (optimize as traffic grows)
+
+### Verdict: GO for Production
+The codebase demonstrates strong security practices: RLS, Zod validation, webhook signature verification, idempotency, Redis concurrency control, signed OAuth state, TOCTOU race prevention, and encrypted tokens at rest.
+
+---
+
+*End of Callengo Master Document v1.5.0*

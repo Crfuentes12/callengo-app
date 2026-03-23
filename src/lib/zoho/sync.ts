@@ -302,6 +302,10 @@ export async function syncSelectedZohoContacts(
           email: zohoContact.Email || null,
           phone_number: phoneNumber,
           company_name: zohoContact.Account_Name?.name || 'Unknown',
+          address: zohoContact.Mailing_Street || null,
+          city: zohoContact.Mailing_City || null,
+          state: zohoContact.Mailing_State || null,
+          zip_code: zohoContact.Mailing_Zip || null,
           source: 'zoho',
           tags: ['zoho-import'],
           custom_fields: {
@@ -310,8 +314,6 @@ export async function syncSelectedZohoContacts(
             zoho_last_name: zohoContact.Last_Name,
             zoho_title: zohoContact.Title,
             zoho_department: zohoContact.Department,
-            zoho_mailing_city: zohoContact.Mailing_City,
-            zoho_mailing_state: zohoContact.Mailing_State,
             zoho_mailing_country: zohoContact.Mailing_Country,
           },
         };
@@ -501,6 +503,10 @@ export async function syncZohoContactsToCallengo(
           email: zohoContact.Email || null,
           phone_number: phoneNumber,
           company_name: zohoContact.Account_Name?.name || 'Unknown',
+          address: zohoContact.Mailing_Street || null,
+          city: zohoContact.Mailing_City || null,
+          state: zohoContact.Mailing_State || null,
+          zip_code: zohoContact.Mailing_Zip || null,
           source: 'zoho',
           tags: ['zoho-import'],
           custom_fields: {
@@ -509,8 +515,6 @@ export async function syncZohoContactsToCallengo(
             zoho_last_name: zohoContact.Last_Name,
             zoho_title: zohoContact.Title,
             zoho_department: zohoContact.Department,
-            zoho_mailing_city: zohoContact.Mailing_City,
-            zoho_mailing_state: zohoContact.Mailing_State,
             zoho_mailing_country: zohoContact.Mailing_Country,
           },
         };

@@ -162,6 +162,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
   const [showAddContactsDropdown, setShowAddContactsDropdown] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const batchActionsRef = useRef<HTMLDivElement>(null);
   const [showManualAddModal, setShowManualAddModal] = useState(false);
   const [importType, setImportType] = useState<'csv' | 'xlsx' | 'google' | 'txt' | 'xml' | 'json' | null>(null);
   const [showGSheetsPicker, setShowGSheetsPicker] = useState(false);
@@ -295,6 +296,9 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
       }
       if (exportMenuRef.current && !exportMenuRef.current.contains(target)) {
         setShowExportMenu(false);
+      }
+      if (batchActionsRef.current && !batchActionsRef.current.contains(target)) {
+        setShowBatchActions(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -741,7 +745,7 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
             </button>
           </div>
           <div className="flex gap-2">
-            <div className="relative z-[100]">
+            <div className="relative z-[100]" ref={batchActionsRef}>
               <button
                 onClick={() => setShowBatchActions(!showBatchActions)}
                 className="btn-primary px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium"
@@ -1130,9 +1134,10 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
         <ListManagerModal
           companyId={companyId}
           lists={contactLists}
-          onClose={() => setShowListManager(false)}
-          onUpdate={loadContactLists}
+          onClose={() => { setShowListManager(false); setShowBatchActions(false); }}
+          onUpdate={() => { loadContactLists(); refreshContacts(); }}
           onShowToast={showToast}
+          selectedContactIds={selectedContactIds}
         />
       )}
 
@@ -1352,9 +1357,10 @@ interface ListManagerModalProps {
   onClose: () => void;
   onUpdate: () => void;
   onShowToast: (message: string, type: 'success' | 'error' | 'info') => void;
+  selectedContactIds?: string[];
 }
 
-function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: ListManagerModalProps) {
+function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast, selectedContactIds = [] }: ListManagerModalProps) {
   const { t } = useTranslation();
   const supabase = createClient();
   const [editingList, setEditingList] = useState<ContactList | null>(null);
@@ -1375,19 +1381,35 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      const { data: newList, error } = await supabase
         .from('contact_lists')
         .insert({
           company_id: companyId,
           name: newListName.trim(),
           description: newListDescription.trim() || null,
           color: newListColor,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) {
         console.error('Error creating list:', error);
         onShowToast(`Failed to create list: ${error.message}`, 'error');
         return;
+      }
+
+      // Auto-assign selected contacts to the new list
+      if (newList && selectedContactIds.length > 0) {
+        const { error: assignError } = await supabase
+          .from('contacts')
+          .update({ list_id: newList.id })
+          .in('id', selectedContactIds);
+
+        if (assignError) {
+          console.error('Error assigning contacts to list:', assignError);
+          // List was created, just warn about assignment
+          onShowToast(`List created, but failed to add ${selectedContactIds.length} contact(s)`, 'error');
+        }
       }
 
       setNewListName('');
@@ -1397,7 +1419,10 @@ function ListManagerModal({ companyId, lists, onClose, onUpdate, onShowToast }: 
       onUpdate();
       contactEvents.listCreated();
       phContactEvents.listCreated();
-      onShowToast('List created successfully', 'success');
+      const contactMsg = selectedContactIds.length > 0
+        ? ` with ${selectedContactIds.length} contact${selectedContactIds.length > 1 ? 's' : ''}`
+        : '';
+      onShowToast(`List created successfully${contactMsg}`, 'success');
     } catch (error) {
       console.error('Error creating list:', error);
       onShowToast(`Failed to create list: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
@@ -1768,18 +1793,39 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
         // Combine first and last name for contact_name
         const contactName = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
 
-        // Build custom_fields object from non-standard fields
+        // Known DB column field mappings (field name variants → DB column)
+        const knownFieldMap: Record<string, string> = {
+          'address': 'address', 'street': 'address', 'street_address': 'address', 'direccion': 'address',
+          'city': 'city', 'ciudad': 'city', 'town': 'city',
+          'state': 'state', 'province': 'state', 'estado': 'state', 'region': 'state',
+          'zip': 'zip_code', 'zip_code': 'zip_code', 'zipcode': 'zip_code', 'postal_code': 'zip_code',
+          'postal': 'zip_code', 'codigo_postal': 'zip_code',
+          'notes': 'notes', 'note': 'notes', 'notas': 'notes',
+        };
+
+        // Standard fields that are already extracted above
+        const standardFieldNames = new Set([
+          'First Name', 'Last Name', 'Company Name', 'Phone', 'Email',
+          'first_name', 'last_name', 'company_name', 'phone', 'email',
+          'Phone Number', 'phone_number',
+        ]);
+
+        // Build DB columns and custom_fields from non-standard fields
+        const dbColumns: Record<string, string> = {};
         const customFields: Record<string, string> = {};
-        const standardFieldNames = ['First Name', 'Last Name', 'Company Name', 'Phone', 'Email',
-                                   'first_name', 'last_name', 'company_name', 'phone', 'email',
-                                   'Phone Number', 'phone_number'];
 
         fields.forEach(field => {
-          if (!standardFieldNames.includes(field.name)) {
-            const value = row.data[field.name] || '';
-            if (value) {
-              customFields[field.name.toLowerCase().replace(/\s+/g, '_')] = value;
-            }
+          if (standardFieldNames.has(field.name)) return;
+          const value = row.data[field.name] || '';
+          if (!value) return;
+
+          const normalizedKey = field.name.toLowerCase().replace(/\s+/g, '_');
+          const dbColumn = knownFieldMap[normalizedKey];
+
+          if (dbColumn) {
+            dbColumns[dbColumn] = value;
+          } else {
+            customFields[normalizedKey] = value;
           }
         });
 
@@ -1789,6 +1835,11 @@ function ManualAddModal({ companyId, onClose, onComplete, onShowToast }: ManualA
           contact_name: contactName,
           phone_number: phone,
           email: email || null,
+          address: dbColumns.address || null,
+          city: dbColumns.city || null,
+          state: dbColumns.state || null,
+          zip_code: dbColumns.zip_code || null,
+          notes: dbColumns.notes || null,
           status: 'Pending',
           custom_fields: Object.keys(customFields).length > 0 ? customFields : null,
         };

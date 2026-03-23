@@ -233,6 +233,10 @@ export async function syncSelectedHubSpotContacts(
           email: props.email || null,
           phone_number: phoneNumber,
           company_name: props.company || 'Unknown',
+          address: props.address || null,
+          city: props.city || null,
+          state: props.state || null,
+          zip_code: props.zip || null,
           source: 'hubspot',
           tags: ['hubspot-import'],
           custom_fields: {
@@ -243,8 +247,6 @@ export async function syncSelectedHubSpotContacts(
             hs_company: props.company,
             hs_lifecyclestage: props.lifecyclestage,
             hs_lead_status: props.hs_lead_status,
-            hs_city: props.city,
-            hs_state: props.state,
             hs_country: props.country,
           },
         };
@@ -358,6 +360,10 @@ export async function syncHubSpotContactsToCallengo(
           email: props.email || null,
           phone_number: phoneNumber,
           company_name: props.company || 'Unknown',
+          address: props.address || null,
+          city: props.city || null,
+          state: props.state || null,
+          zip_code: props.zip || null,
           source: 'hubspot',
           tags: ['hubspot-import'],
           custom_fields: {
@@ -368,8 +374,6 @@ export async function syncHubSpotContactsToCallengo(
             hs_company: props.company,
             hs_lifecyclestage: props.lifecyclestage,
             hs_lead_status: props.hs_lead_status,
-            hs_city: props.city,
-            hs_state: props.state,
             hs_country: props.country,
           },
         };

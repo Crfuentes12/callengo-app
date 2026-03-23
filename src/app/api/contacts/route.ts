@@ -85,8 +85,46 @@ export async function GET(request: NextRequest) {
     const { data: contacts, error, count } = await query;
     if (error) throw error;
 
+    // Post-process: merge known custom_fields into proper DB columns
+    // This handles contacts where address/city/state/zip ended up in custom_fields
+    const knownFieldMap: Record<string, string> = {
+      address: 'address', street: 'address', street_address: 'address', direccion: 'address',
+      city: 'city', ciudad: 'city', town: 'city',
+      state: 'state', province: 'state', estado: 'state', region: 'state',
+      zip: 'zip_code', zip_code: 'zip_code', zipcode: 'zip_code', postal_code: 'zip_code',
+      postal: 'zip_code', codigo_postal: 'zip_code',
+      notes: 'notes', note: 'notes', notas: 'notes',
+    };
+
+    const normalizedContacts = (contacts || []).map(contact => {
+      const cf = (contact.custom_fields as Record<string, unknown>) || {};
+      if (!cf || Object.keys(cf).length === 0) return contact;
+
+      const merged = { ...contact };
+      const cleanedCf = { ...cf };
+      let cfChanged = false;
+
+      for (const [cfKey, cfValue] of Object.entries(cf)) {
+        if (!cfValue || typeof cfValue !== 'string' || cfKey.startsWith('_')) continue;
+        const dbCol = knownFieldMap[cfKey.toLowerCase()];
+        if (dbCol && !merged[dbCol as keyof typeof merged]) {
+          (merged as Record<string, unknown>)[dbCol] = cfValue;
+          delete cleanedCf[cfKey];
+          cfChanged = true;
+        }
+      }
+
+      if (cfChanged) {
+        (merged as Record<string, unknown>).custom_fields = Object.keys(cleanedCf).filter(k => !k.startsWith('_') || cleanedCf[k]).length > 0
+          ? cleanedCf
+          : null;
+      }
+
+      return merged;
+    });
+
     return NextResponse.json({
-      contacts: contacts || [],
+      contacts: normalizedContacts,
       total: count || 0,
       page,
       pageSize,
