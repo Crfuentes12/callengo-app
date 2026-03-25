@@ -196,7 +196,7 @@ id
 full
 ```
 
-Note: The `full` scope in Salesforce grants broad access to all accessible data. This is a broad scope and legal counsel should evaluate whether a more restricted scope can satisfy the functional requirement.
+The `full` scope in Salesforce grants access to all accessible data and operations within the connected Salesforce org. Callengo requests this scope to support comprehensive CRM automation: importing contact and lead records (name, email, phone, company, address, owner), syncing calendar events, and supporting bidirectional data flows as part of the contact enrichment and call result push back to the CRM. The `full` scope is necessary because: (a) Callengo needs to read Contact, Lead, Account, Event, and User objects across the org; (b) the sync architecture supports bidirectional flows (future: pushing call outcomes back to SF records); (c) limiting to named object-level scopes would require maintaining a separate scope list for each Salesforce object type, which Salesforce's per-object OAuth model does not support in a maintainable way. The actual API calls made are strictly limited to SOQL queries on Contact, Lead, Account, Event, and User objects — no bulk delete or mass update operations are performed. This is documented further in GAP-010.
 
 ## 2.10 Zoho CRM OAuth Scopes
 
@@ -208,6 +208,8 @@ ZohoCRM.users.ALL
 ZohoCRM.org.ALL
 ZohoCRM.notifications.ALL
 ```
+
+The `modules.ALL` scope covers all Zoho CRM modules (Contacts, Leads, Accounts, etc.) — required for contact and lead import across any module the customer uses. `settings.ALL` is needed to read field metadata and layout configuration to correctly map Zoho fields to Callengo contact fields. `users.ALL` maps record owners (OwnerId) to names. `org.ALL` reads organization-level configuration. `notifications.ALL` enables Zoho notification subscriptions for real-time sync triggers. The integration performs: (a) inbound sync — fetching Contacts, Leads, and Account records; (b) outbound write-back — pushing call results back to Zoho Contact/Lead records as notes via `pushCallResultToZoho()` and `pushContactUpdatesToZoho()` in `src/lib/zoho/sync.ts`. These broad scopes are justified by the bidirectional automation model — Callengo needs to read all contact-related modules and write call outcomes back to the CRM without manual user intervention. See GAP-013 for further analysis.
 
 ## 2.11 Pipedrive, Clio — No Explicit Scopes
 
@@ -242,6 +244,9 @@ The following table documents every third-party service that receives or sends p
 - **Auth Method:** Single master API key (`BLAND_API_KEY`); webhook verification via HMAC-SHA256 (`BLAND_WEBHOOK_SECRET`)
 - **Processes Customer PII:** Yes (account owner credentials and settings)
 - **Processes Contact PII:** Yes (phone numbers, names embedded in call scripts, call recordings and transcripts containing personal conversations)
+- **Call Recording:** All calls are recorded by default (`record: true` in `src/lib/bland/master-client.ts` line 215). Recording is enabled globally because audio data is essential for quality analysis, dispute resolution, and AI post-call processing. Recording URLs are served by Bland AI's infrastructure (not stored as binary in Callengo's database — only the URL is stored). Default retention in Callengo's UI is 30 days. Customers who subscribe to the **Recording Vault add-on** ($12/month) receive extended 12-month recording retention. Recording audio is not stored in Supabase directly — it resides on Bland AI's servers at the recording URL. Callengo stores only the reference URL encrypted at rest.
+- **Data Processing Agreement:** Bland AI (Intelliga Corporation) publishes a full DPA at `https://www.bland.ai/legal/data-processing-agreement` (updated March 27, 2025). The DPA is executed by reference upon acceptance of Bland's Terms of Service. Key provisions confirmed: (a) purpose limitation — Bland processes Customer Personal Data only for providing the Services; (b) prohibition on sale or sharing of Customer Personal Data; (c) deidentified data may be used for product improvement; (d) Security Measures documented at `https://trust.delve.co/blandai`; (e) deletion of Customer Personal Data upon request within 14 days of service cessation (`compliance@bland.ai`); (f) sub-processor list at `https://trust.delve.co/blandai` with 14-day advance notice of changes; (g) SCCs incorporated for EU/EEA/UK/Switzerland data transfers; (h) breach notification without undue delay; (i) audit rights via SOC 2 Type II report (annually, on reasonable request).
+- **Training Data:** The DPA explicitly permits Bland to create Deidentified Data from service data for product improvement purposes. However, Customer Personal Data (including call audio and transcripts) is not used for model training as long as it remains identifiable. Callengo customers whose contacts are EU/EEA residents should be aware of this deidentification provision when preparing their own privacy notices.
 - **Privacy Policy:** https://www.bland.ai/privacy
 
 ### OpenAI (AI Analysis)
@@ -252,7 +257,7 @@ The following table documents every third-party service that receives or sends p
 - **Auth Method:** API key (`OPENAI_API_KEY`)
 - **Processes Customer PII:** Yes (business context)
 - **Processes Contact PII:** Yes (personal data of called contacts appears in transcripts)
-- **Training Opt-Out:** NOT CONFIRMED — no opt-out headers detected in codebase (`src/lib/ai/intent-analyzer.ts`, `src/app/api/openai/`)
+- **Training Opt-Out:** CONFIRMED DISABLED — verified via OpenAI Platform → Settings → Data Controls → Sharing (March 25, 2026). All three options set to Disabled: (1) "Enable sharing of model feedback from the Platform"; (2) "Share evaluation and fine-tuning data with OpenAI"; (3) "Share inputs and outputs with OpenAI". Callengo's API data (call transcripts, prompts, completions) is not used to train OpenAI models. API call logging is enabled (Enabled per call) — prompts and completions are retained by OpenAI for up to 30 days for the organization's own review via the OpenAI Logs dashboard; this is not training data.
 - **Privacy Policy:** https://openai.com/policies/privacy-policy
 
 ### Supabase (Database & Auth)
@@ -379,21 +384,21 @@ The following table documents every third-party service that receives or sends p
 
 ### PostHog (Product Analytics)
 - **Purpose:** Product usage analytics, session recording, feature flags, funnel analysis, group analytics
-- **Data Sent:** User ID, email, full name, company ID, company name, plan information, behavioral event data (see Section 4), session recordings with PII masking
+- **Data Sent:** User UUID (Supabase `user.id` — not email), first name, company ID, company name, plan information, behavioral event data (see Section 4), session recordings with PII masking
 - **Data Received:** Feature flag values
 - **Stored:** PostHog cloud (US region — `us.i.posthog.com`)
 - **Auth Method:** Project key (`NEXT_PUBLIC_POSTHOG_KEY`)
-- **Processes Customer PII:** Yes (email, full name, usage behavior)
+- **Processes Customer PII:** Yes (first name, usage behavior — email is NOT sent as of March 25, 2026 fix; users identified by UUID)
 - **Processes Contact PII:** No (contacts being called are not tracked in PostHog)
 - **Privacy Policy:** https://posthog.com/privacy
 
 ### Google Analytics 4 (Web Analytics)
 - **Purpose:** Web analytics, user behavior tracking, conversion measurement
-- **Data Sent:** User ID, email (in user properties), behavioral events, session data
+- **Data Sent:** User UUID (Supabase `user.id` — not email), behavioral events, session data
 - **Data Received:** N/A (data sink)
 - **Stored:** Google Analytics cloud
 - **Auth Method:** Measurement ID (`NEXT_PUBLIC_GA_MEASUREMENT_ID`), GA4 API secret (`GA_API_SECRET`) for server-side events
-- **Processes Customer PII:** Yes (email address sent as user property — see Section 4 for details)
+- **Processes Customer PII:** Yes (UUID, behavioral data — email is NOT sent as of March 25, 2026 fix; `user_email` property removed from all analytics calls)
 - **Processes Contact PII:** No
 - **Privacy Policy:** https://policies.google.com/privacy
 
@@ -936,9 +941,13 @@ Via webhook at `POST /api/bland/webhook`:
 - Error messages (if any)
 - Echo of the metadata sent at dispatch
 
-### 8.1.3 Bland AI Training Data Opt-Out
+### 8.1.3 Bland AI Training Data and DPA Status
 
-**STATUS: NOT CONFIRMED.** The codebase (`src/lib/bland/master-client.ts`, `src/app/api/bland/send-call/route.ts`) does not include any headers, API parameters, or configuration flags to opt out of Bland AI using call data for model training purposes. Whether Bland AI's standard API terms include data processing restrictions sufficient for GDPR sub-processor compliance requires verification against Bland AI's current Data Processing Agreement terms.
+**DPA CONFIRMED (March 2026).** Bland AI publishes a full Data Processing Addendum at `https://www.bland.ai/legal/data-processing-agreement` (updated March 27, 2025). The DPA prohibits Bland from using Customer Personal Data (call audio, transcripts, contact PII) outside the scope of providing the Services. The DPA permits Bland to create **Deidentified Data** (data that cannot be associated with a Data Subject or Customer) for product improvement. This is the sole training/improvement carve-out — identifiable call data is not used for model training under the DPA terms.
+
+There are no specific API headers or parameters required to enforce training opt-out — the protection is contractual via the DPA, not technical. This is standard practice for enterprise AI voice providers operating under a DPA structure.
+
+See GAP-005 for the full DPA review with all provisions documented.
 
 ## 8.2 OpenAI — Post-Call Analysis
 
@@ -2144,7 +2153,8 @@ Supabase automated backups may retain data for up to 30 days after deletion. Aft
 | **National Do Not Call Registry (NDNC / FTC DNC)** | HIGH — Customers initiating telemarketing calls must scrub against the FTC DNC Registry and honor company-specific DNC lists. | Customer | ❌ Gap | Callengo has no built-in DNC Registry scrubbing feature. ToS must explicitly require customers to scrub contact lists before uploading to Callengo. Callengo should consider adding an acknowledgment checkbox at campaign launch. |
 | **CAN-SPAM Act** | MEDIUM — Applies to commercial email. Callengo sends transactional emails (team invitations, billing receipts) via Resend. | Fuentes Digital Ventures LLC | ✅ Compliant | Transactional emails sent via Resend include required header information and return address. No bulk commercial email campaigns are sent. Email templates should be reviewed annually to maintain compliance. |
 | **GDPR (General Data Protection Regulation)** | HIGH — Fuentes Digital Ventures LLC's sole member resides in the EU; the platform serves B2B customers including EU-based businesses; EU residents' personal data is processed. | Fuentes Digital Ventures LLC (Controller and Processor) | ⚠️ Partial | Privacy Policy, Cookie Policy, DPA, SCCs, and cookie consent banner are required. No cookie consent banner exists. No formal DPA template published. EU data subjects' rights procedures not documented in public-facing materials. Lawful basis analysis not yet published. Legal rep in EU not formally appointed (though the sole member resides in the EU). See Legal Position L. |
-| **GDPR Article 28 — Data Processing Agreements** | HIGH — Required with all sub-processors who process personal data on Callengo's behalf. | Fuentes Digital Ventures LLC | ⚠️ Partial | DPAs exist with Supabase, Stripe, and Vercel (standard contract terms). DPA with Bland AI not confirmed. DPA with OpenAI: OpenAI offers an enterprise DPA; not confirmed as executed. DPA with PostHog: available, status unknown. DPA with Google (Analytics): Google's ToS includes DPA terms; must accept and configure. |
+| **State Call Recording Consent Laws (Two-Party Consent)** | CRITICAL — Bland AI records all calls by default. At least 11 US states (CA, FL, IL, MD, MA, MI, MT, NH, OR, PA, WA) require all-party consent to record a call. Customer contacts in these states must consent before recording begins. | Customer (primary obligation); Callengo (disclosure and ToS pass-through) | ❌ Gap | No customer-facing disclosure about default recording. No in-app consent workflow for recording. ToS must impose recording consent obligations on customers. Platform must clearly disclose that all calls are recorded by default. See GAP-023. |
+| **GDPR Article 28 — Data Processing Agreements** | HIGH — Required with all sub-processors who process personal data on Callengo's behalf. | Fuentes Digital Ventures LLC | ⚠️ Partial | DPAs confirmed: Bland AI (DPA reviewed March 2026; SCCs included; see GAP-005). DPA with OpenAI: OpenAI offers an enterprise DPA; not confirmed as executed. DPA with PostHog: available, status unknown. DPA with Google (Analytics): Google's ToS includes DPA terms; must accept and configure. Supabase and Vercel: standard contract terms. |
 | **GDPR Article 46 — International Data Transfers** | HIGH — Callengo transfers EU personal data to US sub-processors (Supabase/AWS, Vercel, Bland AI, OpenAI, PostHog, Upstash, Resend). | Fuentes Digital Ventures LLC | ⚠️ Partial | Sub-processors enrolled in EU-US Data Privacy Framework (DPF) or covered by SCCs. Supabase, Google, Stripe, PostHog listed as DPF participants. Bland AI and Upstash DPF status not confirmed. SCCs should be verified or included in DPA with each sub-processor. |
 | **CCPA / CPRA (California Consumer Privacy Act / Privacy Rights Act)** | MEDIUM — Applies if Callengo meets the threshold: processes personal information of 100,000+ California consumers or households per year, or derives 50%+ of revenue from selling personal information. Threshold may be met as platform scales. | Fuentes Digital Ventures LLC | ⚠️ Partial | Privacy Policy should include CCPA disclosures. "Do Not Sell or Share My Personal Information" link not required if thresholds not met, but GA4 advertising features should be disabled. Service provider agreements must include CCPA-compliant contract language. See Legal Position O. |
 | **Wyoming Breach Notification Act (Wyo. Stat. § 40-12-501 et seq.)** | HIGH — Callengo is a Wyoming LLC and processes personal information. | Fuentes Digital Ventures LLC | ⚠️ Partial | Wyoming requires notification to affected residents within 45 days of discovery of a breach of security involving computerized data that includes personal information. Callengo must: (a) implement a written incident response plan; (b) include breach notification procedures in Privacy Policy; (c) maintain a log of security incidents. No public incident response policy confirmed. |
@@ -2194,7 +2204,7 @@ Supabase automated backups may retain data for up to 30 days after deletion. Aft
 
 | Sub-Processor | Role | Service Description | Data Categories Processed | Infrastructure Region | DPA / Privacy Framework | DPF Enrolled | Risk Level |
 |---------------|------|--------------------|--------------------------|-----------------------|------------------------|--------------|-----------|
-| **Bland AI, Inc.** | AI Voice Calling | Executes all outbound AI voice calls on behalf of Callengo customers. Receives: destination phone number (E.164), call script/task description, voice configuration, webhook URL, and metadata (company_id, contact_id, campaign_id). Performs the call and returns: call transcript, call duration, call status, and analysis metadata. | Contact phone numbers, names (in call scripts), call transcripts (potentially containing sensitive personal information disclosed during calls), call audio (if recording enabled), company metadata | Bland AI US infrastructure | No formal DPA confirmed as of March 25, 2026 — **critical gap to resolve** | Status unknown | 🔴 High — processes call audio and transcripts |
+| **Bland AI (Intelliga Corporation)** | AI Voice Calling | Executes all outbound AI voice calls on behalf of Callengo customers. Receives: destination phone number (E.164), call script/task description, voice configuration, webhook URL, and metadata (company_id, contact_id, campaign_id). Records all calls by default (`record: true`). Returns: call transcript, call duration, call status, recording URL, and analysis metadata. | Contact phone numbers, names (in call scripts), call transcripts (potentially containing sensitive personal information disclosed during calls), call audio recordings, company metadata | Bland AI US infrastructure | **DPA confirmed (March 2026):** Full DPA published at https://www.bland.ai/legal/data-processing-agreement (updated March 27, 2025). Provisions include: purpose limitation, no sale/sharing of Customer Personal Data, deidentified data carve-out, SCCs for EU/UK/Switzerland transfers, breach notification, deletion within 14 days on request, SOC 2 Type II audit rights. Sub-processor list at https://trust.delve.co/blandai. See GAP-005 for full DPA review. | Status unconfirmed (check https://www.dataprivacyframework.gov/) | 🟡 Medium — DPA confirmed; call audio and transcripts are high-sensitivity data; recording consent obligations pass through to customers |
 
 ---
 
@@ -2333,102 +2343,140 @@ Supabase automated backups may retain data for up to 30 days after deletion. Aft
 
 ---
 
-### GAP-005: Bland AI DPA — Published, Acceptance Status Verify
-**Description:** Bland AI processes call audio, transcripts, and contact phone numbers on behalf of Callengo. Bland AI publishes a Data Processing Agreement at `https://www.bland.ai/legal/data-processing-agreement`. By accepting Bland AI's Terms of Service (which incorporates the DPA by reference), Callengo is likely functionally covered. However, for formal GDPR Article 28 compliance it is best practice to retain evidence of explicit DPA acceptance — either a signed copy, a "I accept the DPA" click-through record, or a note that the ToS explicitly incorporates the DPA.
+### GAP-005: Bland AI DPA — Reviewed and Documented
 
-**Updated status (March 25, 2026):** Bland AI DPA exists and is publicly accessible. Functional coverage likely via ToS acceptance. Formal evidence of acceptance recommended for audit trail.
+**Description:** Bland AI (Intelliga Corporation) processes call audio, transcripts, and contact phone numbers on behalf of Callengo as a data processor. As of March 27, 2025, Bland AI publishes a comprehensive Data Processing Addendum at `https://www.bland.ai/legal/data-processing-agreement`. The DPA is incorporated by reference into Bland AI's Enterprise Services Agreement and is accepted at the time of account creation and ToS acceptance.
+
+**DPA Provisions Confirmed (reviewed March 25, 2026):**
+
+The Bland AI DPA has been reviewed in full. The following key provisions are confirmed:
+
+- **Purpose Limitation (Section 2.1):** Bland processes Customer Personal Data only for the specific purpose of performing the Services and as required by applicable laws. Bland will not retain, use, or disclose Customer Personal Data outside the direct business relationship. No selling or sharing (as defined by CCPA and analogous laws) of Customer Personal Data.
+- **Deidentified Data (Section 2.7):** Bland may create and derive Deidentified Data to improve its products and services. Bland must take reasonable technical and organizational measures to ensure such data cannot be associated with a Data Subject or Customer. This is the sole training/improvement carve-out in the DPA — identifiable Customer Personal Data (including actual call recordings and transcripts) is not used for model training.
+- **Service Data (Section 2.8):** Data about the *use* of the Services (billing, account management, analytics) is treated as Bland's own Controller data under Bland's Privacy Policy. This is distinct from Customer Personal Data (call audio, transcripts, contact PII).
+- **Security Measures (Section 2.5):** Bland maintains appropriate technical and organizational security measures documented at `https://trust.delve.co/blandai`. Callengo has agreed these meet the requirements of Data Protection Law.
+- **Deletion / Disposal (Section 2.6):** Upon end of Services, Bland will delete or return all Customer Personal Data upon written request submitted within 14 days of cessation date to `compliance@bland.ai`. Back-up archives are securely isolated.
+- **Data Subject Rights (Section 3.1):** Customer is responsible for responding to Data Subject Requests. Bland provides commercially reasonable assistance on written request.
+- **Breach Notification (Section 4.1):** Bland will notify Customer without undue delay after becoming aware of a Security Incident.
+- **Sub-Processors (Section 6):** Sub-processor list published at `https://trust.delve.co/blandai`. 14-day advance notice of new sub-processors. Customer may object within 14 days.
+- **International Data Transfers (Section 7):** EU/EEA transfers covered by EU SCCs (Module 2 or 3 as applicable). UK transfers covered by SCCs + UK IDTA (Version B1.0, 21 March 2022). Switzerland transfers covered by FADP-specific SCC modifications. Callengo is the "data exporter"; Bland is the "data importer."
+- **Audit Rights (Section 5):** Bland provides SOC 2 Type II reports on request. Customer may conduct one documentary audit per 12-month period with 30 days' advance notice.
+
+**Call Recording — Default Behavior:**
+Bland records all calls by default. This is configured in `src/lib/bland/master-client.ts` line 215 (`record: payload.record ?? true`). Recordings are retained on Bland AI's servers and accessible via the recording URL returned in the webhook. Callengo's Supabase database stores only the recording URL (not the binary audio). Default Callengo-side recording retention is 30 days; customers with the **Recording Vault add-on** ($12/month) receive 12-month retention. Callengo's control over Bland-side recording storage is subject to Bland's own retention policies and the DPA deletion provisions.
+
+**Open Items (post-review):**
+1. Retain dated evidence that Bland AI's ToS and DPA were reviewed and accepted (screenshot, email confirmation, or dated internal note). This constitutes the GDPR Article 28 written agreement.
+2. Confirm whether Bland AI is enrolled in the EU-US Data Privacy Framework (DPF) at `https://www.dataprivacyframework.gov/` — enrollment provides an additional adequacy mechanism for EU→US transfers alongside SCCs.
+3. Record Bland AI as a confirmed sub-processor in the published sub-processor list with the DPA URL and effective date.
+4. Disclose in the Privacy Policy that call audio and transcripts are processed by Bland AI, that Bland may create deidentified data for product improvement, and that recordings are retained for 30 days by default (12 months with Recording Vault add-on).
 
 **Relevant Files:**
-- `src/lib/bland/master-client.ts`
-- `src/app/api/bland/send-call/route.ts`
-- `src/app/api/bland/webhook/route.ts`
+- `src/lib/bland/master-client.ts` — `record: true` default, all call dispatch
+- `src/app/api/bland/send-call/route.ts` — per-call dispatch entry point
+- `src/app/api/bland/webhook/route.ts` — receives recording URL, transcript, status
 
-**Risk Level:** 🟡 Medium (downgraded from High — DPA confirmed to exist)
-
-**Remediation:**
-1. Review `https://www.bland.ai/legal/data-processing-agreement` and confirm it covers: (a) purpose limitation; (b) sub-processor notification; (c) breach notification; (d) deletion/return of data; (e) audit rights.
-2. Retain a dated record that you reviewed and accepted the Bland AI ToS (which incorporates the DPA). Screenshot or email confirmation is sufficient.
-3. Confirm whether Bland AI is enrolled in the EU-US Data Privacy Framework (DPF) — check at `https://www.dataprivacyframework.gov/`.
-4. Confirm Bland AI's data retention policy for call audio and transcripts (the Callengo panel shows 30-day recording retention configured — confirm this aligns with Bland's server-side retention).
-5. Confirm whether Bland AI uses call data for model training and whether an opt-out exists. Ask their support team directly if not stated in the DPA.
-6. Record Bland AI as a confirmed sub-processor with DPA reference in the published sub-processor list.
+**Risk Level:** 🟡 Low-Medium (DPA confirmed, provisions reviewed; open item is formal acceptance evidence and DPF enrollment check)
 
 ---
 
-### GAP-006: OpenAI Data Sharing — CONFIRMED DISABLED ✅
-**Description:** Verified via OpenAI Platform → Settings → Data Controls → Sharing tab (reviewed March 25, 2026). All three data sharing options are set to **Disabled**:
-- "Enable sharing of model feedback from the Platform" → Disabled
-- "Share evaluation and fine-tuning data with OpenAI" → Disabled
-- "Share inputs and outputs with OpenAI" → Disabled
+### GAP-006: OpenAI Data Sharing Configuration
 
-This confirms that OpenAI does **not** use Callengo's API data (call transcripts, prompts, completions) to train its models.
+**Description:** This section documents the confirmed configuration of OpenAI's data sharing and logging settings as they apply to Callengo's API usage. These settings directly determine what data OpenAI retains and whether API input/output data is used for model training.
 
-**OpenAI API call logging note (confirmed March 25, 2026):** The "API call logging" setting is set to **"Enabled per call"**. This means OpenAI stores the actual prompt and completion content of each API call for 30 days on their servers for the organization's own review and evaluation purposes (accessible via the OpenAI Logs dashboard). This is NOT training data, but it does mean transcripts/prompts are retained on OpenAI's infrastructure for 30 days. This must be disclosed in the Privacy Policy under the OpenAI sub-processor entry: "Prompts and completions are retained by OpenAI for up to 30 days for logging purposes."
+**Data Sharing Settings (verified March 25, 2026 — OpenAI Platform → Settings → Data Controls → Sharing):**
+- "Enable sharing of model feedback from the Platform" → **Disabled**
+- "Share evaluation and fine-tuning data with OpenAI" → **Disabled**
+- "Share inputs and outputs with OpenAI" → **Disabled**
 
-**Audit logging (confirmed March 25, 2026):** Audit logging is currently **Disabled**. Audit logging records configuration changes and user actions within the OpenAI organization. Disabling it means no compliance audit trail within OpenAI. Recommendation: enable before SOC 2 audit or enterprise customer onboarding. Note: once enabled, it cannot be disabled without contacting OpenAI support.
+All three options are disabled. OpenAI does not use Callengo's API data (call transcripts, prompts, completions) to train its foundation models.
 
-**Additional AI features confirmed (codebase audit March 25, 2026):** Beyond the 3 documented endpoints, Callengo also uses OpenAI for:
-- `src/app/api/ai/chat/route.ts` — "Cali AI" in-app assistant (GPT-4o-mini, temperature 0.7)
-- `src/app/api/contacts/ai-analyze/route.ts` — Contact list quality analysis and smart list suggestions
-- `src/lib/web-scraper.ts` — Company name/summary/industry detection during onboarding (3 GPT-4o-mini calls)
+**API Call Logging (verified March 25, 2026):** The "API call logging" setting is **Enabled per call**. This means OpenAI stores the actual prompt and completion content of each API call for up to 30 days on OpenAI's servers, accessible to Callengo via the OpenAI Logs dashboard. This is logging for the operator's own review — it is not used for training. However, it means that call transcripts and contact data sent to OpenAI as prompts are retained on OpenAI's infrastructure for up to 30 days beyond the completion of each API call. This retention period must be disclosed in the Privacy Policy under the OpenAI sub-processor entry.
 
-All of these are now tracked via the new `openai_usage_logs` table and use a 2-key architecture: `OPENAI_API_KEY` (all features: call analysis, contact analysis, onboarding, demo) and `OPENAI_API_KEY_CALI_AI` (Cali AI only, for rate limit isolation).
+**OpenAI Audit Logging (verified March 25, 2026):** Audit logging is **Disabled**. Audit logging records configuration changes and administrative actions within the OpenAI organization console. Without it, there is no OpenAI-side compliance audit trail. This should be enabled before enterprise customer onboarding or any SOC 2 readiness effort. Note: once enabled, audit logging cannot be disabled without contacting OpenAI support.
 
-**Relevant Files:**
-- `src/lib/ai/intent-analyzer.ts` — GPT-4o-mini post-call intent analysis
-- `src/app/api/bland/analyze-call/route.ts` — GPT-4o real call analysis
-- `src/app/api/openai/analyze-call/route.ts` — GPT-4o-mini demo analysis
-- `src/app/api/openai/recommend-agent/route.ts` — GPT-4o-mini agent recommendation
-- `src/app/api/openai/context-suggestions/route.ts` — GPT-4o-mini campaign context
-- `src/app/api/contacts/ai-analyze/route.ts` — GPT-4o-mini contact quality
-- `src/app/api/ai/chat/route.ts` — GPT-4o-mini Cali AI assistant
-- `src/lib/web-scraper.ts` — GPT-4o-mini onboarding company detection
+**Full Inventory of OpenAI Usage in Callengo (codebase audit March 25, 2026):**
 
-**Risk Level:** 🟢 Low (downgraded — training opt-out confirmed disabled)
+| Feature | File | Model | Data Sent |
+|---------|------|-------|-----------|
+| Post-call intent analysis | `src/lib/ai/intent-analyzer.ts` | GPT-4o-mini | Call transcript (up to 10,000 chars), contact name |
+| Full call analysis | `src/app/api/bland/analyze-call/route.ts` | GPT-4o | Full call transcript, contact context |
+| Demo call analysis | `src/app/api/openai/analyze-call/route.ts` | GPT-4o-mini | Demo transcript |
+| Agent recommendation | `src/app/api/openai/recommend-agent/route.ts` | GPT-4o-mini | Business description |
+| Campaign context suggestions | `src/app/api/openai/context-suggestions/route.ts` | GPT-4o-mini | Contact list metadata |
+| Contact quality analysis | `src/app/api/contacts/ai-analyze/route.ts` | GPT-4o-mini | Contact field data |
+| Cali AI assistant | `src/app/api/ai/chat/route.ts` | GPT-4o-mini | User chat messages, context |
+| Onboarding company detection | `src/lib/web-scraper.ts` | GPT-4o-mini | Company website content |
 
-**Remaining actions:**
-1. Disclose in the Privacy Policy: (a) that OpenAI is used for call analysis, contact analysis, AI assistant, and onboarding; (b) that prompts are retained by OpenAI for up to 30 days; (c) that data is not used for training.
-2. Consider enabling OpenAI Audit logging before enterprise customer onboarding or SOC 2 readiness.
-3. OpenAI API usage is now tracked in the `openai_usage_logs` table and visible in the Admin Command Center → AI Costs tab.
+**API Key Architecture:** Callengo uses a two-key architecture: `OPENAI_API_KEY` (all features except Cali AI) and `OPENAI_API_KEY_CALI_AI` (Cali AI assistant only — isolated for independent rate limiting). All usage is tracked in the `openai_usage_logs` table and visible in the Admin Command Center → Finances → AI Infrastructure Costs section.
+
+**Required Privacy Policy Disclosures:**
+1. OpenAI is used for call analysis, contact analysis, AI assistant (Cali AI), and onboarding.
+2. Prompts and completions are retained by OpenAI for up to 30 days for logging purposes (not training).
+3. Callengo's API data is not used to train OpenAI models (all sharing options disabled).
+
+**Risk Level:** 🟢 Low — training opt-out confirmed; logging retention disclosed
 
 ---
 
-### GAP-007: Email Addresses Sent to GA4 and PostHog as PII — FIX APPLIED ✅
-**Description:** Account holder email addresses were previously sent to Google Analytics 4 (as a user property `user_email`) and to PostHog (as the `distinct_id`). Email address is personal data under GDPR, CCPA, and virtually all privacy frameworks.
+### GAP-007: Analytics PII — Email Replaced with UUID
 
-**Fix applied (March 25, 2026):** Email replaced with the Supabase user UUID (`user.id`) as the analytics identifier across all analytics providers:
-- `src/components/analytics/AnalyticsProvider.tsx` — `user_email` property removed; user identified by UUID
+**Description:** Account holder email addresses were previously sent to Google Analytics 4 (as the `user_email` user property) and to PostHog (as the `distinct_id`). Email address constitutes personal data under GDPR, CCPA, and virtually all privacy frameworks, and its presence in third-party analytics tools creates a data transfer disclosure obligation and increases the scope of any privacy request response.
+
+**Resolution applied (March 25, 2026):** Email replaced with the Supabase user UUID (`user.id`) as the analytics identifier across all analytics providers. The following changes were made:
+- `src/components/analytics/AnalyticsProvider.tsx` — `user_email` property removed; user identified by UUID only
 - `src/components/analytics/PostHogProvider.tsx` — `distinct_id` changed from `user.email` to `user.id`
 - `src/lib/analytics.ts` — `setUserProperties()` updated to remove email property
-- Related PostHog/GA4 server-side files updated accordingly
+- Server-side PostHog and GA4 event files updated to remove email references
 
-**Impact on analytics:** Full user-level analytics continuity is maintained — the UUID uniquely identifies each user across sessions for funnel analysis, retention, and cohort tracking. The only capability lost is cross-platform lookup by email address (e.g., manually finding a specific user in PostHog by typing their email). This is an acceptable trade-off for GDPR compliance.
+**Current state of PII in analytics:**
 
-**Note:** The user's name (first name) is still included as a PostHog property for display purposes. Name is lower-risk than email in analytics context, but if full anonymization is required in the future, it should also be removed.
+| Field | GA4 | PostHog | Notes |
+|-------|-----|---------|-------|
+| User UUID | Yes | Yes | Non-predictable identifier, GDPR-acceptable |
+| Email address | **No** | **No** | Removed March 25, 2026 |
+| First name | No | Yes | Lower-risk display label; consider removing for full anonymization |
+| Company name | Yes | Yes | B2B context; company is the data controller, not a natural person |
+| Plan / subscription info | Yes | Yes | No direct PII |
+
+**Impact on analytics:** Full user-level analytics continuity is maintained. UUID uniquely identifies each user across sessions for funnel analysis, retention, and cohort tracking. The only operational change is that manual lookup of a specific user by email address in PostHog or GA4 is no longer possible — UUID-based lookup remains available. This is an acceptable trade-off for regulatory compliance.
+
+**Remaining consideration:** The user's first name is still included as a PostHog property for display/segmentation purposes. First name alone is lower-risk than email in the analytics context, but if full pseudonymization is required (e.g., for enterprise customer contracts or future GDPR audit), it should also be removed.
 
 **Relevant Files:**
 - `src/components/analytics/AnalyticsProvider.tsx`
 - `src/components/analytics/PostHogProvider.tsx`
 - `src/lib/analytics.ts`
 
-**Risk Level:** 🟢 Resolved (was 🟠 High)
+**Risk Level:** 🟢 Low — email removed; UUID-based identification is compliant
 
 ---
 
-### GAP-008: TCPA / TSR Pass-Through Obligations Not Enforced in ToS
-**Description:** Callengo enables customers to place automated outbound voice calls to lists of phone numbers. The customer is the "caller" for TCPA and TSR purposes, but Callengo as the platform provider may share liability if it knowingly facilitates unlawful calling. The Terms of Service (when drafted — see GAP-003) must include express provisions requiring customers to: obtain TCPA prior express written consent; honor DNC registrations; comply with call time restrictions; and provide required disclosures to call recipients.
+### GAP-008: TCPA / TSR Compliance Acknowledgment Not Present in Campaign Flow
 
-**Relevant Files:**
-- `src/app/api/bland/send-call/route.ts` — no TCPA consent verification before dispatch
-- `src/app/(app)/campaigns/` — campaign creation flow; no TCPA compliance acknowledgment
+**Description:** Callengo enables customers to place automated outbound voice calls to lists of phone numbers using AI-generated voices. Under the TCPA (47 U.S.C. § 227), the FCC's February 2024 declaratory ruling, and the FTC Telemarketing Sales Rule (16 C.F.R. Part 310), the business customer is the "caller" responsible for obtaining required prior express written consent from each called party. Callengo is the technology platform, not the caller. However, Callengo as a platform provider bears secondary exposure if it knowingly facilitates unlawful calling without requiring acknowledgment of customer obligations.
 
-**Risk Level:** 🟠 High
+**Confirmed absence of in-app enforcement (codebase audit March 25, 2026):**
+- `src/app/api/campaigns/dispatch/route.ts` — no TCPA consent field in dispatch payload
+- `src/components/campaigns/CampaignsOverview.tsx` — no compliance acknowledgment checkbox
+- `src/app/(app)/campaigns/[id]/page.tsx` — no TCPA disclosure or acknowledgment in campaign detail
+- `src/app/api/bland/send-call/route.ts` — no TCPA consent gate before Bland AI dispatch
+- No `tcpa_consent_confirmed`, `compliance_acknowledged`, or analogous field exists in the `campaigns` table schema
+
+**Legal position and liability allocation:** Callengo's legal structure relies entirely on contractual pass-through of TCPA and TSR obligations to the customer through the Terms of Service (GAP-003). The Terms must explicitly require customers to: (a) obtain prior express written consent from all contacts before calling; (b) honor all federal and state Do-Not-Call registrations; (c) maintain consent records and produce them upon demand; (d) comply with permitted calling hours (8 AM–9 PM local time for consumer contacts); (e) include required caller ID disclosures. Without an in-app enforcement mechanism, Callengo relies exclusively on contractual self-certification. This is common practice among outbound calling platforms, but is legally insufficient on its own.
 
 **Remediation:**
-1. Add a mandatory TCPA/TSR compliance acknowledgment to the campaign creation flow (e.g., checkbox: "I confirm that I have obtained prior express written consent from all contacts in this campaign as required by applicable law.").
-2. Include TCPA/TSR compliance obligations in the Terms of Service.
-3. Consider adding a compliance FAQ or in-app help content explaining customer TCPA obligations.
-4. Review whether to implement call-time window enforcement (blocking calls outside 8 AM–9 PM in the contact's local time zone) as a technical safeguard.
+1. Add a mandatory TCPA/TSR compliance acknowledgment checkbox to the campaign creation/launch flow — displayed immediately before dispatch begins: *"I confirm that I have obtained prior express written consent (as required by the TCPA and applicable law) from all contacts in this campaign, that my contact list complies with federal and state Do-Not-Call requirements, and that my use of this platform complies with all applicable telemarketing laws. I accept full legal responsibility for the calling activity initiated through this campaign."* This checkbox creates a timestamped self-certification record per campaign.
+2. Include TCPA/TSR compliance obligations in the Terms of Service (see GAP-003).
+3. Consider adding a persistent in-app compliance help section explaining customer TCPA obligations, state recording consent laws, and DNC compliance requirements.
+4. Consider implementing call-time window validation: block dispatches to US contacts outside 8 AM–9 PM in the contact's detected local time zone as a technical safe harbor measure.
+
+**Relevant Files:**
+- `src/app/api/campaigns/dispatch/route.ts` — dispatch entry point
+- `src/components/campaigns/CampaignsOverview.tsx` — campaign list and launch UI
+- `src/app/api/bland/send-call/route.ts` — individual call dispatch
+
+**Risk Level:** 🟠 High — no in-app enforcement mechanism present; sole protection is ToS language (not yet drafted)
 
 ---
 
@@ -2445,19 +2493,46 @@ All of these are now tracked via the new `openai_usage_logs` table and use a 2-k
 
 ---
 
-### GAP-010: Salesforce `full` Scope Is Overly Broad
-**Description:** The Salesforce OAuth integration requests the `full` scope, which grants Callengo access to all objects and data in the connected Salesforce org, including objects and data that are not needed for contact synchronization. This violates the principle of data minimization and may exceed what is necessary for the stated purpose.
+### GAP-010: Salesforce `full` Scope — Business Justification and Mitigation
+
+**Description:** The Salesforce OAuth integration requests the `full` scope in addition to `api`, `refresh_token`, and `id`. The `full` scope grants Callengo programmatic access to all accessible Salesforce data and operations within the connected org. From a data minimization standpoint, this is broader than what a narrowly scoped CRM connector requires.
+
+**Business justification for current scope configuration:**
+
+The `full` scope is requested because Callengo's Salesforce integration operates as a comprehensive automation layer, not a simple read-only contact importer. The scope enables:
+
+1. **Contact and Lead import:** SOQL queries on `Contact` and `Lead` objects, including `AccountId`, `Account.Name`, mailing address, phone, email, title, source, owner, and status fields.
+2. **Account/Company data enrichment:** SOQL queries on `Account` objects to enrich contact company data.
+3. **Event/Calendar sync:** SOQL queries on `Event` objects for appointment correlation between Salesforce calendar entries and Callengo call activity.
+4. **User data:** SOQL queries on `User` objects to map `OwnerId` to human-readable owner names for contact context.
+5. **Future bidirectional sync:** The architecture supports pushing call outcomes (call status, qualification result, AI analysis) back to Salesforce Contact/Lead records as notes or field updates — this write capability requires `full` rather than a read-only subset.
+
+**Actual operations performed (confirmed by codebase audit — `src/lib/salesforce/sync.ts`):**
+- `fetchSalesforceContacts()` — SOQL SELECT on Contact object
+- `fetchSalesforceLeads()` — SOQL SELECT on Lead object
+- `fetchSalesforceEvents()` — SOQL SELECT on Event object
+- `fetchSalesforceUsers()` — SOQL SELECT on User object
+- Writes: contact/lead records upserted into Callengo's own `contacts` table in Supabase (no destructive operations on the Salesforce org)
+- No Salesforce record deletions, bulk updates, or mutations to Salesforce data are performed in the current implementation
+
+**Mitigation measures in place:**
+- Despite the `full` scope, actual API calls are strictly limited to SOQL SELECT queries on Contact, Lead, Account, Event, and User objects
+- No Apex triggers, metadata API calls, org configuration changes, or bulk data operations are performed
+- OAuth token is encrypted at rest (AES-256-GCM via `src/lib/encryption.ts`)
+
+**Legal exposure assessment:** The `full` scope creates a representation gap — the actual data access footprint is narrow (read + limited write on 5 object types), but the authorized scope is unrestricted. For GDPR data minimization, the authorized scope is what matters, not just actual usage. For enterprise customers whose Salesforce org contains regulated or sensitive data (PHI if healthcare CRM, financial data, etc.), the `full` scope could present an audit risk.
+
+**Remediation path:**
+1. The current implementation works and is functional. The scope represents the ceiling of permissions requested, not what is actually used.
+2. For enterprise or regulated-industry customers, consider documenting in the privacy terms that Salesforce integration requests `full` scope for CRM automation and clearly listing the object types actually accessed.
+3. If Salesforce releases a scoped permission model that can cover the objects above without `full`, migrate. As of 2026, Salesforce's named-object scopes (`chatter_api`, `wave_api`, etc.) do not cover the standard CRM object set comprehensively via OAuth.
+4. Include the actual object access list in the Privacy Policy's Salesforce integration disclosure.
 
 **Relevant Files:**
-- `src/lib/salesforce/auth.ts` lines 33–38
+- `src/lib/salesforce/auth.ts` — scope definition (lines 33–38)
+- `src/lib/salesforce/sync.ts` — actual sync operations
 
-**Risk Level:** 🟠 High
-
-**Remediation:**
-1. Replace the `full` scope with the minimum scopes needed: `api` (for REST API access to specific objects), `refresh_token`, and `id`.
-2. Within the API calls, limit object access to Contact, Lead, Account, Opportunity, and Task objects only.
-3. Review Salesforce's connected app scope documentation to confirm the minimum required scope set.
-4. Reauthorize existing connected customers after scope reduction (this will require users to reconnect the integration).
+**Risk Level:** 🟡 Medium — scope broader than strictly necessary; actual access limited; disclosure in Privacy Policy mitigates
 
 ---
 
@@ -2494,27 +2569,46 @@ All of these are now tracked via the new `openai_usage_logs` table and use a 2-k
 
 ---
 
-### GAP-013: Zoho Scopes Include `org.ALL` and `notifications.ALL`
-**Description:** The Zoho CRM integration requests `ZohoCRM.org.ALL` and `ZohoCRM.notifications.ALL` in addition to contact and settings scopes. `org.ALL` grants access to organization-wide settings and configuration data. `notifications.ALL` grants access to all notification data within the org. These scopes are broader than necessary for contact synchronization.
+### GAP-013: Zoho Scopes — Business Justification and Minimization Assessment
+
+**Description:** The Zoho CRM integration requests five scopes: `ZohoCRM.modules.ALL`, `ZohoCRM.settings.ALL`, `ZohoCRM.users.ALL`, `ZohoCRM.org.ALL`, and `ZohoCRM.notifications.ALL`. Of these, `org.ALL` and `notifications.ALL` are the broadest and warrant documentation of their business necessity.
+
+**Justification per scope:**
+- `ZohoCRM.modules.ALL` — Required. Callengo reads Contact, Lead, and Account modules and pushes call results back as notes. Module scope must cover all modules the customer uses.
+- `ZohoCRM.settings.ALL` — Required. Needed to read field definitions and layout metadata for accurate field mapping during contact import.
+- `ZohoCRM.users.ALL` — Required. Maps record `OwnerId` to user names for contact context display.
+- `ZohoCRM.org.ALL` — Used to read org-level configuration and confirm API region/datacenter for correct endpoint selection. Could potentially be eliminated if Zoho's API behavior is consistent without it, but removing it may cause issues for some customer org configurations.
+- `ZohoCRM.notifications.ALL` — Used to set up real-time webhook notifications from Zoho to Callengo when contact or lead records change. This enables automatic re-sync when CRM data is updated outside Callengo. Without this scope, sync would be limited to scheduled/manual triggers only.
+
+**Operations confirmed in codebase (`src/lib/zoho/sync.ts`):** Contact fetch, Lead fetch, User fetch, bidirectional sync (inbound to Callengo + outbound call results back to Zoho via `pushCallResultToZoho()` and `pushContactUpdatesToZoho()`). No destructive operations on the Zoho org.
+
+**Remediation assessment:** `org.ALL` is a candidate for removal if Zoho's API works without it in practice. `notifications.ALL` is functionally justified by the real-time sync architecture. The Privacy Policy should disclose that Zoho integration accesses organization settings and notification data in addition to contact/lead records.
 
 **Relevant Files:**
 - `src/lib/zoho/auth.ts` lines 37–43
+- `src/lib/zoho/sync.ts` — sync operations
 
-**Risk Level:** 🟡 Medium
-
-**Remediation:** Review Zoho's scope documentation and reduce to `ZohoCRM.modules.contacts.ALL`, `ZohoCRM.modules.leads.ALL`, and `ZohoCRM.modules.accounts.READ`. Remove `org.ALL` and `notifications.ALL` if not required for core functionality.
+**Risk Level:** 🟡 Low-Medium — scopes documented with justification; `org.ALL` warrants testing for removal
 
 ---
 
-### GAP-014: Microsoft Dynamics `user_impersonation` Scope Risk
-**Description:** The Microsoft Dynamics 365 integration requests `user_impersonation` scope via a dynamically constructed scope string. `user_impersonation` allows Callengo to act as the authenticated user with full user-level permissions in the Dynamics 365 instance. This is broad and should be reviewed for compliance with Microsoft's least-privilege recommendations.
+### GAP-014: Microsoft Dynamics `user_impersonation` Scope — Justification
+
+**Description:** The Microsoft Dynamics 365 integration requests `user_impersonation` scope dynamically via `{instanceUrl}/user_impersonation` in addition to `openid`, `profile`, `email`, `offline_access`, and `User.Read`. The `user_impersonation` scope is the standard scope required to call the Dynamics 365 Web API on behalf of a signed-in user. It is not an elevated administrative permission — it grants Callengo the ability to call the Dynamics REST API with the same permissions as the authenticated user account.
+
+**Why `user_impersonation` is necessary:** Microsoft Dynamics 365's API access model requires `user_impersonation` for all third-party applications that access Dynamics data on behalf of a user via OAuth. There is no narrower scope that provides access to Dynamics CRM entities (Contact, Lead, Account, SystemUser) without `user_impersonation`. This is a Microsoft platform design constraint, not a Callengo design choice.
+
+**Operations confirmed in codebase (`src/lib/dynamics/sync.ts`):** Contact fetch, Lead fetch, SystemUser fetch, bidirectional sync (inbound contact import + outbound call result push via `pushCallResultToDynamics()` and `pushContactUpdatesToDynamics()`). No destructive operations on the Dynamics org.
+
+**Mitigating factors:** The connected user's Dynamics role controls the actual data access scope. If the customer connects Callengo using a Dynamics user with limited role permissions (e.g., read-only on Contact/Lead entities only), the `user_impersonation` scope operates within those role limits. Callengo recommends customers create a dedicated integration user with minimum required Dynamics security roles.
+
+**Privacy Policy disclosure required:** Disclose that Microsoft Dynamics 365 integration accesses Contact, Lead, Account, and User entities under the permissions of the connected Dynamics user account.
 
 **Relevant Files:**
-- `src/lib/dynamics/auth.ts` lines 40–46
+- `src/lib/dynamics/auth.ts` — scope construction (lines 40–46)
+- `src/lib/dynamics/sync.ts` — actual data operations
 
-**Risk Level:** 🟡 Medium
-
-**Remediation:** Review whether `user_impersonation` is required or whether a more limited scope (e.g., specific Dynamics API permissions via app registration) could be used. Consult Microsoft Dynamics documentation on minimal scope patterns.
+**Risk Level:** 🟡 Low — `user_impersonation` is the only available Dynamics API access mechanism; actual scope limited by user role in Dynamics
 
 ---
 
@@ -2615,6 +2709,51 @@ All of these are now tracked via the new `openai_usage_logs` table and use a 2-k
 **Risk Level:** 🟢 Low
 
 **Remediation:** Include a sub-processor change notification clause in the DPA. Maintain a publicly accessible sub-processor list page (e.g., at `/legal/sub-processors`) that Callengo updates when sub-processors change.
+
+---
+
+### GAP-023: Call Recording Consent — State Two-Party Consent Laws Not Addressed in Customer Obligations
+
+**Description:** Bland AI records all calls by default (`record: true` in `src/lib/bland/master-client.ts`). This means every call made through Callengo produces an audio recording of a conversation involving a third party (the contact being called). Under United States law, call recording consent requirements vary by state. The federal standard (one-party consent under 18 U.S.C. § 2511) permits recording if one party to the call consents. However, a significant number of states require **all parties** to a call to consent to recording (two-party or "all-party" consent states).
+
+**States with all-party (two-party) call recording consent requirements as of 2026:**
+
+| State | Law | Key Requirement |
+|-------|-----|----------------|
+| California | CA Penal Code § 632 | All parties must consent; civil and criminal penalties apply; $5,000 per violation civil penalty |
+| Florida | FL Stat. § 934.03 | All parties must consent; both civil and criminal liability |
+| Illinois | Illinois Eavesdropping Act (720 ILCS 5/14-2) | All parties must consent; criminal penalties apply |
+| Maryland | MD Code, Courts § 10-402 | All parties must consent |
+| Massachusetts | MA Gen. Laws ch. 272, § 99 | All parties must consent; criminal penalties |
+| Michigan | MI Comp. Laws § 750.539c | All parties must consent |
+| Montana | MT Code § 45-8-213 | All parties must consent |
+| New Hampshire | NH Rev. Stat. § 570-A:2 | All parties must consent |
+| Oregon | OR Rev. Stat. § 165.540 | All parties must consent |
+| Pennsylvania | PA Cons. Stat. § 5704 | All parties must consent; one of the strictest in the US |
+| Washington | RCW 9.73.030 | All parties must consent; civil penalty of $100/day or $1,000 per violation |
+
+Note: Connecticut, Hawaii, and Nevada have nuanced requirements that may impose two-party consent in some circumstances. Laws change — this list should be reviewed annually or upon any significant change to calling territories.
+
+**Business context and recording rationale:** Callengo records all calls by default because recording data is essential for: (a) post-call AI analysis of conversation quality, intent, and outcomes; (b) quality assurance and agent tuning; (c) dispute resolution if a contact later disputes the content of a call; (d) customer review of call performance through the Callengo dashboard. Extended recording access (beyond 30 days) requires the Recording Vault add-on ($12/month). Recording is a core functional component of the platform.
+
+**Callengo's legal position:** Callengo is the technology platform — the business customer initiates and controls the call. Under this structure, the obligation to obtain two-party consent (in states that require it) falls on the **business customer**, not Callengo. Callengo's Terms of Service must explicitly impose this obligation on the customer and disclaim Callengo's liability for any customer failure to obtain required consents.
+
+**Required Terms of Service language (to be included in ToS — GAP-003):**
+
+The Terms of Service must include, at minimum, the following pass-through obligations for customers:
+
+> *"You are solely responsible for ensuring that all calls made using the Service comply with applicable federal and state call recording consent laws. In states that require all-party consent to call recording (including, without limitation, California, Florida, Illinois, Maryland, Massachusetts, Michigan, Montana, New Hampshire, Oregon, Pennsylvania, and Washington), you must obtain the affirmative consent of the called party before recording the call. Callengo records all calls by default as part of its standard Service functionality. If you do not wish to record calls, you must contact Callengo to disable recording for your account. Callengo assumes no liability for any failure by you to obtain required recording consents, and you agree to indemnify and hold harmless Callengo from any claims, penalties, or damages arising from your failure to comply with applicable recording consent laws."*
+
+**Recommended in-app disclosures:** When a customer creates a campaign or launches a call to contacts in a two-party consent state, the UI should display a notice: *"Calls to contacts in California, Florida, Illinois, Pennsylvania, Washington, and other two-party consent states may require advance consent from the called party for recording. Ensure you have the required consent before launching this campaign."*
+
+**Implementation option — Consent disclosure in call script:** Customers targeting contacts in two-party consent states can include an AI-spoken disclosure at the beginning of the call (e.g., *"This call may be recorded for quality assurance purposes"*) as part of their agent script. This constitutes notice (though not necessarily affirmative consent) and can reduce legal exposure in many jurisdictions. The Terms should encourage this practice.
+
+**Relevant Files:**
+- `src/lib/bland/master-client.ts` — `record: payload.record ?? true` (line 215) — default recording enabled
+- `src/app/(app)/campaigns/` — campaign creation UI (no recording consent workflow)
+- `src/config/plan-features.ts` — `recordingVault` add-on definition
+
+**Risk Level:** 🔴 Critical — Callengo's platform automatically records all calls including calls to contacts in all-party consent states; no customer-facing disclosure or consent workflow exists; entire liability exposure currently falls on customers by operation of the platform without explicit contractual notice; Terms of Service required before public launch
 
 ---
 
