@@ -171,6 +171,8 @@ const en = {
       selectVoice: 'Select Voice',
       demoData: 'Demo Data',
       demoScenario: 'Demo scenario',
+      callScenarioLabel: 'Your agent is using this scenario',
+      tipsLabel: 'Try this during the call',
       startTestCall: 'Call me now',
       skip: 'Skip for now',
       enterPhoneAndVoice: 'Please enter your phone number to get the call.',

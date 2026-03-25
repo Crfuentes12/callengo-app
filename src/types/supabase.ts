@@ -1984,6 +1984,79 @@ export type Database = {
           }
         ]
       }
+      test_call_logs: {
+        Row: {
+          id: string
+          company_id: string
+          user_id: string | null
+          bland_call_id: string
+          agent_slug: string
+          agent_name: string | null
+          phone_number_masked: string | null
+          status: string
+          duration_seconds: number
+          is_onboarding: boolean
+          answered_by: string | null
+          bland_cost: number | null
+          transcript: string | null
+          summary: string | null
+          created_at: string
+          completed_at: string | null
+          metadata: Json
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          user_id?: string | null
+          bland_call_id: string
+          agent_slug: string
+          agent_name?: string | null
+          phone_number_masked?: string | null
+          status?: string
+          duration_seconds?: number
+          is_onboarding?: boolean
+          answered_by?: string | null
+          bland_cost?: number | null
+          transcript?: string | null
+          summary?: string | null
+          created_at?: string
+          completed_at?: string | null
+          metadata?: Json
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          user_id?: string | null
+          bland_call_id?: string
+          agent_slug?: string
+          agent_name?: string | null
+          phone_number_masked?: string | null
+          status?: string
+          duration_seconds?: number
+          is_onboarding?: boolean
+          answered_by?: string | null
+          bland_cost?: number | null
+          transcript?: string | null
+          summary?: string | null
+          created_at?: string
+          completed_at?: string | null
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_call_logs_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_call_logs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

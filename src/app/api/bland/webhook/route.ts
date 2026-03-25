@@ -130,6 +130,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing company_id' }, { status: 400 });
     }
 
+    // ── Test/demo calls: lightweight handler — skip all billing/CRM/calendar logic ──
+    const isTestCall = metadata?.is_test === true || metadata?.type === 'demo_call' || metadata?.is_onboarding === true;
+    if (isTestCall && call_id) {
+      const completedAt = new Date().toISOString();
+      const blandStatus = typeof status === 'string' ? status : 'completed';
+      const mappedStatus = blandStatus === 'completed' ? 'completed'
+        : blandStatus === 'failed' ? 'failed'
+        : blandStatus === 'no-answer' ? 'no_answer'
+        : blandStatus === 'voicemail' ? 'voicemail'
+        : blandStatus === 'busy' ? 'busy'
+        : 'completed';
+
+      await supabaseAdmin
+        .from('test_call_logs')
+        .update({
+          status: mappedStatus,
+          duration_seconds: call_length ? Math.round(call_length) : 0,
+          answered_by: answered_by || null,
+          bland_cost: price || 0,
+          transcript: concatenated_transcript || null,
+          summary: summary || null,
+          completed_at: completedAt,
+        })
+        .eq('bland_call_id', call_id);
+
+      console.log(`[webhook] Test call ${call_id} completed — status: ${mappedStatus}, duration: ${call_length}s`);
+      return NextResponse.json({ status: 'ok', type: 'test_call', call_id });
+    }
+
     // Idempotency check: skip if this call_id was already fully processed
     // Also guard against concurrent webhook processing for the same call
     if (call_id) {
