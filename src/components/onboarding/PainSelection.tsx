@@ -20,197 +20,214 @@ interface PainSelectionProps {
   onSkip: () => void;
 }
 
-// SVG icons for each pain point (no emojis)
-const PainIcons: Record<string, React.ReactNode> = {
-  'data-validation': (
-    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-    </svg>
-  ),
-  'appointment-confirmation': (
-    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  'lead-qualification': (
-    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-    </svg>
-  ),
-};
-
-const PAINS_BASE = [
+const PAIN_CONFIG = [
   {
     id: 'data-validation',
-    emoji: '', // no longer used visually
-    color: 'from-emerald-500 to-teal-600',
-    gradient: 'from-emerald-50 to-teal-50',
-    borderColor: 'border-emerald-200',
-    hoverBorder: 'hover:border-emerald-400',
-    selectedRing: 'ring-emerald-500',
     agentSlug: 'data-validation',
+    accentFrom: '#10b981', // emerald-500
+    accentTo: '#0d9488',   // teal-600
+    ringClass: 'ring-emerald-500',
+    borderClass: 'border-emerald-200',
+    hoverBorderClass: 'hover:border-emerald-400',
+    bgHoverClass: 'group-hover:bg-emerald-50',
+    iconColorClass: 'text-emerald-600',
+    iconBgClass: 'bg-emerald-100 group-hover:bg-emerald-200',
+    gradientClass: 'from-emerald-500 to-teal-600',
     titleKey: 'cleanDatabase' as const,
     descriptionKey: 'cleanDatabaseDesc' as const,
     valueKey: 'cleanDatabaseValue' as const,
+    icon: (
+      <svg viewBox="0 0 56 56" fill="none" className="w-14 h-14" strokeLinecap="round" strokeLinejoin="round">
+        {/* Database cylinder */}
+        <ellipse cx="28" cy="14" rx="16" ry="5" stroke="currentColor" strokeWidth="2.2" />
+        <path d="M12 14v28c0 2.76 7.16 5 16 5s16-2.24 16-5V14" stroke="currentColor" strokeWidth="2.2" />
+        <ellipse cx="28" cy="28" rx="16" ry="5" stroke="currentColor" strokeWidth="2.2" />
+        {/* Checkmark badge overlay */}
+        <circle cx="42" cy="42" r="10" fill="#10b981" />
+        <path d="M38 42l3 3 6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
   },
   {
     id: 'appointment-confirmation',
-    emoji: '',
-    color: 'from-blue-500 to-blue-700',
-    gradient: 'from-blue-50 to-indigo-50',
-    borderColor: 'border-blue-200',
-    hoverBorder: 'hover:border-blue-400',
-    selectedRing: 'ring-blue-500',
     agentSlug: 'appointment-confirmation',
+    accentFrom: '#3b82f6',
+    accentTo: '#1d4ed8',
+    ringClass: 'ring-blue-500',
+    borderClass: 'border-blue-200',
+    hoverBorderClass: 'hover:border-blue-400',
+    bgHoverClass: 'group-hover:bg-blue-50',
+    iconColorClass: 'text-blue-600',
+    iconBgClass: 'bg-blue-100 group-hover:bg-blue-200',
+    gradientClass: 'from-blue-500 to-blue-700',
     titleKey: 'stopNoShows' as const,
     descriptionKey: 'stopNoShowsDesc' as const,
     valueKey: 'stopNoShowsValue' as const,
+    icon: (
+      <svg viewBox="0 0 56 56" fill="none" className="w-14 h-14" strokeLinecap="round" strokeLinejoin="round">
+        {/* Calendar */}
+        <rect x="8" y="14" width="34" height="30" rx="4" stroke="currentColor" strokeWidth="2.2" />
+        <path d="M8 22h34" stroke="currentColor" strokeWidth="2.2" />
+        <path d="M18 10v8M30 10v8" stroke="currentColor" strokeWidth="2.2" />
+        {/* Ghost / X cross-out */}
+        <path d="M16 30l8 8M24 30l-8 8" stroke="#ef4444" strokeWidth="2" opacity="0.6" />
+        {/* Ringing phone badge */}
+        <circle cx="42" cy="42" r="10" fill="#3b82f6" />
+        <path d="M38.5 39.5c.5 1.2 1.5 2.3 2.7 2.8l1.4-1.4a.7.7 0 0 1 .8-.1l2 .8a.7.7 0 0 1 .5.7v2a.7.7 0 0 1-.8.7c-6-.7-10.5-5.4-11.2-11.4a.7.7 0 0 1 .7-.6h2c.3 0 .6.2.7.5l.8 2a.7.7 0 0 1-.1.8l-1.5 1.2z" fill="white" />
+      </svg>
+    ),
   },
   {
     id: 'lead-qualification',
-    emoji: '',
-    color: 'from-[var(--color-deep-indigo)] to-[var(--color-electric)]',
-    gradient: 'from-[var(--color-primary-50)] to-indigo-50',
-    borderColor: 'border-[var(--color-primary-200)]',
-    hoverBorder: 'hover:border-[var(--color-primary)]',
-    selectedRing: 'ring-[var(--color-primary)]',
     agentSlug: 'lead-qualification',
+    accentFrom: '#4f46e5',
+    accentTo: '#7c3aed',
+    ringClass: 'ring-indigo-500',
+    borderClass: 'border-indigo-200',
+    hoverBorderClass: 'hover:border-indigo-400',
+    bgHoverClass: 'group-hover:bg-indigo-50',
+    iconColorClass: 'text-indigo-600',
+    iconBgClass: 'bg-indigo-100 group-hover:bg-indigo-200',
+    gradientClass: 'from-indigo-500 to-violet-600',
     titleKey: 'qualifyLeads' as const,
     descriptionKey: 'qualifyLeadsDesc' as const,
     valueKey: 'qualifyLeadsValue' as const,
+    icon: (
+      <svg viewBox="0 0 56 56" fill="none" className="w-14 h-14" strokeLinecap="round" strokeLinejoin="round">
+        {/* Funnel */}
+        <path d="M10 12h36l-14 18v12l-8-4V30L10 12z" stroke="currentColor" strokeWidth="2.2" />
+        {/* People/dots at top (many unqualified) */}
+        <circle cx="16" cy="8" r="2.5" fill="currentColor" opacity="0.35" />
+        <circle cx="22" cy="7" r="2.5" fill="currentColor" opacity="0.35" />
+        <circle cx="28" cy="8" r="2.5" fill="currentColor" opacity="0.35" />
+        <circle cx="34" cy="7" r="2.5" fill="currentColor" opacity="0.35" />
+        <circle cx="40" cy="8" r="2.5" fill="currentColor" opacity="0.35" />
+        {/* Star badge - qualified lead */}
+        <circle cx="42" cy="42" r="10" fill="#4f46e5" />
+        <path d="M42 36l1.5 3.5 3.5.5-2.5 2.5.5 3.5-3-1.5-3 1.5.5-3.5-2.5-2.5 3.5-.5z" fill="white" />
+      </svg>
+    ),
   },
 ];
 
 export default function PainSelection({ onSelect, onSkip }: PainSelectionProps) {
   const { t } = useTranslation();
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const PAINS: (Pain & { borderColor: string; hoverBorder: string; selectedRing: string })[] = PAINS_BASE.map((p) => ({
-    id: p.id,
-    emoji: p.emoji,
-    color: p.color,
-    gradient: p.gradient,
-    borderColor: p.borderColor,
-    hoverBorder: p.hoverBorder,
-    selectedRing: p.selectedRing,
-    agentSlug: p.agentSlug,
-    title: t.onboarding.painSelection[p.titleKey],
-    description: t.onboarding.painSelection[p.descriptionKey],
-    value: t.onboarding.painSelection[p.valueKey],
+  const pains: (Pain & typeof PAIN_CONFIG[0])[] = PAIN_CONFIG.map((cfg) => ({
+    ...cfg,
+    emoji: '',
+    color: cfg.gradientClass,
+    gradient: cfg.bgHoverClass,
+    title: t.onboarding.painSelection[cfg.titleKey],
+    description: t.onboarding.painSelection[cfg.descriptionKey],
+    value: t.onboarding.painSelection[cfg.valueKey],
   }));
 
-  const handleSelect = (pain: Pain & { borderColor: string; hoverBorder: string; selectedRing: string }) => {
+  const handleSelect = (pain: typeof pains[0]) => {
     setSelectedId(pain.id);
-    setTimeout(() => {
-      onSelect(pain);
-    }, 300);
+    setTimeout(() => onSelect(pain), 250);
   };
 
   return (
     <div className="w-full">
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl gradient-bg mb-4 shadow-md">
-          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-          </svg>
+        {/* Callengo Logo */}
+        <div className="flex justify-center mb-5">
+          <img
+            src="/callengo-logo.svg"
+            alt="Callengo"
+            className="h-10 w-auto"
+          />
         </div>
-        <h2 className="text-2xl md:text-3xl font-bold text-[var(--color-ink)] mb-2 tracking-tight">
+        <h2 className="text-2xl md:text-3xl font-extrabold text-[var(--color-ink)] mb-2 tracking-tight leading-tight">
           {t.onboarding.painSelection.title}
         </h2>
-        <p className="text-sm text-[var(--color-neutral-500)] max-w-lg mx-auto">
+        <p className="text-sm text-[var(--color-neutral-500)]">
           {t.onboarding.painSelection.subtitle}
         </p>
       </div>
 
       {/* Pain Cards */}
       <div className="grid md:grid-cols-3 gap-4 mb-6">
-        {PAINS.map((pain) => (
-          <button
-            key={pain.id}
-            onClick={() => handleSelect(pain)}
-            onMouseEnter={() => setHoveredId(pain.id)}
-            onMouseLeave={() => setHoveredId(null)}
-            className={`
-              group relative overflow-hidden rounded-2xl p-5 text-left
-              transition-all duration-300 ease-out
-              bg-white border
-              ${selectedId === pain.id ? `ring-2 ${pain.selectedRing} ${pain.borderColor}` : pain.borderColor}
-              ${pain.hoverBorder}
-              ${hoveredId === pain.id ? 'shadow-lg -translate-y-0.5' : 'shadow-sm'}
-            `}
-          >
-            {/* Subtle gradient background on hover */}
-            <div className={`
-              absolute inset-0 bg-gradient-to-br ${pain.gradient} opacity-0
-              group-hover:opacity-100 transition-opacity duration-300
-            `}></div>
-
-            {/* Content */}
-            <div className="relative z-10">
-              {/* SVG Icon */}
+        {pains.map((pain) => {
+          const isSelected = selectedId === pain.id;
+          return (
+            <button
+              key={pain.id}
+              onClick={() => handleSelect(pain)}
+              className={`
+                group relative text-left rounded-2xl border-2 bg-white
+                transition-all duration-200 ease-out overflow-hidden
+                flex flex-col p-6 min-h-[200px]
+                ${isSelected ? `${pain.ringClass} ring-2 ${pain.borderClass} shadow-lg scale-[1.02]` : `${pain.borderClass} ${pain.hoverBorderClass}`}
+                hover:shadow-lg hover:-translate-y-0.5
+              `}
+            >
+              {/* Subtle bg fill on hover/select */}
               <div className={`
-                inline-flex items-center justify-center w-12 h-12 rounded-xl mb-3
-                bg-gradient-to-br ${pain.color} shadow-sm
-                transition-transform duration-300 group-hover:scale-105
+                absolute inset-0 transition-opacity duration-200
+                ${pain.bgHoverClass} opacity-0 group-hover:opacity-100
+                ${isSelected ? 'opacity-100' : ''}
+              `} />
+
+              {/* Icon */}
+              <div className={`
+                relative z-10 inline-flex items-center justify-center
+                w-16 h-16 rounded-2xl mb-4 transition-all duration-200
+                ${pain.iconBgClass} ${pain.iconColorClass}
               `}>
-                {PainIcons[pain.id]}
+                {pain.icon}
               </div>
 
-              {/* Title */}
-              <h3 className="text-base font-bold text-[var(--color-ink)] mb-2">
+              {/* Headline */}
+              <h3 className="relative z-10 text-lg font-extrabold text-[var(--color-ink)] leading-snug mb-2">
                 {pain.title}
               </h3>
 
               {/* Description */}
-              <p className="text-sm text-[var(--color-neutral-600)] mb-3 leading-relaxed">
+              <p className="relative z-10 text-sm text-[var(--color-neutral-600)] leading-relaxed flex-1">
                 {pain.description}
               </p>
 
-              {/* Pain Points */}
-              <div className="pt-3 border-t border-[var(--border-default)]">
-                <p className="text-[10px] text-[var(--color-neutral-400)] mb-1.5 font-bold uppercase tracking-wide">
-                  {t.onboarding.painSelection.dealingWith}
-                </p>
-                <p className="text-xs text-[var(--color-neutral-500)] leading-relaxed">
-                  {pain.value}
-                </p>
-              </div>
-
-              {/* Selected indicator */}
-              {selectedId === pain.id && (
-                <div className="absolute top-3 right-3">
-                  <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${pain.color} flex items-center justify-center shadow-md`}>
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              {/* Bottom row */}
+              <div className="relative z-10 flex items-center justify-end mt-4">
+                {isSelected ? (
+                  <div className={`
+                    flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full
+                    bg-gradient-to-r ${pain.gradientClass} text-white shadow-sm
+                  `}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
+                    Selected
                   </div>
-                </div>
-              )}
-            </div>
-          </button>
-        ))}
+                ) : (
+                  <span className={`
+                    text-xs font-semibold flex items-center gap-1
+                    ${pain.iconColorClass} opacity-60 group-hover:opacity-100 transition-opacity
+                  `}>
+                    Select
+                    <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Skip Button — prominent */}
+      {/* Skip */}
       <div className="text-center">
         <button
           onClick={onSkip}
-          className="px-6 py-2.5 bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-200)] text-sm font-semibold rounded-lg transition-all border border-[var(--border-default)]"
+          className="text-sm text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] transition-colors font-medium underline underline-offset-2"
         >
           {t.onboarding.painSelection.skipStep}
         </button>
-      </div>
-
-      {/* Bottom note */}
-      <div className="mt-6 text-center">
-        <p className="text-[var(--color-neutral-400)] text-xs flex items-center justify-center gap-1.5">
-          <svg className="w-3.5 h-3.5 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-          </svg>
-          {t.onboarding.painSelection.activateLater}
-        </p>
       </div>
     </div>
   );
