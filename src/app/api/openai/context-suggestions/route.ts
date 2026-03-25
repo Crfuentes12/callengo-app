@@ -64,23 +64,23 @@ Respond in JSON format:
     const content = completion.choices[0]?.message?.content;
 
     // Fetch companyId for tracking (non-blocking)
-    supabase
-      .from('users')
-      .select('company_id')
-      .eq('id', user.id)
-      .single()
-      .then(({ data: ud }: { data: { company_id: string } | null; error: unknown }) => {
+    void (async () => {
+      try {
+        const { data: ud } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
         trackOpenAIUsage({
           featureKey: 'contact_analysis',
           model: getDefaultModel(),
           inputTokens: completion.usage?.prompt_tokens ?? 0,
           outputTokens: completion.usage?.completion_tokens ?? 0,
-          companyId: ud?.company_id ?? null,
+          companyId: (ud as { company_id: string } | null)?.company_id ?? null,
           userId: user.id,
           metadata: { endpoint: 'openai/context-suggestions', agentType },
         });
-      })
-      .catch(() => {
+      } catch {
         trackOpenAIUsage({
           featureKey: 'contact_analysis',
           model: getDefaultModel(),
@@ -90,7 +90,8 @@ Respond in JSON format:
           userId: user.id,
           metadata: { endpoint: 'openai/context-suggestions', agentType },
         });
-      });
+      }
+    })();
 
     if (!content) {
       return NextResponse.json({ suggestions: [] });

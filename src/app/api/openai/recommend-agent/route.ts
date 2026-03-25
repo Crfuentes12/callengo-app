@@ -71,23 +71,23 @@ Choose the single best match.`;
     const recommendedSlug = completion.choices[0].message.content?.trim().replace(/['"]/g, '');
 
     // Track usage (non-blocking)
-    supabase
-      .from('users')
-      .select('company_id')
-      .eq('id', user.id)
-      .single()
-      .then(({ data: ud }: { data: { company_id: string } | null; error: unknown }) => {
+    void (async () => {
+      try {
+        const { data: ud } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
         trackOpenAIUsage({
           featureKey: 'contact_analysis',
           model: getDefaultModel(),
           inputTokens: completion.usage?.prompt_tokens ?? 0,
           outputTokens: completion.usage?.completion_tokens ?? 0,
-          companyId: ud?.company_id ?? null,
+          companyId: (ud as { company_id: string } | null)?.company_id ?? null,
           userId: user.id,
           metadata: { endpoint: 'openai/recommend-agent' },
         });
-      })
-      .catch(() => {
+      } catch {
         trackOpenAIUsage({
           featureKey: 'contact_analysis',
           model: getDefaultModel(),
@@ -97,7 +97,8 @@ Choose the single best match.`;
           userId: user.id,
           metadata: { endpoint: 'openai/recommend-agent' },
         });
-      });
+      }
+    })();
 
     // Validate that the recommended slug exists
     const isValid = availableAgents.some((agent: Record<string, unknown>) => agent.slug === recommendedSlug);
