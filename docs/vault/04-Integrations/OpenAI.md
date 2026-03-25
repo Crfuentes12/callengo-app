@@ -1,25 +1,129 @@
 ---
-tags: [integration, ai, analysis, core]
-aliases: [GPT-4o-mini, AI Analysis, Intent Analyzer, Post-Call Intelligence]
+tags: [integration, ai, analysis, core, tracking, cali-ai]
+aliases: [GPT-4o-mini, GPT-4o, AI Analysis, Intent Analyzer, Post-Call Intelligence, Cali AI, OpenAI Tracker]
+updated: 2026-03-25
 ---
 
 # OpenAI
 
-OpenAI provides the post-call intelligence layer for [[Callengo]]. After every call completes, the transcript is sent to GPT-4o-mini for semantic intent classification, data extraction, and summary generation. This replaces the brittle keyword-based detection system that preceded it.
+OpenAI provides the AI intelligence layer for [[Callengo]] across eight feature areas: post-call transcript analysis, contact intelligence, the Cali AI in-app assistant, onboarding suggestions, and demo data analysis. All OpenAI calls are routed through a central tracker library that selects the correct API key per feature, logs usage to the [[Schema Overview|openai_usage_logs]] table, and exposes cost data in the [[Command Center]] AI Costs tab.
+
+---
+
+## Tracker Library — `src/lib/openai/tracker.ts`
+
+All code that calls the OpenAI API must use this library instead of instantiating the OpenAI SDK directly. This ensures consistent key routing, usage logging, and model configuration.
+
+### Functions
+
+#### `getOpenAIClient(featureKey: FeatureKey): OpenAI`
+
+Returns an OpenAI SDK instance configured with the correct API key for the given feature. Falls back to `OPENAI_API_KEY` if the feature-specific key is not set.
+
+| Feature Key | Primary Env Var | Fallback |
+|-------------|----------------|---------|
+| `call_analysis` | `OPENAI_API_KEY_CALL_ANALYSIS` | `OPENAI_API_KEY` |
+| `contact_analysis` | `OPENAI_API_KEY_CONTACT_ANALYSIS` | `OPENAI_API_KEY` |
+| `cali_ai` | `OPENAI_API_KEY_CALI_AI` | `OPENAI_API_KEY` |
+| `onboarding` | `OPENAI_API_KEY_CONTACT_ANALYSIS` | `OPENAI_API_KEY` |
+| `demo_analysis` | `OPENAI_API_KEY` | — |
+
+#### `trackOpenAIUsage(params): void`
+
+Async fire-and-forget function that inserts a row into the `openai_usage_logs` table. Called after every OpenAI API completion. Failures are silently swallowed so analytics never breaks application functionality.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `companyId` | string (UUID) | Company that triggered the request |
+| `userId` | string (UUID, optional) | User who triggered the request |
+| `featureKey` | `FeatureKey` | Which feature area made the call |
+| `apiKeyLabel` | string | Human-readable label of the key used (e.g., `'OPENAI_API_KEY_CALL_ANALYSIS'`) |
+| `model` | string | Model used (e.g., `'gpt-4o-mini'`) |
+| `inputTokens` | number | Tokens in the prompt |
+| `outputTokens` | number | Tokens in the completion |
+| `totalTokens` | number | Sum of input + output |
+| `costUsd` | number | Calculated cost in USD |
+| `openaiRequestId` | string (optional) | OpenAI request ID from response headers |
+| `metadata` | Record<string, unknown> (optional) | Additional context (e.g., call_log_id, template_slug) |
+
+#### `calculateOpenAICost(model: string, inputTokens: number, outputTokens: number): number`
+
+Returns the estimated cost in USD based on per-model pricing. Uses the published token prices for gpt-4o-mini, gpt-4o, and other supported models.
+
+#### `getDefaultModel(): string`
+
+Returns `process.env.OPENAI_MODEL ?? 'gpt-4o-mini'`. Use this instead of hardcoding model names.
+
+#### `getPremiumModel(): string`
+
+Returns `process.env.OPENAI_MODEL_PREMIUM ?? 'gpt-4o'`. Used for deep call analysis and higher-quality outputs.
+
+### `FeatureKey` Type
+
+```typescript
+type FeatureKey = 'call_analysis' | 'contact_analysis' | 'cali_ai' | 'onboarding' | 'demo_analysis'
+```
+
+---
+
+## Feature Areas
+
+### 1. Call Analysis (`call_analysis`)
+
+Post-call transcript analysis via the intent analyzer. Three specialized analyzers for the three [[Agent|agent types]]. Routes through `analyzeCallIntent()` in `src/lib/ai/intent-analyzer.ts`.
+
+**Route:** `POST /api/openai/analyze`, `POST /api/openai/intent`
+**Model:** `getDefaultModel()` → `gpt-4o-mini`
+**Temperature:** `0.1` (near-deterministic for consistent classification)
+**Response format:** `{ type: 'json_object' }` (JSON mode)
+
+### 2. Contact Analysis (`contact_analysis`)
+
+Contact quality scoring, agent suggestions, and web scraper context processing.
+
+**Model:** `getDefaultModel()` → `gpt-4o-mini`
+
+### 3. Cali AI Assistant (`cali_ai`)
+
+In-app AI assistant accessible via Cmd+K. Powered by `src/components/ai/AIChatPanel.tsx` (client-side) and `src/app/api/ai/chat/route.ts` (server-side).
+
+**Route:** `POST /api/ai/chat`
+**Model:** `getDefaultModel()` → `gpt-4o-mini`
+**Temperature:** `0.7`
+**Max tokens:** `1,000`
+**Conversation persistence:** `ai_conversations` and `ai_messages` tables (user-scoped RLS)
+
+### 4. Onboarding (`onboarding`)
+
+Context suggestions and intelligent defaults during the onboarding flow.
+
+**Model:** `getDefaultModel()` → `gpt-4o-mini`
+**API Key:** Shares `OPENAI_API_KEY_CONTACT_ANALYSIS` key
+
+### 5. Demo Analysis (`demo_analysis`)
+
+Analysis of demo/seed data for testing and demonstration purposes.
+
+**Model:** `getDefaultModel()` → `gpt-4o-mini`
+**API Key:** Uses base `OPENAI_API_KEY`
+
+---
 
 ## Model Configuration
 
-| Parameter | Value |
-|-----------|-------|
-| Model | `gpt-4o-mini` |
-| Temperature | `0.1` (near-deterministic for consistent classification) |
-| Response format | `{ type: 'json_object' }` (JSON mode) |
-| SDK | `openai` npm package |
-| Environment variable | `OPENAI_API_KEY` |
+| Parameter | Default Value | Override |
+|-----------|--------------|---------|
+| Default model | `gpt-4o-mini` | `OPENAI_MODEL` env var |
+| Premium model | `gpt-4o` | `OPENAI_MODEL_PREMIUM` env var |
+| Temperature (analysis) | `0.1` | Hardcoded per-analyzer |
+| Temperature (Cali AI) | `0.7` | Hardcoded |
+| Response format (analysis) | `{ type: 'json_object' }` | JSON mode |
 
-The low temperature of 0.1 is intentional: call analysis must be consistent and reproducible. A transcript classified as "confirmed" on one run should receive the same classification on the next. The JSON mode constraint ensures the model always returns parseable JSON rather than free-form text.
+---
 
-## Three Analyzers
+## Three Analyzers (Intent Analysis)
 
 The intent analyzer module at `src/lib/ai/intent-analyzer.ts` (346 lines) exports three specialized analyzer functions plus a universal router. Each analyzer is tailored to one of the three [[Agent|AI agent types]] and returns a strongly-typed result object.
 
@@ -114,6 +218,8 @@ The `analyzeCallIntent(templateSlug, transcript, metadata)` function routes to t
 | `'data-validation'` | `analyzeDataValidationIntent()` |
 | Default (any other slug) | `analyzeDataValidationIntent()` (most general) |
 
+---
+
 ## Transcript Sanitization
 
 Before any transcript reaches the GPT-4o-mini prompt, it passes through `sanitizeTranscript()`:
@@ -130,6 +236,8 @@ Additionally, all prompts wrap the transcript in explicit delimiters:
 ```
 
 This framing reinforces to the model that the transcript content should be analyzed, not executed as instructions.
+
+---
 
 ## Dual Processing Modes
 
@@ -166,17 +274,111 @@ Analysis is decoupled from the webhook via a database-backed job queue. The webh
 
 Job claiming uses a PostgreSQL `FOR UPDATE SKIP LOCKED` pattern via the `claim_analysis_job()` RPC function, ensuring exactly-once processing even with multiple workers.
 
+---
+
+## `openai_usage_logs` Table
+
+Every OpenAI API call is tracked in this table. It provides the data source for the [[Command Center]] AI Costs tab.
+
+**Migration:** `supabase/migrations/20260325000001_openai_usage_tracking.sql`
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | uuid (PK) | No | Row identifier |
+| `company_id` | uuid (FK → companies) | Yes | Company that triggered the call |
+| `user_id` | uuid (FK → users) | Yes | User who triggered the call (if applicable) |
+| `feature_key` | text | No | Which feature made the call (see `FeatureKey` type) |
+| `api_key_label` | text | Yes | Which API key env var was used |
+| `model` | text | No | OpenAI model name (e.g., `gpt-4o-mini`) |
+| `input_tokens` | integer | No | Prompt token count |
+| `output_tokens` | integer | No | Completion token count |
+| `total_tokens` | integer | No | Sum of input + output |
+| `cost_usd` | numeric(10,6) | No | Calculated cost in USD |
+| `openai_request_id` | text | Yes | OpenAI request ID from response headers |
+| `metadata` | jsonb | Yes | Additional context (call_log_id, template_slug, etc.) |
+| `created_at` | timestamptz | No | When the API call was made |
+
+**Indexes:**
+- `idx_openai_usage_company_id` on `company_id`
+- `idx_openai_usage_feature_key` on `feature_key`
+- `idx_openai_usage_created_at` on `created_at DESC`
+- `idx_openai_usage_model` on `model`
+
+**RLS Policies:**
+- `SELECT`: Users with `admin` or `owner` role can read all rows (platform-level analytics)
+- `INSERT`: Service role only (writes happen server-side in `trackOpenAIUsage()`)
+- `UPDATE`/`DELETE`: Blocked — log is append-only
+
+**Data retention:** 30-day rolling window recommended (not yet enforced by a scheduled job).
+
+---
+
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/openai/analyze` | Analyze a call transcript (general purpose) |
-| POST | `/api/openai/intent` | Detect intent from a transcript snippet |
-| POST | `/api/openai/chat` | AI assistant conversation (in-app chat) |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/openai/analyze` | Session | Analyze a call transcript (general purpose) |
+| POST | `/api/openai/intent` | Session | Detect intent from a transcript snippet |
+| POST | `/api/openai/chat` | Session | AI assistant conversation (Cali AI) |
+| POST | `/api/openai/webhook` | HMAC-SHA256 | OpenAI webhook receiver (verified via `OPENAI_WEBHOOK_SECRET`) |
+| GET | `/api/admin/openai-usage` | Admin/Owner | 30d totals, by-feature, by-model, daily chart, recent 50 logs |
+
+### `GET /api/admin/openai-usage`
+
+Returns OpenAI usage analytics for the [[Command Center]] AI Costs tab.
+
+**Authentication:** `admin` or `owner` role required.
+
+**Response structure:**
+
+| Key | Description |
+|-----|-------------|
+| `totals` | 30d aggregate: total_cost, total_requests, total_tokens, avg_cost_per_request |
+| `byFeature` | Cost and request counts grouped by `feature_key` |
+| `byModel` | Cost and token counts grouped by `model` |
+| `dailyChart` | Array of `{ date, cost, requests }` for the last 30 days |
+| `recentLogs` | Most recent 50 log entries with all columns |
+
+### `POST /api/openai/webhook`
+
+Receives OpenAI platform webhooks (e.g., usage alerts, compliance events). Verifies the signature using HMAC-SHA256 against the `OPENAI_WEBHOOK_SECRET` environment variable before processing.
+
+---
+
+## Environment Variables
+
+| Variable | Scope | Required | Description |
+|----------|-------|----------|-------------|
+| `OPENAI_API_KEY` | Server | Yes | Base API key, fallback for all features |
+| `OPENAI_API_KEY_CALL_ANALYSIS` | Server | No | Key for call transcript analysis |
+| `OPENAI_API_KEY_CONTACT_ANALYSIS` | Server | No | Key for contact intelligence and onboarding |
+| `OPENAI_API_KEY_CALI_AI` | Server | No | Key for Cali AI assistant |
+| `OPENAI_WEBHOOK_SECRET` | Server | No | HMAC-SHA256 secret for webhook verification |
+| `OPENAI_MODEL` | Server | No | Default model override (default: `gpt-4o-mini`) |
+| `OPENAI_MODEL_PREMIUM` | Server | No | Premium model override (default: `gpt-4o`) |
+| `AI_ANALYSIS_MODE` | Server | No | `sync` (default) or `async` (via `analysis_queue`) |
+
+---
 
 ## Cost Tracking
 
-OpenAI API costs are tracked in the `admin_finances` table alongside [[Bland AI]] and [[Supabase]] costs. The [[Command Center]] Finances tab displays a P&L breakdown that includes OpenAI as a line item under costs, allowing the platform operator to monitor AI analysis spending relative to revenue.
+OpenAI API costs are tracked in two places:
+
+1. **`openai_usage_logs` table:** Every individual API call, with per-feature and per-model breakdowns. Source of truth for the AI Costs tab.
+2. **`admin_finances` table:** Monthly P&L snapshots with `openai_cost` and `openai_tokens_used` columns, alongside [[Bland AI]] and [[Supabase]] costs.
+
+The [[Command Center]] AI Costs tab displays a live 30-day view sourced from `openai_usage_logs`. The Finances tab shows a monthly P&L sourced from `admin_finances`.
+
+---
+
+## Privacy & Data Policy
+
+- **No training on Callengo data:** OpenAI's API does not use submitted data for model training (confirmed by OpenAI's API data usage policy).
+- **Transcript sanitization:** Prompt injection patterns are stripped before sending to the API (see Transcript Sanitization above).
+- **No email in analytics:** User identification in GA4 and PostHog uses Supabase UUID, not email (as of March 25, 2026).
+- **API call logging:** `openai_usage_logs` stores token counts and costs but not the actual prompt/completion content.
+
+---
 
 ## Error Handling
 
@@ -188,13 +390,21 @@ All three analyzers follow the same error handling pattern: on any exception (ne
 
 This ensures the system never makes wrong automated decisions based on a failed analysis. The conservative fallback surfaces the call for human review.
 
+---
+
 ## Source Files
 
 | File | Lines | Purpose |
 |------|-------|---------|
+| `src/lib/openai/tracker.ts` | — | Client factory, usage logger, cost calculator, model env helpers |
 | `src/lib/ai/intent-analyzer.ts` | 346 | Three analyzers + universal router + sanitization |
 | `src/lib/queue/analysis-queue.ts` | ~200 | Async analysis job queue (enqueue, claim, process) |
-| `src/app/api/openai/` | 3 routes | API endpoints for analysis and chat |
+| `src/components/ai/AIChatPanel.tsx` | — | Cali AI in-app chat panel (Cmd+K) |
+| `src/app/api/openai/` | 4 routes | analyze, intent, chat, webhook |
+| `src/app/api/admin/openai-usage/` | 1 route | Admin usage analytics endpoint |
+| `src/app/api/ai/chat/` | 1 route | Cali AI chat completions handler |
+
+---
 
 ## Related Notes
 
@@ -202,4 +412,6 @@ This ensures the system never makes wrong automated decisions based on a failed 
 - [[Call Processing Flow]] -- how analysis fits into the post-call pipeline
 - [[Agent]] -- the three AI agent types that define which analyzer to use
 - [[Bland AI]] -- provides the transcripts that feed into analysis
-- [[Command Center]] -- cost tracking and P&L reporting
+- [[Command Center]] -- AI Costs tab and P&L reporting
+- [[Schema Overview]] -- `openai_usage_logs` table, `ai_conversations`, `ai_messages`
+- [[Environment Variables]] -- OpenAI API key configuration

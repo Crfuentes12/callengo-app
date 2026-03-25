@@ -1,7 +1,7 @@
 # CALLENGO — Complete Platform Master Document
 
-> **Version:** 1.5.0
-> **Last Updated:** March 23, 2026 (Production readiness audit — 15 security/performance fixes, token encryption, DB hardening)
+> **Version:** 1.6.0
+> **Last Updated:** March 25, 2026 (OpenAI usage tracking, per-feature API keys, Cali AI documented, analytics PII fix, AI Costs tab) (Production readiness audit — 15 security/performance fixes, token encryption, DB hardening)
 > **Purpose:** Comprehensive reference for the entire Callengo platform — business strategy, target market, architecture, features, pricing, database schema, API endpoints, integrations, and business logic.
 
 ---
@@ -1170,13 +1170,14 @@ Stripe and Bland AI operate as **completely independent financial systems**:
 | `customer.subscription.deleted` | Mark canceled, clear overage |
 
 **Admin Monitoring (Command Center):**
-The Command Center (`/admin/command-center`) provides real-time monitoring with 6 tabs:
+The Command Center (`/admin/command-center`) provides real-time monitoring with 7 tabs:
 - **Health:** KPIs, Bland plan dropdown selector, Redis concurrency gauges, call charts
 - **Operations:** MRR/ARR, churn rate, trial conversion, burn rate, unit economics, failed calls analysis
 - **Clients:** Per-company usage, profit, cost breakdown
 - **Billing Events:** Paginated event log
 - **Reconciliation:** Minutes actual vs tracked discrepancy detection
-- **Finances:** P&L with Bland master account info
+- **Finances:** P&L with Bland master account info, OpenAI usage panel (cost by feature, daily trend, model breakdown)
+- **AI Costs:** 30d OpenAI totals (cost, requests, tokens, avg cost/request), feature breakdown, daily cost chart, model breakdown, recent 50 API call logs
 
 ---
 
@@ -1196,7 +1197,7 @@ The Command Center (`/admin/command-center`) provides real-time monitoring with 
 | Library | Version | Purpose |
 |---|---|---|
 | Stripe | 20.1.0 (Node), 8.6.0 (JS) | Billing & payments |
-| OpenAI | 6.15.0 | AI chat assistant |
+| OpenAI | 6.15.0 | Post-call analysis, Cali AI assistant, contact intelligence, onboarding suggestions (8 feature areas, per-feature API keys) |
 | Bland AI | (API) | AI voice calling engine |
 | Google APIs | 144.0.0 | Calendar, Sheets, Meet |
 | Axios | 1.13.2 | HTTP client |
@@ -2100,6 +2101,23 @@ Each CRM has an integration table + sync log table + contact mapping table:
 - Plan limit enforcement
 - Cost computation
 
+### `/lib/openai/tracker.ts`
+- `getOpenAIClient(featureKey)` — returns OpenAI instance with correct API key per feature, with fallback to `OPENAI_API_KEY`
+- `trackOpenAIUsage(params)` — async fire-and-forget usage logger (writes to `openai_usage_logs` table)
+- `calculateOpenAICost(model, inputTokens, outputTokens)` — cost calculator (per-model pricing)
+- `getDefaultModel()` — returns `OPENAI_MODEL ?? 'gpt-4o-mini'`
+- `getPremiumModel()` — returns `OPENAI_MODEL_PREMIUM ?? 'gpt-4o'`
+- `FeatureKey` type: `'call_analysis' | 'contact_analysis' | 'cali_ai' | 'onboarding' | 'demo_analysis'`
+
+**Per-feature API key routing:**
+| Feature Key | API Key Used | Fallback |
+|---|---|---|
+| `call_analysis` | `OPENAI_API_KEY_CALL_ANALYSIS` | `OPENAI_API_KEY` |
+| `contact_analysis` | `OPENAI_API_KEY_CONTACT_ANALYSIS` | `OPENAI_API_KEY` |
+| `cali_ai` | `OPENAI_API_KEY_CALI_AI` | `OPENAI_API_KEY` |
+| `onboarding` | `OPENAI_API_KEY_CONTACT_ANALYSIS` | `OPENAI_API_KEY` |
+| `demo_analysis` | `OPENAI_API_KEY` | — |
+
 ### `/lib/rate-limit.ts`
 - API route rate limiting
 
@@ -2980,4 +2998,37 @@ The codebase demonstrates strong security practices: RLS, Zod validation, webhoo
 
 ---
 
-*End of Callengo Master Document v1.5.0*
+## 29. Updates — March 25, 2026
+
+### OpenAI Usage Tracking & Per-Feature API Keys
+
+**New library:** `src/lib/openai/tracker.ts` centralizes all OpenAI usage. Every file that calls the OpenAI API now uses `getOpenAIClient(featureKey)` instead of direct instantiation, and calls `trackOpenAIUsage()` after each completion. This enables per-feature cost visibility.
+
+**Feature areas using OpenAI:**
+| Feature Key | Files | Model | Purpose |
+|---|---|---|---|
+| `call_analysis` | `intent-analyzer.ts`, `/api/openai/analyze`, `/api/openai/intent` | gpt-4o-mini | Post-call transcript analysis (BANT, appointment, data validation) |
+| `contact_analysis` | Contact quality, agent suggestions, web scraper | gpt-4o-mini | Contact intelligence and enrichment |
+| `cali_ai` | `/api/ai/chat`, `AIChatPanel.tsx` | gpt-4o-mini | Cali AI in-app assistant (Cmd+K) |
+| `onboarding` | Onboarding flow suggestions | gpt-4o-mini | Onboarding context suggestions |
+| `demo_analysis` | Demo/seed analysis | gpt-4o-mini | Demo data analysis |
+
+**New table:** `openai_usage_logs` (migration: `20260325000001_openai_usage_tracking.sql`). Total tables: 57.
+
+**New endpoints:**
+- `POST /api/openai/webhook` — OpenAI webhook receiver (HMAC-SHA256 via `OPENAI_WEBHOOK_SECRET`)
+- `GET /api/admin/openai-usage` — Admin: 30d totals, by-feature, by-model, daily chart, recent 50 logs
+
+**Admin Command Center:** New 7th tab **AI Costs** shows 30d OpenAI spending, feature breakdown, daily trend chart, model breakdown, and recent API call log.
+
+### Analytics PII Fix
+
+Email address removed as analytics identifier in both GA4 and PostHog. All user identification now uses the Supabase user UUID as `distinct_id` (PostHog) and as the GA4 user identifier. The `user_email` property has been removed from GA4 user properties. Files updated: `AnalyticsProvider.tsx`, `PostHogProvider.tsx`, `src/lib/analytics.ts`, `src/lib/posthog.ts`, `src/app/(app)/layout.tsx`.
+
+### Cali AI Assistant (Documented)
+
+Previously undocumented: `src/components/ai/AIChatPanel.tsx` is an in-app AI assistant opened via Cmd+K. It uses GPT-4o-mini (temperature 0.7, max 1000 tokens) and persists conversation history in `ai_conversations` and `ai_messages` tables. Feature key: `cali_ai`.
+
+---
+
+*End of Callengo Master Document v1.6.0*

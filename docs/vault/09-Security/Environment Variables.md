@@ -1,14 +1,14 @@
 ---
 tags: [security, configuration, environment, deployment, vercel]
 aliases: [Env Vars, Environment Configuration, .env]
-updated: 2026-03-23
+updated: 2026-03-25
 ---
 
 # Environment Variables
 
 Complete reference of all environment variables used by Callengo. The canonical file is `.env.example` in the project root. Copy it to `.env.local` for local development. In production, these are configured in Vercel's Environment Variables panel.
 
-**Total:** 53 variables across 11 categories.
+**Total:** 59 variables across 11 categories.
 
 ---
 
@@ -45,11 +45,17 @@ Complete reference of all environment variables used by Callengo. The canonical 
 | `BLAND_WEBHOOK_SECRET` | Server | Yes | HMAC-SHA256 webhook signature verification secret |
 | `BLAND_COST_PER_MINUTE` | Server | No | Override default Bland cost/min. Default: `0.14`. Used in P&L and margin calculations. |
 
-### AI Analysis — [[OpenAI]] (2 vars)
+### AI Analysis — [[OpenAI]] (8 vars)
 
 | Variable | Scope | Required | Description |
 |----------|-------|----------|-------------|
-| `OPENAI_API_KEY` | Server | Yes | OpenAI API key for GPT-4o-mini (post-call analysis) |
+| `OPENAI_API_KEY` | Server | Yes | OpenAI API key — base fallback for all features |
+| `OPENAI_API_KEY_CALL_ANALYSIS` | Server | No | Key for call transcript analysis. Falls back to `OPENAI_API_KEY` |
+| `OPENAI_API_KEY_CONTACT_ANALYSIS` | Server | No | Key for contact quality scoring, agent suggestions, web scraper, and onboarding. Falls back to `OPENAI_API_KEY` |
+| `OPENAI_API_KEY_CALI_AI` | Server | No | Key for Cali AI in-app assistant (Cmd+K). Falls back to `OPENAI_API_KEY` |
+| `OPENAI_WEBHOOK_SECRET` | Server | No | HMAC-SHA256 secret for verifying `POST /api/openai/webhook` requests |
+| `OPENAI_MODEL` | Server | No | Default model override. Default: `gpt-4o-mini`. Used by `getDefaultModel()` in tracker |
+| `OPENAI_MODEL_PREMIUM` | Server | No | Premium model override for deep analysis. Default: `gpt-4o`. Used by `getPremiumModel()` |
 | `AI_ANALYSIS_MODE` | Server | No | `sync` (default, inline in webhook) or `async` (via `analysis_queue` table) |
 
 ### Concurrency — [[Upstash Redis]] (2 vars)
