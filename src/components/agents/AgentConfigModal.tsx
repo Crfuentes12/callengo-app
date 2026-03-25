@@ -123,7 +123,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
       website: company.website || '',
       phone: company.phone_number || '',
     },
-    complianceAiDisclosure: true,
+    complianceAiDisclosure: false,
     complianceConsent: false,
     complianceAcceptTerms: false,
   });
@@ -740,15 +740,10 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 <div>
                   <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-[var(--border-default)]">
                     <div className="flex items-center gap-2">
-                      <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      <svg className="w-3.5 h-3.5 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
-                      <div>
-                        <span className="text-xs text-[var(--color-neutral-700)] font-medium">AI intro at call start</span>
-                        {settings.complianceAiDisclosure && (
-                          <span className="ml-2 text-[9px] font-bold text-emerald-600 uppercase tracking-wide">Recommended</span>
-                        )}
-                      </div>
+                      <span className="text-xs text-[var(--color-neutral-600)]">Introduce agent as AI</span>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -757,14 +752,9 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                         onChange={e => setSettings({ ...settings, complianceAiDisclosure: e.target.checked })}
                         className="sr-only peer"
                       />
-                      <div className="w-9 h-5 bg-[var(--color-neutral-200)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-strong)] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                      <div className="w-9 h-5 bg-[var(--color-neutral-200)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-strong)] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
                     </label>
                   </div>
-                  <p className="text-[9px] text-[var(--color-neutral-400)] mt-1 px-1">
-                    {settings.complianceAiDisclosure
-                      ? 'Your agent will introduce itself as AI — builds trust with contacts and improves answer rates.'
-                      : 'Turning this on improves answer rates and is recommended for most markets.'}
-                  </p>
                 </div>
               </div>
 
@@ -2293,7 +2283,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                 className="mt-0.5 rounded border-[var(--border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)] flex-shrink-0"
               />
               <span className="text-[10px] text-[var(--color-neutral-500)] leading-relaxed group-hover:text-[var(--color-neutral-700)] transition-colors">
-                I confirm these contacts are opted in to receive calls from my business and that my campaign complies with applicable laws.
+                I confirm I have the right to contact these people, and that my use of Callengo complies with our <a href="/legal/terms" target="_blank" onClick={e => e.stopPropagation()} className="underline hover:text-[var(--color-neutral-700)]">Terms of Service</a>.
               </span>
             </label>
 
