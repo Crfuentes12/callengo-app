@@ -1,12 +1,10 @@
 // app/api/openai/recommend-agent/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import OpenAI from 'openai';
+import { getOpenAIClient, trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 import { expensiveLimiter } from '@/lib/rate-limit';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = getOpenAIClient('contact_analysis');
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +53,7 @@ Respond with ONLY the agent's slug (e.g., "data-validation", "appointment-confir
 Choose the single best match.`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [
         {
           role: 'system',
@@ -71,6 +69,36 @@ Choose the single best match.`;
     });
 
     const recommendedSlug = completion.choices[0].message.content?.trim().replace(/['"]/g, '');
+
+    // Track usage (non-blocking)
+    void (async () => {
+      try {
+        const { data: ud } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+        trackOpenAIUsage({
+          featureKey: 'contact_analysis',
+          model: getDefaultModel(),
+          inputTokens: completion.usage?.prompt_tokens ?? 0,
+          outputTokens: completion.usage?.completion_tokens ?? 0,
+          companyId: (ud as { company_id: string } | null)?.company_id ?? null,
+          userId: user.id,
+          metadata: { endpoint: 'openai/recommend-agent' },
+        });
+      } catch {
+        trackOpenAIUsage({
+          featureKey: 'contact_analysis',
+          model: getDefaultModel(),
+          inputTokens: completion.usage?.prompt_tokens ?? 0,
+          outputTokens: completion.usage?.completion_tokens ?? 0,
+          companyId: null,
+          userId: user.id,
+          metadata: { endpoint: 'openai/recommend-agent' },
+        });
+      }
+    })();
 
     // Validate that the recommended slug exists
     const isValid = availableAgents.some((agent: Record<string, unknown>) => agent.slug === recommendedSlug);

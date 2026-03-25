@@ -40,7 +40,6 @@ function track(eventName: string, params: Record<string, string | number | boole
 
 export function setUserProperties(props: {
   user_id: string
-  email?: string
   plan_slug?: string
   billing_cycle?: string
   company_industry?: string
@@ -54,10 +53,11 @@ export function setUserProperties(props: {
   const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
   if (!gaId) return
 
+  // user_id is the Supabase UUID — a non-reversible identifier that provides
+  // the same analytical value as email without sending PII to GA4 (GDPR/CCPA).
   window.gtag('config', gaId, {
     user_id: props.user_id,
     user_properties: {
-      email: props.email,
       plan_slug: props.plan_slug,
       billing_cycle: props.billing_cycle,
       company_industry: props.company_industry,

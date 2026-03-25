@@ -5,7 +5,7 @@ aliases: [DB Schema, Database, Database Schema]
 
 # Schema Overview
 
-Callengo uses **Supabase (PostgreSQL)** with **56 tables**, Row Level Security (RLS) on all user-facing tables, **45 sequential migrations**, and comprehensive indexing, triggers, and CHECK constraints. All data is organized around the `company_id` tenant key, enforcing strict multi-tenant isolation at the database level.
+Callengo uses **Supabase (PostgreSQL)** with **57 tables**, Row Level Security (RLS) on all user-facing tables, **46 sequential migrations**, and comprehensive indexing, triggers, and CHECK constraints. All data is organized around the `company_id` tenant key, enforcing strict multi-tenant isolation at the database level.
 
 ---
 
@@ -93,12 +93,13 @@ Each CRM follows the same 3-table pattern: `{crm}_integrations` (OAuth connectio
 | `integration_feedback` | `id` UUID | User feedback on integrations. | — |
 | `team_invitations` | `id` UUID | Team member invitations with token and expiry. | [[Team Invitation]] |
 
-### AI Tables (2)
+### AI Tables (3)
 
 | Table | PK | Description |
 |-------|-----|-------------|
-| `ai_conversations` | `id` UUID | AI chat assistant sessions (user-scoped RLS). |
-| `ai_messages` | `id` UUID | Individual chat messages within conversations. |
+| `ai_conversations` | `id` UUID | Cali AI assistant conversation sessions (user-scoped RLS). |
+| `ai_messages` | `id` UUID | Individual chat messages within Cali AI conversations. |
+| `openai_usage_logs` | `id` UUID | Every OpenAI API call log: feature_key, model, tokens, cost_usd, openai_request_id, company_id, user_id, metadata. RLS: admin/owner read, service role insert. See [[OpenAI]]. |
 
 ### Admin Tables (3)
 
@@ -128,15 +129,15 @@ Each CRM follows the same 3-table pattern: `{crm}_integrations` (OAuth connectio
 
 | Metric | Count |
 |--------|-------|
-| **Tables** | 56 |
+| **Tables** | 57 |
 | **Foreign Keys** | 100+ |
-| **Indexes** | 150+ |
-| **RLS Policies** | 95+ |
+| **Indexes** | 155+ |
+| **RLS Policies** | 97+ |
 | **CHECK Constraints** | 8 status columns |
 | **Unique Constraints** | 15+ |
 | **Triggers** | 40+ |
 | **Functions/RPCs** | 15+ (including `claim_analysis_job`, `atomic_increment_usage`) |
-| **Migrations** | 45 |
+| **Migrations** | 46 |
 
 ---
 

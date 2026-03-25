@@ -1,12 +1,10 @@
 // app/api/openai/context-suggestions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import OpenAI from 'openai';
+import { getOpenAIClient, trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 import { expensiveLimiter } from '@/lib/rate-limit';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = getOpenAIClient('contact_analysis');
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,7 +54,7 @@ Respond in JSON format:
 { "suggestions": [{ "title": "Short Title", "detail": "Detailed context paragraph..." }, ...] }`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.8,
       max_tokens: 800,
@@ -64,6 +62,37 @@ Respond in JSON format:
     });
 
     const content = completion.choices[0]?.message?.content;
+
+    // Fetch companyId for tracking (non-blocking)
+    void (async () => {
+      try {
+        const { data: ud } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+        trackOpenAIUsage({
+          featureKey: 'contact_analysis',
+          model: getDefaultModel(),
+          inputTokens: completion.usage?.prompt_tokens ?? 0,
+          outputTokens: completion.usage?.completion_tokens ?? 0,
+          companyId: (ud as { company_id: string } | null)?.company_id ?? null,
+          userId: user.id,
+          metadata: { endpoint: 'openai/context-suggestions', agentType },
+        });
+      } catch {
+        trackOpenAIUsage({
+          featureKey: 'contact_analysis',
+          model: getDefaultModel(),
+          inputTokens: completion.usage?.prompt_tokens ?? 0,
+          outputTokens: completion.usage?.completion_tokens ?? 0,
+          companyId: null,
+          userId: user.id,
+          metadata: { endpoint: 'openai/context-suggestions', agentType },
+        });
+      }
+    })();
+
     if (!content) {
       return NextResponse.json({ suggestions: [] });
     }

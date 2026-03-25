@@ -2,11 +2,9 @@
 // Semantic intent analysis using OpenAI GPT-4o-mini
 // Replaces brittle keyword-based detection with robust AI classification
 
-import OpenAI from 'openai';
+import { getOpenAIClient, trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = getOpenAIClient('call_analysis');
 
 // ============================================================================
 // TRANSCRIPT SANITIZATION — Prevent prompt injection from call transcripts
@@ -106,7 +104,7 @@ Be accurate and avoid false positives. Only classify as "confirmed" if there's c
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [
         {
           role: 'system',
@@ -116,6 +114,16 @@ Be accurate and avoid false positives. Only classify as "confirmed" if there's c
       ],
       temperature: 0.1,
       response_format: { type: 'json_object' },
+    });
+
+    trackOpenAIUsage({
+      featureKey: 'call_analysis',
+      model: getDefaultModel(),
+      inputTokens: completion.usage?.prompt_tokens ?? 0,
+      outputTokens: completion.usage?.completion_tokens ?? 0,
+      companyId: null,
+      userId: null,
+      metadata: { function: 'analyzeAppointmentIntent' },
     });
 
     const result = JSON.parse(completion.choices[0].message.content || '{}');
@@ -183,7 +191,7 @@ For meetingTime: Extract any agreed-upon meeting/demo time and convert to ISO 86
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [
         {
           role: 'system',
@@ -193,6 +201,16 @@ For meetingTime: Extract any agreed-upon meeting/demo time and convert to ISO 86
       ],
       temperature: 0.1,
       response_format: { type: 'json_object' },
+    });
+
+    trackOpenAIUsage({
+      featureKey: 'call_analysis',
+      model: getDefaultModel(),
+      inputTokens: completion.usage?.prompt_tokens ?? 0,
+      outputTokens: completion.usage?.completion_tokens ?? 0,
+      companyId: null,
+      userId: null,
+      metadata: { function: 'analyzeLeadQualificationIntent' },
     });
 
     const result = JSON.parse(completion.choices[0].message.content || '{}');
@@ -287,7 +305,7 @@ IMPORTANT: Extract EVERY piece of information mentioned in the conversation, eve
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [
         {
           role: 'system',
@@ -297,6 +315,16 @@ IMPORTANT: Extract EVERY piece of information mentioned in the conversation, eve
       ],
       temperature: 0.1,
       response_format: { type: 'json_object' },
+    });
+
+    trackOpenAIUsage({
+      featureKey: 'call_analysis',
+      model: getDefaultModel(),
+      inputTokens: completion.usage?.prompt_tokens ?? 0,
+      outputTokens: completion.usage?.completion_tokens ?? 0,
+      companyId: null,
+      userId: null,
+      metadata: { function: 'analyzeDataValidationIntent' },
     });
 
     const result = JSON.parse(completion.choices[0].message.content || '{}');

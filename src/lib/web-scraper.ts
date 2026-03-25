@@ -3,6 +3,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import dns from 'dns/promises';
 import { isIP } from 'net';
+import { trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 
 interface ScrapedData {
   title: string;
@@ -162,7 +163,8 @@ export async function scrapeWebsite(url: string): Promise<ScrapedData> {
 }
 
 export async function detectCompanyName(scrapedData: ScrapedData): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey =
+    process.env.OPENAI_API_KEY_CONTACT_ANALYSIS || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     // Fallback: try to extract from title by removing common suffixes
@@ -190,7 +192,7 @@ Examples of good responses: "Acme Corporation", "TechFlow", "Blue Ocean Ventures
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: getDefaultModel(),
         messages: [
           { role: 'system', content: 'You are an expert at identifying company names from website data. Return only the company name, nothing else.' },
           { role: 'user', content: prompt }
@@ -203,6 +205,16 @@ Examples of good responses: "Acme Corporation", "TechFlow", "Blue Ocean Ventures
     const data = await response.json();
     const companyName = data.choices[0]?.message?.content?.trim() || '';
 
+    trackOpenAIUsage({
+      featureKey: 'onboarding',
+      model: 'gpt-4o-mini',
+      inputTokens: data.usage?.prompt_tokens ?? 0,
+      outputTokens: data.usage?.completion_tokens ?? 0,
+      companyId: null,
+      userId: null,
+      metadata: { function: 'detectCompanyName' },
+    });
+
     // Clean up the response (remove quotes, periods, etc.)
     return companyName.replace(/['"\.]/g, '').trim() || scrapedData.title.split(/[-–|]/)[0].trim();
 
@@ -213,7 +225,8 @@ Examples of good responses: "Acme Corporation", "TechFlow", "Blue Ocean Ventures
 }
 
 export async function generateCompanySummary(scrapedData: ScrapedData, companyName: string): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey =
+    process.env.OPENAI_API_KEY_CONTACT_ANALYSIS || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     return `${companyName} - ${scrapedData.description}`;
@@ -237,7 +250,7 @@ Focus on: what they do, who they serve, and their main value proposition.`;
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: getDefaultModel(),
         messages: [
           { role: 'system', content: 'You are a business analyst creating concise company summaries.' },
           { role: 'user', content: prompt }
@@ -248,6 +261,17 @@ Focus on: what they do, who they serve, and their main value proposition.`;
     });
 
     const data = await response.json();
+
+    trackOpenAIUsage({
+      featureKey: 'onboarding',
+      model: 'gpt-4o-mini',
+      inputTokens: data.usage?.prompt_tokens ?? 0,
+      outputTokens: data.usage?.completion_tokens ?? 0,
+      companyId: null,
+      userId: null,
+      metadata: { function: 'generateCompanySummary' },
+    });
+
     return data.choices[0]?.message?.content?.trim() || `${companyName} - ${scrapedData.description}`;
 
   } catch (error) {
@@ -257,7 +281,8 @@ Focus on: what they do, who they serve, and their main value proposition.`;
 }
 
 export async function detectIndustry(scrapedData: ScrapedData): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey =
+    process.env.OPENAI_API_KEY_CONTACT_ANALYSIS || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     return '';
@@ -281,7 +306,7 @@ Examples of good responses: "Technology", "Healthcare", "E-commerce", "Financial
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: getDefaultModel(),
         messages: [
           { role: 'system', content: 'You are an industry classification expert. Return only the industry name, 2-3 words maximum.' },
           { role: 'user', content: prompt }
@@ -293,6 +318,16 @@ Examples of good responses: "Technology", "Healthcare", "E-commerce", "Financial
 
     const data = await response.json();
     const industry = data.choices[0]?.message?.content?.trim() || '';
+
+    trackOpenAIUsage({
+      featureKey: 'onboarding',
+      model: 'gpt-4o-mini',
+      inputTokens: data.usage?.prompt_tokens ?? 0,
+      outputTokens: data.usage?.completion_tokens ?? 0,
+      companyId: null,
+      userId: null,
+      metadata: { function: 'detectIndustry' },
+    });
 
     // Clean up the response (remove quotes, periods, etc.)
     return industry.replace(/['"\.]/g, '').trim();

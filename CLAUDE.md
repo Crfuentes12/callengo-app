@@ -1,7 +1,7 @@
 # CLAUDE.md — Contexto del Proyecto Callengo
 
 > Documento de contexto para Claude Code. Léelo antes de cada sesión de trabajo.
-> Última actualización: 23 Marzo 2026 (env vars documentadas, reglas de actualización de docs, vault Obsidian 60 notas)
+> Última actualización: 25 Marzo 2026 (OpenAI usage tracking, per-feature API keys, Cali AI documentado, analytics PII fix, AI Costs tab en Command Center)
 
 ---
 
@@ -19,12 +19,12 @@ Callengo es una plataforma B2B SaaS de llamadas outbound automatizadas con IA. R
 |------|------------|
 | **Frontend** | Next.js 16.1.1 (App Router), React 19.2.1, TypeScript 5.9.3, Tailwind CSS 4, shadcn/ui |
 | **Backend** | Next.js API Routes (142+ endpoints serverless) |
-| **Base de datos** | Supabase (PostgreSQL) con Row Level Security (RLS), 56 tablas |
+| **Base de datos** | Supabase (PostgreSQL) con Row Level Security (RLS), 57 tablas |
 | **Auth** | Supabase Auth (email/password + OAuth: Google, GitHub) |
 | **Pagos** | Stripe 20.1.0 (suscripciones, metered billing para overage, add-ons) |
 | **Llamadas** | Bland AI (voz + transcripción) con arquitectura de master key única |
 | **Concurrencia** | Upstash Redis (rate limiting, concurrency tracking, call slots) |
-| **Análisis IA** | OpenAI GPT-4o-mini (temperature 0.1, JSON mode, post-call intelligence) |
+| **Análisis IA** | OpenAI GPT-4o-mini / GPT-4o (8 áreas: análisis post-llamada, contact intelligence, Cali AI assistant, onboarding; API keys por feature; uso trackeado en `openai_usage_logs`) |
 | **Analytics** | Google Analytics 4 (130+ eventos, Measurement Protocol) + PostHog (session replay, feature flags, group analytics) |
 | **Charts** | Recharts 3.8.0 |
 | **Email** | Resend (invitaciones de equipo, notificaciones transaccionales) |
@@ -55,14 +55,14 @@ src/
 │   ├── auth/               # Login, signup, OAuth callbacks
 │   ├── admin/              # Vista financiera interna
 │   ├── onboarding/
-│   ├── api/                # 90+ endpoints
-│   │   ├── admin/          # Command Center, clients, finances, reconcile, monitor, cleanup-orphans
+│   ├── api/                # 92+ endpoints
+│   │   ├── admin/          # Command Center, clients, finances, reconcile, monitor, cleanup-orphans, openai-usage
 │   │   ├── billing/        # 13 endpoints
 │   │   ├── bland/          # Webhooks + API Bland AI
 │   │   ├── integrations/   # 60+ endpoints OAuth y sync CRMs
 │   │   ├── contacts/       # 8 endpoints
 │   │   ├── calendar/       # 4 endpoints
-│   │   ├── openai/         # 3 endpoints análisis IA
+│   │   ├── openai/         # 4 endpoints análisis IA + webhook
 │   │   ├── team/           # 5 endpoints
 │   │   ├── queue/          # Procesamiento asíncrono
 │   │   └── webhooks/       # Stripe webhooks
@@ -84,6 +84,7 @@ src/
 ├── i18n/                   # Traducciones por idioma
 ├── lib/                    # Lógica de negocio
 │   ├── ai/                 # Intent analyzer (GPT-4o-mini)
+│   ├── openai/             # tracker.ts (client factory, usage logger, cost calculator, model env helpers)
 │   ├── bland/              # master-client.ts (plan limits, dispatch), phone-numbers.ts
 │   ├── billing/            # Usage tracker, overage manager, call-throttle.ts
 │   ├── redis/              # concurrency-manager.ts (Upstash Redis, call slots, gauges)
@@ -190,8 +191,8 @@ Todas las llamadas pasan por **una sola API key master de Bland AI**. No hay sub
 
 ## Base de Datos (Supabase)
 
-- **56 tablas** con RLS habilitado
-- Tablas clave: `companies`, `company_settings`, `company_subscriptions`, `subscription_plans`, `call_logs`, `contacts`, `campaigns`, `agents`, `follow_ups`, `voicemails`, `integrations_*`
+- **57 tablas** con RLS habilitado
+- Tablas clave: `companies`, `company_settings`, `company_subscriptions`, `subscription_plans`, `call_logs`, `contacts`, `campaigns`, `agents`, `follow_ups`, `voicemails`, `integrations_*`, `openai_usage_logs`
 - RLS protege todos los datos por `company_id`
 - Fuente de verdad de features: `src/config/plan-features.ts`
 
@@ -240,7 +241,7 @@ npm run stripe:sync:dry        # Dry-run para ver qué cambiaría
 
 ## Admin Command Center (`/admin/command-center`)
 
-Panel de monitoreo en tiempo real para el owner de la plataforma. 6 tabs:
+Panel de monitoreo en tiempo real para el owner de la plataforma. 7 tabs:
 
 | Tab | Contenido |
 |-----|-----------|
@@ -249,10 +250,12 @@ Panel de monitoreo en tiempo real para el owner de la plataforma. 6 tabs:
 | **Clients** | Lista de empresas con usage, profit, Bland cost, add-ons, sortable/searchable |
 | **Billing Events** | Log paginado de eventos billing (pagos, overages, créditos, cancelaciones) |
 | **Reconciliation** | Comparación minutos reales vs tracked, detección de discrepancias |
-| **Finances** | P&L con revenue, costs (Bland, OpenAI, Supabase), gross margin, Bland master account info |
+| **Finances** | P&L con revenue, costs (Bland, OpenAI, Supabase), gross margin, Bland master account info; OpenAI usage panel (cost by feature, daily trend, model breakdown, recent API call logs) |
+| **AI Costs** | Totales 30d (costo, requests, tokens, avg costo/request), desglose por feature, chart de tendencia diaria, desglose por modelo, log de últimas 50 llamadas a OpenAI API |
 
 **API:** `GET /api/admin/command-center` (read) + `POST /api/admin/command-center` (save Bland plan)
-**Componente:** `src/components/admin/AdminCommandCenter.tsx`
+**Componente:** `src/components/admin/AdminCommandCenter.tsx` (~1,200 líneas — 7 tabs)
+**AI Costs API:** `GET /api/admin/openai-usage` (totales 30d, por feature, por modelo, chart diario, últimos 50 logs)
 **Acceso:** Solo roles `admin` y `owner`
 
 ---
@@ -290,7 +293,7 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 |---------|-------|-----------|
 | `00-Overview/` | 3 | App Identity, Architecture Overview, ICP & Positioning |
 | `01-Entities/` | 14 | Company, User, Contact, Agent, Campaign, Call, Follow-Up, Voicemail, Calendar Event, Subscription, Add-on, Notification, Team Invitation, Webhook |
-| `02-Database/` | 4 | Schema Overview (56 tablas), RLS Patterns, Triggers & Functions, Migrations Timeline |
+| `02-Database/` | 4 | Schema Overview (57 tablas), RLS Patterns, Triggers & Functions, Migrations Timeline |
 | `03-API/` | 8 | API Overview (142+ endpoints), Admin, Auth, Billing, Bland AI, Calendar, Contacts, Integrations |
 | `04-Integrations/` | 14 | Bland AI, Stripe, OpenAI, Redis, 7 CRMs, Google Calendar, Outlook, Video Providers |
 | `05-Billing/` | 3 | Pricing Model V4, Plan Features, Usage Tracking |
@@ -336,6 +339,9 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 - Componentes muy grandes que dificultan el mantenimiento (AgentConfigModal, IntegrationsPage)
 - Falta de tests automatizados (no hay test runner configurado)
 
+### Corregidos (25 Marzo 2026)
+- ~~**Email en GA4/PostHog como PII**~~ — Email reemplazado por UUID de Supabase en `AnalyticsProvider`, `PostHogProvider`, `analytics.ts`, `posthog.ts` y `(app)/layout.tsx` (25 Marzo 2026)
+
 ### Corregidos (23 Marzo 2026 — auditoría producción completa, 15 fixes)
 - ~~**Tokens OAuth en plaintext**~~ — Encriptados con AES-256-GCM (`src/lib/encryption.ts`), 11 proveedores cubiertos
 - ~~**users RLS permitía auto-cambio de company_id/email**~~ — Trigger `trg_prevent_sensitive_field_changes` bloquea cambios
@@ -362,7 +368,7 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 
 ---
 
-## Variables de Entorno (53 vars)
+## Variables de Entorno (57 vars)
 
 Referencia completa en `.env.example` (raíz del proyecto). Copiar a `.env.local` para desarrollo local. En producción, configurar en Vercel → Environment Variables.
 
@@ -379,7 +385,11 @@ Referencia completa en `.env.example` (raíz del proyecto). Copiar a `.env.local
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`) |
 | `BLAND_API_KEY` | Master API key de Bland AI (una sola para todas las empresas) |
 | `BLAND_WEBHOOK_SECRET` | HMAC-SHA256 para verificación de webhooks Bland |
-| `OPENAI_API_KEY` | OpenAI API key para GPT-4o-mini (análisis post-llamada) |
+| `OPENAI_API_KEY` | OpenAI API key para todos los features (call analysis, contact analysis, onboarding, demo) — 2 keys: `OPENAI_API_KEY` (todos los features) + `OPENAI_API_KEY_CALI_AI` (Cali AI isolado) |
+| `OPENAI_API_KEY_CALI_AI` | OpenAI key para Cali AI assistant (aislado por rate limits) |
+| `OPENAI_MODEL` | Override del modelo por defecto (default: `gpt-4o-mini`) |
+| `OPENAI_MODEL_PREMIUM` | Modelo premium para análisis profundo de llamadas (default: `gpt-4o`) |
+| `OPENAI_WEBHOOK_SECRET` | HMAC-SHA256 secret para verificación de webhooks OpenAI (solo si se usa Batch/Responses API) |
 | `UPSTASH_REDIS_REST_URL` | URL REST de Upstash Redis |
 | `UPSTASH_REDIS_REST_TOKEN` | Token REST de Upstash Redis |
 | `TOKEN_ENCRYPTION_KEY` | Clave AES-256-GCM para encriptar tokens OAuth. **Exactamente 64 caracteres hex** (32 bytes). Generar: `openssl rand -hex 32` |
@@ -447,8 +457,9 @@ Credenciales OAuth de cada CRM. Tokens de usuario se encriptan con AES-256-GCM a
 7. **Supabase:** Usar `createServerSupabaseClient()` en server-side, `createBrowserSupabaseClient()` en client-side
 8. **No commitear a `main` directamente** — trabajar en branches feature
 9. **Encriptación de tokens:** Usar `encryptToken()` / `decryptToken()` de `src/lib/encryption.ts` para cualquier token OAuth o API key que se guarde en DB. Requiere env var `TOKEN_ENCRYPTION_KEY`.
-10. **Migraciones DB:** 45 migraciones en `supabase/migrations/`. Última: `20260323000002_production_audit_fixes.sql`. Usar prefijo timestamp para nuevas migraciones.
+10. **Migraciones DB:** 46 migraciones en `supabase/migrations/`. Última: `20260325000001_openai_usage_tracking.sql`. Usar prefijo timestamp para nuevas migraciones.
 11. **Variables de entorno:** Referencia completa en `.env.example`. Si se agrega una nueva env var, actualizar también `.env.example` con documentación.
+12. **OpenAI client:** Usar `getOpenAIClient(featureKey)` de `src/lib/openai/tracker.ts` para instanciar OpenAI. No instanciar directamente. Usar `getDefaultModel()` / `getPremiumModel()` en lugar de hardcodear nombres de modelo.
 
 ---
 

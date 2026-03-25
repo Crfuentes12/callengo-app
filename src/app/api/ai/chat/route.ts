@@ -2,11 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { expensiveLimiter } from '@/lib/rate-limit';
-import OpenAI from 'openai';
+import { getOpenAIClient, trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = getOpenAIClient('cali_ai');
 
 // Comprehensive system prompt with full Callengo context
 function buildSystemPrompt(context: {
@@ -292,13 +290,23 @@ export async function POST(request: NextRequest) {
 
     // Call OpenAI
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 1000,
     });
 
     const reply = completion.choices[0].message.content || 'I apologize, I could not generate a response.';
+
+    trackOpenAIUsage({
+      featureKey: 'cali_ai',
+      model: getDefaultModel(),
+      inputTokens: completion.usage?.prompt_tokens ?? 0,
+      outputTokens: completion.usage?.completion_tokens ?? 0,
+      companyId,
+      userId: user.id,
+      metadata: { endpoint: 'ai/chat', conversationId: conversationId ?? null },
+    });
 
     // Save to database
     let savedConversationId = conversationId;

@@ -2202,7 +2202,7 @@ Supabase automated backups may retain data for up to 30 days after deletion. Aft
 
 | Sub-Processor | Role | Service Description | Data Categories Processed | Infrastructure Region | DPA / Privacy Framework | DPF Enrolled | Risk Level |
 |---------------|------|--------------------|--------------------------|-----------------------|------------------------|--------------|-----------|
-| **OpenAI, LLC** | Post-Call AI Analysis | Processes call transcripts using GPT-4o-mini and GPT-4o models for: (a) lead qualification scoring; (b) intent detection; (c) sentiment analysis; (d) agent configuration recommendations; (e) context suggestions. Transcripts are truncated to 10,000 characters before sending. | Call transcripts (containing contact names, phone call content, potentially sensitive disclosures), company context metadata | OpenAI US infrastructure | [OpenAI Data Processing Agreement](https://openai.com/policies/data-processing-addendum) available for API usage; must be confirmed as executed. Zero Data Retention (ZDR) policy available but not confirmed as enabled. | Yes | 🔴 High — processes call transcript content |
+| **OpenAI, LLC** | Post-Call AI Analysis, Contact Analysis, Cali AI Assistant, Onboarding | Processes data across 8 feature areas using GPT-4o-mini and GPT-4o: (a) post-call intent analysis and lead scoring via `intent-analyzer.ts`; (b) real call deep analysis via `bland/analyze-call` (GPT-4o); (c) demo call analysis; (d) contact list quality and smart list suggestions; (e) agent configuration recommendations; (f) campaign context suggestions; (g) Cali AI in-app conversational assistant (GPT-4o-mini, up to 1,000 tokens/response); (h) company name/summary/industry detection during onboarding. **Data sharing confirmed DISABLED (March 25, 2026):** All three "Share inputs/outputs/feedback with OpenAI" settings are set to Disabled. OpenAI does NOT use Callengo API data for training. **API call logging:** Set to "Enabled per call" — prompts and completions are retained on OpenAI's servers for 30 days for the organization's own review. **2 separate API keys** now in use: `OPENAI_API_KEY` for all features (call analysis, contact analysis, onboarding, demo), and `OPENAI_API_KEY_CALI_AI` for Cali AI (rate limit isolation). | Call transcripts (contact names, call content, potentially sensitive disclosures), contact metadata, company summaries, user chat messages (Cali AI), onboarding company URLs | OpenAI US infrastructure | OpenAI API Terms confirm no training on API data. Prompts retained 30 days (API call logging enabled). No separate DPA execution required for standard API usage per OpenAI ToS. | Yes | 🟡 Medium — training opt-out confirmed; 30-day prompt retention on OpenAI servers is residual risk |
 
 ---
 
@@ -2333,58 +2333,85 @@ Supabase automated backups may retain data for up to 30 days after deletion. Aft
 
 ---
 
-### GAP-005: Bland AI DPA Not Confirmed
-**Description:** Bland AI processes call audio, transcripts, and contact phone numbers on behalf of Callengo. This constitutes processing of personal data under a sub-processor relationship. A DPA with Bland AI has not been confirmed as executed. Under GDPR Article 28(2), a controller must use only processors providing sufficient guarantees to implement appropriate technical and organisational measures.
+### GAP-005: Bland AI DPA — Published, Acceptance Status Verify
+**Description:** Bland AI processes call audio, transcripts, and contact phone numbers on behalf of Callengo. Bland AI publishes a Data Processing Agreement at `https://www.bland.ai/legal/data-processing-agreement`. By accepting Bland AI's Terms of Service (which incorporates the DPA by reference), Callengo is likely functionally covered. However, for formal GDPR Article 28 compliance it is best practice to retain evidence of explicit DPA acceptance — either a signed copy, a "I accept the DPA" click-through record, or a note that the ToS explicitly incorporates the DPA.
+
+**Updated status (March 25, 2026):** Bland AI DPA exists and is publicly accessible. Functional coverage likely via ToS acceptance. Formal evidence of acceptance recommended for audit trail.
 
 **Relevant Files:**
 - `src/lib/bland/master-client.ts`
 - `src/app/api/bland/send-call/route.ts`
 - `src/app/api/bland/webhook/route.ts`
 
-**Risk Level:** 🟠 High
+**Risk Level:** 🟡 Medium (downgraded from High — DPA confirmed to exist)
 
 **Remediation:**
-1. Contact Bland AI to obtain and execute a Data Processing Agreement.
-2. Confirm whether Bland AI is enrolled in the EU-US Data Privacy Framework.
-3. Confirm Bland AI's data retention policy for call audio and transcripts.
-4. Confirm whether Bland AI uses call data for model training and, if so, whether an opt-out is available. This is currently unknown.
-5. Add Bland AI to the published sub-processor list once DPA is executed.
+1. Review `https://www.bland.ai/legal/data-processing-agreement` and confirm it covers: (a) purpose limitation; (b) sub-processor notification; (c) breach notification; (d) deletion/return of data; (e) audit rights.
+2. Retain a dated record that you reviewed and accepted the Bland AI ToS (which incorporates the DPA). Screenshot or email confirmation is sufficient.
+3. Confirm whether Bland AI is enrolled in the EU-US Data Privacy Framework (DPF) — check at `https://www.dataprivacyframework.gov/`.
+4. Confirm Bland AI's data retention policy for call audio and transcripts (the Callengo panel shows 30-day recording retention configured — confirm this aligns with Bland's server-side retention).
+5. Confirm whether Bland AI uses call data for model training and whether an opt-out exists. Ask their support team directly if not stated in the DPA.
+6. Record Bland AI as a confirmed sub-processor with DPA reference in the published sub-processor list.
 
 ---
 
-### GAP-006: OpenAI No Training Opt-Out Confirmed
-**Description:** OpenAI processes call transcripts (truncated to 10,000 characters) via the API for post-call analysis. OpenAI's standard API terms state that API data is not used for training by default. However, Callengo has not confirmed whether it has: (a) executed OpenAI's API Data Processing Agreement; (b) enabled Zero Data Retention (ZDR) if applicable; (c) verified that the current API agreement matches the assurance required for GDPR compliance.
+### GAP-006: OpenAI Data Sharing — CONFIRMED DISABLED ✅
+**Description:** Verified via OpenAI Platform → Settings → Data Controls → Sharing tab (reviewed March 25, 2026). All three data sharing options are set to **Disabled**:
+- "Enable sharing of model feedback from the Platform" → Disabled
+- "Share evaluation and fine-tuning data with OpenAI" → Disabled
+- "Share inputs and outputs with OpenAI" → Disabled
+
+This confirms that OpenAI does **not** use Callengo's API data (call transcripts, prompts, completions) to train its models.
+
+**OpenAI API call logging note (confirmed March 25, 2026):** The "API call logging" setting is set to **"Enabled per call"**. This means OpenAI stores the actual prompt and completion content of each API call for 30 days on their servers for the organization's own review and evaluation purposes (accessible via the OpenAI Logs dashboard). This is NOT training data, but it does mean transcripts/prompts are retained on OpenAI's infrastructure for 30 days. This must be disclosed in the Privacy Policy under the OpenAI sub-processor entry: "Prompts and completions are retained by OpenAI for up to 30 days for logging purposes."
+
+**Audit logging (confirmed March 25, 2026):** Audit logging is currently **Disabled**. Audit logging records configuration changes and user actions within the OpenAI organization. Disabling it means no compliance audit trail within OpenAI. Recommendation: enable before SOC 2 audit or enterprise customer onboarding. Note: once enabled, it cannot be disabled without contacting OpenAI support.
+
+**Additional AI features confirmed (codebase audit March 25, 2026):** Beyond the 3 documented endpoints, Callengo also uses OpenAI for:
+- `src/app/api/ai/chat/route.ts` — "Cali AI" in-app assistant (GPT-4o-mini, temperature 0.7)
+- `src/app/api/contacts/ai-analyze/route.ts` — Contact list quality analysis and smart list suggestions
+- `src/lib/web-scraper.ts` — Company name/summary/industry detection during onboarding (3 GPT-4o-mini calls)
+
+All of these are now tracked via the new `openai_usage_logs` table and use a 2-key architecture: `OPENAI_API_KEY` (all features: call analysis, contact analysis, onboarding, demo) and `OPENAI_API_KEY_CALI_AI` (Cali AI only, for rate limit isolation).
 
 **Relevant Files:**
-- `src/lib/ai/intent-analyzer.ts` — GPT-4o-mini analysis
-- `src/app/api/openai/analyze-call/route.ts` — GPT-4o full analysis
-- `src/app/api/openai/recommend-agent/route.ts`
-- `src/app/api/openai/context-suggestions/route.ts`
+- `src/lib/ai/intent-analyzer.ts` — GPT-4o-mini post-call intent analysis
+- `src/app/api/bland/analyze-call/route.ts` — GPT-4o real call analysis
+- `src/app/api/openai/analyze-call/route.ts` — GPT-4o-mini demo analysis
+- `src/app/api/openai/recommend-agent/route.ts` — GPT-4o-mini agent recommendation
+- `src/app/api/openai/context-suggestions/route.ts` — GPT-4o-mini campaign context
+- `src/app/api/contacts/ai-analyze/route.ts` — GPT-4o-mini contact quality
+- `src/app/api/ai/chat/route.ts` — GPT-4o-mini Cali AI assistant
+- `src/lib/web-scraper.ts` — GPT-4o-mini onboarding company detection
 
-**Risk Level:** 🟠 High
+**Risk Level:** 🟢 Low (downgraded — training opt-out confirmed disabled)
 
-**Remediation:**
-1. Execute OpenAI's enterprise Data Processing Addendum (available at OpenAI's legal portal).
-2. Verify that OpenAI's API terms confirm no use of customer API data for model training.
-3. Evaluate whether Zero Data Retention (ZDR) is applicable and appropriate for the call transcript data processed.
-4. Document the lawful basis for sending call transcripts to OpenAI (likely legitimate interests or performance of contract).
-5. Disclose OpenAI as a sub-processor in the published sub-processor list and Privacy Policy.
+**Remaining actions:**
+1. Disclose in the Privacy Policy: (a) that OpenAI is used for call analysis, contact analysis, AI assistant, and onboarding; (b) that prompts are retained by OpenAI for up to 30 days; (c) that data is not used for training.
+2. Consider enabling OpenAI Audit logging before enterprise customer onboarding or SOC 2 readiness.
+3. OpenAI API usage is now tracked in the `openai_usage_logs` table and visible in the Admin Command Center → AI Costs tab.
 
 ---
 
-### GAP-007: Email Addresses Sent to GA4 and PostHog as PII
-**Description:** Account holder email addresses are currently sent to Google Analytics 4 (as a user property `user_email`) and to PostHog (as the `distinct_id`). Email address is personal data under GDPR, CCPA, and virtually all privacy frameworks. Sending email to analytics sub-processors without consent and without adequate legal basis creates compliance risk.
+### GAP-007: Email Addresses Sent to GA4 and PostHog as PII — FIX APPLIED ✅
+**Description:** Account holder email addresses were previously sent to Google Analytics 4 (as a user property `user_email`) and to PostHog (as the `distinct_id`). Email address is personal data under GDPR, CCPA, and virtually all privacy frameworks.
+
+**Fix applied (March 25, 2026):** Email replaced with the Supabase user UUID (`user.id`) as the analytics identifier across all analytics providers:
+- `src/components/analytics/AnalyticsProvider.tsx` — `user_email` property removed; user identified by UUID
+- `src/components/analytics/PostHogProvider.tsx` — `distinct_id` changed from `user.email` to `user.id`
+- `src/lib/analytics.ts` — `setUserProperties()` updated to remove email property
+- Related PostHog/GA4 server-side files updated accordingly
+
+**Impact on analytics:** Full user-level analytics continuity is maintained — the UUID uniquely identifies each user across sessions for funnel analysis, retention, and cohort tracking. The only capability lost is cross-platform lookup by email address (e.g., manually finding a specific user in PostHog by typing their email). This is an acceptable trade-off for GDPR compliance.
+
+**Note:** The user's name (first name) is still included as a PostHog property for display purposes. Name is lower-risk than email in analytics context, but if full anonymization is required in the future, it should also be removed.
 
 **Relevant Files:**
-- `src/components/analytics/AnalyticsProvider.tsx` — sets GA4 user property `user_email`
-- `src/components/analytics/PostHogProvider.tsx` — identifies PostHog with email as `distinct_id`
-- `src/lib/analytics.ts` lines ~100–160 — `setUserProperties()` function
+- `src/components/analytics/AnalyticsProvider.tsx`
+- `src/components/analytics/PostHogProvider.tsx`
+- `src/lib/analytics.ts`
 
-**Risk Level:** 🟠 High
-
-**Remediation (Option A — Preferred):** Replace email with a non-reversible hash (SHA-256 of email) or with the Supabase user UUID as the analytics identifier. This eliminates the PII risk entirely.
-
-**Remediation (Option B):** If email must be used for cross-platform identity matching, ensure: (a) explicit consent is obtained via the CMP; (b) this is disclosed in the Privacy Policy; (c) a Data Protection Impact Assessment (DPIA) is conducted if required under GDPR Article 35.
+**Risk Level:** 🟢 Resolved (was 🟠 High)
 
 ---
 

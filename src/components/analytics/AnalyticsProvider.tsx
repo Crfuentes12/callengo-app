@@ -10,10 +10,8 @@ import { createClient } from '@/lib/supabase/client'
 import { setUserProperties, clearUserProperties } from '@/lib/analytics'
 
 interface AnalyticsProviderProps {
-  /** Supabase user id (UUID) */
+  /** Supabase user id (UUID) — used as the GA4 user identifier (non-PII) */
   userId: string
-  /** User email */
-  email?: string
   /** Subscription plan slug (free, starter, growth, business, teams, enterprise) */
   planSlug?: string
   /** Billing cycle (monthly or annual) */
@@ -30,7 +28,6 @@ interface AnalyticsProviderProps {
 
 export function AnalyticsProvider({
   userId,
-  email,
   planSlug,
   billingCycle,
   companyIndustry,
@@ -44,10 +41,10 @@ export function AnalyticsProvider({
     if (hasSetup.current) return
     hasSetup.current = true
 
-    // Set user properties for audience segmentation
+    // Set user properties for audience segmentation.
+    // Uses UUID as identifier — email must not be sent to GA4 (GDPR/CCPA).
     setUserProperties({
       user_id: userId,
-      email,
       plan_slug: planSlug,
       billing_cycle: billingCycle,
       company_industry: companyIndustry,
@@ -67,7 +64,7 @@ export function AnalyticsProvider({
     })
 
     return () => subscription.unsubscribe()
-  }, [userId, email, planSlug, billingCycle, companyIndustry, teamSize, countryCode, currency])
+  }, [userId, planSlug, billingCycle, companyIndustry, teamSize, countryCode, currency])
 
   return null
 }

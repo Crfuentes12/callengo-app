@@ -2,7 +2,7 @@
 tags: [analytics, posthog, tracking, events, session-replay, feature-flags, group-analytics]
 aliases: [PostHog Analytics, Product Analytics, PH]
 created: 2026-03-23
-updated: 2026-03-23
+updated: 2026-03-25
 ---
 
 # PostHog
@@ -102,15 +102,16 @@ Session replays can be tagged with custom labels using the `tagSession(tag)` fun
 
 ## User Identification
 
-The `identifyUser()` function is called when a user logs in or when their profile data changes. It performs three operations:
+The `identifyUser()` function is called when a user logs in or when their profile data changes. It performs three operations.
+
+> **Privacy update (March 25, 2026):** The user's email address has been removed as the `distinct_id` and as a user property. The Supabase user UUID is now the sole identifier passed to PostHog's `identify()` call. This prevents email addresses (PII) from being stored in PostHog user profiles. The `user_email` property is no longer sent. Files updated: `PostHogProvider.tsx`, `src/lib/posthog.ts`.
 
 ### 1. User Identification
 
-PostHog's `identify()` is called with the user's email as the `distinct_id` (or user UUID as fallback). User properties are set:
+PostHog's `identify()` is called with the **Supabase user UUID** as the `distinct_id`. User properties are set:
 
 | Property | Source | Description |
 |----------|--------|-------------|
-| `email` | User profile | Email address |
 | `name` | User profile | Display name |
 | `plan_slug` | Subscription | Current plan (free, starter, growth, etc.) |
 | `billing_cycle` | Subscription | monthly or annual |
@@ -120,6 +121,8 @@ PostHog's `identify()` is called with the user's email as the `distinct_id` (or 
 | `team_size` | Company | Number of team members |
 | `country_code` | Geolocation | ISO country code |
 | `currency` | Billing | Billing currency |
+
+Note: `email` is intentionally excluded from user properties to avoid PII storage in PostHog. User identity is tied to the Supabase UUID instead.
 
 ### 2. Group Analytics (Company)
 
@@ -219,7 +222,7 @@ export async function captureServerEvent(
 
 | Parameter | Description |
 |-----------|-------------|
-| `distinctId` | User's email or UUID (must match client-side identification) |
+| `distinctId` | User's Supabase UUID (must match client-side identification — email removed as identifier in March 2026) |
 | `eventName` | Event name |
 | `properties` | Event properties |
 | `groups` | Optional company group association |
@@ -259,6 +262,7 @@ PostHog uses `localStorage+cookie` persistence, which means:
 | **Input masking** | Passwords, emails, and phone inputs masked in session replay |
 | **Data residency** | US cloud by default (`us.i.posthog.com`), configurable via host variable |
 | **User reset** | `resetUser()` clears all identifying data on logout |
+| **UUID-based identification** | As of March 25, 2026: `distinct_id` is the Supabase user UUID, not email. `user_email` property removed from all `identify()` calls to prevent PII storage in PostHog profiles |
 
 ---
 

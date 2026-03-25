@@ -115,7 +115,6 @@ function capture(
  */
 export function identifyUser(props: {
   userId: string
-  email?: string
   fullName?: string
   planSlug?: string
   billingCycle?: string
@@ -131,18 +130,16 @@ export function identifyUser(props: {
 }) {
   if (!initialized || typeof window === 'undefined') {
     if (typeof window !== 'undefined') {
-      console.debug('[PostHog Debug] identify', props.email || props.userId, props)
+      console.debug('[PostHog Debug] identify', props.userId, props)
     }
     return
   }
 
-  // Use email as distinct_id so PostHog shows emails in session replay,
-  // funnels, and person lists instead of opaque UUIDs.
-  // Fall back to userId if email is not available (shouldn't happen in practice).
-  const distinctId = props.email || props.userId
+  // Use the Supabase UUID as distinct_id. Email is PII (GDPR/CCPA) and must
+  // not be sent to third-party analytics providers as an identifier.
+  const distinctId = props.userId
 
   posthog.identify(distinctId, {
-    email: props.email,
     name: props.fullName,
     user_id: props.userId,
     plan_slug: props.planSlug,
