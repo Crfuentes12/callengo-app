@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { expensiveLimiter } from '@/lib/rate-limit';
-import { getOpenAIClient, trackOpenAIUsage } from '@/lib/openai/tracker';
+import { getOpenAIClient, trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 
 const openai = getOpenAIClient('cali_ai');
 
@@ -290,7 +290,7 @@ export async function POST(request: NextRequest) {
 
     // Call OpenAI
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 1000,
@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
 
     trackOpenAIUsage({
       featureKey: 'cali_ai',
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       inputTokens: completion.usage?.prompt_tokens ?? 0,
       outputTokens: completion.usage?.completion_tokens ?? 0,
       companyId,

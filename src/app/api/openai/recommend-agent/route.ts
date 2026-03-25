@@ -1,7 +1,7 @@
 // app/api/openai/recommend-agent/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { getOpenAIClient, trackOpenAIUsage } from '@/lib/openai/tracker';
+import { getOpenAIClient, trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 import { expensiveLimiter } from '@/lib/rate-limit';
 
 const openai = getOpenAIClient('contact_analysis');
@@ -53,7 +53,7 @@ Respond with ONLY the agent's slug (e.g., "data-validation", "appointment-confir
 Choose the single best match.`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [
         {
           role: 'system',
@@ -79,7 +79,7 @@ Choose the single best match.`;
       .then(({ data: ud }: { data: { company_id: string } | null; error: unknown }) => {
         trackOpenAIUsage({
           featureKey: 'contact_analysis',
-          model: 'gpt-4o-mini',
+          model: getDefaultModel(),
           inputTokens: completion.usage?.prompt_tokens ?? 0,
           outputTokens: completion.usage?.completion_tokens ?? 0,
           companyId: ud?.company_id ?? null,
@@ -90,7 +90,7 @@ Choose the single best match.`;
       .catch(() => {
         trackOpenAIUsage({
           featureKey: 'contact_analysis',
-          model: 'gpt-4o-mini',
+          model: getDefaultModel(),
           inputTokens: completion.usage?.prompt_tokens ?? 0,
           outputTokens: completion.usage?.completion_tokens ?? 0,
           companyId: null,

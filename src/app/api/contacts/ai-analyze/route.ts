@@ -2,7 +2,7 @@
 // AI-powered contact analysis and list suggestions
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { getOpenAIClient, trackOpenAIUsage } from '@/lib/openai/tracker';
+import { getOpenAIClient, trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 import { trackServerEvent } from '@/lib/analytics';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { expensiveLimiter } from '@/lib/rate-limit';
@@ -144,7 +144,7 @@ Return JSON with this structure:
     }
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       temperature: 0.3,
       response_format: { type: 'json_object' },
       messages: [
@@ -157,7 +157,7 @@ Return JSON with this structure:
 
     trackOpenAIUsage({
       featureKey: 'contact_analysis',
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       inputTokens: completion.usage?.prompt_tokens ?? 0,
       outputTokens: completion.usage?.completion_tokens ?? 0,
       companyId: userData.company_id,

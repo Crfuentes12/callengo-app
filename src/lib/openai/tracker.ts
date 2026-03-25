@@ -18,6 +18,16 @@ export type FeatureKey =
   | 'onboarding'
   | 'demo_analysis';
 
+// ─── Model helpers ───────────────────────────────────────────────────────────
+
+/** Default model for standard features. Override via OPENAI_MODEL env var. */
+export const getDefaultModel = (): string =>
+  process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
+
+/** Premium model for high-accuracy production call analysis. Override via OPENAI_MODEL_PREMIUM env var. */
+export const getPremiumModel = (): string =>
+  process.env.OPENAI_MODEL_PREMIUM ?? 'gpt-4o';
+
 // ─── Human-readable labels for each feature key ──────────────────────────────
 
 export const KEY_LABELS: Record<FeatureKey, string> = {
