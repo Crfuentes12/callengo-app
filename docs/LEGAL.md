@@ -473,7 +473,7 @@ The `AnalyticsProvider` component (`src/components/analytics/AnalyticsProvider.t
 | Property | Contains PII | Notes |
 |----------|-------------|-------|
 | `user_id` | No (UUID) | GA4 User ID — used for cross-device tracking |
-| `email` | **YES** | **User email address — PII** |
+| ~~`email`~~ | ~~**YES**~~ | **Removed March 25, 2026** — `user_email` property deleted from all GA4 calls. Users are identified by UUID only. See GAP-007. |
 | `plan_slug` | No | Subscription plan identifier |
 | `billing_cycle` | No | 'monthly' or 'annual' |
 | `company_industry` | No | |
@@ -483,7 +483,7 @@ The `AnalyticsProvider` component (`src/components/analytics/AnalyticsProvider.t
 | `integrations_count` | No | |
 | `contacts_count` | No | |
 
-**PII Flag:** Email addresses are sent to Google Analytics 4 as a user property. This is a compliance risk under GDPR Article 28 (data processor obligations) and Google's own measurement terms, which prohibit sending personally identifiable information to GA4. See Section 21 (Open Items & Legal Gaps) for remediation.
+**Current PII status:** Email is no longer sent to GA4. Users are identified by Supabase UUID only. This resolves the compliance risk noted in the original document. See GAP-007 for full documentation of the fix.
 
 ### 4.1.2 GA4 Custom Events (130+ Events)
 All events and their properties are defined in `src/lib/analytics.ts` (1,036 lines). Complete catalog:
@@ -545,9 +545,9 @@ The `PostHogProvider` component (`src/components/analytics/PostHogProvider.tsx`)
 
 | Property | Contains PII | Notes |
 |----------|-------------|-------|
-| `userId` | No (UUID) | Used as PostHog distinct_id |
-| `email` | **YES** | User email address |
-| `fullName` | **YES** | User's full name |
+| `userId` | No (UUID) | Used as PostHog distinct_id — Supabase user UUID |
+| ~~`email`~~ | ~~**YES**~~ | **Removed March 25, 2026** — `distinct_id` changed from `user.email` to `user.id`. Email no longer sent to PostHog. See GAP-007. |
+| `fullName` | **YES** (low-risk) | User's full name — still sent for display/segmentation; consider removing for full anonymization |
 | `planSlug` | No | |
 | `billingCycle` | No | |
 | `companyId` | No (UUID) | |
@@ -559,6 +559,8 @@ The `PostHogProvider` component (`src/components/analytics/PostHogProvider.tsx`)
 | `integrationsCount` | No | |
 | `contactsCount` | No | |
 | `createdAt` | No | |
+
+**Current PII status:** Email removed. Users identified by UUID. First name (`fullName`) remains — lower-risk than email but should be reviewed if full pseudonymization is required for future enterprise contracts. See GAP-007.
 
 Group analytics: `posthog.group('company', companyId)` is called, which enables company-level analytics grouping.
 
@@ -998,14 +1000,16 @@ See GAP-005 for the full DPA review with all provisions documented.
 
 **Data Returned:** Three suggested campaign context paragraphs.
 
-### 8.2.5 OpenAI Training Data Opt-Out
+### 8.2.5 OpenAI Training Data — Confirmed Disabled
 
-**STATUS: NOT CONFIRMED.** The OpenAI API client is instantiated as:
+**STATUS: CONFIRMED DISABLED (March 25, 2026).** Verified via OpenAI Platform → Settings → Data Controls → Sharing. All three data sharing options are set to Disabled. OpenAI does not use Callengo's API data (call transcripts, prompts, completions) to train its models.
+
+The OpenAI API client is instantiated without special opt-out flags because no such flags are required — the training opt-out is configured at the organization level in the OpenAI Platform, not at the API call level:
 ```typescript
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 ```
 
-No `X-Requested-Roles` header, no `purpose` parameter, and no opt-out flags are set. OpenAI's API usage policy for non-ChatGPT API calls (as of early 2024) states that data sent via the API is not used for training by default unless users explicitly opt in. However, this opt-out should be explicitly confirmed against the current OpenAI usage policies and documented in the DPA with customers.
+**API call logging:** Enabled per call — prompts and completions are retained by OpenAI for up to 30 days on their servers for the organization's own review. This is not training data. This retention must be disclosed in the Privacy Policy. See GAP-006 for full documentation.
 
 ### 8.2.6 Transcript Sanitization
 
@@ -1812,9 +1816,9 @@ Bland AI is Callengo's critical voice infrastructure sub-processor. All AI voice
 
 **Bland AI as Sub-Processor:** In GDPR terminology, Callengo's business customers are data controllers with respect to their contacts. Callengo is a data processor acting on customers' instructions. Bland AI is therefore a sub-processor, processing personal data on Callengo's behalf at the direction of Callengo's customers. Callengo is responsible for ensuring that Bland AI provides sufficient guarantees under Article 28(4) GDPR.
 
-**Bland AI Data Retention:** Bland AI's data retention and deletion policies for call recordings, transcripts, and associated metadata are governed by Bland AI's privacy policy and terms of service (https://www.bland.ai/privacy). Callengo does not directly control Bland AI's data retention periods.
+**Bland AI Data Retention:** Upon end of Services, Bland AI will delete or return Customer Personal Data on written request to `compliance@bland.ai` within 14 days of service cessation (per DPA Section 2.6). Back-up archives are securely isolated. Callengo's application-layer recording retention is 30 days by default; 12 months with the Recording Vault add-on. Note that Bland AI's infrastructure-side retention of recordings and transcripts is governed by the DPA deletion provisions, not by Callengo's UI settings — customers requiring guaranteed deletion should submit a formal deletion request via `compliance@bland.ai`.
 
-**Training Data Opt-Out — OPEN ITEM:** No explicit opt-out header, API parameter, or contractual mechanism to prevent Bland AI from using call data for model training was identified in the Callengo codebase. Whether Bland AI's default terms prohibit training data use from API customers must be confirmed against Bland AI's current terms of service and any DPA. This is a material compliance gap. See Section 21.
+**Training Data — RESOLVED (March 2026):** Bland AI's DPA (reviewed March 2026 — see Section 21 / GAP-005) confirms that Customer Personal Data, including call recordings and transcripts, is not used for model training as long as it remains identifiable. The DPA permits Bland to create Deidentified Data for product improvement, but this carve-out requires technical deidentification measures such that the data cannot be associated with a Data Subject or Customer. No API-level opt-out flag is required — protection is contractual under the DPA.
 
 **Callengo's Sub-Processor Obligations to Customers:** Callengo's DPA with its business customers must: (a) identify Bland AI as a sub-processor; (b) describe the data categories and processing activities Bland AI performs; (c) confirm that Callengo has entered into a GDPR-compliant DPA with Bland AI; (d) notify customers of any changes to sub-processors; and (e) permit customers to object to new sub-processors.
 
@@ -2228,7 +2232,7 @@ Supabase automated backups may retain data for up to 30 days after deletion. Aft
 
 | Sub-Processor | Role | Service Description | Data Categories Processed | Infrastructure Region | DPA / Privacy Framework | DPF Enrolled | Risk Level |
 |---------------|------|--------------------|--------------------------|-----------------------|------------------------|--------------|-----------|
-| **Google LLC (Google Analytics 4)** | Behavioral Analytics | Receives 130+ custom events tracking user behavior throughout the application. Receives user properties including: email address (PII), company_id, plan slug, user role. Receives page view data including URL paths. GA4 may use data for Google's own advertising and measurement purposes unless advertising features are disabled. | Email address, user ID, company ID, plan, user role, IP address (anonymized by default in GA4), page views, behavioral events, browser/device metadata | Google US data centers (with EU data residency option) | [Google Ads Data Processing Terms](https://privacy.google.com/businesses/processorterms/); must be accepted. | Yes | 🔴 High — receives email as user property; potential CCPA "sharing" if ad features enabled |
+| **Google LLC (Google Analytics 4)** | Behavioral Analytics | Receives 130+ custom events tracking user behavior throughout the application. Receives user properties including: user UUID (not email — email removed March 25, 2026), company_id, plan slug, user role. Receives page view data including URL paths. GA4 may use data for Google's own advertising and measurement purposes unless advertising features are disabled. | User UUID (not email), company ID, plan, user role, IP address (anonymized by default in GA4), page views, behavioral events, browser/device metadata | Google US data centers (with EU data residency option) | [Google Ads Data Processing Terms](https://privacy.google.com/businesses/processorterms/); must be accepted. | Yes | 🟡 Medium — email removed (March 2026); potential CCPA "sharing" risk remains if ad features enabled |
 | **PostHog, Inc.** | Product Analytics and Session Recording | Receives 250+ custom events. Records user sessions with field masking on password/email/phone fields. Identifies users by email address (distinct_id). Autocapture is enabled. Tracks group analytics (company_id as group). | Email address (distinct_id), user display name, company_id, plan, user role, IP address, session recordings (with masked fields), feature flag assignments, behavioral events, browser metadata | US region (PostHog Cloud US) | [PostHog DPA](https://posthog.com/dpa) available; GDPR-compliant | Yes | 🔴 High — session recordings; email as distinct_id |
 
 ---

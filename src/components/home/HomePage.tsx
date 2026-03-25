@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/i18n';
+import { createClient } from '@/lib/supabase/client';
 import OnboardingWizardModal from '@/components/onboarding/OnboardingWizardModal';
 
 interface HomePageProps {
@@ -11,6 +12,7 @@ interface HomePageProps {
   companyName: string;
   completedTasks: Record<string, boolean>;
   onboardingWizardCompleted: boolean;
+  homeTourSeen?: boolean;
   stats: {
     contacts: number;
     campaigns: number;
@@ -92,6 +94,220 @@ const QUICK_ACTIONS = [
   },
 ];
 
+// ─── Home Guided Tour ─────────────────────────────────────────────────────────
+
+interface HomeTourProps {
+  firstName: string;
+  pendingCount: number;
+  companyId: string;
+  onDismiss: () => void;
+}
+
+const HOME_TOUR_STEPS = [
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+      </svg>
+    ),
+    title: (firstName: string) => `Welcome to Callengo, ${firstName}!`,
+    body: (pendingCount: number) =>
+      `Your AI calling platform is ready. You have ${pendingCount} ${pendingCount === 1 ? 'task' : 'tasks'} to complete before launching your first campaign — let's walk through what's here.`,
+    hasBackdrop: true,
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    title: (_firstName: string) => 'Your Get Started checklist',
+    body: (pendingCount: number) =>
+      `Below you can see ${pendingCount} tasks to unlock the full power of Callengo. Each step builds on the last — kick things off by adding your first contacts.`,
+    hasBackdrop: false,
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+      </svg>
+    ),
+    title: (_firstName: string) => 'Navigate with the sidebar',
+    body: (_pendingCount: number) =>
+      'Campaigns, Contacts, Calls, Analytics and more live in the left sidebar. Collapse it anytime for extra screen space — it stays out of your way.',
+    hasBackdrop: false,
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+      </svg>
+    ),
+    title: (_firstName: string) => 'Meet Cali, your AI assistant',
+    body: (_pendingCount: number) =>
+      'Click the sparkle icon in the top-right header to open Cali. She knows your data — ask about call performance, get help writing scripts, or request contact insights.',
+    hasBackdrop: false,
+    isLast: true,
+  },
+];
+
+function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourProps) {
+  const supabase = createClient();
+  const [step, setStep] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  const [exiting, setExiting] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 40);
+    return () => clearTimeout(t);
+  }, []);
+
+  const totalSteps = HOME_TOUR_STEPS.length;
+  const current = HOME_TOUR_STEPS[step];
+  const isLast = step === totalSteps - 1;
+
+  const persistAndClose = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from('company_settings')
+        .select('settings')
+        .eq('company_id', companyId)
+        .single();
+      const existing = (data?.settings as Record<string, unknown>) || {};
+      await supabase
+        .from('company_settings')
+        .update({ settings: { ...existing, tour_home_seen: true } })
+        .eq('company_id', companyId);
+    } catch { /* non-critical */ }
+  }, [companyId, supabase]);
+
+  const close = useCallback(() => {
+    setExiting(true);
+    persistAndClose();
+    setTimeout(onDismiss, 280);
+  }, [onDismiss, persistAndClose]);
+
+  const next = () => {
+    if (isLast) {
+      close();
+    } else {
+      setStep(s => s + 1);
+    }
+  };
+
+  const visible = mounted && !exiting;
+  const showBackdrop = current.hasBackdrop;
+
+  return (
+    <>
+      {/* Subtle backdrop on first step only */}
+      <div
+        className="fixed inset-0 z-[48] transition-opacity duration-300 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at bottom right, rgba(99,102,241,0.08) 0%, rgba(0,0,0,0.18) 100%)',
+          opacity: showBackdrop && visible ? 1 : 0,
+        }}
+      />
+
+      {/* Tour card — fixed bottom-right, above ProgressTracker (z-40) but below Cali (z-[60]) */}
+      <div
+        className="fixed bottom-20 right-4 z-[50] w-80"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.97)',
+          transition: 'opacity 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.3s cubic-bezier(0.16,1,0.3,1)',
+        }}
+      >
+        <div className="bg-white rounded-2xl shadow-2xl border border-[var(--border-default)] overflow-hidden">
+          {/* Animated progress bar */}
+          <div className="h-1 bg-[var(--color-neutral-100)]">
+            <div
+              className="h-full bg-gradient-to-r from-[var(--color-primary)] to-purple-500 transition-all duration-500 ease-out"
+              style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
+            />
+          </div>
+
+          <div className="p-5">
+            {/* Header row */}
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-purple-500/10 flex items-center justify-center text-[var(--color-primary)]">
+                {current.icon}
+              </div>
+              <button
+                onClick={close}
+                className="p-1 -mr-1 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-100)] transition-colors"
+                aria-label="Skip tour"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div
+              key={step}
+              style={{
+                animation: 'homeTourStepIn 0.25s cubic-bezier(0.16,1,0.3,1)',
+              }}
+            >
+              <h3 className="text-sm font-bold text-[var(--color-ink)] mb-1.5">
+                {current.title(firstName)}
+              </h3>
+              <p className="text-xs text-[var(--color-neutral-500)] leading-relaxed">
+                {current.body(pendingCount)}
+              </p>
+            </div>
+
+            {/* Footer: step dots + CTA */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-1.5">
+                {HOME_TOUR_STEPS.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-full transition-all duration-300 ${
+                      i === step
+                        ? 'w-4 h-1.5 bg-[var(--color-primary)]'
+                        : i < step
+                        ? 'w-1.5 h-1.5 bg-[var(--color-primary)]/35'
+                        : 'w-1.5 h-1.5 bg-[var(--color-neutral-200)]'
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                {step > 0 && (
+                  <button
+                    onClick={() => setStep(s => s - 1)}
+                    className="px-2.5 py-1.5 text-xs font-medium text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] transition-colors"
+                  >
+                    ← Back
+                  </button>
+                )}
+                <button
+                  onClick={next}
+                  className="px-4 py-1.5 bg-gradient-to-r from-[var(--color-primary)] to-purple-600 text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity shadow-sm"
+                >
+                  {isLast ? "Let's go!" : 'Next →'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <style jsx>{`
+          @keyframes homeTourStepIn {
+            from { opacity: 0; transform: translateX(6px); }
+            to   { opacity: 1; transform: translateX(0); }
+          }
+        `}</style>
+      </div>
+    </>
+  );
+}
+
+// ─── Helper to get nested i18n key ────────────────────────────────────────────
+
 // Helper to get nested i18n key
 function getNestedValue(obj: Record<string, unknown>, path: string): string {
   const parts = path.split('.');
@@ -108,13 +324,22 @@ function getNestedValue(obj: Record<string, unknown>, path: string): string {
 
 const COLLAPSED_COUNT = 5;
 
-export default function HomePage({ userName, companyId, companyName, completedTasks, onboardingWizardCompleted, stats, plan }: HomePageProps) {
+export default function HomePage({ userName, companyId, companyName, completedTasks, onboardingWizardCompleted, homeTourSeen = false, stats, plan }: HomePageProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const [videoModal, setVideoModal] = useState<{ title: string; videoId: string } | null>(null);
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [showOnboardingWizard, setShowOnboardingWizard] = useState(!onboardingWizardCompleted);
   const [wizardCompleted, setWizardCompleted] = useState(onboardingWizardCompleted);
+  const [showHomeTour, setShowHomeTour] = useState(false);
+
+  // Show home tour after onboarding completes (or on first visit if already completed)
+  useEffect(() => {
+    if (homeTourSeen) return;
+    if (!wizardCompleted || showOnboardingWizard) return;
+    const timer = setTimeout(() => setShowHomeTour(true), 650);
+    return () => clearTimeout(timer);
+  }, [wizardCompleted, showOnboardingWizard, homeTourSeen]);
 
   const handleOnboardingComplete = () => {
     setShowOnboardingWizard(false);
@@ -442,6 +667,16 @@ export default function HomePage({ userName, companyId, companyName, completedTa
           companyName={companyName}
           onComplete={handleOnboardingComplete}
           onDismiss={handleOnboardingDismiss}
+        />
+      )}
+
+      {/* Home guided tour — only after onboarding, only if not seen before */}
+      {showHomeTour && !showOnboardingWizard && (
+        <HomeTour
+          firstName={firstName}
+          pendingCount={Object.values(completedTasks).filter(v => !v).length}
+          companyId={companyId}
+          onDismiss={() => setShowHomeTour(false)}
         />
       )}
     </div>

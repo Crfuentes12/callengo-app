@@ -51,6 +51,7 @@ interface CampaignsOverviewProps {
   agentTemplates: AgentTemplate[];
   company: Company;
   companySettings?: Record<string, unknown>;
+  totalContactCount: number;
 }
 
 type FilterStatus = 'all' | 'active' | 'completed' | 'paused' | 'failed';
@@ -63,6 +64,7 @@ export default function CampaignsOverview({
   agentTemplates,
   company,
   companySettings,
+  totalContactCount,
 }: CampaignsOverviewProps) {
   const { t } = useTranslation();
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
@@ -70,6 +72,7 @@ export default function CampaignsOverview({
   const [showAgentSelection, setShowAgentSelection] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentTemplate | null>(null);
+  const [showNoContactsModal, setShowNoContactsModal] = useState(false);
 
   const handleAgentSelect = (agent: AgentTemplate) => {
     campaignEvents.newCampaignClicked();
@@ -167,6 +170,10 @@ export default function CampaignsOverview({
         </div>
         <button
           onClick={() => {
+            if (totalContactCount === 0) {
+              setShowNoContactsModal(true);
+              return;
+            }
             phCampaignEvents.creationFlowStarted();
             setShowAgentSelection(true);
           }}
@@ -417,6 +424,91 @@ export default function CampaignsOverview({
             setSelectedAgent(null);
           }}
         />
+      )}
+
+      {/* No Contacts Modal */}
+      {showNoContactsModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-[var(--border-default)] overflow-hidden">
+            {/* Header */}
+            <div className="p-6 border-b border-[var(--border-default)] gradient-bg-subtle">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-[var(--color-ink)]">Add contacts first</h2>
+                  <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">You need contacts before launching a campaign</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-[var(--color-neutral-600)] leading-relaxed">
+                Campaigns need a contact list to call. Add contacts manually, import a CSV, or sync from your CRM — then come back to launch your campaign.
+              </p>
+
+              {/* Options */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 p-3 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[var(--color-ink)]">Add manually</p>
+                    <p className="text-[11px] text-[var(--color-neutral-500)]">Enter contacts one by one</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[var(--color-ink)]">Import CSV or Excel</p>
+                    <p className="text-[11px] text-[var(--color-neutral-500)]">Upload a spreadsheet with your contacts</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+                  <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[var(--color-ink)]">Sync from CRM</p>
+                    <p className="text-[11px] text-[var(--color-neutral-500)]">HubSpot, Salesforce, Pipedrive, and more</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setShowNoContactsModal(false)}
+                className="flex-1 px-4 py-2.5 bg-white border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-lg hover:bg-[var(--surface-hover)] font-bold text-sm transition-all"
+              >
+                Cancel
+              </button>
+              <a
+                href="/contacts"
+                className="flex-1 px-4 py-2.5 gradient-bg text-white rounded-lg font-bold text-sm transition-all hover:opacity-90 flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Go to Contacts
+              </a>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

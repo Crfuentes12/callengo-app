@@ -100,6 +100,12 @@ export default function AIChatPanel({ isOpen, onClose, userId, companyId, userNa
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
+  // Broadcast minimize state so ProgressTracker can shift position
+  useEffect(() => {
+    const minimized = isOpen && isMinimized;
+    window.dispatchEvent(new CustomEvent('callengo:cali-minimized', { detail: { minimized } }));
+  }, [isOpen, isMinimized]);
+
   // Load conversations list
   const loadConversations = useCallback(async () => {
     try {

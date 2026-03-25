@@ -128,6 +128,11 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     complianceAcceptTerms: false,
   });
 
+  // Wizard tour state — read from company_settings.settings JSONB
+  const [wizardTourSeen, setWizardTourSeen] = useState(
+    !!(additionalSettings.tour_campaign_wizard_seen as boolean)
+  );
+
   // Calendar configuration state - pre-fill from company settings
   const [calendarConfig, setCalendarConfig] = useState<CalendarStepConfig>({
     timezone: (additionalSettings.timezone as string) || 'America/New_York',
@@ -580,6 +585,32 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Dismiss wizard guided tour and persist to Supabase
+  const dismissWizardTour = async () => {
+    setWizardTourSeen(true);
+    try {
+      const currentSettings = (companySettings?.settings as Record<string, unknown>) || {};
+      await supabase.from('company_settings')
+        .update({ settings: { ...currentSettings, tour_campaign_wizard_seen: true } })
+        .eq('company_id', companyId);
+    } catch { /* non-critical */ }
+  };
+
+  // AI disclosure phrase injected into campaign context when enabled
+  const AI_DISCLOSURE_PREFIX = 'Please introduce yourself as an AI assistant at the beginning of the call. ';
+
+  const handleAiDisclosureChange = (enabled: boolean) => {
+    setSettings(prev => {
+      let newTask = prev.customTask;
+      if (enabled && !newTask.startsWith(AI_DISCLOSURE_PREFIX)) {
+        newTask = AI_DISCLOSURE_PREFIX + newTask;
+      } else if (!enabled && newTask.startsWith(AI_DISCLOSURE_PREFIX)) {
+        newTask = newTask.slice(AI_DISCLOSURE_PREFIX.length);
+      }
+      return { ...prev, complianceAiDisclosure: enabled, customTask: newTask };
+    });
+  };
+
   // Step indicator component
   const stepLabels = ['Agent', 'Campaign', 'Calendar', 'Launch'];
   const StepIndicator = ({ currentStep }: { currentStep: number }) => (
@@ -618,6 +649,50 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
     </div>
   );
 
+  // Inline guided tour card — shown once per user, dismissed and saved to Supabase
+  const TourCard = ({ stepNum, title, tips }: { stepNum: number; title: string; tips: string[] }) => {
+    if (wizardTourSeen) return null;
+    return (
+      <div className="mb-4 rounded-xl border border-[var(--color-primary)]/20 overflow-hidden" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #faf5ff 100%)' }}>
+        <div className="px-4 py-3 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl gradient-bg flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-[var(--color-primary)] mb-1.5">Step {stepNum} of 4 · {title}</p>
+            <ul className="space-y-1">
+              {tips.map((tip, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-[11px] text-[var(--color-neutral-600)]">
+                  <svg className="w-3 h-3 text-[var(--color-primary)] mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <button
+            onClick={dismissWizardTour}
+            className="p-1 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-100)] transition-colors flex-shrink-0"
+            title="Dismiss guide"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-4 py-2 bg-[var(--color-primary)]/5 border-t border-[var(--color-primary)]/10 flex items-center justify-between">
+          <span className="text-[10px] text-[var(--color-neutral-500)]">Quick start guide · 4 steps total</span>
+          <button onClick={dismissWizardTour} className="text-[10px] font-semibold text-[var(--color-primary)] hover:underline">
+            Got it, don&apos;t show again
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const getStepNumber = () => {
     if (step === 'preview') return 1;
     if (step === 'contacts') return 2;
@@ -651,6 +726,16 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           {/* Scrolleable content */}
           <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
+
+            <TourCard
+              stepNum={1}
+              title="Configure Your Agent"
+              tips={[
+                'Pick a voice — this is how your agent will sound on every call',
+                'Give your agent a name and title — it uses these when introducing itself',
+                'Use "Test Agent" to receive a live demo call and hear how it sounds',
+              ]}
+            />
 
             {/* Agent header - photo + name + description */}
             <div className="flex items-start gap-4 mb-5">
@@ -736,163 +821,73 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </div>
                 </div>
 
-                {/* AI Self-Identification */}
-                <div>
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-[var(--border-default)]">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-3.5 h-3.5 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-xs text-[var(--color-neutral-600)]">Identify as AI at call start</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={settings.complianceAiDisclosure}
-                        onChange={e => setSettings({ ...settings, complianceAiDisclosure: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-[var(--color-neutral-200)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-strong)] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                    </label>
-                  </div>
-                  {!settings.complianceAiDisclosure && (
-                    <p className="text-[9px] text-[var(--color-neutral-400)] mt-1 px-1 italic">
-                      This may be required in certain jurisdictions.
-                    </p>
-                  )}
-                </div>
               </div>
 
-              {/* RIGHT: Call Settings */}
-              <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)]">
-                <h3 className="text-xs font-bold text-[var(--color-ink)] uppercase mb-3 flex items-center justify-between">
-                  Call Settings
-                  {planLimits && (
-                    <span className="text-[10px] font-medium text-[var(--color-neutral-400)] normal-case">
-                      {planLimits.slug.charAt(0).toUpperCase() + planLimits.slug.slice(1)} plan
-                    </span>
-                  )}
-                </h3>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="flex items-center text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1 whitespace-nowrap">
-                        Max Duration
-                        <InfoTooltip text="Maximum length of each call in minutes" />
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="1"
-                          max={planLimits?.maxCallDuration || 15}
-                          step="1"
-                          value={settings.maxDuration}
-                          onChange={e => {
-                            const val = Math.round(parseInt(e.target.value) || 5);
-                            const max = planLimits?.maxCallDuration || 15;
-                            setSettings({ ...settings, maxDuration: Math.min(val, max) });
-                            agentEvents.settingsUpdated(getAgentType(), 'maxDuration');
-                            phAgentEvents.settingsUpdated(getAgentType(), 'maxDuration');
-                          }}
-                          className="w-full px-3 py-2 pr-10 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[var(--color-neutral-400)]">min</span>
-                      </div>
-                      {planLimits && (
-                        <p className="text-[10px] text-[var(--color-primary)] mt-0.5">max {planLimits.maxCallDuration}m</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="flex items-center text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1 whitespace-nowrap">Interval<InfoTooltip text="Wait time between each call" /></label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="1"
-                          max="60"
-                          step="1"
-                          value={settings.intervalMinutes}
-                          onChange={e => {
-                            setSettings({ ...settings, intervalMinutes: Math.round(parseInt(e.target.value) || 5) });
-                            agentEvents.settingsUpdated(getAgentType(), 'intervalMinutes');
-                            phAgentEvents.settingsUpdated(getAgentType(), 'intervalMinutes');
-                          }}
-                          className="w-full px-3 py-2 pr-10 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[var(--color-neutral-400)]">min</span>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1 whitespace-nowrap">Calls/Day</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max={planLimits?.maxCallsPerDay || 1000}
-                        step="1"
-                        value={settings.maxCallsPerDay}
-                        onChange={e => {
-                          const val = Math.round(parseInt(e.target.value) || 100);
-                          const max = planLimits?.maxCallsPerDay || 1000;
-                          setSettings({ ...settings, maxCallsPerDay: Math.min(val, max) });
-                          agentEvents.settingsUpdated(getAgentType(), 'maxCallsPerDay');
-                          phAgentEvents.settingsUpdated(getAgentType(), 'maxCallsPerDay');
-                        }}
-                        className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
-                      />
-                      {planLimits?.maxCallsPerDay && (
-                        <p className="text-[10px] text-[var(--color-primary)] mt-0.5">max {planLimits.maxCallsPerDay}</p>
-                      )}
-                    </div>
-                  </div>
-                  {planLimits && (
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[10px] text-[var(--color-neutral-400)]">
-                        ~{Math.floor(planLimits.minutesIncluded / (settings.maxDuration || 5))} calls/month at {settings.maxDuration}min each ({planLimits.minutesIncluded} min included)
-                      </p>
-                      {['free', 'starter'].includes(planLimits.slug) && (
-                        <a href="/settings?tab=billing" className="text-[10px] font-bold text-[var(--color-primary)] hover:underline whitespace-nowrap flex-shrink-0">
-                          Need more? ↗
-                        </a>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Test Agent CTA */}
-                  <button
-                    onClick={() => {
-                      agentEvents.voicePreviewed(settings.voice);
-                      phAgentEvents.voicePreviewed(settings.voice);
-                      setTestPhoneNumber(settings.testPhoneNumber);
-                      setShowTestModal(true);
-                    }}
-                    disabled={!settings.voice}
-                    className={`w-full mt-2 rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden ${
-                      settings.voice
-                        ? 'gradient-bg text-white shadow-lg shadow-[var(--color-primary)]/25 hover:shadow-xl hover:shadow-[var(--color-primary)]/30 hover:scale-[1.02] active:scale-[0.98]'
-                        : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-300)] cursor-not-allowed'
-                    }`}
-                  >
-                    <div className="px-4 py-3.5 flex items-center justify-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${settings.voice ? 'bg-white/20' : 'bg-[var(--color-neutral-200)]'}`}>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                      </div>
-                      <div className="text-left">
-                        <span className="block text-sm font-bold">
-                          {settings.voice ? t.agents.preview : t.agents.preview}
-                        </span>
-                        {settings.voice && (
-                          <span className="block text-[10px] font-medium opacity-80">Receive a live demo call on your phone</span>
-                        )}
-                      </div>
-                      {settings.voice && (
-                        <svg className="w-4 h-4 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                      )}
-                    </div>
-                  </button>
+              {/* RIGHT: Test Your Agent */}
+              <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)] flex flex-col justify-between gap-4">
+                <div>
+                  <h3 className="text-xs font-bold text-[var(--color-ink)] uppercase mb-2 flex items-center gap-1.5">
+                    Test Your Agent
+                    <InfoTooltip text="Make a real demo call to hear how your agent sounds before launching" />
+                  </h3>
+                  <p className="text-[11px] text-[var(--color-neutral-500)] leading-relaxed mb-3">
+                    Experience a live call using demo data — hear your agent&apos;s voice, conversation flow, and responses before running a real campaign.
+                  </p>
+                  {/* Feature callouts */}
+                  <ul className="space-y-1.5">
+                    {[
+                      'Real phone call to your number',
+                      'Uses demo contact data',
+                      'Full AI analysis after the call',
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-center gap-2 text-[11px] text-[var(--color-neutral-600)]">
+                        <div className="w-4 h-4 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-2.5 h-2.5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
+
+                {/* Test CTA */}
+                <button
+                  onClick={() => {
+                    agentEvents.voicePreviewed(settings.voice);
+                    phAgentEvents.voicePreviewed(settings.voice);
+                    setTestPhoneNumber(settings.testPhoneNumber);
+                    setShowTestModal(true);
+                  }}
+                  disabled={!settings.voice}
+                  className={`w-full rounded-xl font-bold text-sm transition-all duration-300 overflow-hidden ${
+                    settings.voice
+                      ? 'gradient-bg text-white shadow-lg shadow-[var(--color-primary)]/25 hover:shadow-xl hover:shadow-[var(--color-primary)]/30 hover:scale-[1.02] active:scale-[0.98]'
+                      : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-300)] cursor-not-allowed'
+                  }`}
+                >
+                  <div className="px-4 py-3.5 flex items-center justify-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${settings.voice ? 'bg-white/20' : 'bg-[var(--color-neutral-200)]'}`}>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-sm font-bold">
+                        {settings.voice ? 'Test Agent Call' : 'Select a voice first'}
+                      </span>
+                      {settings.voice && (
+                        <span className="block text-[10px] font-medium opacity-80">Receive a live demo call on your phone</span>
+                      )}
+                    </div>
+                    {settings.voice && (
+                      <svg className="w-4 h-4 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    )}
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -1567,6 +1562,16 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
+            <TourCard
+              stepNum={2}
+              title="Campaign Setup"
+              tips={[
+                'Choose which contacts to call — select a list or call everyone',
+                'Write a context message to guide your agent\'s conversation',
+                'Use AI suggestions to get a great starting point quickly',
+              ]}
+            />
+
             {loadingContacts ? (
               <div className="space-y-5" style={{ minHeight: 480 }}>
                 {/* Overage skeleton */}
@@ -1966,6 +1971,33 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   </div>
                 </div>
 
+                {/* AI Disclosure Toggle — moves phrase injection into campaign context */}
+                <div className="bg-[var(--color-neutral-50)] rounded-xl px-4 py-3 border border-[var(--border-default)]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-xs text-[var(--color-neutral-600)] font-medium">Introduce agent as AI</span>
+                      <InfoTooltip text="Injects a line into your campaign context instructing the agent to identify itself as an AI at the start of each call" />
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.complianceAiDisclosure}
+                        onChange={e => handleAiDisclosureChange(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-[var(--color-neutral-200)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-strong)] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+                    </label>
+                  </div>
+                  {settings.complianceAiDisclosure && (
+                    <p className="text-[10px] text-[var(--color-neutral-500)] mt-1.5 pl-5">
+                      Added to context: <span className="italic text-[var(--color-neutral-600)]">&ldquo;Please introduce yourself as an AI assistant at the beginning of the call.&rdquo;</span>
+                    </p>
+                  )}
+                </div>
+
                 {/* Company Summary - verify/edit with save option */}
                 <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)] space-y-3">
                   <div className="flex items-center justify-between">
@@ -2071,6 +2103,111 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
           <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
 
+            <TourCard
+              stepNum={3}
+              title="Schedule & Call Settings"
+              tips={[
+                'Set max call duration and daily limits to control your campaign\'s pace',
+                'Define calling hours so contacts only get called at appropriate times',
+                'Connect your calendar to auto-book appointments from call outcomes',
+              ]}
+            />
+
+            {/* Call Settings — moved from Step 1 for a cleaner agent setup */}
+            <div className="bg-[var(--color-neutral-50)] rounded-xl p-4 border border-[var(--border-default)] mb-5">
+              <h3 className="text-xs font-bold text-[var(--color-ink)] uppercase mb-3 flex items-center justify-between">
+                Call Settings
+                {planLimits && (
+                  <span className="text-[10px] font-medium text-[var(--color-neutral-400)] normal-case">
+                    {planLimits.slug.charAt(0).toUpperCase() + planLimits.slug.slice(1)} plan
+                    {['free', 'starter'].includes(planLimits.slug) && (
+                      <a href="/settings?tab=billing" className="ml-2 font-bold text-[var(--color-primary)] hover:underline">Need more? ↗</a>
+                    )}
+                  </span>
+                )}
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="flex items-center text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1 whitespace-nowrap">
+                    Max Duration
+                    <InfoTooltip text="Maximum length of each call in minutes — shorter calls keep costs down, longer calls allow deeper conversations" />
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max={planLimits?.maxCallDuration || 15}
+                      step="1"
+                      value={settings.maxDuration}
+                      onChange={e => {
+                        const val = Math.round(parseInt(e.target.value) || 5);
+                        const max = planLimits?.maxCallDuration || 15;
+                        setSettings({ ...settings, maxDuration: Math.min(val, max) });
+                        agentEvents.settingsUpdated(getAgentType(), 'maxDuration');
+                        phAgentEvents.settingsUpdated(getAgentType(), 'maxDuration');
+                      }}
+                      className="w-full px-3 py-2 pr-10 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[var(--color-neutral-400)]">min</span>
+                  </div>
+                  {planLimits && (
+                    <p className="text-[10px] text-[var(--color-primary)] mt-0.5">max {planLimits.maxCallDuration}m</p>
+                  )}
+                </div>
+                <div>
+                  <label className="flex items-center text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1 whitespace-nowrap">
+                    Interval
+                    <InfoTooltip text="Pause between calls in minutes — helps avoid overloading your team with simultaneous follow-ups" />
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      step="1"
+                      value={settings.intervalMinutes}
+                      onChange={e => {
+                        setSettings({ ...settings, intervalMinutes: Math.round(parseInt(e.target.value) || 5) });
+                        agentEvents.settingsUpdated(getAgentType(), 'intervalMinutes');
+                        phAgentEvents.settingsUpdated(getAgentType(), 'intervalMinutes');
+                      }}
+                      className="w-full px-3 py-2 pr-10 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[var(--color-neutral-400)]">min</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="flex items-center text-[11px] font-bold text-[var(--color-neutral-500)] uppercase mb-1 whitespace-nowrap">
+                    Calls/Day
+                    <InfoTooltip text="Maximum calls per day — spread your outreach to maintain a steady, manageable pace" />
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={planLimits?.maxCallsPerDay || 1000}
+                    step="1"
+                    value={settings.maxCallsPerDay}
+                    onChange={e => {
+                      const val = Math.round(parseInt(e.target.value) || 100);
+                      const max = planLimits?.maxCallsPerDay || 1000;
+                      setSettings({ ...settings, maxCallsPerDay: Math.min(val, max) });
+                      agentEvents.settingsUpdated(getAgentType(), 'maxCallsPerDay');
+                      phAgentEvents.settingsUpdated(getAgentType(), 'maxCallsPerDay');
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-[var(--border-default)] rounded-lg text-[var(--color-ink)] text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                  />
+                  {planLimits?.maxCallsPerDay && (
+                    <p className="text-[10px] text-[var(--color-primary)] mt-0.5">max {planLimits.maxCallsPerDay}/day</p>
+                  )}
+                </div>
+              </div>
+              {planLimits && (
+                <p className="text-[10px] text-[var(--color-neutral-400)] mt-2">
+                  ~{Math.floor(planLimits.minutesIncluded / (settings.maxDuration || 5))} calls/month at {settings.maxDuration} min each ({planLimits.minutesIncluded} min included)
+                </p>
+              )}
+            </div>
+
             <CalendarConfigStep
               companyId={companyId}
               agentType={getAgentType()}
@@ -2133,6 +2270,16 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
 
           <div className="overflow-y-auto p-6" style={{ transform: 'translateZ(0)', WebkitOverflowScrolling: 'touch' }}>
             <StepIndicator currentStep={getStepNumber()} />
+
+            <TourCard
+              stepNum={4}
+              title="Review & Launch"
+              tips={[
+                'Review the summary to confirm your settings look correct',
+                'Check the consent box — confirms you have the right to contact these people',
+                'Hit "Launch Campaign" and your agent starts calling immediately',
+              ]}
+            />
 
             {/* Launch Card - visually attractive */}
             <div className="relative mb-6 bg-gradient-to-br from-[var(--color-primary)]/5 via-white to-[var(--color-accent)]/5 rounded-2xl p-6 border border-[var(--color-primary)]/15 overflow-hidden">
@@ -2279,8 +2426,21 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
               </div>
             )}
 
+            {/* Consent acknowledgment — friendly, not scary */}
+            <label className="flex items-start gap-2.5 cursor-pointer group px-1">
+              <input
+                type="checkbox"
+                checked={settings.complianceConsent}
+                onChange={e => setSettings(prev => ({ ...prev, complianceConsent: e.target.checked }))}
+                className="mt-0.5 rounded border-[var(--border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)] flex-shrink-0"
+              />
+              <span className="text-[10px] text-[var(--color-neutral-500)] leading-relaxed group-hover:text-[var(--color-neutral-700)] transition-colors">
+                I confirm I have the right to contact these people, and that my use of Callengo complies with our <a href="/legal/terms" target="_blank" onClick={e => e.stopPropagation()} className="underline hover:text-[var(--color-neutral-700)]">Terms of Service</a>.
+              </span>
+            </label>
+
             {/* Action buttons */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 mt-3">
               <button
                 onClick={() => setStep('calendar')}
                 className="flex-1 px-5 py-3 bg-white border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-lg hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)] font-bold text-sm transition-all duration-300"
@@ -2292,7 +2452,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                   setSettings(prev => ({ ...prev, complianceAcceptTerms: true }));
                   handleStartCampaign();
                 }}
-                disabled={loading}
+                disabled={loading || !settings.complianceConsent}
                 className={`flex-1 px-5 py-3 gradient-bg text-white rounded-xl hover:opacity-90 font-bold text-sm transition-all duration-300 disabled:opacity-50 relative overflow-hidden shadow-lg shadow-[var(--color-primary)]/20`}
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
@@ -2312,8 +2472,8 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
             </div>
 
             {/* Inline compliance text - subtle */}
-            <p className="text-[10px] text-[var(--color-neutral-400)] text-center mt-3 leading-relaxed">
-              By launching, you agree to our Terms and Privacy Policy.
+            <p className="text-[10px] text-[var(--color-neutral-400)] text-center mt-2 leading-relaxed">
+              By launching you agree to our <a href="/legal/terms" target="_blank" className="underline hover:text-[var(--color-neutral-600)]">Terms</a> and <a href="/legal/privacy" target="_blank" className="underline hover:text-[var(--color-neutral-600)]">Privacy Policy</a>.
             </p>
           </div>
         </div>

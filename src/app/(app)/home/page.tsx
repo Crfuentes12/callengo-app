@@ -59,6 +59,7 @@ export default async function HomePageRoute() {
   // Determine onboarding wizard completion status
   const allSettings = (integrationsRes.data?.settings as Record<string, unknown>) || {};
   const onboardingWizardCompleted = !!allSettings.onboarding_wizard_completed;
+  const homeTourSeen = !!allSettings.tour_home_seen;
 
   // Determine completed tasks based on actual data
   const settings = (integrationsRes.data?.settings as Record<string, unknown>) || {};
@@ -99,6 +100,7 @@ export default async function HomePageRoute() {
         companyName={(companyRes.data?.name as string) || ''}
         completedTasks={completedTasks}
         onboardingWizardCompleted={onboardingWizardCompleted}
+        homeTourSeen={homeTourSeen}
         stats={{
           contacts: contactsCountRes.count || 0,
           campaigns: campaignsCountRes.count || 0,

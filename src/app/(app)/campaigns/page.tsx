@@ -64,6 +64,12 @@ export default async function CampaignsPage() {
     .eq('company_id', userData!.company_id)
     .single();
 
+  // Get total contact count (used to block campaign creation if no contacts)
+  const { count: totalContactCount } = await supabase
+    .from('contacts')
+    .select('*', { count: 'exact', head: true })
+    .eq('company_id', userData!.company_id);
+
   return (
     <>
     <PageTracker page="campaigns" />
@@ -76,6 +82,7 @@ export default async function CampaignsPage() {
       agentTemplates={agentTemplates || []}
       company={company!}
       companySettings={companySettings ?? undefined}
+      totalContactCount={totalContactCount || 0}
     />
     </>
   );
