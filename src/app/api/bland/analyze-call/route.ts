@@ -1,6 +1,7 @@
 // app/api/bland/analyze-call/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { trackOpenAIUsage } from '@/lib/openai/tracker';
 
 interface CallAnalysisResult {
   verifiedAddress: string | null;
@@ -75,7 +76,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey =
+      process.env.OPENAI_API_KEY_CALL_ANALYSIS || process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
@@ -126,6 +128,17 @@ Extract all relevant information accurately.`;
 
     const data = await response.json();
     const analysis: CallAnalysisResult = JSON.parse(data.choices[0].message.content);
+
+    trackOpenAIUsage({
+      featureKey: 'call_analysis',
+      model: 'gpt-4o',
+      inputTokens: data.usage?.prompt_tokens ?? 0,
+      outputTokens: data.usage?.completion_tokens ?? 0,
+      openaiRequestId: response.headers.get('x-request-id') ?? undefined,
+      companyId: userData.company_id,
+      userId: user.id,
+      metadata: { endpoint: 'bland/analyze-call' },
+    });
 
     return NextResponse.json({
       status: 'success',

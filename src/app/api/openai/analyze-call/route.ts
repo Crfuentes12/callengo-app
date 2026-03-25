@@ -2,11 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { expensiveLimiter } from '@/lib/rate-limit';
-import OpenAI from 'openai';
+import { getOpenAIClient, trackOpenAIUsage } from '@/lib/openai/tracker';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = getOpenAIClient('demo_analysis');
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,6 +105,35 @@ IMPORTANT: Extract ACTUAL data from the conversation. If the customer mentioned 
 
     const analysisText = completion.choices[0].message.content;
     const analysis = JSON.parse(analysisText || '{}');
+
+    // Fetch companyId for tracking (non-blocking)
+    supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+      .then(({ data: ud }) => {
+        trackOpenAIUsage({
+          featureKey: 'demo_analysis',
+          model: 'gpt-4o-mini',
+          inputTokens: completion.usage?.prompt_tokens ?? 0,
+          outputTokens: completion.usage?.completion_tokens ?? 0,
+          companyId: ud?.company_id ?? null,
+          userId: user.id,
+          metadata: { endpoint: 'openai/analyze-call' },
+        });
+      })
+      .catch(() => {
+        trackOpenAIUsage({
+          featureKey: 'demo_analysis',
+          model: 'gpt-4o-mini',
+          inputTokens: completion.usage?.prompt_tokens ?? 0,
+          outputTokens: completion.usage?.completion_tokens ?? 0,
+          companyId: null,
+          userId: user.id,
+          metadata: { endpoint: 'openai/analyze-call' },
+        });
+      });
 
     return NextResponse.json({
       success: true,
