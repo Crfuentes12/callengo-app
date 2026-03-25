@@ -10,10 +10,8 @@ import { createClient } from '@/lib/supabase/client'
 import { initPostHog, identifyUser, resetUser } from '@/lib/posthog'
 
 interface PostHogProviderProps {
-  /** Supabase user id (UUID) */
+  /** Supabase user id (UUID) — used as distinct_id in PostHog (non-PII) */
   userId: string
-  /** User email — used as distinct_id in PostHog for easy identification */
-  email?: string
   /** User full name */
   fullName?: string
   /** Subscription plan slug */
@@ -38,7 +36,6 @@ interface PostHogProviderProps {
 
 export function PostHogProvider({
   userId,
-  email,
   fullName,
   planSlug,
   billingCycle,
@@ -59,10 +56,10 @@ export function PostHogProvider({
     // Initialize PostHog SDK
     initPostHog()
 
-    // Identify user with email as distinct_id + person + company group properties
+    // Identify user with UUID as distinct_id + person + company group properties.
+    // Email is not passed — it is PII and must not be sent to third-party analytics (GDPR/CCPA).
     identifyUser({
       userId,
-      email,
       fullName,
       planSlug,
       billingCycle,
@@ -86,7 +83,7 @@ export function PostHogProvider({
     })
 
     return () => subscription.unsubscribe()
-  }, [userId, email, fullName, planSlug, billingCycle, companyId, companyName, companyIndustry, teamSize, countryCode, currency, createdAt])
+  }, [userId, fullName, planSlug, billingCycle, companyId, companyName, companyIndustry, teamSize, countryCode, currency, createdAt])
 
   return null
 }
