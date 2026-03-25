@@ -628,11 +628,13 @@ export async function resetStaleConcurrency(): Promise<void> {
     await redis.set(KEYS.globalConcurrent, actualActive, { ex: 1800 });
 
     // Reset per-company concurrent counters to actual counts
-    const pipeline = redis.pipeline();
-    for (const [companyId, count] of Object.entries(companyCallCounts)) {
-      pipeline.set(KEYS.companyConcurrent(companyId), count, { ex: 1800 });
+    if (Object.keys(companyCallCounts).length > 0) {
+      const pipeline = redis.pipeline();
+      for (const [companyId, count] of Object.entries(companyCallCounts)) {
+        pipeline.set(KEYS.companyConcurrent(companyId), count, { ex: 1800 });
+      }
+      await pipeline.exec();
     }
-    await pipeline.exec();
 
     // Also clean up company counters that have no active calls but may have stale values
     let companyCursor = 0;
