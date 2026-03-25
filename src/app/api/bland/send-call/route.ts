@@ -15,7 +15,7 @@ import { acquireCallSlot, transferCallSlot } from '@/lib/redis/concurrency-manag
 const sendCallSchema = z.object({
   phone_number: z.string().regex(/^\+?[1-9]\d{6,14}$/, 'Invalid phone number format (E.164 expected)'),
   task: z.string().min(1, 'Task is required').max(5000),
-  voice: z.string().default('maya'),
+  voice: z.string().default('13843c96-ab9e-4938-baf3-ad53fcee541d'), // Nat (American Female)
   first_sentence: z.string().max(500).optional(),
   wait_for_greeting: z.boolean().default(true),
   record: z.boolean().default(true),
@@ -82,6 +82,46 @@ export async function POST(request: NextRequest) {
 
     if (!userData || userData.company_id !== company_id) {
       return NextResponse.json({ error: 'Unauthorized for this company' }, { status: 403 });
+    }
+
+    // Test/onboarding calls bypass throttle, billing, and Redis slot logic entirely.
+    // These are low-volume demo calls used solely to showcase value during onboarding.
+    const isTestCall = metadata?.is_test === true || metadata?.is_onboarding === true || metadata?.type === 'demo_call';
+
+    if (isTestCall) {
+      const planMaxDuration = getMaxCallDuration('free');
+      const effectiveMaxDuration = max_duration ? Math.min(max_duration, planMaxDuration) : planMaxDuration;
+      const dedicatedNumber = await getCompanyCallerNumber(company_id);
+
+      const result = await dispatchCall({
+        phone_number,
+        task,
+        voice,
+        first_sentence,
+        wait_for_greeting,
+        record,
+        max_duration: effectiveMaxDuration,
+        voicemail_action,
+        voicemail_message,
+        answered_by_enabled,
+        webhook,
+        metadata: { ...metadata, company_id },
+        from: dedicatedNumber || undefined,
+      });
+
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || 'Failed to initiate test call', details: result },
+          { status: result.statusCode || 500 }
+        );
+      }
+
+      return NextResponse.json({
+        status: 'success',
+        call_id: result.callId,
+        message: result.message || 'Test call initiated successfully',
+        is_test: true,
+      });
     }
 
     // ================================================================

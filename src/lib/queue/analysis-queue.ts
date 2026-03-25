@@ -359,7 +359,7 @@ export async function processBatch(batchSize: number = 10): Promise<{
 }> {
   // Lightweight overlap guard: try to insert a processing lock row.
   // If another invocation is already running, skip this batch.
-  const lockId = 'analysis_queue_lock';
+  const lockId = '00000000-0000-0000-0000-000000000001';
   const { error: lockError } = await supabaseAdmin
     .from('analysis_queue')
     .upsert({

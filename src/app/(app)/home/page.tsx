@@ -41,8 +41,6 @@ export default async function HomePageRoute() {
     callsCountRes,
     agentsRes,
     integrationsRes,
-     
-    _calendarEventsRes,
     usageRes,
   ] = await Promise.all([
     supabase.from('companies').select('*').eq('id', companyId).maybeSingle(),
@@ -52,7 +50,6 @@ export default async function HomePageRoute() {
     supabase.from('call_logs').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
     supabase.from('company_agents').select('*').eq('company_id', companyId).eq('is_active', true),
     supabase.from('company_settings').select('settings').eq('company_id', companyId).maybeSingle(),
-    supabase.from('call_logs').select('id').eq('company_id', companyId).not('calendar_event_id', 'is', null).limit(1),
     supabase.from('usage_tracking').select('*').eq('company_id', companyId).lte('period_start', new Date().toISOString()).gte('period_end', new Date().toISOString()).limit(1).maybeSingle(),
   ]);
 

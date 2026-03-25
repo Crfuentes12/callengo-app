@@ -88,6 +88,7 @@ export default function AgentTestExperience({
   const [_callId, setCallId] = useState<string | null>(null);
   const [callData, setCallData] = useState<Record<string, unknown> | null>(null);
   const [callAnalysis, setCallAnalysis] = useState<CallAnalysis | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasAnalyzedRef = useRef(false);
 
@@ -101,10 +102,11 @@ export default function AgentTestExperience({
 
   const startCall = async () => {
     if (!phoneNumber.trim() || !selectedVoice) {
-      alert(t.onboarding.agentTest.enterPhoneAndVoice);
+      setErrorMessage(t.onboarding.agentTest.enterPhoneAndVoice);
       return;
     }
 
+    setErrorMessage(null);
     setLoading(true);
     setStep('calling');
     setCallStatus('dialing');
@@ -136,6 +138,7 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
             agent_slug: agentSlug,
             agent_name: agentName,
             is_onboarding: true,
+            is_test: true,
           },
         }),
       });
@@ -152,10 +155,10 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
 
     } catch (error) {
       console.error('Error starting call:', error);
-      alert(t.onboarding.agentTest.failedToStartCall);
       setLoading(false);
       setStep('setup');
       setCallStatus('idle');
+      setErrorMessage(t.onboarding.agentTest.failedToStartCall);
     }
   };
 
@@ -317,6 +320,16 @@ Keep the call brief (under 2 minutes) and demonstrate your key capabilities.`;
                 ))}
               </div>
             </div>
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="flex items-start gap-2.5 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
             {/* Buttons */}
             <div className="flex gap-3">
