@@ -62,19 +62,34 @@ const HOURLY_CAPS: Record<string, number> = {
  * Now integrates Redis concurrency manager for global Bland limit awareness.
  */
 export async function checkCallAllowed(companyId: string): Promise<ThrottleCheckResult> {
-  // 1. Get subscription + plan
+  // 1. Get subscription + plan (maybeSingle avoids PGRST116 error for new companies)
   const { data: subscription } = await supabaseAdmin
     .from('company_subscriptions')
     .select('*, subscription_plans(*)')
     .eq('company_id', companyId)
-    .single();
+    .in('status', ['active', 'trialing'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   if (!subscription || !subscription.subscription_plans) {
-    return {
-      allowed: false,
-      reason: 'No active subscription found',
-      reasonCode: 'subscription_inactive',
-    };
+    // No active subscription — treat as free plan with minimal limits rather than hard-blocking
+    // This handles brand-new companies whose subscription row hasn't been created yet
+    const freePlan = CAMPAIGN_FEATURE_ACCESS.free || CAMPAIGN_FEATURE_ACCESS['free'];
+    const freeDailyCap = DAILY_SOFT_CAPS.free;
+    const freeHourlyCap = HOURLY_CAPS.free;
+    const freeMaxConcurrent = freePlan?.maxConcurrentCalls ?? 1;
+
+    const capacityCheck = await checkCallCapacity(companyId, freeMaxConcurrent, freeDailyCap, freeHourlyCap);
+    if (!capacityCheck.allowed) {
+      return {
+        allowed: false,
+        reason: capacityCheck.reason || 'Call capacity exceeded',
+        reasonCode: 'daily_cap',
+        planSlug: 'free',
+      };
+    }
+    return { allowed: true, planSlug: 'free', maxConcurrent: freeMaxConcurrent, dailyCap: freeDailyCap };
   }
 
   if (subscription.status !== 'active' && subscription.status !== 'trialing') {
