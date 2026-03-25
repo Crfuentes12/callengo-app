@@ -2566,7 +2566,7 @@ export default function AdminCommandCenter() {
                         />
                         <YAxis fontSize={10} tickFormatter={(v: number) => `$${v.toFixed(4)}`} width={60} />
                         <Tooltip
-                          formatter={(v: number) => [`$${v.toFixed(6)}`, 'Cost']}
+                          formatter={(v: number | string | undefined) => [`$${Number(v ?? 0).toFixed(6)}`, 'Cost']}
                           labelFormatter={(label: string) => new Date(label).toLocaleDateString()}
                         />
                         <Area
