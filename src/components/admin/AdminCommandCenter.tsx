@@ -275,7 +275,7 @@ interface FinanceData {
   [key: string]: unknown;
 }
 
-type Tab = 'health' | 'operations' | 'clients' | 'events' | 'reconcile' | 'finances' | 'promos' | 'accounting' | 'ai_costs';
+type Tab = 'live' | 'revenue' | 'clients' | 'events' | 'reconcile' | 'finances' | 'promos';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface AccountingData {
@@ -398,7 +398,7 @@ const eventTypeLabels: Record<string, string> = {
 // ─── Component ───────────────────────────────────────────────────────
 export default function AdminCommandCenter() {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<Tab>('health');
+  const [tab, setTab] = useState<Tab>('live');
   const [healthData, setHealthData] = useState<CommandCenterData | null>(null);
   const [clients, setClients] = useState<ClientData[]>([]);
   const [events, setEvents] = useState<BillingEvent[]>([]);
@@ -407,7 +407,6 @@ export default function AdminCommandCenter() {
   const [eventsFilter, setEventsFilter] = useState('');
   const [reconcileData, setReconcileData] = useState<ReconcileData | null>(null);
   const [financeData, setFinanceData] = useState<FinanceData | null>(null);
-  const [financePeriod, setFinancePeriod] = useState('current');
   const [clientSort, setClientSort] = useState<'usage' | 'profit' | 'cost' | 'name'>('usage');
   const [clientSearch, setClientSearch] = useState('');
   const [cleaningUp, setCleaningUp] = useState(false);
@@ -617,11 +616,13 @@ export default function AdminCommandCenter() {
     if (tab === 'clients' && clients.length === 0) fetchClients();
     if (tab === 'events' && events.length === 0) fetchEvents(1, eventsFilter);
     if (tab === 'reconcile' && !reconcileData) fetchReconcile();
-    if (tab === 'finances' && !financeData) fetchFinances(financePeriod);
     if (tab === 'promos' && !promoData) fetchPromos();
-    if (tab === 'accounting' && !accountingData) fetchAccounting(accountingPeriod);
-    if (tab === 'ai_costs' && !openAIUsageData) fetchOpenAIUsage();
-  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, accountingData, openAIUsageData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, fetchAccounting, fetchOpenAIUsage, eventsFilter, financePeriod, accountingPeriod]);
+    if (tab === 'finances') {
+      if (!accountingData) fetchAccounting(accountingPeriod);
+      if (!openAIUsageData) fetchOpenAIUsage();
+      if (!financeData) fetchFinances(accountingPeriod);
+    }
+  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, accountingData, openAIUsageData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, fetchAccounting, fetchOpenAIUsage, eventsFilter, accountingPeriod]);
 
 
   // ─── Sorted/filtered clients ──────────────────────────────────────
@@ -717,17 +718,15 @@ export default function AdminCommandCenter() {
         )}
 
         {/* Tab Navigation */}
-        <div className="flex gap-1 p-1 bg-[var(--color-neutral-100)] rounded-lg w-fit">
+        <div className="flex gap-1 p-1 bg-[var(--color-neutral-100)] rounded-lg w-fit flex-wrap">
           {([
-            { id: 'health' as Tab, label: t.admin.commandCenter?.tabHealth || 'Health Dashboard' },
-            { id: 'operations' as Tab, label: 'Operations' },
+            { id: 'live' as Tab, label: 'Live' },
+            { id: 'revenue' as Tab, label: 'Revenue' },
             { id: 'clients' as Tab, label: t.admin.commandCenter?.tabClients || 'Clients' },
-            { id: 'events' as Tab, label: t.admin.commandCenter?.tabEvents || 'Billing Events' },
-            { id: 'reconcile' as Tab, label: t.admin.commandCenter?.tabReconcile || 'Reconciliation' },
+            { id: 'promos' as Tab, label: 'Promos' },
             { id: 'finances' as Tab, label: 'Finances' },
-            { id: 'promos' as Tab, label: 'Promo Codes' },
-            { id: 'accounting' as Tab, label: 'Accounting' },
-            { id: 'ai_costs' as Tab, label: 'AI Costs' },
+            { id: 'events' as Tab, label: 'Events' },
+            { id: 'reconcile' as Tab, label: 'Reconcile' },
           ]).map(({ id, label }) => (
             <button
               key={id}
@@ -745,9 +744,9 @@ export default function AdminCommandCenter() {
       </div>
 
       {/* ════════════════════════════════════════════════════════════════
-          TAB: HEALTH DASHBOARD
+          TAB: LIVE — Real-time platform monitoring
          ════════════════════════════════════════════════════════════════ */}
-      {tab === 'health' && !healthData && (
+      {tab === 'live' && !healthData && (
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <div className="w-8 h-8 border border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-3" />
@@ -755,7 +754,7 @@ export default function AdminCommandCenter() {
           </div>
         </div>
       )}
-      {tab === 'health' && healthData && (
+      {tab === 'live' && healthData && (
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1007,9 +1006,9 @@ export default function AdminCommandCenter() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════
-          TAB: OPERATIONS — Revenue, Costs, Unit Economics, Health
+          TAB: REVENUE — MRR, Sub Health, Bland Runway, Unit Economics
          ════════════════════════════════════════════════════════════════ */}
-      {tab === 'operations' && healthData && (
+      {tab === 'revenue' && healthData && (
         <div className="space-y-6">
           {/* Row 1: Revenue KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -1088,16 +1087,10 @@ export default function AdminCommandCenter() {
               </div>
             </div>
 
-            {/* Bland Credit Economics */}
+            {/* Bland Credit Burn */}
             <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
-              <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Bland Credit Economics</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className={`text-2xl font-bold ${(healthData.blandEconomics?.projectedRunwayDays ?? 999) < 7 ? 'text-red-600' : (healthData.blandEconomics?.projectedRunwayDays ?? 999) < 30 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                    ${fmt(healthData.blandAccount?.balance ?? 0)}
-                  </div>
-                  <div className="text-xs text-[var(--color-neutral-500)]">Current Balance</div>
-                </div>
+              <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Bland Credit Burn</h3>
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <div className="text-2xl font-bold text-[var(--color-ink)]">
                     ${fmt(healthData.blandEconomics?.burnRatePerDay || 0)}
@@ -1572,32 +1565,52 @@ export default function AdminCommandCenter() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════
-          TAB: FINANCES
+          TAB: FINANCES — P&L · AI Costs · Bland · Unit Economics · Ledger
          ════════════════════════════════════════════════════════════════ */}
       {tab === 'finances' && (
         <div className="space-y-6">
-          {/* Period selector */}
+          {/* Period selector + Refresh */}
           <div className="flex items-center justify-between">
-            <p className="text-sm text-[var(--color-neutral-600)]">V4 Pricing Model — Master Key Architecture</p>
-            <select
-              value={financePeriod}
-              onChange={(e) => { setFinancePeriod(e.target.value); fetchFinances(e.target.value); }}
-              className="px-3 py-2 border border-[var(--border-default)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            >
-              <option value="current">Current Period</option>
-              <option value="last_30">Last 30 Days</option>
-              <option value="last_90">Last 90 Days</option>
-            </select>
+            <p className="text-sm text-[var(--color-neutral-600)]">Full Financial Accounting — P&amp;L, AI Infrastructure, Bland Account, Ledger</p>
+            <div className="flex gap-2 items-center">
+              <select
+                value={accountingPeriod}
+                onChange={(e) => {
+                  setAccountingPeriod(e.target.value);
+                  setAccountingData(null);
+                  setOpenAIUsageData(null);
+                  setFinanceData(null);
+                  fetchAccounting(e.target.value);
+                  fetchOpenAIUsage();
+                  fetchFinances(e.target.value);
+                }}
+                className="px-3 py-2 border border-[var(--border-default)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+              >
+                <option value="current">Current Month</option>
+                <option value="last_30">Last 30 Days</option>
+                <option value="last_90">Last 90 Days</option>
+                <option value="ytd">Year to Date</option>
+              </select>
+              <button
+                onClick={() => { setAccountingData(null); setOpenAIUsageData(null); setFinanceData(null); fetchAccounting(accountingPeriod); fetchOpenAIUsage(); fetchFinances(accountingPeriod); }}
+                className="px-3 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:opacity-90"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
 
-          {(() => {
-              const fd = financeData || {} as FinanceData;
-              const addonRevenue = (fd.addon_revenue as number) || 0;
-              // Actual revenue = revenue_total from API (already capped at 0, never negative)
-              const actualRevenue = fd.revenue_total || 0;
-              const discountImpact = fd.total_discount_impact || 0;
-              const blandInfrastructureCost = (fd.bland_infrastructure_cost as number) || 0;
-              const marginColor = (p: number | null) => !p ? 'text-[var(--color-neutral-600)]' : p >= 50 ? 'text-emerald-600' : p >= 35 ? 'text-amber-600' : 'text-red-600';
+          {!accountingData ? (
+            <div className="text-center py-12 text-[var(--color-neutral-400)]">Loading financial data...</div>
+          ) : (() => {
+            const { pnl, cashFlow, discountedSubscriptions: discSubs, unitEconomics: ue, charts: chartData, ledger: ledgerData } = accountingData;
+            const marginColor = (p: number) => p >= 50 ? 'text-emerald-600' : p >= 20 ? 'text-amber-600' : 'text-red-600';
+            const openAICost = openAIUsageData?.totalCost30d ?? null;
+            const operatingProfitWithAI = openAICost !== null ? pnl.margins.operatingProfit - openAICost : null;
+            const operatingMarginWithAI = operatingProfitWithAI !== null && pnl.revenue.totalActualRevenue > 0
+              ? +((operatingProfitWithAI / pnl.revenue.totalActualRevenue) * 100).toFixed(1)
+              : null;
+            const fd = financeData || {} as FinanceData;
               const blandBalance = fd.bland_master_balance || healthData?.blandAccount?.balance || 0;
               const blandPlan = fd.bland_plan || healthData?.blandAccount?.plan || 'Unknown';
               const blandTalkRate = fd.bland_talk_rate || healthData?.blandAccount?.costPerMinute || 0.11;
@@ -1605,184 +1618,606 @@ export default function AdminCommandCenter() {
               const blandConcurrentLimit = fd.bland_concurrent_limit || ((healthData?.blandLimits?.concurrentCap ?? 0) >= 999999 ? '∞' : String(healthData?.blandLimits?.concurrentCap ?? '∞'));
               const blandDailyLimit = fd.bland_daily_limit || ((healthData?.blandLimits?.dailyCap ?? 0) >= 999999 ? '∞' : String(healthData?.blandLimits?.dailyCap ?? '∞'));
 
-                return (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-5">
-                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Actual Revenue</p>
-                        <p className="text-2xl font-bold text-emerald-900">${fmt(actualRevenue)}</p>
-                        <div className="mt-2 space-y-0.5 text-xs text-emerald-700">
-                          <div className="flex justify-between"><span>Subscriptions</span><span>${fmt(fd.revenue_subscriptions || 0)}</span></div>
-                          <div className="flex justify-between"><span>Overages</span><span>${fmt(fd.revenue_overages || 0)}</span></div>
-                          {addonRevenue > 0 && <div className="flex justify-between"><span>Add-ons</span><span>${fmt(addonRevenue)}</span></div>}
-                          {discountImpact > 0 && (
-                            <div className="flex justify-between text-orange-600 pt-1 mt-1 border-t border-emerald-300">
-                              <span>Promo foregone</span><span>${fmt(discountImpact)}</span>
-                            </div>
+            return (
+              <>
+                {/* ── 1. P&L STATEMENT ── */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                  <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4">
+                    <h3 className="text-white font-bold text-sm uppercase tracking-wide">Profit &amp; Loss Statement</h3>
+                    <p className="text-slate-300 text-xs mt-1">
+                      {new Date(accountingData.period.start).toLocaleDateString()} — {new Date(accountingData.period.end).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="p-6">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-[var(--border-default)]">
+                          <th className="text-left py-2 font-bold text-[var(--color-neutral-700)]">Line Item</th>
+                          <th className="text-right py-2 font-bold text-[var(--color-neutral-700)]">Amount</th>
+                          <th className="text-right py-2 font-bold text-[var(--color-neutral-700)]">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-emerald-50"><td colSpan={3} className="py-2 px-2 font-bold text-emerald-800 uppercase text-xs tracking-wide">Revenue (Collected)</td></tr>
+                        <tr className="border-b border-[var(--border-default)]">
+                          <td className="py-2 pl-6">Subscription Revenue</td>
+                          <td className="text-right py-2 font-medium text-emerald-700">${fmt(pnl.revenue.actualMrr)}</td>
+                          <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">{ue.payingCustomers} paying</td>
+                        </tr>
+                        {pnl.revenue.overages > 0 && (
+                          <tr className="border-b border-[var(--border-default)]">
+                            <td className="py-2 pl-6">Overage Revenue</td>
+                            <td className="text-right py-2">${fmt(pnl.revenue.overages)}</td>
+                            <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Beyond plan limits</td>
+                          </tr>
+                        )}
+                        {pnl.revenue.addons > 0 && (
+                          <tr className="border-b border-[var(--border-default)]">
+                            <td className="py-2 pl-6">Add-on Revenue</td>
+                            <td className="text-right py-2">${fmt(pnl.revenue.addons)}</td>
+                            <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Numbers, vaults, boosters</td>
+                          </tr>
+                        )}
+                        <tr className="border-b-2 border-emerald-300 bg-emerald-50 font-bold">
+                          <td className="py-3 pl-4 text-emerald-800">Total Revenue</td>
+                          <td className="text-right py-3 text-emerald-800">${fmt(pnl.revenue.totalActualRevenue)}</td>
+                          <td className="text-right py-3 text-xs text-emerald-600">Cash collected</td>
+                        </tr>
+
+                        <tr className="bg-red-50"><td colSpan={3} className="py-2 px-2 font-bold text-red-800 uppercase text-xs tracking-wide">Cost of Revenue (COGS)</td></tr>
+                        <tr className="border-b border-[var(--border-default)]">
+                          <td className="py-2 pl-6">Bland AI — Paying Customers</td>
+                          <td className="text-right py-2 text-red-600">${fmt(pnl.costs.blandPaying)}</td>
+                          <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">{ue.payingMinutes} min</td>
+                        </tr>
+                        {pnl.costs.blandPromo > 0 && (
+                          <tr className="border-b border-[var(--border-default)]">
+                            <td className="py-2 pl-6">Bland AI — Promo/Tester Users</td>
+                            <td className="text-right py-2 text-orange-600">${fmt(pnl.costs.blandPromo)}</td>
+                            <td className="text-right py-2 text-xs text-orange-500">{ue.promoMinutes} min · actual cost</td>
+                          </tr>
+                        )}
+                        <tr className="border-b-2 border-red-300 bg-red-50 font-bold">
+                          <td className="py-3 pl-4 text-red-800">Total COGS</td>
+                          <td className="text-right py-3 text-red-800">${fmt(pnl.costs.blandTotal)}</td>
+                          <td className="text-right py-3 text-xs text-red-600">{ue.totalMinutes} total min</td>
+                        </tr>
+
+                        <tr className="bg-blue-50 font-bold text-lg">
+                          <td className="py-3 pl-4 text-blue-800">Gross Profit</td>
+                          <td className={`text-right py-3 ${pnl.margins.grossProfit >= 0 ? 'text-blue-800' : 'text-red-600'}`}>${fmt(pnl.margins.grossProfit)}</td>
+                          <td className={`text-right py-3 font-bold ${marginColor(pnl.margins.grossMarginPercent)}`}>{pnl.margins.grossMarginPercent}%</td>
+                        </tr>
+
+                        <tr className="bg-amber-50"><td colSpan={3} className="py-2 px-2 font-bold text-amber-800 uppercase text-xs tracking-wide">Operating Expenses</td></tr>
+                        <tr className="border-b border-[var(--border-default)]">
+                          <td className="py-2 pl-6">Stripe Processing (~2.9% + $0.30)</td>
+                          <td className="text-right py-2 text-amber-700">${fmt(pnl.costs.stripeProcessing)}</td>
+                          <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">On collected payments</td>
+                        </tr>
+                        {openAICost !== null && (
+                          <tr className="border-b border-[var(--border-default)]">
+                            <td className="py-2 pl-6">OpenAI API Costs</td>
+                            <td className="text-right py-2 text-violet-700">${fmt(openAICost)}</td>
+                            <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Last 30d · all features</td>
+                          </tr>
+                        )}
+
+                        {operatingProfitWithAI !== null ? (
+                          <>
+                            <tr className="bg-violet-50 font-bold text-lg border-t-2 border-violet-300">
+                              <td className="py-3 pl-4 text-violet-800">Operating Profit (incl. AI)</td>
+                              <td className={`text-right py-3 ${operatingProfitWithAI >= 0 ? 'text-violet-800' : 'text-red-600'}`}>${fmt(operatingProfitWithAI)}</td>
+                              <td className={`text-right py-3 font-bold ${operatingMarginWithAI !== null ? marginColor(operatingMarginWithAI) : ''}`}>
+                                {operatingMarginWithAI !== null ? `${operatingMarginWithAI}%` : ''}
+                              </td>
+                            </tr>
+                            <tr className="border-b border-[var(--border-default)] opacity-60">
+                              <td className="py-2 pl-4 text-xs text-[var(--color-neutral-500)]">Operating Profit (excl. AI)</td>
+                              <td className={`text-right py-2 text-xs ${pnl.margins.operatingProfit >= 0 ? 'text-[var(--color-neutral-500)]' : 'text-red-500'}`}>${fmt(pnl.margins.operatingProfit)}</td>
+                              <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">{pnl.margins.operatingMarginPercent}%</td>
+                            </tr>
+                          </>
+                        ) : (
+                          <tr className="bg-violet-50 font-bold text-lg border-t-2 border-violet-300">
+                            <td className="py-3 pl-4 text-violet-800">Operating Profit</td>
+                            <td className={`text-right py-3 ${pnl.margins.operatingProfit >= 0 ? 'text-violet-800' : 'text-red-600'}`}>${fmt(pnl.margins.operatingProfit)}</td>
+                            <td className={`text-right py-3 font-bold ${marginColor(pnl.margins.operatingMarginPercent)}`}>{pnl.margins.operatingMarginPercent}%</td>
+                          </tr>
+                        )}
+
+                        {pnl.promotional.promoCustomers > 0 && (
+                          <>
+                            <tr><td colSpan={3} className="py-1" /></tr>
+                            <tr className="bg-orange-50"><td colSpan={3} className="py-2 px-2 font-bold text-orange-700 uppercase text-xs tracking-wide">Promotional Users (Informational)</td></tr>
+                            <tr className="border-b border-[var(--border-default)]">
+                              <td className="py-2 pl-6 text-[var(--color-neutral-500)]">Promo/Tester Users</td>
+                              <td className="text-right py-2 text-[var(--color-neutral-500)]">{pnl.promotional.promoCustomers}</td>
+                              <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Discounted plans</td>
+                            </tr>
+                            <tr className="border-b border-[var(--border-default)]">
+                              <td className="py-2 pl-6 text-[var(--color-neutral-500)]">Catalog Value (if full price)</td>
+                              <td className="text-right py-2 text-[var(--color-neutral-400)]">${fmt(pnl.promotional.foregoneRevenue)}/mo</td>
+                              <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Not a loss — never collected</td>
+                            </tr>
+                            <tr className="border-b border-[var(--border-default)]">
+                              <td className="py-2 pl-6 text-[var(--color-neutral-500)]">Real Cost of Promo Users</td>
+                              <td className="text-right py-2 text-orange-600 font-semibold">${fmt(pnl.promotional.effectivePromoCost)}</td>
+                              <td className="text-right py-2 text-xs text-orange-500">Only their Bland usage</td>
+                            </tr>
+                          </>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* ── 2. CHARTS ── */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                    <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-3">Revenue Waterfall</h3>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={chartData.revenueWaterfall} layout="vertical" margin={{ left: 0, right: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" tickFormatter={(v) => `$${v}`} fontSize={10} />
+                        <YAxis dataKey="name" type="category" fontSize={10} width={90} />
+                        <Tooltip formatter={(v) => `$${fmt(Math.abs(Number(v)))}`} />
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                          {chartData.revenueWaterfall.map((entry, index) => (<Cell key={index} fill={entry.fill} />))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                    <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-3">Cost Breakdown</h3>
+                    {chartData.costBreakdown.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <PieChart>
+                          <Pie data={chartData.costBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`} fontSize={10}>
+                            {chartData.costBreakdown.map((entry, index) => (<Cell key={index} fill={entry.fill} />))}
+                          </Pie>
+                          <Tooltip formatter={(v) => `$${fmt(Number(v))}`} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-[220px] text-[var(--color-neutral-400)] text-sm">No costs yet</div>
+                    )}
+                  </div>
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                    <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-3">Subscriber Segments</h3>
+                    {chartData.subscriberSegments.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <PieChart>
+                          <Pie data={chartData.subscriberSegments} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, value }) => `${name}: ${value}`} fontSize={10}>
+                            {chartData.subscriberSegments.map((entry, index) => (<Cell key={index} fill={entry.fill} />))}
+                          </Pie>
+                          <Tooltip /><Legend fontSize={10} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-[220px] text-[var(--color-neutral-400)] text-sm">No subscribers yet</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── 3. AI INFRASTRUCTURE COSTS ── */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                  <div className="px-6 py-4 border-b border-[var(--border-default)] flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">OpenAI API Costs (Last 30 Days)</h3>
+                      <p className="text-xs text-[var(--color-neutral-400)] mt-0.5">Tracked per call across all product features</p>
+                    </div>
+                    {!openAIUsageData && <div className="w-5 h-5 border border-violet-400/30 border-t-violet-500 rounded-full animate-spin" />}
+                  </div>
+                  {openAIUsageData ? (
+                    <div className="p-6 space-y-5">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-xl p-4">
+                          <p className="text-xs font-bold text-violet-700 uppercase mb-1">Total Cost (30d)</p>
+                          <p className="text-xl font-bold text-violet-900">${fmt(openAIUsageData.totalCost30d)}</p>
+                          <p className="text-xs text-violet-600 mt-1">Today: ${fmt(openAIUsageData.totalCostToday)}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
+                          <p className="text-xs font-bold text-blue-700 uppercase mb-1">Requests (30d)</p>
+                          <p className="text-xl font-bold text-blue-900">{fmtInt(openAIUsageData.totalRequests30d)}</p>
+                          <p className="text-xs text-blue-600 mt-1">Today: {fmtInt(openAIUsageData.totalRequestsToday)}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-4">
+                          <p className="text-xs font-bold text-indigo-700 uppercase mb-1">Tokens (30d)</p>
+                          <p className="text-xl font-bold text-indigo-900">{fmtInt(openAIUsageData.totalTokens30d)}</p>
+                          <p className="text-xs text-indigo-600 mt-1">Today: {fmtInt(openAIUsageData.totalTokensToday)}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-4">
+                          <p className="text-xs font-bold text-emerald-700 uppercase mb-1">Avg / Request</p>
+                          <p className="text-xl font-bold text-emerald-900">${openAIUsageData.totalRequests30d > 0 ? (openAIUsageData.totalCost30d / openAIUsageData.totalRequests30d).toFixed(6) : '0.000000'}</p>
+                          <p className="text-xs text-emerald-600 mt-1">30-day average</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="overflow-x-auto rounded-xl border border-[var(--border-default)]">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                                <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Feature</th>
+                                <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Req</th>
+                                <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Tokens</th>
+                                <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {openAIUsageData.byFeature.length === 0 ? (
+                                <tr><td colSpan={4} className="py-6 text-center text-[var(--color-neutral-400)]">No data yet</td></tr>
+                              ) : openAIUsageData.byFeature.map((f) => {
+                                const pct = openAIUsageData.totalCost30d > 0 ? (f.cost / openAIUsageData.totalCost30d) * 100 : 0;
+                                return (
+                                  <tr key={f.featureKey} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                                    <td className="py-2 px-4">
+                                      <div className="font-medium text-[var(--color-ink)]">{f.label}</div>
+                                      <div className="w-full bg-[var(--color-neutral-100)] rounded-full h-1 mt-1">
+                                        <div className="bg-violet-500 h-1 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} />
+                                      </div>
+                                    </td>
+                                    <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(f.requests)}</td>
+                                    <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(f.totalTokens)}</td>
+                                    <td className="text-right py-2 px-3 font-semibold">${fmt(f.cost)}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="p-4 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
+                          <h4 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-3">Daily Cost Trend (30d)</h4>
+                          {openAIUsageData.dailyCosts.every(d => d.cost === 0) ? (
+                            <div className="flex items-center justify-center h-[180px] text-[var(--color-neutral-400)] text-sm">No cost data yet</div>
+                          ) : (
+                            <ResponsiveContainer width="100%" height={180}>
+                              <AreaChart data={openAIUsageData.dailyCosts} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                                <defs>
+                                  <linearGradient id="aiCostGrad2" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="date" fontSize={9} tickFormatter={(v) => { const d = new Date(String(v)); return `${d.getMonth()+1}/${d.getDate()}`; }} interval={6} />
+                                <YAxis fontSize={9} tickFormatter={(v) => `$${(Number(v)||0).toFixed(4)}`} width={55} />
+                                <Tooltip formatter={(v) => [`$${(Number(v)||0).toFixed(6)}`, 'Cost']} labelFormatter={(l) => new Date(String(l)).toLocaleDateString()} />
+                                <Area type="monotone" dataKey="cost" stroke="#8b5cf6" strokeWidth={2} fill="url(#aiCostGrad2)" />
+                              </AreaChart>
+                            </ResponsiveContainer>
                           )}
                         </div>
                       </div>
-
-                      <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-5">
-                        <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-1">Total Costs</p>
-                        <p className="text-2xl font-bold text-red-900">${fmt(fd.cost_total || 0)}</p>
-                        <div className="mt-2 space-y-0.5 text-xs text-red-700">
-                          <div className="flex justify-between"><span>Bland per-min</span><span>${fmt(fd.cost_bland || 0)}</span></div>
-                          {blandInfrastructureCost > 0 && <div className="flex justify-between"><span>Bland infra</span><span>${fmt(blandInfrastructureCost)}</span></div>}
-                          <div className="flex justify-between"><span>Other</span><span>${fmt((fd.cost_openai || 0) + (fd.cost_supabase || 0))}</span></div>
-                        </div>
-                      </div>
-
-                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5">
-                        <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Gross Margin</p>
-                        <p className="text-2xl font-bold text-[var(--color-ink)]">${fmt(fd.gross_margin || 0)}</p>
-                        <p className={`mt-2 text-xl font-bold ${marginColor(fd.gross_margin_percent)}`}>{fd.gross_margin_percent?.toFixed(1) || '0.0'}%</p>
-                        <p className="text-xs text-[var(--color-neutral-500)]">Target: 55-67%</p>
-                      </div>
-
-                      <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-xl p-5">
-                        <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Companies</p>
-                        <p className="text-2xl font-bold text-[var(--color-ink)]">{fd.total_companies_active || 0}</p>
-                        <p className="mt-2 text-sm text-violet-700">${fmt(fd.avg_revenue_per_company || 0)} ARPC</p>
-                        {discountImpact > 0 && <p className="text-xs text-orange-600 mt-1">Includes promo users</p>}
-                      </div>
-                    </div>
-
-                    {/* Usage Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                        <p className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Total Calls</p>
-                        <p className="text-3xl font-bold text-[var(--color-ink)]">{fd.total_calls_made?.toLocaleString() || 0}</p>
-                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">{fd.total_minutes_used?.toLocaleString() || 0} minutes used</p>
-                        <p className="text-xs text-[var(--color-neutral-500)] mt-1">Avg: {fd.avg_minutes_per_call?.toFixed(2) || '0.00'} min/call (target: ~1.5)</p>
-                      </div>
-                      <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                        <p className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Overage Revenue</p>
-                        <p className="text-3xl font-bold text-[var(--color-ink)]">${fd.revenue_overages?.toLocaleString() || '0'}</p>
-                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">{fd.overage_revenue_percent?.toFixed(1) || '0.0'}% of subscription revenue</p>
-                      </div>
-                      <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                        <p className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-2">Active Users</p>
-                        <p className="text-3xl font-bold text-[var(--color-ink)]">{fd.total_users_active || 0}</p>
-                        <p className="text-sm text-[var(--color-neutral-600)] mt-1">across {fd.total_companies_active || 0} companies</p>
-                      </div>
-                    </div>
-
-                    {/* Bland AI Infrastructure — Master Account */}
-                    <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Bland AI — Master Account</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <div className={`p-3 rounded-lg border ${blandBalance < 5 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
-                          <p className={`text-xs font-semibold uppercase mb-1 ${blandBalance < 5 ? 'text-red-700' : 'text-emerald-700'}`}>Master Balance</p>
-                          <p className={`text-lg font-bold ${blandBalance < 5 ? 'text-red-900' : 'text-emerald-900'}`}>${fmt(blandBalance)}</p>
-                          <p className={`text-xs ${blandBalance < 5 ? 'text-red-600' : 'text-emerald-600'}`}>Available credits</p>
-                        </div>
-                        <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
-                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Master Plan</p>
-                          <p className="text-lg font-bold text-[var(--color-ink)] capitalize">{blandPlan}</p>
-                          <p className="text-xs text-[var(--color-neutral-600)]">${fd.bland_plan_cost || 0}/mo</p>
-                        </div>
-                        <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
-                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Per-Min Rate</p>
-                          <p className="text-lg font-bold text-[var(--color-ink)]">${blandTalkRate.toFixed(4)}/min</p>
-                          <p className="text-xs text-[var(--color-neutral-600)]">Transfer: ${blandTransferRate.toFixed(4)}/min</p>
-                        </div>
-                        <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
-                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Architecture</p>
-                          <p className="text-lg font-bold text-[var(--color-ink)]">Master Key</p>
-                          <p className="text-xs text-[var(--color-neutral-600)]">Single API key</p>
-                        </div>
-                        <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
-                          <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Master Limits</p>
-                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{blandConcurrentLimit}</strong> concurrent</p>
-                          <p className="text-xs text-[var(--color-neutral-700)]"><strong>{blandDailyLimit}</strong> per day</p>
-                        </div>
-                      </div>
-
-                      {/* Master subscription detail row */}
-                      {fd.bland_master_subscription && (
-                        <div className="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-                          <p className="text-xs font-semibold text-indigo-700 uppercase mb-2">Master Subscription Details</p>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-indigo-800">
-                            <div><span className="font-medium">Plan:</span> {fd.bland_master_subscription.plan}</div>
-                            <div><span className="font-medium">Status:</span> <span className="capitalize">{fd.bland_master_subscription.status}</span></div>
-                            <div><span className="font-medium">Talk Rate:</span> ${fd.bland_master_subscription.perMinRate.toFixed(4)}/min</div>
-                            <div><span className="font-medium">Transfer Rate:</span> ${fd.bland_master_subscription.transferRate.toFixed(4)}/min</div>
-                            <div><span className="font-medium">Concurrent:</span> {fd.bland_master_subscription.concurrentLimit}</div>
-                            <div><span className="font-medium">Daily Limit:</span> {fd.bland_master_subscription.dailyLimit}</div>
-                            <div><span className="font-medium">Monthly Cost:</span> ${fd.bland_master_subscription.monthlyCost}/mo</div>
-                          </div>
+                      {openAIUsageData.byModel.length > 0 && (
+                        <div className="overflow-x-auto rounded-xl border border-[var(--border-default)]">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                                <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Model</th>
+                                <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Requests</th>
+                                <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Tokens</th>
+                                <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
+                                <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">%</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {openAIUsageData.byModel.map((m) => {
+                                const pct = openAIUsageData.totalCost30d > 0 ? (m.cost / openAIUsageData.totalCost30d) * 100 : 0;
+                                return (
+                                  <tr key={m.model} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                                    <td className="py-2 px-4 font-mono text-xs font-medium">{m.model}</td>
+                                    <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(m.requests)}</td>
+                                    <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(m.totalTokens)}</td>
+                                    <td className="text-right py-2 px-3 font-semibold">${fmt(m.cost)}</td>
+                                    <td className="text-right py-2 px-3 text-[var(--color-neutral-500)]">{pct.toFixed(1)}%</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
                       )}
-                    </div>
-
-                    {/* Unit Economics Reference — dynamic based on actual Bland rate */}
-                    {(() => {
-                      const rate = blandTalkRate;
-                      const plans = [
-                        { plan: 'Free', price: 0, calls: 10, min: 15, overage: null as number | null },
-                        { plan: 'Starter', price: 99, calls: 200, min: 300, overage: 0.29 },
-                        { plan: 'Growth', price: 179, calls: 400, min: 600, overage: 0.26 },
-                        { plan: 'Business', price: 299, calls: 800, min: 1200, overage: 0.23 },
-                        { plan: 'Teams', price: 649, calls: 1500, min: 2250, overage: 0.20 },
-                        { plan: 'Enterprise', price: 1499, calls: 4000, min: 6000, overage: 0.17 },
-                      ].map(p => {
-                        const blandCost = +(p.min * rate).toFixed(2);
-                        const credits = +(blandCost * 1.05).toFixed(2);
-                        const margin = p.price > 0 ? +((1 - blandCost / p.price) * 100).toFixed(1) : 0;
-                        return { ...p, blandCost, credits, margin };
-                      });
-
-                      return (
-                        <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                          <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Unit Economics Reference (V4)</h3>
+                      {openAIUsageData.recentLogs.length > 0 && (
+                        <details className="border border-[var(--border-default)] rounded-xl overflow-hidden">
+                          <summary className="px-5 py-3 bg-[var(--color-neutral-50)] cursor-pointer text-sm font-semibold text-[var(--color-neutral-700)] select-none">
+                            Recent API Logs (last 50) — click to expand
+                          </summary>
                           <div className="overflow-x-auto">
-                            <table className="w-full text-xs border-collapse">
+                            <table className="w-full text-xs">
                               <thead>
-                                <tr className="border-b-2 border-[var(--border-default)]">
-                                  <th className="text-left py-2 pr-4 text-[var(--color-neutral-500)] font-semibold">Plan</th>
-                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Price</th>
-                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Calls</th>
-                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Min</th>
-                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Bland Cost</th>
-                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Credits (5%)</th>
-                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Gross Margin</th>
-                                  <th className="text-center py-2 px-3 text-[var(--color-neutral-500)] font-semibold">Overage</th>
+                                <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                                  <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Time</th>
+                                  <th className="text-left py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Feature</th>
+                                  <th className="text-left py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Model</th>
+                                  <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">In</th>
+                                  <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Out</th>
+                                  <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {plans.map((row, i) => (
-                                  <tr key={i} className={`${i % 2 === 0 ? 'bg-[var(--color-neutral-50)]' : ''} ${row.plan === 'Free' ? 'opacity-70' : ''}`}>
-                                    <td className="py-2 pr-4 font-semibold text-[var(--color-neutral-800)]">{row.plan}</td>
-                                    <td className="text-center py-2 px-3">{row.price === 0 ? '$0' : `$${row.price}/mo`}</td>
-                                    <td className="text-center py-2 px-3">~{row.calls}</td>
-                                    <td className="text-center py-2 px-3">{row.min}</td>
-                                    <td className="text-center py-2 px-3 text-red-600">${row.blandCost}</td>
-                                    <td className="text-center py-2 px-3 text-orange-600">${row.credits}</td>
-                                    <td className={`text-center py-2 px-3 font-bold ${row.plan === 'Free' ? 'text-[var(--color-neutral-400)]' : row.margin >= 60 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                      {row.plan === 'Free' ? 'N/A' : `${row.margin}%`}
-                                    </td>
-                                    <td className="text-center py-2 px-3">{row.overage !== null ? `$${row.overage}/min` : 'Blocked'}</td>
+                                {openAIUsageData.recentLogs.map((log) => (
+                                  <tr key={log.id} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                                    <td className="py-1.5 px-4 text-[var(--color-neutral-500)]">{new Date(log.createdAt).toLocaleString()}</td>
+                                    <td className="py-1.5 px-3"><span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-50 text-violet-700 border border-violet-200">{log.featureKey}</span></td>
+                                    <td className="py-1.5 px-3 font-mono">{log.model}</td>
+                                    <td className="text-right py-1.5 px-3">{fmtInt(log.inputTokens)}</td>
+                                    <td className="text-right py-1.5 px-3">{fmtInt(log.outputTokens)}</td>
+                                    <td className="text-right py-1.5 px-3 font-semibold">${log.costUsd.toFixed(6)}</td>
                                   </tr>
                                 ))}
                               </tbody>
                             </table>
                           </div>
-                          <p className="text-xs text-[var(--color-neutral-500)] mt-2">
-                            * Bland cost @ ${rate.toFixed(2)}/min ({blandPlan} plan). Credits include 5% buffer. Effective avg: 1.5 min/call attempt.
-                          </p>
-                        </div>
-                      );
-                    })()}
+                        </details>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-sm text-[var(--color-neutral-400)]">Loading AI cost data...</div>
+                  )}
+                </div>
 
-                    {fd.notes && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-                        <strong>Notes:</strong> {fd.notes}
+                {/* ── 4. BLAND MASTER ACCOUNT ── */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Bland AI — Master Account</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div className={`p-3 rounded-lg border ${blandBalance < 5 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
+                      <p className={`text-xs font-semibold uppercase mb-1 ${blandBalance < 5 ? 'text-red-700' : 'text-emerald-700'}`}>Master Balance</p>
+                      <p className={`text-lg font-bold ${blandBalance < 5 ? 'text-red-900' : 'text-emerald-900'}`}>${fmt(blandBalance)}</p>
+                      <p className={`text-xs ${blandBalance < 5 ? 'text-red-600' : 'text-emerald-600'}`}>Available credits</p>
+                    </div>
+                    <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+                      <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Master Plan</p>
+                      <p className="text-lg font-bold text-[var(--color-ink)] capitalize">{blandPlan}</p>
+                      <p className="text-xs text-[var(--color-neutral-600)]">${fd.bland_plan_cost || 0}/mo</p>
+                    </div>
+                    <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+                      <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Per-Min Rate</p>
+                      <p className="text-lg font-bold text-[var(--color-ink)]">${blandTalkRate.toFixed(4)}/min</p>
+                      <p className="text-xs text-[var(--color-neutral-600)]">Transfer: ${blandTransferRate.toFixed(4)}/min</p>
+                    </div>
+                    <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+                      <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Architecture</p>
+                      <p className="text-lg font-bold text-[var(--color-ink)]">Master Key</p>
+                      <p className="text-xs text-[var(--color-neutral-600)]">Single API key</p>
+                    </div>
+                    <div className="p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--border-default)]">
+                      <p className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase mb-1">Master Limits</p>
+                      <p className="text-xs text-[var(--color-neutral-700)]"><strong>{blandConcurrentLimit}</strong> concurrent</p>
+                      <p className="text-xs text-[var(--color-neutral-700)]"><strong>{blandDailyLimit}</strong> per day</p>
+                    </div>
+                  </div>
+                  {fd.bland_master_subscription && (
+                    <div className="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                      <p className="text-xs font-semibold text-indigo-700 uppercase mb-2">Master Subscription Details</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-indigo-800">
+                        <div><span className="font-medium">Plan:</span> {fd.bland_master_subscription.plan}</div>
+                        <div><span className="font-medium">Status:</span> <span className="capitalize">{fd.bland_master_subscription.status}</span></div>
+                        <div><span className="font-medium">Talk Rate:</span> ${fd.bland_master_subscription.perMinRate.toFixed(4)}/min</div>
+                        <div><span className="font-medium">Transfer:</span> ${fd.bland_master_subscription.transferRate.toFixed(4)}/min</div>
+                        <div><span className="font-medium">Concurrent:</span> {fd.bland_master_subscription.concurrentLimit}</div>
+                        <div><span className="font-medium">Daily:</span> {fd.bland_master_subscription.dailyLimit}</div>
+                        <div><span className="font-medium">Monthly Cost:</span> ${fd.bland_master_subscription.monthlyCost}/mo</div>
                       </div>
-                    )}
-                  </>
-                );
-              })()}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── 5. UNIT ECONOMICS REFERENCE ── */}
+                {(() => {
+                  const rate = blandTalkRate;
+                  const refPlans = [
+                    { plan: 'Free', price: 0, min: 15, overage: null as number | null },
+                    { plan: 'Starter', price: 99, min: 300, overage: 0.29 },
+                    { plan: 'Growth', price: 179, min: 600, overage: 0.26 },
+                    { plan: 'Business', price: 299, min: 1200, overage: 0.23 },
+                    { plan: 'Teams', price: 649, min: 2250, overage: 0.20 },
+                    { plan: 'Enterprise', price: 1499, min: 6000, overage: 0.17 },
+                  ].map(p => {
+                    const blandCost = +(p.min * rate).toFixed(2);
+                    const credits = +(blandCost * 1.05).toFixed(2);
+                    const margin = p.price > 0 ? +((1 - blandCost / p.price) * 100).toFixed(1) : 0;
+                    return { ...p, blandCost, credits, margin };
+                  });
+                  return (
+                    <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-3">Unit Economics Reference (V4)</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b-2 border-[var(--border-default)]">
+                              <th className="text-left py-2 pr-4 font-semibold text-[var(--color-neutral-500)]">Plan</th>
+                              <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Price</th>
+                              <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Min</th>
+                              <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Bland Cost</th>
+                              <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Credits (5%)</th>
+                              <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Gross Margin</th>
+                              <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Overage</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {refPlans.map((row, i) => (
+                              <tr key={i} className={`${i % 2 === 0 ? 'bg-[var(--color-neutral-50)]' : ''} ${row.plan === 'Free' ? 'opacity-70' : ''}`}>
+                                <td className="py-2 pr-4 font-semibold text-[var(--color-neutral-800)]">{row.plan}</td>
+                                <td className="text-center py-2 px-3">{row.price === 0 ? '$0' : `$${row.price}/mo`}</td>
+                                <td className="text-center py-2 px-3">{row.min}</td>
+                                <td className="text-center py-2 px-3 text-red-600">${row.blandCost}</td>
+                                <td className="text-center py-2 px-3 text-orange-600">${row.credits}</td>
+                                <td className={`text-center py-2 px-3 font-bold ${row.plan === 'Free' ? 'text-[var(--color-neutral-400)]' : row.margin >= 60 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                  {row.plan === 'Free' ? 'N/A' : `${row.margin}%`}
+                                </td>
+                                <td className="text-center py-2 px-3">{row.overage !== null ? `$${row.overage}/min` : 'Blocked'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <p className="text-xs text-[var(--color-neutral-500)] mt-2">* Bland @ ${rate.toFixed(2)}/min ({blandPlan}). Credits = 5% buffer. ~1.5 min/call.</p>
+                    </div>
+                  );
+                })()}
+
+                {/* ── 6. REVENUE BY PLAN ── */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Revenue Breakdown by Plan</h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--border-default)]">
+                        <th className="text-left py-2 font-semibold">Plan</th>
+                        <th className="text-center py-2 font-semibold">Total</th>
+                        <th className="text-center py-2 font-semibold text-emerald-600">Paying</th>
+                        <th className="text-center py-2 font-semibold text-orange-600">Promo</th>
+                        <th className="text-right py-2 font-semibold">Catalog MRR</th>
+                        <th className="text-right py-2 font-semibold">Actual MRR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(pnl.revenue.byPlan).map(([slug, data]) => (
+                        <tr key={slug} className="border-b border-[var(--border-default)]">
+                          <td className="py-2 capitalize font-medium">{slug}</td>
+                          <td className="text-center py-2">{data.count}</td>
+                          <td className="text-center py-2 text-emerald-600">{data.paying}</td>
+                          <td className="text-center py-2 text-orange-600">{data.promo}</td>
+                          <td className="text-right py-2 text-[var(--color-neutral-400)]">${fmt(data.catalogMrr)}</td>
+                          <td className="text-right py-2 font-semibold">${fmt(data.actualMrr)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* ── 7. PROMO SUBSCRIPTIONS ── */}
+                {discSubs.length > 0 && (
+                  <div className="bg-white rounded-xl border border-orange-200 p-6">
+                    <h3 className="text-sm font-bold text-orange-700 uppercase mb-1">Promotional Subscriptions ({discSubs.length})</h3>
+                    <p className="text-xs text-[var(--color-neutral-400)] mb-4">Only real cost is Bland AI usage.</p>
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-orange-200">
+                          <th className="text-left py-2 font-semibold">Company</th>
+                          <th className="text-center py-2 font-semibold">Plan</th>
+                          <th className="text-center py-2 font-semibold">Promo</th>
+                          <th className="text-right py-2 font-semibold">Full Price</th>
+                          <th className="text-right py-2 font-semibold text-emerald-600">Pays</th>
+                          <th className="text-center py-2 font-semibold">Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {discSubs.map((ds, i) => (
+                          <tr key={i} className="border-b border-[var(--border-default)]">
+                            <td className="py-2 font-medium">{ds.companyName}</td>
+                            <td className="text-center py-2">
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${planColors[ds.plan] || 'bg-gray-100 text-gray-700'}`}>{ds.plan}</span>
+                            </td>
+                            <td className="text-center py-2 text-xs">
+                              <span className="font-semibold">{ds.promoCode || ds.couponName || 'Direct'}</span>
+                              {ds.percentOff && <span className="text-orange-600 ml-1">({ds.percentOff}% off)</span>}
+                            </td>
+                            <td className="text-right py-2 text-[var(--color-neutral-400)] line-through">${fmt(ds.grossAmount)}</td>
+                            <td className="text-right py-2 font-semibold text-emerald-600">${fmt(ds.netAmount)}/mo</td>
+                            <td className="text-center py-2 text-xs text-[var(--color-neutral-500)]">{ds.duration}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="mt-3 pt-3 border-t border-orange-200 flex justify-between text-sm">
+                      <span className="text-[var(--color-neutral-500)]">Catalog value if full price</span>
+                      <span className="text-[var(--color-neutral-400)]">${fmt(discSubs.reduce((s, d) => s + d.grossAmount, 0))}/mo (not collected)</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── 8. CASH FLOW + UNIT ECONOMICS ── */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Cash Flow</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Payments Received</span>
+                        <span className="text-lg font-bold text-emerald-700">${fmt(cashFlow.paymentsReceived)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Failed Payments</span>
+                        <span className={`text-lg font-bold ${cashFlow.paymentsFailed > 0 ? 'text-red-600' : 'text-[var(--color-neutral-400)]'}`}>${fmt(cashFlow.paymentsFailed)}</span>
+                      </div>
+                      <div className="flex justify-between items-center border-t pt-2">
+                        <span className="text-sm">Transactions</span>
+                        <span className="text-lg font-bold">{cashFlow.transactionCount}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
+                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Unit Economics</h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div><span className="text-[var(--color-neutral-500)]">Companies</span><p className="font-bold text-lg">{ue.totalCompanies} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.payingCustomers}p · {ue.promoCustomers}promo · {ue.freeCustomers}free)</span></p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Active Users</span><p className="font-bold text-lg">{ue.totalUsers}</p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">ARPC (paying)</span><p className="font-bold text-lg">${fmt(ue.arpc)}<span className="text-xs font-normal">/mo</span></p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">LTV (12mo)</span><p className="font-bold text-lg">${fmt(ue.ltv)}</p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Total Calls</span><p className="font-bold text-lg">{ue.totalCalls.toLocaleString()} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.completedCalls}ok · {ue.failedCalls}fail)</span></p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Minutes</span><p className="font-bold text-lg">{ue.totalMinutes.toLocaleString()}</p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Cost/Call</span><p className="font-bold text-lg">${fmt(ue.costPerCall)}</p></div>
+                      <div><span className="text-[var(--color-neutral-500)]">Avg Min/Call</span><p className="font-bold text-lg">{ue.avgMinPerCall.toFixed(2)}</p></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── 9. GENERAL LEDGER ── */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                  <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4">
+                    <h3 className="text-white font-bold text-sm uppercase tracking-wide">General Ledger</h3>
+                    <p className="text-slate-300 text-xs mt-1">{ledgerData.length} entries</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                          <th className="text-left py-3 px-4 font-semibold text-[var(--color-neutral-500)]">Date</th>
+                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Type</th>
+                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Category</th>
+                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Description</th>
+                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Company</th>
+                          <th className="text-right py-3 px-3 font-semibold text-red-600">Debit</th>
+                          <th className="text-right py-3 px-3 font-semibold text-emerald-600">Credit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ledgerData.map((entry, i) => (
+                          <tr key={i} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                            <td className="py-2 px-4 text-xs text-[var(--color-neutral-500)]">{new Date(entry.date).toLocaleDateString()}</td>
+                            <td className="py-2 px-3">
+                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                                entry.type === 'revenue' ? 'bg-emerald-50 text-emerald-700' :
+                                entry.type === 'cost' ? 'bg-red-50 text-red-700' :
+                                entry.type === 'discount' ? 'bg-orange-50 text-orange-700' :
+                                'bg-gray-50 text-gray-700'
+                              }`}>{entry.type}</span>
+                            </td>
+                            <td className="py-2 px-3 text-xs font-medium">{entry.category}</td>
+                            <td className="py-2 px-3 text-xs text-[var(--color-neutral-600)] max-w-xs truncate">{entry.description}</td>
+                            <td className="py-2 px-3 text-xs">{entry.companyName || '—'}</td>
+                            <td className="text-right py-2 px-3 text-xs text-red-600">{entry.debit > 0 ? `$${fmt(entry.debit)}` : ''}</td>
+                            <td className="text-right py-2 px-3 text-xs text-emerald-600">{entry.credit > 0 ? `$${fmt(entry.credit)}` : ''}</td>
+                          </tr>
+                        ))}
+                        {ledgerData.length === 0 && (
+                          <tr><td colSpan={7} className="py-8 text-center text-[var(--color-neutral-400)]">No ledger entries for this period</td></tr>
+                        )}
+                      </tbody>
+                      {ledgerData.length > 0 && (
+                        <tfoot>
+                          <tr className="bg-[var(--color-neutral-50)] border-t-2 border-[var(--border-default)] font-bold">
+                            <td colSpan={5} className="py-3 px-4 text-right">Totals</td>
+                            <td className="text-right py-3 px-3 text-red-700">${fmt(ledgerData.reduce((s, e) => s + e.debit, 0))}</td>
+                            <td className="text-right py-3 px-3 text-emerald-700">${fmt(ledgerData.reduce((s, e) => s + e.credit, 0))}</td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
       {/* ════════════════════════════════════════════════════════════════
@@ -2049,615 +2484,6 @@ export default function AdminCommandCenter() {
                     <div className="text-2xl font-bold text-emerald-700">${fmt((healthData?.revenue?.netMrr || 0) * 12)}</div>
                     <div className="text-xs text-[var(--color-neutral-500)]">Net ARR</div>
                   </div>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════
-          TAB: ACCOUNTING — P&L, Cash Flow, Ledger
-         ════════════════════════════════════════════════════════════════ */}
-      {tab === 'accounting' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-[var(--color-neutral-600)]">Full Financial Accounting — Actual Revenue, Real Costs, Promo Impact</p>
-            <div className="flex gap-2 items-center">
-              <select
-                value={accountingPeriod}
-                onChange={(e) => { setAccountingPeriod(e.target.value); setAccountingData(null); fetchAccounting(e.target.value); }}
-                className="px-3 py-2 border border-[var(--border-default)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-              >
-                <option value="current">Current Month</option>
-                <option value="last_30">Last 30 Days</option>
-                <option value="last_90">Last 90 Days</option>
-                <option value="ytd">Year to Date</option>
-              </select>
-              <button
-                onClick={() => { setAccountingData(null); fetchAccounting(accountingPeriod); }}
-                className="px-3 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:opacity-90"
-              >
-                Refresh
-              </button>
-            </div>
-          </div>
-
-          {!accountingData ? (
-            <div className="text-center py-12 text-[var(--color-neutral-400)]">Loading accounting data...</div>
-          ) : (() => {
-            const { pnl, cashFlow, discountedSubscriptions: discSubs, unitEconomics: ue, charts: chartData, ledger: ledgerData } = accountingData;
-            const marginColor = (p: number) => p >= 50 ? 'text-emerald-600' : p >= 20 ? 'text-amber-600' : 'text-red-600';
-
-            return (
-              <>
-                {/* ─── P&L STATEMENT (Correct: revenue = actual collected) ─── */}
-                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
-                  <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4">
-                    <h3 className="text-white font-bold text-sm uppercase tracking-wide">Profit & Loss Statement</h3>
-                    <p className="text-slate-300 text-xs mt-1">
-                      {new Date(accountingData.period.start).toLocaleDateString()} — {new Date(accountingData.period.end).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="p-6">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b-2 border-[var(--border-default)]">
-                          <th className="text-left py-2 font-bold text-[var(--color-neutral-700)]">Line Item</th>
-                          <th className="text-right py-2 font-bold text-[var(--color-neutral-700)]">Amount</th>
-                          <th className="text-right py-2 font-bold text-[var(--color-neutral-700)]">Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* ACTUAL REVENUE */}
-                        <tr className="bg-emerald-50"><td colSpan={3} className="py-2 px-2 font-bold text-emerald-800 uppercase text-xs tracking-wide">Actual Revenue (What&apos;s Collected)</td></tr>
-                        <tr className="border-b border-[var(--border-default)]">
-                          <td className="py-2 pl-6">Subscription Revenue</td>
-                          <td className="text-right py-2 font-medium text-emerald-700">${fmt(pnl.revenue.actualMrr)}</td>
-                          <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">{ue.payingCustomers} paying customer{ue.payingCustomers !== 1 ? 's' : ''}</td>
-                        </tr>
-                        {pnl.revenue.overages > 0 && (
-                          <tr className="border-b border-[var(--border-default)]">
-                            <td className="py-2 pl-6">Overage Revenue</td>
-                            <td className="text-right py-2">${fmt(pnl.revenue.overages)}</td>
-                            <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Usage beyond plan limits</td>
-                          </tr>
-                        )}
-                        {pnl.revenue.addons > 0 && (
-                          <tr className="border-b border-[var(--border-default)]">
-                            <td className="py-2 pl-6">Add-on Revenue</td>
-                            <td className="text-right py-2">${fmt(pnl.revenue.addons)}</td>
-                            <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Dedicated numbers, vaults, boosters</td>
-                          </tr>
-                        )}
-                        <tr className="border-b-2 border-emerald-300 bg-emerald-50 font-bold">
-                          <td className="py-3 pl-4 text-emerald-800">Total Actual Revenue</td>
-                          <td className="text-right py-3 text-emerald-800">${fmt(pnl.revenue.totalActualRevenue)}</td>
-                          <td className="text-right py-3 text-xs text-emerald-600">Cash collected</td>
-                        </tr>
-
-                        {/* COSTS */}
-                        <tr className="bg-red-50"><td colSpan={3} className="py-2 px-2 font-bold text-red-800 uppercase text-xs tracking-wide">Cost of Revenue</td></tr>
-                        <tr className="border-b border-[var(--border-default)]">
-                          <td className="py-2 pl-6">Bland AI — Paying Customers</td>
-                          <td className="text-right py-2 text-red-600">${fmt(pnl.costs.blandPaying)}</td>
-                          <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">{ue.payingMinutes} min</td>
-                        </tr>
-                        {pnl.costs.blandPromo > 0 && (
-                          <tr className="border-b border-[var(--border-default)]">
-                            <td className="py-2 pl-6">Bland AI — Promo/Tester Users</td>
-                            <td className="text-right py-2 text-orange-600">${fmt(pnl.costs.blandPromo)}</td>
-                            <td className="text-right py-2 text-xs text-orange-500">{ue.promoMinutes} min · actual cost of promos</td>
-                          </tr>
-                        )}
-                        <tr className="border-b-2 border-red-300 bg-red-50 font-bold">
-                          <td className="py-3 pl-4 text-red-800">Total COGS</td>
-                          <td className="text-right py-3 text-red-800">${fmt(pnl.costs.blandTotal)}</td>
-                          <td className="text-right py-3 text-xs text-red-600">{ue.totalMinutes} total min</td>
-                        </tr>
-
-                        {/* GROSS PROFIT */}
-                        <tr className="bg-blue-50 font-bold text-lg">
-                          <td className="py-3 pl-4 text-blue-800">Gross Profit</td>
-                          <td className={`text-right py-3 ${pnl.margins.grossProfit >= 0 ? 'text-blue-800' : 'text-red-600'}`}>${fmt(pnl.margins.grossProfit)}</td>
-                          <td className={`text-right py-3 font-bold ${marginColor(pnl.margins.grossMarginPercent)}`}>{pnl.margins.grossMarginPercent}%</td>
-                        </tr>
-
-                        {/* OPERATING EXPENSES */}
-                        <tr className="bg-amber-50"><td colSpan={3} className="py-2 px-2 font-bold text-amber-800 uppercase text-xs tracking-wide">Operating Expenses</td></tr>
-                        <tr className="border-b border-[var(--border-default)]">
-                          <td className="py-2 pl-6">Stripe Processing (~2.9% + $0.30/txn)</td>
-                          <td className="text-right py-2 text-amber-700">${fmt(pnl.costs.stripeProcessing)}</td>
-                          <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">On collected payments only</td>
-                        </tr>
-
-                        {/* OPERATING PROFIT */}
-                        <tr className="bg-violet-50 font-bold text-lg border-t-2 border-violet-300">
-                          <td className="py-3 pl-4 text-violet-800">Operating Profit</td>
-                          <td className={`text-right py-3 ${pnl.margins.operatingProfit >= 0 ? 'text-violet-800' : 'text-red-600'}`}>${fmt(pnl.margins.operatingProfit)}</td>
-                          <td className={`text-right py-3 font-bold ${marginColor(pnl.margins.operatingMarginPercent)}`}>{pnl.margins.operatingMarginPercent}%</td>
-                        </tr>
-
-                        {/* PROMO CONTEXT — informational, NOT a loss */}
-                        {pnl.promotional.promoCustomers > 0 && (
-                          <>
-                            <tr><td colSpan={3} className="py-1" /></tr>
-                            <tr className="bg-orange-50"><td colSpan={3} className="py-2 px-2 font-bold text-orange-700 uppercase text-xs tracking-wide">Promotional Users Context (Informational)</td></tr>
-                            <tr className="border-b border-[var(--border-default)]">
-                              <td className="py-2 pl-6 text-[var(--color-neutral-500)]">Promo/Tester Users</td>
-                              <td className="text-right py-2 text-[var(--color-neutral-500)]">{pnl.promotional.promoCustomers}</td>
-                              <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Users on discounted plans</td>
-                            </tr>
-                            <tr className="border-b border-[var(--border-default)]">
-                              <td className="py-2 pl-6 text-[var(--color-neutral-500)]">Catalog Value (if full price)</td>
-                              <td className="text-right py-2 text-[var(--color-neutral-400)]">${fmt(pnl.promotional.foregoneRevenue)}/mo</td>
-                              <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Not a loss — never collected</td>
-                            </tr>
-                            <tr className="border-b border-[var(--border-default)]">
-                              <td className="py-2 pl-6 text-[var(--color-neutral-500)]">Real Cost of Promo Users</td>
-                              <td className="text-right py-2 text-orange-600 font-semibold">${fmt(pnl.promotional.effectivePromoCost)}</td>
-                              <td className="text-right py-2 text-xs text-orange-500">Only Bland usage — this is your actual cost</td>
-                            </tr>
-                          </>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* ─── CHARTS: Revenue Waterfall + Cost Breakdown + Subscriber Segments ─── */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Revenue Waterfall */}
-                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                    <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-3">Revenue Waterfall</h3>
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={chartData.revenueWaterfall} layout="vertical" margin={{ left: 0, right: 10 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                        <XAxis type="number" tickFormatter={(v) => `$${v}`} fontSize={10} />
-                        <YAxis dataKey="name" type="category" fontSize={10} width={90} />
-                        <Tooltip formatter={(v) => `$${fmt(Math.abs(Number(v)))}`} />
-                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                          {chartData.revenueWaterfall.map((entry, index) => (
-                            <Cell key={index} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Cost Breakdown */}
-                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                    <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-3">Cost Breakdown</h3>
-                    {chartData.costBreakdown.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={220}>
-                        <PieChart>
-                          <Pie data={chartData.costBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`} fontSize={10}>
-                            {chartData.costBreakdown.map((entry, index) => (
-                              <Cell key={index} fill={entry.fill} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(v) => `$${fmt(Number(v))}`} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex items-center justify-center h-[220px] text-[var(--color-neutral-400)] text-sm">No costs yet</div>
-                    )}
-                  </div>
-
-                  {/* Subscriber Segments */}
-                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                    <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase mb-3">Subscriber Segments</h3>
-                    {chartData.subscriberSegments.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={220}>
-                        <PieChart>
-                          <Pie data={chartData.subscriberSegments} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, value }) => `${name}: ${value}`} fontSize={10}>
-                            {chartData.subscriberSegments.map((entry, index) => (
-                              <Cell key={index} fill={entry.fill} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                          <Legend fontSize={10} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex items-center justify-center h-[220px] text-[var(--color-neutral-400)] text-sm">No subscribers yet</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* ─── REVENUE BY PLAN ─── */}
-                <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
-                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Revenue Breakdown by Plan</h3>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-[var(--border-default)]">
-                        <th className="text-left py-2 font-semibold">Plan</th>
-                        <th className="text-center py-2 font-semibold">Total</th>
-                        <th className="text-center py-2 font-semibold text-emerald-600">Paying</th>
-                        <th className="text-center py-2 font-semibold text-orange-600">Promo</th>
-                        <th className="text-right py-2 font-semibold">Catalog MRR</th>
-                        <th className="text-right py-2 font-semibold">Actual MRR</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(pnl.revenue.byPlan).map(([slug, data]) => (
-                        <tr key={slug} className="border-b border-[var(--border-default)]">
-                          <td className="py-2 capitalize font-medium">{slug}</td>
-                          <td className="text-center py-2">{data.count}</td>
-                          <td className="text-center py-2 text-emerald-600">{data.paying}</td>
-                          <td className="text-center py-2 text-orange-600">{data.promo}</td>
-                          <td className="text-right py-2 text-[var(--color-neutral-400)]">${fmt(data.catalogMrr)}</td>
-                          <td className="text-right py-2 font-semibold">${fmt(data.actualMrr)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* ─── PROMOTIONAL / DISCOUNTED SUBSCRIPTIONS ─── */}
-                {discSubs.length > 0 && (
-                  <div className="bg-white rounded-xl border border-orange-200 p-6">
-                    <h3 className="text-sm font-bold text-orange-700 uppercase mb-1">
-                      Promotional Subscriptions ({discSubs.length})
-                    </h3>
-                    <p className="text-xs text-[var(--color-neutral-400)] mb-4">These users pay reduced or $0. Their only real cost to you is Bland AI usage.</p>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-orange-200">
-                          <th className="text-left py-2 font-semibold">Company</th>
-                          <th className="text-center py-2 font-semibold">Plan</th>
-                          <th className="text-center py-2 font-semibold">Promo / Coupon</th>
-                          <th className="text-right py-2 font-semibold">Full Price</th>
-                          <th className="text-right py-2 font-semibold text-emerald-600">Pays</th>
-                          <th className="text-center py-2 font-semibold">Duration</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {discSubs.map((ds, i) => (
-                          <tr key={i} className="border-b border-[var(--border-default)]">
-                            <td className="py-2 font-medium">{ds.companyName}</td>
-                            <td className="text-center py-2">
-                              <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${planColors[ds.plan] || 'bg-gray-100 text-gray-700'}`}>{ds.plan}</span>
-                            </td>
-                            <td className="text-center py-2 text-xs">
-                              <span className="font-semibold">{ds.promoCode || ds.couponName || 'Direct'}</span>
-                              {ds.percentOff && <span className="text-orange-600 ml-1">({ds.percentOff}% off)</span>}
-                            </td>
-                            <td className="text-right py-2 text-[var(--color-neutral-400)] line-through">${fmt(ds.grossAmount)}</td>
-                            <td className="text-right py-2 font-semibold text-emerald-600">${fmt(ds.netAmount)}/mo</td>
-                            <td className="text-center py-2 text-xs text-[var(--color-neutral-500)]">{ds.duration}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div className="mt-3 pt-3 border-t border-orange-200 flex justify-between text-sm">
-                      <span className="text-[var(--color-neutral-500)]">Catalog value if full price</span>
-                      <span className="text-[var(--color-neutral-400)]">${fmt(discSubs.reduce((s, d) => s + d.grossAmount, 0))}/mo (not collected — not a loss)</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* ─── CASH FLOW + UNIT ECONOMICS ─── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
-                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Cash Flow</h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Payments Received</span>
-                        <span className="text-lg font-bold text-emerald-700">${fmt(cashFlow.paymentsReceived)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Failed Payments</span>
-                        <span className={`text-lg font-bold ${cashFlow.paymentsFailed > 0 ? 'text-red-600' : 'text-[var(--color-neutral-400)]'}`}>${fmt(cashFlow.paymentsFailed)}</span>
-                      </div>
-                      <div className="flex justify-between items-center border-t pt-2">
-                        <span className="text-sm">Transactions</span>
-                        <span className="text-lg font-bold">{cashFlow.transactionCount}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl border border-[var(--border-default)] p-6">
-                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Unit Economics</h3>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div><span className="text-[var(--color-neutral-500)]">Companies</span><p className="font-bold text-lg">{ue.totalCompanies} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.payingCustomers} paying, {ue.promoCustomers} promo, {ue.freeCustomers} free)</span></p></div>
-                      <div><span className="text-[var(--color-neutral-500)]">Active Users</span><p className="font-bold text-lg">{ue.totalUsers}</p></div>
-                      <div><span className="text-[var(--color-neutral-500)]">ARPC (paying only)</span><p className="font-bold text-lg">${fmt(ue.arpc)}<span className="text-xs font-normal">/mo</span></p></div>
-                      <div><span className="text-[var(--color-neutral-500)]">LTV (12mo)</span><p className="font-bold text-lg">${fmt(ue.ltv)}</p></div>
-                      <div><span className="text-[var(--color-neutral-500)]">Total Calls</span><p className="font-bold text-lg">{ue.totalCalls.toLocaleString()} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.completedCalls} ok, {ue.failedCalls} failed)</span></p></div>
-                      <div><span className="text-[var(--color-neutral-500)]">Minutes</span><p className="font-bold text-lg">{ue.totalMinutes.toLocaleString()} <span className="text-xs font-normal text-[var(--color-neutral-400)]">({ue.payingMinutes} paying, {ue.promoMinutes} promo)</span></p></div>
-                      <div><span className="text-[var(--color-neutral-500)]">Cost/Call</span><p className="font-bold text-lg">${fmt(ue.costPerCall)}</p></div>
-                      <div><span className="text-[var(--color-neutral-500)]">Avg Min/Call</span><p className="font-bold text-lg">{ue.avgMinPerCall.toFixed(2)}</p></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ─── GENERAL LEDGER ─── */}
-                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
-                  <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4">
-                    <h3 className="text-white font-bold text-sm uppercase tracking-wide">General Ledger</h3>
-                    <p className="text-slate-300 text-xs mt-1">{ledgerData.length} entries</p>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
-                          <th className="text-left py-3 px-4 font-semibold text-[var(--color-neutral-500)]">Date</th>
-                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Type</th>
-                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Category</th>
-                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Description</th>
-                          <th className="text-left py-3 px-3 font-semibold text-[var(--color-neutral-500)]">Company</th>
-                          <th className="text-right py-3 px-3 font-semibold text-red-600">Debit</th>
-                          <th className="text-right py-3 px-3 font-semibold text-emerald-600">Credit</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ledgerData.map((entry, i) => (
-                          <tr key={i} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
-                            <td className="py-2 px-4 text-xs text-[var(--color-neutral-500)]">{new Date(entry.date).toLocaleDateString()}</td>
-                            <td className="py-2 px-3">
-                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                                entry.type === 'revenue' ? 'bg-emerald-50 text-emerald-700' :
-                                entry.type === 'cost' ? 'bg-red-50 text-red-700' :
-                                entry.type === 'discount' ? 'bg-orange-50 text-orange-700' :
-                                'bg-gray-50 text-gray-700'
-                              }`}>{entry.type}</span>
-                            </td>
-                            <td className="py-2 px-3 text-xs font-medium">{entry.category}</td>
-                            <td className="py-2 px-3 text-xs text-[var(--color-neutral-600)] max-w-xs truncate">{entry.description}</td>
-                            <td className="py-2 px-3 text-xs">{entry.companyName || '—'}</td>
-                            <td className="text-right py-2 px-3 text-xs text-red-600">{entry.debit > 0 ? `$${fmt(entry.debit)}` : ''}</td>
-                            <td className="text-right py-2 px-3 text-xs text-emerald-600">{entry.credit > 0 ? `$${fmt(entry.credit)}` : ''}</td>
-                          </tr>
-                        ))}
-                        {ledgerData.length === 0 && (
-                          <tr><td colSpan={7} className="py-8 text-center text-[var(--color-neutral-400)]">No ledger entries for this period</td></tr>
-                        )}
-                      </tbody>
-                      {ledgerData.length > 0 && (
-                        <tfoot>
-                          <tr className="bg-[var(--color-neutral-50)] border-t-2 border-[var(--border-default)] font-bold">
-                            <td colSpan={5} className="py-3 px-4 text-right">Totals</td>
-                            <td className="text-right py-3 px-3 text-red-700">${fmt(ledgerData.reduce((s, e) => s + e.debit, 0))}</td>
-                            <td className="text-right py-3 px-3 text-emerald-700">${fmt(ledgerData.reduce((s, e) => s + e.credit, 0))}</td>
-                          </tr>
-                        </tfoot>
-                      )}
-                    </table>
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════
-          TAB: AI COSTS — OpenAI usage tracking
-         ════════════════════════════════════════════════════════════════ */}
-      {tab === 'ai_costs' && (
-        <div className="space-y-6">
-          {/* Refresh button */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-[var(--color-neutral-600)]">
-              OpenAI API usage across all features — tracked per call, per feature key.
-            </p>
-            <button
-              onClick={fetchOpenAIUsage}
-              className="px-3 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:opacity-90"
-            >
-              Refresh
-            </button>
-          </div>
-
-          {!openAIUsageData ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-6 h-6 border border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin" />
-            </div>
-          ) : (
-            <>
-              {/* ─── Summary Cards ─── */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-xl p-5">
-                  <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Cost This Month (30d)</p>
-                  <p className="text-2xl font-bold text-violet-900">${fmt(openAIUsageData.totalCost30d)}</p>
-                  <p className="text-xs text-violet-600 mt-1">Today: ${fmt(openAIUsageData.totalCostToday)}</p>
-                </div>
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5">
-                  <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Requests This Month</p>
-                  <p className="text-2xl font-bold text-blue-900">{fmtInt(openAIUsageData.totalRequests30d)}</p>
-                  <p className="text-xs text-blue-600 mt-1">Today: {fmtInt(openAIUsageData.totalRequestsToday)}</p>
-                </div>
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-5">
-                  <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">Tokens This Month</p>
-                  <p className="text-2xl font-bold text-indigo-900">{fmtInt(openAIUsageData.totalTokens30d)}</p>
-                  <p className="text-xs text-indigo-600 mt-1">Today: {fmtInt(openAIUsageData.totalTokensToday)}</p>
-                </div>
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-5">
-                  <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Avg Cost / Request</p>
-                  <p className="text-2xl font-bold text-emerald-900">
-                    ${openAIUsageData.totalRequests30d > 0
-                      ? (openAIUsageData.totalCost30d / openAIUsageData.totalRequests30d).toFixed(6)
-                      : '0.000000'}
-                  </p>
-                  <p className="text-xs text-emerald-600 mt-1">30-day average</p>
-                </div>
-              </div>
-
-              {/* ─── Feature Breakdown + Daily Chart (side by side) ─── */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Feature breakdown table */}
-                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
-                  <div className="px-5 py-4 border-b border-[var(--border-default)]">
-                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Cost by Feature (30d)</h3>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
-                          <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Feature</th>
-                          <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Requests</th>
-                          <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Tokens</th>
-                          <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {openAIUsageData.byFeature.length === 0 ? (
-                          <tr><td colSpan={4} className="py-8 text-center text-[var(--color-neutral-400)]">No data yet</td></tr>
-                        ) : (
-                          openAIUsageData.byFeature.map((f) => {
-                            const pct = openAIUsageData.totalCost30d > 0
-                              ? (f.cost / openAIUsageData.totalCost30d) * 100
-                              : 0;
-                            return (
-                              <tr key={f.featureKey} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
-                                <td className="py-2 px-4">
-                                  <div className="font-medium text-[var(--color-ink)]">{f.label}</div>
-                                  <div className="w-full bg-[var(--color-neutral-100)] rounded-full h-1 mt-1">
-                                    <div
-                                      className="bg-violet-500 h-1 rounded-full"
-                                      style={{ width: `${Math.min(100, pct)}%` }}
-                                    />
-                                  </div>
-                                </td>
-                                <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(f.requests)}</td>
-                                <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(f.totalTokens)}</td>
-                                <td className="text-right py-2 px-3 font-semibold text-[var(--color-ink)]">${fmt(f.cost)}</td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Daily cost trend chart */}
-                <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
-                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Daily Cost Trend (30d)</h3>
-                  {openAIUsageData.dailyCosts.every(d => d.cost === 0) ? (
-                    <div className="flex items-center justify-center h-[220px] text-[var(--color-neutral-400)] text-sm">No cost data yet</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={220}>
-                      <AreaChart data={openAIUsageData.dailyCosts} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                        <defs>
-                          <linearGradient id="aiCostGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          fontSize={10}
-                          tickFormatter={(v) => {
-                            const d = new Date(String(v));
-                            return `${d.getMonth() + 1}/${d.getDate()}`;
-                          }}
-                          interval={6}
-                        />
-                        <YAxis fontSize={10} tickFormatter={(v) => `$${(Number(v) || 0).toFixed(4)}`} width={60} />
-                        <Tooltip
-                          formatter={(v) => [`$${(Number(v) || 0).toFixed(6)}`, 'Cost']}
-                          labelFormatter={(label) => new Date(String(label)).toLocaleDateString()}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="cost"
-                          stroke="#8b5cf6"
-                          strokeWidth={2}
-                          fill="url(#aiCostGradient)"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-              </div>
-
-              {/* ─── Model Breakdown ─── */}
-              <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
-                <div className="px-5 py-4 border-b border-[var(--border-default)]">
-                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Model Breakdown (30d)</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
-                        <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Model</th>
-                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Requests</th>
-                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Total Tokens</th>
-                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
-                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">% of Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {openAIUsageData.byModel.length === 0 ? (
-                        <tr><td colSpan={5} className="py-8 text-center text-[var(--color-neutral-400)]">No data yet</td></tr>
-                      ) : (
-                        openAIUsageData.byModel.map((m) => {
-                          const pct = openAIUsageData.totalCost30d > 0
-                            ? (m.cost / openAIUsageData.totalCost30d) * 100
-                            : 0;
-                          return (
-                            <tr key={m.model} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
-                              <td className="py-2 px-4 font-mono text-xs font-medium text-[var(--color-ink)]">{m.model}</td>
-                              <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(m.requests)}</td>
-                              <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(m.totalTokens)}</td>
-                              <td className="text-right py-2 px-3 font-semibold text-[var(--color-ink)]">${fmt(m.cost)}</td>
-                              <td className="text-right py-2 px-3 text-[var(--color-neutral-500)]">{pct.toFixed(1)}%</td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* ─── Recent Logs ─── */}
-              <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
-                <div className="px-5 py-4 border-b border-[var(--border-default)]">
-                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Recent Logs (last 50)</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
-                        <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Time</th>
-                        <th className="text-left py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Feature</th>
-                        <th className="text-left py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Key</th>
-                        <th className="text-left py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Model</th>
-                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">In tokens</th>
-                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Out tokens</th>
-                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {openAIUsageData.recentLogs.length === 0 ? (
-                        <tr><td colSpan={7} className="py-8 text-center text-[var(--color-neutral-400)]">No logs yet — usage will appear here after the first OpenAI call</td></tr>
-                      ) : (
-                        openAIUsageData.recentLogs.map((log) => (
-                          <tr key={log.id} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
-                            <td className="py-2 px-4 text-xs text-[var(--color-neutral-500)]">
-                              {new Date(log.createdAt).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3">
-                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200">
-                                {log.featureKey}
-                              </span>
-                            </td>
-                            <td className="py-2 px-3 text-xs text-[var(--color-neutral-600)]">{log.apiKeyLabel}</td>
-                            <td className="py-2 px-3 font-mono text-xs text-[var(--color-neutral-700)]">{log.model}</td>
-                            <td className="text-right py-2 px-3 text-xs text-[var(--color-neutral-600)]">{fmtInt(log.inputTokens)}</td>
-                            <td className="text-right py-2 px-3 text-xs text-[var(--color-neutral-600)]">{fmtInt(log.outputTokens)}</td>
-                            <td className="text-right py-2 px-3 text-xs font-semibold text-[var(--color-ink)]">
-                              ${log.costUsd.toFixed(6)}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             </>
