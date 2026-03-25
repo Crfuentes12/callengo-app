@@ -275,7 +275,7 @@ interface FinanceData {
   [key: string]: unknown;
 }
 
-type Tab = 'health' | 'operations' | 'clients' | 'events' | 'reconcile' | 'finances' | 'promos' | 'accounting';
+type Tab = 'health' | 'operations' | 'clients' | 'events' | 'reconcile' | 'finances' | 'promos' | 'accounting' | 'ai_costs';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface AccountingData {
@@ -299,6 +299,56 @@ interface AccountingData {
     subscriberSegments: { name: string; value: number; fill: string }[];
   };
   ledger: { date: string; type: string; category: string; description: string; debit: number; credit: number; companyId: string | null; companyName: string | null; reference: string | null }[];
+}
+
+interface OpenAIFeatureBreakdown {
+  featureKey: string;
+  label: string;
+  requests: number;
+  totalTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  cost: number;
+}
+
+interface OpenAIModelBreakdown {
+  model: string;
+  requests: number;
+  totalTokens: number;
+  cost: number;
+}
+
+interface OpenAIDailyCost {
+  date: string;
+  cost: number;
+  tokens: number;
+  requests: number;
+}
+
+interface OpenAIRecentLog {
+  id: string;
+  createdAt: string;
+  featureKey: string;
+  apiKeyLabel: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUsd: number;
+  companyId: string | null;
+}
+
+interface OpenAIUsageData {
+  totalCost30d: number;
+  totalTokens30d: number;
+  totalRequests30d: number;
+  totalCostToday: number;
+  totalTokensToday: number;
+  totalRequestsToday: number;
+  byFeature: OpenAIFeatureBreakdown[];
+  byModel: OpenAIModelBreakdown[];
+  dailyCosts: OpenAIDailyCost[];
+  recentLogs: OpenAIRecentLog[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -367,6 +417,7 @@ export default function AdminCommandCenter() {
   const [promoExpanded, setPromoExpanded] = useState<string | null>(null);
   const [accountingData, setAccountingData] = useState<AccountingData | null>(null);
   const [accountingPeriod, setAccountingPeriod] = useState('current');
+  const [openAIUsageData, setOpenAIUsageData] = useState<OpenAIUsageData | null>(null);
 
   // Auto-refresh health data every 30 seconds
   const fetchHealth = useCallback(async () => {
@@ -539,6 +590,18 @@ export default function AdminCommandCenter() {
     }
   }, []);
 
+  const fetchOpenAIUsage = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/openai-usage');
+      if (res.ok) {
+        const data = await res.json();
+        setOpenAIUsageData(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch OpenAI usage:', e);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     const load = async () => {
@@ -563,7 +626,8 @@ export default function AdminCommandCenter() {
     if (tab === 'finances' && !financeData) fetchFinances(financePeriod);
     if (tab === 'promos' && !promoData) fetchPromos();
     if (tab === 'accounting' && !accountingData) fetchAccounting(accountingPeriod);
-  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, accountingData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, fetchAccounting, eventsFilter, financePeriod, accountingPeriod]);
+    if (tab === 'ai_costs' && !openAIUsageData) fetchOpenAIUsage();
+  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, accountingData, openAIUsageData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, fetchAccounting, fetchOpenAIUsage, eventsFilter, financePeriod, accountingPeriod]);
 
   if (loading) {
     return (
@@ -678,7 +742,8 @@ export default function AdminCommandCenter() {
             { id: 'reconcile' as Tab, label: t.admin.commandCenter?.tabReconcile || 'Reconciliation' },
             { id: 'finances' as Tab, label: 'Finances' },
             { id: 'promos' as Tab, label: 'Promo Codes' },
-  { id: 'accounting' as Tab, label: 'Accounting' },
+            { id: 'accounting' as Tab, label: 'Accounting' },
+            { id: 'ai_costs' as Tab, label: 'AI Costs' },
           ]).map(({ id, label }) => (
             <button
               key={id}
@@ -2372,6 +2437,239 @@ export default function AdminCommandCenter() {
               </>
             );
           })()}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════
+          TAB: AI COSTS — OpenAI usage tracking
+         ════════════════════════════════════════════════════════════════ */}
+      {tab === 'ai_costs' && (
+        <div className="space-y-6">
+          {/* Refresh button */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-[var(--color-neutral-600)]">
+              OpenAI API usage across all features — tracked per call, per feature key.
+            </p>
+            <button
+              onClick={fetchOpenAIUsage}
+              className="px-3 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:opacity-90"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {!openAIUsageData ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-6 h-6 border border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* ─── Summary Cards ─── */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-xl p-5">
+                  <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Cost This Month (30d)</p>
+                  <p className="text-2xl font-bold text-violet-900">${fmt(openAIUsageData.totalCost30d)}</p>
+                  <p className="text-xs text-violet-600 mt-1">Today: ${fmt(openAIUsageData.totalCostToday)}</p>
+                </div>
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5">
+                  <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Requests This Month</p>
+                  <p className="text-2xl font-bold text-blue-900">{fmtInt(openAIUsageData.totalRequests30d)}</p>
+                  <p className="text-xs text-blue-600 mt-1">Today: {fmtInt(openAIUsageData.totalRequestsToday)}</p>
+                </div>
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-5">
+                  <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">Tokens This Month</p>
+                  <p className="text-2xl font-bold text-indigo-900">{fmtInt(openAIUsageData.totalTokens30d)}</p>
+                  <p className="text-xs text-indigo-600 mt-1">Today: {fmtInt(openAIUsageData.totalTokensToday)}</p>
+                </div>
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-5">
+                  <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Avg Cost / Request</p>
+                  <p className="text-2xl font-bold text-emerald-900">
+                    ${openAIUsageData.totalRequests30d > 0
+                      ? (openAIUsageData.totalCost30d / openAIUsageData.totalRequests30d).toFixed(6)
+                      : '0.000000'}
+                  </p>
+                  <p className="text-xs text-emerald-600 mt-1">30-day average</p>
+                </div>
+              </div>
+
+              {/* ─── Feature Breakdown + Daily Chart (side by side) ─── */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Feature breakdown table */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                  <div className="px-5 py-4 border-b border-[var(--border-default)]">
+                    <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Cost by Feature (30d)</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                          <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Feature</th>
+                          <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Requests</th>
+                          <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Tokens</th>
+                          <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {openAIUsageData.byFeature.length === 0 ? (
+                          <tr><td colSpan={4} className="py-8 text-center text-[var(--color-neutral-400)]">No data yet</td></tr>
+                        ) : (
+                          openAIUsageData.byFeature.map((f) => {
+                            const pct = openAIUsageData.totalCost30d > 0
+                              ? (f.cost / openAIUsageData.totalCost30d) * 100
+                              : 0;
+                            return (
+                              <tr key={f.featureKey} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                                <td className="py-2 px-4">
+                                  <div className="font-medium text-[var(--color-ink)]">{f.label}</div>
+                                  <div className="w-full bg-[var(--color-neutral-100)] rounded-full h-1 mt-1">
+                                    <div
+                                      className="bg-violet-500 h-1 rounded-full"
+                                      style={{ width: `${Math.min(100, pct)}%` }}
+                                    />
+                                  </div>
+                                </td>
+                                <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(f.requests)}</td>
+                                <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(f.totalTokens)}</td>
+                                <td className="text-right py-2 px-3 font-semibold text-[var(--color-ink)]">${fmt(f.cost)}</td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Daily cost trend chart */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase mb-4">Daily Cost Trend (30d)</h3>
+                  {openAIUsageData.dailyCosts.every(d => d.cost === 0) ? (
+                    <div className="flex items-center justify-center h-[220px] text-[var(--color-neutral-400)] text-sm">No cost data yet</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={openAIUsageData.dailyCosts} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                        <defs>
+                          <linearGradient id="aiCostGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis
+                          dataKey="date"
+                          fontSize={10}
+                          tickFormatter={(v: string) => {
+                            const d = new Date(v);
+                            return `${d.getMonth() + 1}/${d.getDate()}`;
+                          }}
+                          interval={6}
+                        />
+                        <YAxis fontSize={10} tickFormatter={(v: number) => `$${v.toFixed(4)}`} width={60} />
+                        <Tooltip
+                          formatter={(v: number) => [`$${v.toFixed(6)}`, 'Cost']}
+                          labelFormatter={(label: string) => new Date(label).toLocaleDateString()}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="cost"
+                          stroke="#8b5cf6"
+                          strokeWidth={2}
+                          fill="url(#aiCostGradient)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+
+              {/* ─── Model Breakdown ─── */}
+              <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                <div className="px-5 py-4 border-b border-[var(--border-default)]">
+                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Model Breakdown (30d)</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                        <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Model</th>
+                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Requests</th>
+                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Total Tokens</th>
+                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
+                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">% of Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {openAIUsageData.byModel.length === 0 ? (
+                        <tr><td colSpan={5} className="py-8 text-center text-[var(--color-neutral-400)]">No data yet</td></tr>
+                      ) : (
+                        openAIUsageData.byModel.map((m) => {
+                          const pct = openAIUsageData.totalCost30d > 0
+                            ? (m.cost / openAIUsageData.totalCost30d) * 100
+                            : 0;
+                          return (
+                            <tr key={m.model} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                              <td className="py-2 px-4 font-mono text-xs font-medium text-[var(--color-ink)]">{m.model}</td>
+                              <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(m.requests)}</td>
+                              <td className="text-right py-2 px-3 text-[var(--color-neutral-600)]">{fmtInt(m.totalTokens)}</td>
+                              <td className="text-right py-2 px-3 font-semibold text-[var(--color-ink)]">${fmt(m.cost)}</td>
+                              <td className="text-right py-2 px-3 text-[var(--color-neutral-500)]">{pct.toFixed(1)}%</td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* ─── Recent Logs ─── */}
+              <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                <div className="px-5 py-4 border-b border-[var(--border-default)]">
+                  <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Recent Logs (last 50)</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                        <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Time</th>
+                        <th className="text-left py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Feature</th>
+                        <th className="text-left py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Key</th>
+                        <th className="text-left py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Model</th>
+                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">In tokens</th>
+                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Out tokens</th>
+                        <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {openAIUsageData.recentLogs.length === 0 ? (
+                        <tr><td colSpan={7} className="py-8 text-center text-[var(--color-neutral-400)]">No logs yet — usage will appear here after the first OpenAI call</td></tr>
+                      ) : (
+                        openAIUsageData.recentLogs.map((log) => (
+                          <tr key={log.id} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                            <td className="py-2 px-4 text-xs text-[var(--color-neutral-500)]">
+                              {new Date(log.createdAt).toLocaleString()}
+                            </td>
+                            <td className="py-2 px-3">
+                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200">
+                                {log.featureKey}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-xs text-[var(--color-neutral-600)]">{log.apiKeyLabel}</td>
+                            <td className="py-2 px-3 font-mono text-xs text-[var(--color-neutral-700)]">{log.model}</td>
+                            <td className="text-right py-2 px-3 text-xs text-[var(--color-neutral-600)]">{fmtInt(log.inputTokens)}</td>
+                            <td className="text-right py-2 px-3 text-xs text-[var(--color-neutral-600)]">{fmtInt(log.outputTokens)}</td>
+                            <td className="text-right py-2 px-3 text-xs font-semibold text-[var(--color-ink)]">
+                              ${log.costUsd.toFixed(6)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

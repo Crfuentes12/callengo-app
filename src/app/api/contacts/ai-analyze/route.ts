@@ -2,14 +2,12 @@
 // AI-powered contact analysis and list suggestions
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import OpenAI from 'openai';
+import { getOpenAIClient, trackOpenAIUsage } from '@/lib/openai/tracker';
 import { trackServerEvent } from '@/lib/analytics';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { expensiveLimiter } from '@/lib/rate-limit';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = getOpenAIClient('contact_analysis');
 
 export async function POST(request: NextRequest) {
   try {
@@ -156,6 +154,16 @@ Return JSON with this structure:
     });
 
     const result = JSON.parse(completion.choices[0]?.message?.content || '{}');
+
+    trackOpenAIUsage({
+      featureKey: 'contact_analysis',
+      model: 'gpt-4o-mini',
+      inputTokens: completion.usage?.prompt_tokens ?? 0,
+      outputTokens: completion.usage?.completion_tokens ?? 0,
+      companyId: userData.company_id,
+      userId: user.id,
+      metadata: { endpoint: 'contacts/ai-analyze', action, contactCount: contacts.length },
+    });
 
     trackServerEvent(user.id, user.id, 'contact_ai_analysis', {
       action,

@@ -112,7 +112,7 @@ IMPORTANT: Extract ACTUAL data from the conversation. If the customer mentioned 
       .select('company_id')
       .eq('id', user.id)
       .single()
-      .then(({ data: ud }) => {
+      .then(({ data: ud }: { data: { company_id: string } | null; error: unknown }) => {
         trackOpenAIUsage({
           featureKey: 'demo_analysis',
           model: 'gpt-4o-mini',
