@@ -89,6 +89,29 @@ export async function POST(request: NextRequest) {
     const isTestCall = metadata?.is_test === true || metadata?.is_onboarding === true || metadata?.type === 'demo_call';
 
     if (isTestCall) {
+      const agentSlug = (metadata?.agent_slug as string) || 'lead-qualification';
+
+      // ── Rate limit: 1 test call per agent per company per 24 hours ──────────
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count: recentTests } = await supabaseAdmin
+        .from('test_call_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', company_id)
+        .eq('agent_slug', agentSlug)
+        .gte('created_at', yesterday);
+
+      if (recentTests && recentTests > 0) {
+        return NextResponse.json(
+          {
+            error: 'Test call limit reached. You can test each agent once per 24 hours.',
+            code: 'test_rate_limit',
+            agent_slug: agentSlug,
+          },
+          { status: 429 }
+        );
+      }
+
+      // ── Dispatch ─────────────────────────────────────────────────────────────
       const planMaxDuration = getMaxCallDuration('free');
       const effectiveMaxDuration = max_duration ? Math.min(max_duration, planMaxDuration) : planMaxDuration;
       const dedicatedNumber = await getCompanyCallerNumber(company_id);
@@ -115,6 +138,26 @@ export async function POST(request: NextRequest) {
           { status: result.statusCode || 500 }
         );
       }
+
+      // ── Log to test_call_logs ────────────────────────────────────────────────
+      const phoneDigits = phone_number.replace(/\D/g, '');
+      const phoneMasked = phoneDigits.length >= 4
+        ? `${'*'.repeat(phoneDigits.length - 4)}${phoneDigits.slice(-4)}`
+        : '****';
+
+      supabaseAdmin.from('test_call_logs').insert({
+        company_id,
+        user_id: user.id,
+        bland_call_id: result.callId!,
+        agent_slug: agentSlug,
+        agent_name: (metadata?.agent_name as string) || null,
+        phone_number_masked: phoneMasked,
+        status: 'initiated',
+        is_onboarding: metadata?.is_onboarding === true,
+        metadata: { ...metadata, voice, max_duration: effectiveMaxDuration },
+      }).then(({ error }) => {
+        if (error) console.error('[test_call_logs] Insert error:', error.message);
+      });
 
       return NextResponse.json({
         status: 'success',

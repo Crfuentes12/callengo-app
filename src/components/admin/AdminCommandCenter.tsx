@@ -275,7 +275,36 @@ interface FinanceData {
   [key: string]: unknown;
 }
 
-type Tab = 'live' | 'revenue' | 'clients' | 'events' | 'reconcile' | 'finances' | 'promos';
+type Tab = 'live' | 'revenue' | 'clients' | 'events' | 'reconcile' | 'finances' | 'promos' | 'usage';
+
+// ─── Test Call Stats ──────────────────────────────────────────────────
+interface TestCallStatsData {
+  summary: {
+    total30d: number;
+    totalToday: number;
+    totalDurationSec30d: number;
+    avgDurationSec30d: number;
+    totalCost30d: number;
+    completionRate30d: number;
+    onboardingCount: number;
+    postOnboardingCount: number;
+  };
+  byAgent: { slug: string; label: string; count: number; avgDurationSec: number; completionRate: number }[];
+  byStatus: { status: string; count: number }[];
+  chartByDay: { date: string; testCalls: number; regularCalls: number; avgDurationMin: number }[];
+  avgDurationByAgent: { slug: string; label: string; avgDurationSec: number }[];
+  topCompanies: {
+    companyId: string; companyName: string; testCount: number;
+    avgDurationSec: number; onboardingTests: number; postOnboardingTests: number; lastTestAt: string;
+  }[];
+  recentCalls: {
+    id: string; bland_call_id: string; agent_slug: string; agent_label: string; agent_name: string;
+    phone_number_masked: string; status: string; duration_seconds: number; is_onboarding: boolean;
+    bland_cost: number; answered_by: string; created_at: string; completed_at: string;
+    company_id: string; company_name: string;
+  }[];
+  sevenDayCount: number;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface AccountingData {
@@ -416,6 +445,14 @@ export default function AdminCommandCenter() {
   const [accountingData, setAccountingData] = useState<AccountingData | null>(null);
   const [accountingPeriod, setAccountingPeriod] = useState('current');
   const [openAIUsageData, setOpenAIUsageData] = useState<OpenAIUsageData | null>(null);
+  const [testCallStats, setTestCallStats] = useState<TestCallStatsData | null>(null);
+
+  const fetchTestCallStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/test-call-stats');
+      if (res.ok) setTestCallStats(await res.json());
+    } catch (e) { console.error('fetchTestCallStats', e); }
+  }, []);
 
   // Auto-refresh health data every 30 seconds
   const fetchHealth = useCallback(async () => {
@@ -622,7 +659,8 @@ export default function AdminCommandCenter() {
       if (!openAIUsageData) fetchOpenAIUsage();
       if (!financeData) fetchFinances(accountingPeriod);
     }
-  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, accountingData, openAIUsageData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, fetchAccounting, fetchOpenAIUsage, eventsFilter, accountingPeriod]);
+    if (tab === 'usage' && !testCallStats) fetchTestCallStats();
+  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, accountingData, openAIUsageData, testCallStats, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, fetchAccounting, fetchOpenAIUsage, fetchTestCallStats, eventsFilter, accountingPeriod]);
 
 
   // ─── Sorted/filtered clients ──────────────────────────────────────
@@ -723,6 +761,7 @@ export default function AdminCommandCenter() {
             { id: 'live' as Tab, label: 'Live' },
             { id: 'revenue' as Tab, label: 'Revenue' },
             { id: 'clients' as Tab, label: t.admin.commandCenter?.tabClients || 'Clients' },
+            { id: 'usage' as Tab, label: 'Usage & Tests' },
             { id: 'promos' as Tab, label: 'Promos' },
             { id: 'finances' as Tab, label: 'Finances' },
             { id: 'events' as Tab, label: 'Events' },
@@ -2220,6 +2259,287 @@ export default function AdminCommandCenter() {
           })()}
         </div>
       )}
+      {/* ════════════════════════════════════════════════════════════════
+          TAB: USAGE & TESTS — Daily call activity + test call analytics
+         ════════════════════════════════════════════════════════════════ */}
+      {tab === 'usage' && (
+        <div className="space-y-6">
+          {!testCallStats ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="w-8 h-8 border border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-sm text-[var(--color-neutral-500)]">Loading test call analytics...</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* ── KPI Summary ── */}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                <KPICard label="Tests (30d)" value={String(testCallStats.summary.total30d)} color="indigo" />
+                <KPICard label="Tests Today" value={String(testCallStats.summary.totalToday)} color="violet" />
+                <KPICard label="Tests (7d)" value={String(testCallStats.sevenDayCount)} color="purple" />
+                <KPICard label="Avg Duration" value={`${Math.floor(testCallStats.summary.avgDurationSec30d / 60)}m ${testCallStats.summary.avgDurationSec30d % 60}s`} color="blue" />
+                <KPICard label="Completion %" value={`${testCallStats.summary.completionRate30d}%`} color="emerald" />
+                <KPICard label="Bland Cost (30d)" value={`$${testCallStats.summary.totalCost30d.toFixed(4)}`} color="amber" />
+                <KPICard label="Onboarding" value={String(testCallStats.summary.onboardingCount)} color="teal" sub="of all 30d tests" />
+                <KPICard label="Post-Onboarding" value={String(testCallStats.summary.postOnboardingCount)} color="slate" sub="of all 30d tests" />
+              </div>
+
+              {/* ── Row: Daily Chart + Agent Breakdown ── */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Daily test + regular calls chart */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-4">
+                    Daily Activity — Test vs Regular Calls (30d)
+                  </h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={testCallStats.chartByDay} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={4} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip
+                        contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                        formatter={(v: number, name: string) => [v, name === 'testCalls' ? 'Test Calls' : 'Regular Calls']}
+                      />
+                      <Bar dataKey="regularCalls" name="Regular Calls" fill="#e0e7ff" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="testCalls" name="Test Calls" fill="#6366f1" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Agent distribution */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-4">
+                    Test Calls by Agent Type (30d)
+                  </h3>
+                  {testCallStats.byAgent.length > 0 ? (
+                    <div className="space-y-3">
+                      {testCallStats.byAgent.map(a => {
+                        const pct = testCallStats.summary.total30d > 0
+                          ? Math.round((a.count / testCallStats.summary.total30d) * 100) : 0;
+                        const barColor = a.slug === 'lead-qualification' ? 'bg-indigo-500'
+                          : a.slug === 'data-validation' ? 'bg-emerald-500' : 'bg-blue-500';
+                        return (
+                          <div key={a.slug}>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="font-medium text-[var(--color-ink)]">{a.label}</span>
+                              <span className="text-[var(--color-neutral-500)]">
+                                {a.count} calls · avg {Math.floor(a.avgDurationSec / 60)}m{a.avgDurationSec % 60}s · {a.completionRate}% complete
+                              </span>
+                            </div>
+                            <div className="h-2 bg-[var(--color-neutral-100)] rounded-full">
+                              <div className={`h-2 rounded-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[var(--color-neutral-400)] text-center py-8">No test calls yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Row: Status breakdown + Onboarding split ── */}
+              <div className="grid md:grid-cols-3 gap-4">
+                {/* Status pie */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-4">Call Status (30d)</h3>
+                  {testCallStats.byStatus.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={180}>
+                      <PieChart>
+                        <Pie
+                          data={testCallStats.byStatus}
+                          dataKey="count" nameKey="status"
+                          cx="50%" cy="50%" outerRadius={70} label={({ status, percent }) => `${status} ${(percent * 100).toFixed(0)}%`}
+                          labelLine={false}
+                        >
+                          {testCallStats.byStatus.map((entry, i) => (
+                            <Cell key={i} fill={
+                              entry.status === 'completed' ? '#10b981' :
+                              entry.status === 'failed' ? '#ef4444' :
+                              entry.status === 'no_answer' ? '#f59e0b' :
+                              entry.status === 'voicemail' ? '#8b5cf6' :
+                              entry.status === 'initiated' ? '#6366f1' : '#94a3b8'
+                            } />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(v: number, name: string) => [v, name]} contentStyle={{ fontSize: 12 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-sm text-[var(--color-neutral-400)] text-center py-8">No data</p>
+                  )}
+                </div>
+
+                {/* Onboarding vs Post */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-4">Context (30d)</h3>
+                  <div className="space-y-4 mt-2">
+                    {[
+                      { label: 'Onboarding tests', count: testCallStats.summary.onboardingCount, color: 'bg-violet-500', textColor: 'text-violet-700' },
+                      { label: 'Post-onboarding tests', count: testCallStats.summary.postOnboardingCount, color: 'bg-indigo-400', textColor: 'text-indigo-700' },
+                    ].map(row => {
+                      const total = testCallStats.summary.total30d;
+                      const pct = total > 0 ? Math.round((row.count / total) * 100) : 0;
+                      return (
+                        <div key={row.label}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className={`font-semibold ${row.textColor}`}>{row.label}</span>
+                            <span className="font-bold">{row.count} ({pct}%)</span>
+                          </div>
+                          <div className="h-2 bg-[var(--color-neutral-100)] rounded-full">
+                            <div className={`h-2 rounded-full ${row.color}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="mt-4 p-3 bg-[var(--color-neutral-50)] rounded-lg text-xs text-[var(--color-neutral-500)]">
+                      <span className="font-bold">Avg duration (completed):</span>{' '}
+                      {testCallStats.avgDurationByAgent.map(a =>
+                        `${a.label}: ${Math.floor(a.avgDurationSec / 60)}m${a.avgDurationSec % 60}s`
+                      ).join(' · ')}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Avg duration by agent bar */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] p-5">
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-4">Avg Duration by Agent (completed)</h3>
+                  {testCallStats.avgDurationByAgent.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={testCallStats.avgDurationByAgent} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-default)" />
+                        <XAxis type="number" tick={{ fontSize: 10 }} unit="s" />
+                        <YAxis type="category" dataKey="label" tick={{ fontSize: 10 }} width={120} />
+                        <Tooltip formatter={(v: number) => [`${Math.floor(v / 60)}m ${v % 60}s`, 'Avg Duration']} contentStyle={{ fontSize: 12 }} />
+                        <Bar dataKey="avgDurationSec" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-sm text-[var(--color-neutral-400)] text-center py-8">No completed calls yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Top Companies ── */}
+              <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                <div className="px-5 py-3 border-b border-[var(--border-default)] bg-[var(--color-neutral-50)]">
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide">Top Companies by Test Usage (30d)</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                        <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Company</th>
+                        <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Total Tests</th>
+                        <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Onboarding</th>
+                        <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Post-Onboarding</th>
+                        <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Avg Duration</th>
+                        <th className="text-right py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Last Test</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {testCallStats.topCompanies.length === 0 ? (
+                        <tr><td colSpan={6} className="text-center py-8 text-[var(--color-neutral-400)]">No test calls recorded yet</td></tr>
+                      ) : testCallStats.topCompanies.map(c => (
+                        <tr key={c.companyId} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                          <td className="py-3 px-4 font-medium text-[var(--color-ink)]">{c.companyName}</td>
+                          <td className="text-center py-3 px-3">
+                            <span className="font-bold text-indigo-700">{c.testCount}</span>
+                          </td>
+                          <td className="text-center py-3 px-3 text-violet-600 font-semibold">{c.onboardingTests}</td>
+                          <td className="text-center py-3 px-3 text-indigo-500 font-semibold">{c.postOnboardingTests}</td>
+                          <td className="text-center py-3 px-3 text-[var(--color-neutral-600)]">
+                            {Math.floor(c.avgDurationSec / 60)}m {c.avgDurationSec % 60}s
+                          </td>
+                          <td className="text-right py-3 px-4 text-[var(--color-neutral-400)] text-xs">
+                            {new Date(c.lastTestAt).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* ── Recent Test Calls Log ── */}
+              <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                <div className="px-5 py-3 border-b border-[var(--border-default)] bg-[var(--color-neutral-50)] flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide">Recent Test Calls (last 100)</h3>
+                  <button
+                    onClick={fetchTestCallStats}
+                    className="text-xs text-[var(--color-primary)] hover:underline font-medium"
+                  >Refresh</button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                        <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Company</th>
+                        <th className="text-left py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Agent</th>
+                        <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Status</th>
+                        <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Duration</th>
+                        <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Context</th>
+                        <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Answered By</th>
+                        <th className="text-center py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
+                        <th className="text-right py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {testCallStats.recentCalls.length === 0 ? (
+                        <tr><td colSpan={8} className="text-center py-8 text-[var(--color-neutral-400)]">No test calls recorded yet</td></tr>
+                      ) : testCallStats.recentCalls.map(call => (
+                        <tr key={call.id} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                          <td className="py-2.5 px-4 font-medium text-[var(--color-ink)] max-w-[160px] truncate" title={call.company_name}>
+                            {call.company_name}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <div className="text-[var(--color-ink)]">{call.agent_label}</div>
+                            {call.agent_name && <div className="text-[10px] text-[var(--color-neutral-400)]">{call.agent_name}</div>}
+                          </td>
+                          <td className="text-center py-2.5 px-3">
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                              call.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                              call.status === 'failed' ? 'bg-red-100 text-red-700' :
+                              call.status === 'initiated' ? 'bg-indigo-100 text-indigo-700' :
+                              call.status === 'no_answer' ? 'bg-amber-100 text-amber-700' :
+                              call.status === 'voicemail' ? 'bg-violet-100 text-violet-700' :
+                              'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)]'
+                            }`}>
+                              {call.status}
+                            </span>
+                          </td>
+                          <td className="text-center py-2.5 px-3 tabular-nums text-[var(--color-neutral-600)]">
+                            {call.duration_seconds > 0
+                              ? `${Math.floor(call.duration_seconds / 60)}m${call.duration_seconds % 60}s`
+                              : '—'}
+                          </td>
+                          <td className="text-center py-2.5 px-3">
+                            <span className={`text-[11px] font-semibold ${call.is_onboarding ? 'text-violet-600' : 'text-indigo-500'}`}>
+                              {call.is_onboarding ? 'Onboarding' : 'Post-onboarding'}
+                            </span>
+                          </td>
+                          <td className="text-center py-2.5 px-3 text-[var(--color-neutral-500)] text-xs">
+                            {call.answered_by || '—'}
+                          </td>
+                          <td className="text-center py-2.5 px-3 text-[var(--color-neutral-500)] text-xs">
+                            {call.bland_cost > 0 ? `$${Number(call.bland_cost).toFixed(4)}` : '—'}
+                          </td>
+                          <td className="text-right py-2.5 px-4 text-[var(--color-neutral-400)] text-xs whitespace-nowrap">
+                            {new Date(call.created_at).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* ════════════════════════════════════════════════════════════════
           TAB: PROMO CODES — Stripe Promotion Codes, Coupons & Redemptions
          ════════════════════════════════════════════════════════════════ */}
