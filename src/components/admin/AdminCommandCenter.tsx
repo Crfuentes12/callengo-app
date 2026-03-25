@@ -2558,16 +2558,16 @@ export default function AdminCommandCenter() {
                         <XAxis
                           dataKey="date"
                           fontSize={10}
-                          tickFormatter={(v: string) => {
-                            const d = new Date(v);
+                          tickFormatter={(v) => {
+                            const d = new Date(String(v));
                             return `${d.getMonth() + 1}/${d.getDate()}`;
                           }}
                           interval={6}
                         />
-                        <YAxis fontSize={10} tickFormatter={(v: number) => `$${v.toFixed(4)}`} width={60} />
+                        <YAxis fontSize={10} tickFormatter={(v) => `$${(Number(v) || 0).toFixed(4)}`} width={60} />
                         <Tooltip
                           formatter={(v) => [`$${(Number(v) || 0).toFixed(6)}`, 'Cost']}
-                          labelFormatter={(label: string) => new Date(label).toLocaleDateString()}
+                          labelFormatter={(label) => new Date(String(label)).toLocaleDateString()}
                         />
                         <Area
                           type="monotone"
