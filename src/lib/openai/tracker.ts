@@ -26,25 +26,25 @@ export const getDefaultModel = (): string =>
 
 /** Premium model for high-accuracy production call analysis. Override via OPENAI_MODEL_PREMIUM env var. */
 export const getPremiumModel = (): string =>
-  process.env.OPENAI_MODEL_PREMIUM ?? 'gpt-4o';
+  process.env.OPENAI_MODEL_PREMIUM ?? process.env.OPENAI_MODEL ?? 'gpt-4o';
 
 // ─── Human-readable labels for each feature key ──────────────────────────────
 
 export const KEY_LABELS: Record<FeatureKey, string> = {
-  call_analysis:    'Call Analysis Key',
-  demo_analysis:    'Call Analysis Key',
-  contact_analysis: 'Contact Analysis Key',
-  onboarding:       'Contact Analysis Key',
+  call_analysis:    'Default Key',
+  demo_analysis:    'Default Key',
+  contact_analysis: 'Default Key',
+  onboarding:       'Default Key',
   cali_ai:          'Cali AI Key',
 };
 
 // ─── Env var mapping: feature → preferred key env var ────────────────────────
 
 const KEY_MAP: Record<FeatureKey, string> = {
-  call_analysis:    'OPENAI_API_KEY_CALL_ANALYSIS',
-  demo_analysis:    'OPENAI_API_KEY_CALL_ANALYSIS',
-  contact_analysis: 'OPENAI_API_KEY_CONTACT_ANALYSIS',
-  onboarding:       'OPENAI_API_KEY_CONTACT_ANALYSIS',
+  call_analysis:    'OPENAI_API_KEY',
+  demo_analysis:    'OPENAI_API_KEY',
+  contact_analysis: 'OPENAI_API_KEY',
+  onboarding:       'OPENAI_API_KEY',
   cali_ai:          'OPENAI_API_KEY_CALI_AI',
 };
 
@@ -87,7 +87,8 @@ export function calculateOpenAICost(
 
 /**
  * Returns an OpenAI SDK instance using the per-feature key if set,
- * falling back to OPENAI_API_KEY for backwards compatibility.
+ * falling back to OPENAI_API_KEY. For cali_ai, tries OPENAI_API_KEY_CALI_AI
+ * first for rate limit isolation, then falls back to OPENAI_API_KEY.
  */
 export function getOpenAIClient(feature: FeatureKey): OpenAI {
   const preferredKeyVar = KEY_MAP[feature];
