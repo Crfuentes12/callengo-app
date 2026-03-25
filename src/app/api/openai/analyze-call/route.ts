@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { expensiveLimiter } from '@/lib/rate-limit';
-import { getOpenAIClient, trackOpenAIUsage } from '@/lib/openai/tracker';
+import { getOpenAIClient, trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 
 const openai = getOpenAIClient('demo_analysis');
 
@@ -88,7 +88,7 @@ Format your response as JSON with this EXACT structure:
 IMPORTANT: Extract ACTUAL data from the conversation. If the customer mentioned their email is "john@company.com", put that exact email. If they said they have 50 employees, put "50". Be specific and actionable.`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [
         {
           role: 'system',
@@ -107,33 +107,34 @@ IMPORTANT: Extract ACTUAL data from the conversation. If the customer mentioned 
     const analysis = JSON.parse(analysisText || '{}');
 
     // Fetch companyId for tracking (non-blocking)
-    supabase
-      .from('users')
-      .select('company_id')
-      .eq('id', user.id)
-      .single()
-      .then(({ data: ud }: { data: { company_id: string } | null; error: unknown }) => {
+    void (async () => {
+      try {
+        const { data: ud } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
         trackOpenAIUsage({
           featureKey: 'demo_analysis',
-          model: 'gpt-4o-mini',
+          model: getDefaultModel(),
           inputTokens: completion.usage?.prompt_tokens ?? 0,
           outputTokens: completion.usage?.completion_tokens ?? 0,
-          companyId: ud?.company_id ?? null,
+          companyId: (ud as { company_id: string } | null)?.company_id ?? null,
           userId: user.id,
           metadata: { endpoint: 'openai/analyze-call' },
         });
-      })
-      .catch(() => {
+      } catch {
         trackOpenAIUsage({
           featureKey: 'demo_analysis',
-          model: 'gpt-4o-mini',
+          model: getDefaultModel(),
           inputTokens: completion.usage?.prompt_tokens ?? 0,
           outputTokens: completion.usage?.completion_tokens ?? 0,
           companyId: null,
           userId: user.id,
           metadata: { endpoint: 'openai/analyze-call' },
         });
-      });
+      }
+    })();
 
     return NextResponse.json({
       success: true,

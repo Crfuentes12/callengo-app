@@ -2,7 +2,7 @@
 // Semantic intent analysis using OpenAI GPT-4o-mini
 // Replaces brittle keyword-based detection with robust AI classification
 
-import { getOpenAIClient, trackOpenAIUsage } from '@/lib/openai/tracker';
+import { getOpenAIClient, trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 
 const openai = getOpenAIClient('call_analysis');
 
@@ -104,7 +104,7 @@ Be accurate and avoid false positives. Only classify as "confirmed" if there's c
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [
         {
           role: 'system',
@@ -118,7 +118,7 @@ Be accurate and avoid false positives. Only classify as "confirmed" if there's c
 
     trackOpenAIUsage({
       featureKey: 'call_analysis',
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       inputTokens: completion.usage?.prompt_tokens ?? 0,
       outputTokens: completion.usage?.completion_tokens ?? 0,
       companyId: null,
@@ -191,7 +191,7 @@ For meetingTime: Extract any agreed-upon meeting/demo time and convert to ISO 86
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [
         {
           role: 'system',
@@ -205,7 +205,7 @@ For meetingTime: Extract any agreed-upon meeting/demo time and convert to ISO 86
 
     trackOpenAIUsage({
       featureKey: 'call_analysis',
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       inputTokens: completion.usage?.prompt_tokens ?? 0,
       outputTokens: completion.usage?.completion_tokens ?? 0,
       companyId: null,
@@ -305,7 +305,7 @@ IMPORTANT: Extract EVERY piece of information mentioned in the conversation, eve
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [
         {
           role: 'system',
@@ -319,7 +319,7 @@ IMPORTANT: Extract EVERY piece of information mentioned in the conversation, eve
 
     trackOpenAIUsage({
       featureKey: 'call_analysis',
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       inputTokens: completion.usage?.prompt_tokens ?? 0,
       outputTokens: completion.usage?.completion_tokens ?? 0,
       companyId: null,

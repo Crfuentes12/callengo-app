@@ -1,7 +1,7 @@
 // app/api/openai/context-suggestions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { getOpenAIClient, trackOpenAIUsage } from '@/lib/openai/tracker';
+import { getOpenAIClient, trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 import { expensiveLimiter } from '@/lib/rate-limit';
 
 const openai = getOpenAIClient('contact_analysis');
@@ -54,7 +54,7 @@ Respond in JSON format:
 { "suggestions": [{ "title": "Short Title", "detail": "Detailed context paragraph..." }, ...] }`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: getDefaultModel(),
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.8,
       max_tokens: 800,
@@ -72,7 +72,7 @@ Respond in JSON format:
       .then(({ data: ud }: { data: { company_id: string } | null; error: unknown }) => {
         trackOpenAIUsage({
           featureKey: 'contact_analysis',
-          model: 'gpt-4o-mini',
+          model: getDefaultModel(),
           inputTokens: completion.usage?.prompt_tokens ?? 0,
           outputTokens: completion.usage?.completion_tokens ?? 0,
           companyId: ud?.company_id ?? null,
@@ -83,7 +83,7 @@ Respond in JSON format:
       .catch(() => {
         trackOpenAIUsage({
           featureKey: 'contact_analysis',
-          model: 'gpt-4o-mini',
+          model: getDefaultModel(),
           inputTokens: completion.usage?.prompt_tokens ?? 0,
           outputTokens: completion.usage?.completion_tokens ?? 0,
           companyId: null,

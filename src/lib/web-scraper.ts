@@ -3,7 +3,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import dns from 'dns/promises';
 import { isIP } from 'net';
-import { trackOpenAIUsage } from '@/lib/openai/tracker';
+import { trackOpenAIUsage, getDefaultModel } from '@/lib/openai/tracker';
 
 interface ScrapedData {
   title: string;
@@ -192,7 +192,7 @@ Examples of good responses: "Acme Corporation", "TechFlow", "Blue Ocean Ventures
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: getDefaultModel(),
         messages: [
           { role: 'system', content: 'You are an expert at identifying company names from website data. Return only the company name, nothing else.' },
           { role: 'user', content: prompt }
@@ -250,7 +250,7 @@ Focus on: what they do, who they serve, and their main value proposition.`;
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: getDefaultModel(),
         messages: [
           { role: 'system', content: 'You are a business analyst creating concise company summaries.' },
           { role: 'user', content: prompt }
@@ -306,7 +306,7 @@ Examples of good responses: "Technology", "Healthcare", "E-commerce", "Financial
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: getDefaultModel(),
         messages: [
           { role: 'system', content: 'You are an industry classification expert. Return only the industry name, 2-3 words maximum.' },
           { role: 'user', content: prompt }

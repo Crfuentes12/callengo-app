@@ -1,7 +1,7 @@
 // app/api/bland/analyze-call/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { trackOpenAIUsage } from '@/lib/openai/tracker';
+import { trackOpenAIUsage, getPremiumModel } from '@/lib/openai/tracker';
 
 interface CallAnalysisResult {
   verifiedAddress: string | null;
@@ -105,7 +105,7 @@ Extract all relevant information accurately.`;
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: getPremiumModel(),
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
