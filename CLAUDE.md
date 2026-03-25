@@ -241,7 +241,7 @@ npm run stripe:sync:dry        # Dry-run para ver qué cambiaría
 
 ## Admin Command Center (`/admin/command-center`)
 
-Panel de monitoreo en tiempo real para el owner de la plataforma. 6 tabs:
+Panel de monitoreo en tiempo real para el owner de la plataforma. 7 tabs:
 
 | Tab | Contenido |
 |-----|-----------|
@@ -250,10 +250,12 @@ Panel de monitoreo en tiempo real para el owner de la plataforma. 6 tabs:
 | **Clients** | Lista de empresas con usage, profit, Bland cost, add-ons, sortable/searchable |
 | **Billing Events** | Log paginado de eventos billing (pagos, overages, créditos, cancelaciones) |
 | **Reconciliation** | Comparación minutos reales vs tracked, detección de discrepancias |
-| **Finances** | P&L con revenue, costs (Bland, OpenAI, Supabase), gross margin, Bland master account info |
+| **Finances** | P&L con revenue, costs (Bland, OpenAI, Supabase), gross margin, Bland master account info; OpenAI usage panel (cost by feature, daily trend, model breakdown, recent API call logs) |
+| **AI Costs** | Totales 30d (costo, requests, tokens, avg costo/request), desglose por feature, chart de tendencia diaria, desglose por modelo, log de últimas 50 llamadas a OpenAI API |
 
 **API:** `GET /api/admin/command-center` (read) + `POST /api/admin/command-center` (save Bland plan)
-**Componente:** `src/components/admin/AdminCommandCenter.tsx`
+**Componente:** `src/components/admin/AdminCommandCenter.tsx` (~1,200 líneas — 7 tabs)
+**AI Costs API:** `GET /api/admin/openai-usage` (totales 30d, por feature, por modelo, chart diario, últimos 50 logs)
 **Acceso:** Solo roles `admin` y `owner`
 
 ---
@@ -337,6 +339,9 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 - Componentes muy grandes que dificultan el mantenimiento (AgentConfigModal, IntegrationsPage)
 - Falta de tests automatizados (no hay test runner configurado)
 
+### Corregidos (25 Marzo 2026)
+- ~~**Email en GA4/PostHog como PII**~~ — Email reemplazado por UUID de Supabase en `AnalyticsProvider`, `PostHogProvider`, `analytics.ts`, `posthog.ts` y `(app)/layout.tsx` (25 Marzo 2026)
+
 ### Corregidos (23 Marzo 2026 — auditoría producción completa, 15 fixes)
 - ~~**Tokens OAuth en plaintext**~~ — Encriptados con AES-256-GCM (`src/lib/encryption.ts`), 11 proveedores cubiertos
 - ~~**users RLS permitía auto-cambio de company_id/email**~~ — Trigger `trg_prevent_sensitive_field_changes` bloquea cambios
@@ -363,7 +368,7 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 
 ---
 
-## Variables de Entorno (53 vars)
+## Variables de Entorno (59 vars)
 
 Referencia completa en `.env.example` (raíz del proyecto). Copiar a `.env.local` para desarrollo local. En producción, configurar en Vercel → Environment Variables.
 
@@ -380,7 +385,13 @@ Referencia completa en `.env.example` (raíz del proyecto). Copiar a `.env.local
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`) |
 | `BLAND_API_KEY` | Master API key de Bland AI (una sola para todas las empresas) |
 | `BLAND_WEBHOOK_SECRET` | HMAC-SHA256 para verificación de webhooks Bland |
-| `OPENAI_API_KEY` | OpenAI API key para GPT-4o-mini (análisis post-llamada) |
+| `OPENAI_API_KEY` | OpenAI API key base (fallback para todos los features si no hay key específica) |
+| `OPENAI_API_KEY_CALL_ANALYSIS` | OpenAI key para análisis de transcripciones de llamadas (fallback: `OPENAI_API_KEY`) |
+| `OPENAI_API_KEY_CONTACT_ANALYSIS` | OpenAI key para contact quality, agent suggestions, web scraper y onboarding (fallback: `OPENAI_API_KEY`) |
+| `OPENAI_API_KEY_CALI_AI` | OpenAI key para Cali AI assistant (fallback: `OPENAI_API_KEY`) |
+| `OPENAI_WEBHOOK_SECRET` | HMAC-SHA256 secret para verificación de webhooks OpenAI |
+| `OPENAI_MODEL` | Override del modelo por defecto (default: `gpt-4o-mini`) |
+| `OPENAI_MODEL_PREMIUM` | Modelo premium para análisis profundo de llamadas (default: `gpt-4o`) |
 | `UPSTASH_REDIS_REST_URL` | URL REST de Upstash Redis |
 | `UPSTASH_REDIS_REST_TOKEN` | Token REST de Upstash Redis |
 | `TOKEN_ENCRYPTION_KEY` | Clave AES-256-GCM para encriptar tokens OAuth. **Exactamente 64 caracteres hex** (32 bytes). Generar: `openssl rand -hex 32` |
@@ -448,8 +459,9 @@ Credenciales OAuth de cada CRM. Tokens de usuario se encriptan con AES-256-GCM a
 7. **Supabase:** Usar `createServerSupabaseClient()` en server-side, `createBrowserSupabaseClient()` en client-side
 8. **No commitear a `main` directamente** — trabajar en branches feature
 9. **Encriptación de tokens:** Usar `encryptToken()` / `decryptToken()` de `src/lib/encryption.ts` para cualquier token OAuth o API key que se guarde en DB. Requiere env var `TOKEN_ENCRYPTION_KEY`.
-10. **Migraciones DB:** 45 migraciones en `supabase/migrations/`. Última: `20260323000002_production_audit_fixes.sql`. Usar prefijo timestamp para nuevas migraciones.
+10. **Migraciones DB:** 46 migraciones en `supabase/migrations/`. Última: `20260325000001_openai_usage_tracking.sql`. Usar prefijo timestamp para nuevas migraciones.
 11. **Variables de entorno:** Referencia completa en `.env.example`. Si se agrega una nueva env var, actualizar también `.env.example` con documentación.
+12. **OpenAI client:** Usar `getOpenAIClient(featureKey)` de `src/lib/openai/tracker.ts` para instanciar OpenAI. No instanciar directamente. Usar `getDefaultModel()` / `getPremiumModel()` en lugar de hardcodear nombres de modelo.
 
 ---
 
