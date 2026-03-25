@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from '@/i18n';
+import { DataValidationIcon, AppointmentConfirmationIcon, LeadQualificationIcon } from '@/components/agents/AgentTypeIcon';
 
 interface Pain {
   id: string;
@@ -36,17 +37,7 @@ const PAIN_CONFIG = [
     titleKey: 'cleanDatabase' as const,
     descriptionKey: 'cleanDatabaseDesc' as const,
     valueKey: 'cleanDatabaseValue' as const,
-    icon: (
-      <svg viewBox="0 0 56 56" fill="none" className="w-14 h-14" strokeLinecap="round" strokeLinejoin="round">
-        {/* Database cylinder */}
-        <ellipse cx="28" cy="14" rx="16" ry="5" stroke="currentColor" strokeWidth="2.2" />
-        <path d="M12 14v28c0 2.76 7.16 5 16 5s16-2.24 16-5V14" stroke="currentColor" strokeWidth="2.2" />
-        <ellipse cx="28" cy="28" rx="16" ry="5" stroke="currentColor" strokeWidth="2.2" />
-        {/* Checkmark badge overlay */}
-        <circle cx="42" cy="42" r="10" fill="#10b981" />
-        <path d="M38 42l3 3 6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    icon: <DataValidationIcon className="w-14 h-14" />,
   },
   {
     id: 'appointment-confirmation',
@@ -63,19 +54,7 @@ const PAIN_CONFIG = [
     titleKey: 'stopNoShows' as const,
     descriptionKey: 'stopNoShowsDesc' as const,
     valueKey: 'stopNoShowsValue' as const,
-    icon: (
-      <svg viewBox="0 0 56 56" fill="none" className="w-14 h-14" strokeLinecap="round" strokeLinejoin="round">
-        {/* Calendar */}
-        <rect x="8" y="14" width="34" height="30" rx="4" stroke="currentColor" strokeWidth="2.2" />
-        <path d="M8 22h34" stroke="currentColor" strokeWidth="2.2" />
-        <path d="M18 10v8M30 10v8" stroke="currentColor" strokeWidth="2.2" />
-        {/* Ghost / X cross-out */}
-        <path d="M16 30l8 8M24 30l-8 8" stroke="#ef4444" strokeWidth="2" opacity="0.6" />
-        {/* Ringing phone badge */}
-        <circle cx="42" cy="42" r="10" fill="#3b82f6" />
-        <path d="M38.5 39.5c.5 1.2 1.5 2.3 2.7 2.8l1.4-1.4a.7.7 0 0 1 .8-.1l2 .8a.7.7 0 0 1 .5.7v2a.7.7 0 0 1-.8.7c-6-.7-10.5-5.4-11.2-11.4a.7.7 0 0 1 .7-.6h2c.3 0 .6.2.7.5l.8 2a.7.7 0 0 1-.1.8l-1.5 1.2z" fill="white" />
-      </svg>
-    ),
+    icon: <AppointmentConfirmationIcon className="w-14 h-14" />,
   },
   {
     id: 'lead-qualification',
@@ -92,21 +71,7 @@ const PAIN_CONFIG = [
     titleKey: 'qualifyLeads' as const,
     descriptionKey: 'qualifyLeadsDesc' as const,
     valueKey: 'qualifyLeadsValue' as const,
-    icon: (
-      <svg viewBox="0 0 56 56" fill="none" className="w-14 h-14" strokeLinecap="round" strokeLinejoin="round">
-        {/* Funnel */}
-        <path d="M10 12h36l-14 18v12l-8-4V30L10 12z" stroke="currentColor" strokeWidth="2.2" />
-        {/* People/dots at top (many unqualified) */}
-        <circle cx="16" cy="8" r="2.5" fill="currentColor" opacity="0.35" />
-        <circle cx="22" cy="7" r="2.5" fill="currentColor" opacity="0.35" />
-        <circle cx="28" cy="8" r="2.5" fill="currentColor" opacity="0.35" />
-        <circle cx="34" cy="7" r="2.5" fill="currentColor" opacity="0.35" />
-        <circle cx="40" cy="8" r="2.5" fill="currentColor" opacity="0.35" />
-        {/* Star badge - qualified lead */}
-        <circle cx="42" cy="42" r="10" fill="#4f46e5" />
-        <path d="M42 36l1.5 3.5 3.5.5-2.5 2.5.5 3.5-3-1.5-3 1.5.5-3.5-2.5-2.5 3.5-.5z" fill="white" />
-      </svg>
-    ),
+    icon: <LeadQualificationIcon className="w-14 h-14" />,
   },
 ];
 
