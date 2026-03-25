@@ -191,18 +191,21 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
   const [contactsTourLoaded, setContactsTourLoaded] = useState(false);
 
   useEffect(() => {
-    supabase.from('company_settings')
-      .select('settings')
-      .eq('company_id', companyId)
-      .single()
-      .then(({ data }) => {
+    const loadTourState = async () => {
+      try {
+        const { data } = await supabase.from('company_settings')
+          .select('settings')
+          .eq('company_id', companyId)
+          .single();
         if (data?.settings) {
           const s = data.settings as Record<string, unknown>;
           setContactsTourSeen(!!(s.tour_contacts_seen as boolean));
         }
+      } catch { /* non-critical */ } finally {
         setContactsTourLoaded(true);
-      })
-      .catch(() => setContactsTourLoaded(true));
+      }
+    };
+    loadTourState();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
