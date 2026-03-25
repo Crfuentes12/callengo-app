@@ -186,6 +186,37 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
 
   const supabase = createClient();
 
+  // Contacts page guided tour — fetched from company_settings.settings JSONB
+  const [contactsTourSeen, setContactsTourSeen] = useState(false);
+  const [contactsTourLoaded, setContactsTourLoaded] = useState(false);
+
+  useEffect(() => {
+    supabase.from('company_settings')
+      .select('settings')
+      .eq('company_id', companyId)
+      .single()
+      .then(({ data }) => {
+        if (data?.settings) {
+          const s = data.settings as Record<string, unknown>;
+          setContactsTourSeen(!!(s.tour_contacts_seen as boolean));
+        }
+        setContactsTourLoaded(true);
+      })
+      .catch(() => setContactsTourLoaded(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, []);
+
+  const dismissContactsTour = async () => {
+    setContactsTourSeen(true);
+    try {
+      const { data } = await supabase.from('company_settings').select('settings').eq('company_id', companyId).single();
+      const currentSettings = (data?.settings as Record<string, unknown>) || {};
+      await supabase.from('company_settings')
+        .update({ settings: { ...currentSettings, tour_contacts_seen: true } })
+        .eq('company_id', companyId);
+    } catch { /* non-critical */ }
+  };
+
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Date.now();
     setToasts(prev => [...prev, { id, message, type }]);
@@ -589,6 +620,57 @@ export default function ContactsManager({ initialContacts, initialTotalCount, in
 
   return (
     <div className="space-y-5">
+      {/* Contacts Guided Tour Banner — shown once, dismissed to Supabase */}
+      {contactsTourLoaded && !contactsTourSeen && (
+        <div className="rounded-xl border border-[var(--color-primary)]/20 overflow-hidden" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #faf5ff 100%)' }}>
+          <div className="px-5 py-4 flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-[var(--color-primary)] mb-2">Welcome to Contacts</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                {[
+                  ['Add manually', 'Click "+ Add Contacts" → "Add Manually" to enter contacts one by one'],
+                  ['Import CSV / Excel', 'Upload a spreadsheet — we auto-map your columns to contact fields'],
+                  ['Google Sheets sync', 'Connect a Google Sheet and keep contacts in sync automatically'],
+                  ['Organize with Lists', 'Create lists to segment contacts for targeted campaigns'],
+                  ['Custom fields', 'Open any contact to add extra fields your agent can reference during calls'],
+                  ['CRM sync', 'Connect HubSpot, Salesforce or Pipedrive to pull contacts automatically'],
+                ].map(([title, desc], i) => (
+                  <div key={i} className="flex items-start gap-2 py-1">
+                    <svg className="w-3.5 h-3.5 text-[var(--color-primary)] mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                    <div>
+                      <span className="text-xs font-bold text-[var(--color-ink)]">{title}: </span>
+                      <span className="text-xs text-[var(--color-neutral-600)]">{desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={dismissContactsTour}
+              className="p-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-100)] transition-colors flex-shrink-0"
+              title="Dismiss"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="px-5 py-2 bg-[var(--color-primary)]/5 border-t border-[var(--color-primary)]/10 flex items-center justify-between">
+            <span className="text-[11px] text-[var(--color-neutral-500)]">Tips for getting started with contacts</span>
+            <button onClick={dismissContactsTour} className="text-[11px] font-semibold text-[var(--color-primary)] hover:underline">
+              Got it, don&apos;t show again
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <div className="bg-white rounded-xl p-4 border border-[var(--border-default)]/80 shadow-sm">
