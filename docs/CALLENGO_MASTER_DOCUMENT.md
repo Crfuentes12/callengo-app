@@ -1705,9 +1705,10 @@ The Command Center (`/admin/command-center`) provides real-time monitoring with 
 | notes | text? | |
 | created_at, updated_at | timestamp | |
 
-#### AI Conversation Tables
-- `ai_conversations`: id, user_id, company_id, title, created_at, updated_at
-- `ai_conversation_messages`: id, conversation_id, role, content, created_at
+#### AI Tables
+- `ai_conversations`: id, user_id, company_id, title, created_at, updated_at — Cali AI assistant conversation sessions (user-scoped RLS)
+- `ai_messages`: id, conversation_id, role, content, created_at — Individual messages within Cali AI conversations
+- `openai_usage_logs`: Tracks every OpenAI API call across all features. Columns: id, company_id, user_id, feature_key, api_key_label, model, input_tokens, output_tokens, total_tokens, cost_usd, openai_request_id, metadata, created_at. RLS: admin/owner read-only, service role insert. Feature keys: call_analysis, contact_analysis, cali_ai, onboarding, demo_analysis.
 
 #### CRM Integration Tables
 Each CRM has an integration table + sync log table + contact mapping table:
