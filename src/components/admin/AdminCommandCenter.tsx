@@ -2352,7 +2352,7 @@ export default function AdminCommandCenter() {
                         <Pie
                           data={testCallStats.byStatus}
                           dataKey="count" nameKey="status"
-                          cx="50%" cy="50%" outerRadius={70} label={({ status, percent }) => `${status} ${(percent * 100).toFixed(0)}%`}
+                          cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                           labelLine={false}
                         >
                           {testCallStats.byStatus.map((entry, i) => (
