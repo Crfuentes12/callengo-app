@@ -7,12 +7,16 @@ import { useTranslation } from '@/i18n';
 // Nat — American Female, top-rated voice
 const DEFAULT_VOICE_ID = '13843c96-ab9e-4938-baf3-ad53fcee541d';
 
+// Test call max duration (seconds) — used for auto-advance timeout
+const TEST_CALL_MAX_SECONDS = 3 * 60; // 3 min (matches max_duration: 3 in Bland)
+
 interface AgentConfig {
-  name: string;
+  name: string;         // Female name matching Nat's voice
   color: string;
   tagline: string;
   demoData: Record<string, string>;
   task: string;
+  tips: string[];
 }
 
 interface CallAnalysis {
@@ -41,10 +45,15 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
       Email: 'john.smith@example.com',
       Phone: '+1 (555) 123-4567',
     },
-    task: 'This is a DEMO call to showcase data validation capabilities. Use demo data: TechCorp Solutions, contact John Smith. Be friendly and professional, ask to verify email and phone number. Keep it under 2 minutes.',
+    task: 'You are Vera, an AI data validation agent. This is a DEMO call. Use demo data: TechCorp Solutions, contact John Smith. Be friendly, confirm email john.smith@example.com and phone +1 (555) 123-4567. Keep it under 2 minutes.',
+    tips: [
+      'Try giving a wrong email — watch Vera correct it',
+      'Say the phone is different — she\'ll update it',
+      'Ask her to confirm your job title',
+    ],
   },
   'appointment-confirmation': {
-    name: 'Alex',
+    name: 'Sofia',
     color: 'from-blue-500 to-blue-700',
     tagline: 'Appointment Confirmation Agent',
     demoData: {
@@ -53,10 +62,15 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
       Appointment: 'Tomorrow at 2:00 PM',
       Type: 'Consultation',
     },
-    task: 'This is a DEMO call to showcase appointment confirmation. Use demo data: Healthcare Clinic, appointment tomorrow at 2:00 PM. Confirm the appointment and ask if they need directions. Keep it under 2 minutes.',
+    task: 'You are Sofia, an AI appointment confirmation agent. This is a DEMO call. Use demo data: Healthcare Clinic, appointment tomorrow at 2:00 PM for Robert Taylor. Confirm attendance and offer to reschedule if needed. Keep it under 2 minutes.',
+    tips: [
+      'Say you need to reschedule — watch her handle it',
+      'Confirm you\'ll be there — she\'ll log it',
+      'Ask for the clinic address',
+    ],
   },
   'lead-qualification': {
-    name: 'Max',
+    name: 'Mia',
     color: 'from-indigo-500 to-violet-600',
     tagline: 'Lead Qualification Agent',
     demoData: {
@@ -65,9 +79,70 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
       Source: 'Website Form',
       Interest: 'Enterprise Plan',
     },
-    task: 'This is a DEMO call to showcase lead qualification. Use demo data: Sales Pro Inc, lead from website interested in Enterprise Plan. Ask about budget, timeline, and decision-making authority. Keep it under 2 minutes.',
+    task: 'You are Mia, an AI lead qualification agent. This is a DEMO call. Use demo data: Sales Pro Inc, Alex Martinez from website form interested in Enterprise Plan. Run BANT qualification: Budget, Authority, Need, Timeline. Keep it under 2 minutes.',
+    tips: [
+      'Tell her you have a $10k budget — she\'ll qualify you',
+      'Say you\'re the decision-maker',
+      'Give a vague timeline — see how she probes',
+    ],
   },
 };
+
+// Audio spectrum bar configs — varied timing to simulate speech
+const SPECTRUM_BARS = [
+  { dur: 0.42, delay: 0.00, minH: 15, maxH: 90 },
+  { dur: 0.68, delay: 0.08, minH: 30, maxH: 100 },
+  { dur: 0.35, delay: 0.15, minH: 20, maxH: 75 },
+  { dur: 0.55, delay: 0.05, minH: 40, maxH: 95 },
+  { dur: 0.48, delay: 0.22, minH: 10, maxH: 85 },
+  { dur: 0.72, delay: 0.12, minH: 50, maxH: 100 },
+  { dur: 0.38, delay: 0.30, minH: 25, maxH: 70 },
+  { dur: 0.60, delay: 0.18, minH: 35, maxH: 90 },
+  { dur: 0.45, delay: 0.25, minH: 15, maxH: 80 },
+  { dur: 0.52, delay: 0.08, minH: 45, maxH: 95 },
+  { dur: 0.33, delay: 0.35, minH: 20, maxH: 65 },
+  { dur: 0.65, delay: 0.10, minH: 30, maxH: 100 },
+];
+
+function AudioSpectrum({ active, colorClass }: { active: boolean; colorClass: string }) {
+  return (
+    <>
+      <style>{`
+        @keyframes specBar {
+          0% { transform: scaleY(var(--min-h)); }
+          50% { transform: scaleY(var(--max-h)); }
+          100% { transform: scaleY(var(--min-h)); }
+        }
+        @keyframes specPause {
+          0%, 40% { opacity: 1; }
+          42%, 58% { opacity: 0.15; }
+          60%, 100% { opacity: 1; }
+        }
+      `}</style>
+      <div
+        className={`flex items-end justify-center gap-[3px] h-10 transition-opacity duration-500 ${colorClass} ${active ? 'opacity-100' : 'opacity-20'}`}
+        style={{ animation: active ? 'specPause 3.8s ease-in-out infinite' : 'none' }}
+      >
+        {SPECTRUM_BARS.map((bar, i) => (
+          <div
+            key={i}
+            className="w-[3px] rounded-full bg-current"
+            style={{
+              height: '100%',
+              transformOrigin: 'bottom',
+              '--min-h': `${bar.minH / 100}`,
+              '--max-h': `${bar.maxH / 100}`,
+              transform: `scaleY(${bar.minH / 100})`,
+              animation: active
+                ? `specBar ${bar.dur}s ease-in-out ${bar.delay}s infinite`
+                : 'none',
+            } as React.CSSProperties}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
 
 function PhoneIcon({ className }: { className?: string }) {
   return (
@@ -93,20 +168,40 @@ export default function AgentTestExperience({
   const [loading, setLoading] = useState(false);
   const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
   const [callDuration, setCallDuration] = useState(0);
-  const [_callId, setCallId] = useState<string | null>(null);
+  const [callId, setCallId] = useState<string | null>(null);
   const [callData, setCallData] = useState<Record<string, unknown> | null>(null);
   const [callAnalysis, setCallAnalysis] = useState<CallAnalysis | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasAnalyzedRef = useRef(false);
+  const callIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
       if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
+
+  const stopTimers = () => {
+    if (pollingIntervalRef.current) { clearInterval(pollingIntervalRef.current); pollingIntervalRef.current = null; }
+    if (durationIntervalRef.current) { clearInterval(durationIntervalRef.current); durationIntervalRef.current = null; }
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+  };
+
+  const finishCall = async (data: Record<string, unknown>) => {
+    stopTimers();
+    setCallStatus('ended');
+    if (!hasAnalyzedRef.current) {
+      hasAnalyzedRef.current = true;
+      await analyzeCall(data);
+    } else {
+      setStep('analysis');
+    }
+  };
 
   const startCall = async () => {
     if (!phoneNumber.trim()) {
@@ -153,15 +248,30 @@ ${agentDescription}`;
       }
 
       const data = await response.json();
-      setCallId(data.call_id);
+      const id = data.call_id;
+      setCallId(id);
+      callIdRef.current = id;
       setCallStatus('ringing');
 
-      pollingIntervalRef.current = setInterval(() => pollCallStatus(data.call_id), 2000);
+      // Poll Bland for call status every 2 seconds
+      pollingIntervalRef.current = setInterval(() => {
+        if (callIdRef.current) pollCallStatus(callIdRef.current);
+      }, 2000);
 
-      // Local duration counter while connected
+      // Local duration counter (for UI display — resets when connected status fires)
       durationIntervalRef.current = setInterval(() => {
         setCallDuration((d) => d + 1);
       }, 1000);
+
+      // Safety timeout: auto-advance to analysis after max call duration + 30s buffer
+      timeoutRef.current = setTimeout(async () => {
+        if (!hasAnalyzedRef.current) {
+          stopTimers();
+          setCallStatus('ended');
+          hasAnalyzedRef.current = true;
+          await analyzeCall({});
+        }
+      }, (TEST_CALL_MAX_SECONDS + 30) * 1000);
 
     } catch (error) {
       console.error('Error starting call:', error);
@@ -174,24 +284,20 @@ ${agentDescription}`;
 
   const pollCallStatus = async (id: string) => {
     try {
+      // Use lightweight call-status endpoint (no call_logs ownership required for test calls)
       const response = await fetch(`/api/bland/call-status?call_id=${id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setCallData(data);
+      if (!response.ok) return;
 
-        if (data.status === 'completed') {
-          if (pollingIntervalRef.current) { clearInterval(pollingIntervalRef.current); pollingIntervalRef.current = null; }
-          if (durationIntervalRef.current) { clearInterval(durationIntervalRef.current); durationIntervalRef.current = null; }
-          setCallStatus('ended');
-          if (!hasAnalyzedRef.current && data.transcript_object) {
-            hasAnalyzedRef.current = true;
-            await analyzeCall(data);
-          } else {
-            setStep('analysis');
-          }
-        } else if (data.status === 'active' || data.status === 'answered') {
-          setCallStatus('connected');
-        }
+      const data = await response.json();
+      setCallData(data);
+
+      const status = data.status as string;
+
+      if (status === 'completed' || status === 'failed' || status === 'voicemail' || status === 'no-answer' || status === 'busy') {
+        await finishCall(data);
+      } else if (status === 'in-progress') {
+        // Bland uses 'in-progress' (not 'active' or 'answered')
+        setCallStatus('connected');
       }
     } catch (error) {
       console.error('Error polling call status:', error);
@@ -204,9 +310,9 @@ ${agentDescription}`;
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transcript: data.concatenated_transcript || 'Call completed',
+          transcript: data.concatenated_transcript || 'Demo call completed.',
           agent_type: agentTitle,
-          call_duration: data.call_length ? Math.floor(Number(data.call_length) / 1000) : 0,
+          call_duration: data.call_length ? Math.floor(Number(data.call_length) / 1000) : callDuration,
         }),
       });
       if (response.ok) {
@@ -282,7 +388,7 @@ ${agentDescription}`;
             {t.onboarding.agentTest.yourPhoneNumber}
           </label>
           <div className="relative">
-            <PhoneIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-[var(--color-neutral-400)]" />
+            <PhoneIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-neutral-400)]" />
             <input
               type="tel"
               value={phoneNumber}
@@ -294,7 +400,6 @@ ${agentDescription}`;
             />
           </div>
 
-          {/* Error */}
           {errorMessage && (
             <div className="flex items-center gap-2 mt-2 text-sm text-red-600">
               <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -340,48 +445,88 @@ ${agentDescription}`;
 
   // ─── STEP 2: Calling ────────────────────────────────────────────
   if (step === 'calling') {
-    const statusLabel = callStatus === 'dialing' ? t.onboarding.agentTest.dialing
-      : callStatus === 'ringing' ? t.onboarding.agentTest.ringing
-      : callStatus === 'connected' ? t.onboarding.agentTest.connected
+    const isConnected = callStatus === 'connected';
+    const isRinging = callStatus === 'ringing' || callStatus === 'dialing';
+    const accentColorClass = isConnected ? 'text-emerald-500' : 'text-[var(--color-primary)]';
+    const pulseColor = isConnected ? 'bg-emerald-400' : 'bg-[var(--color-primary)]';
+    const ringBg = isConnected ? 'bg-gradient-to-br from-emerald-400 to-green-500' : `bg-gradient-to-br ${agent.color}`;
+
+    const statusLabel = isRinging
+      ? (callStatus === 'dialing' ? t.onboarding.agentTest.dialing : t.onboarding.agentTest.ringing)
+      : isConnected
+      ? t.onboarding.agentTest.connected
       : t.onboarding.agentTest.callEnded;
 
-    const pulseColor = callStatus === 'connected' ? 'bg-emerald-400' : 'bg-[var(--color-primary)]';
-
     return (
-      <div className="w-full max-w-sm mx-auto text-center py-10">
-        {/* Animated phone ring */}
-        <div className="relative inline-flex items-center justify-center mb-8">
-          {/* Outer rings */}
-          <div className={`absolute w-36 h-36 rounded-full ${pulseColor} opacity-10 animate-ping`} style={{ animationDuration: '2s' }} />
-          <div className={`absolute w-28 h-28 rounded-full ${pulseColor} opacity-15 animate-ping`} style={{ animationDuration: '1.5s', animationDelay: '0.3s' }} />
-          {/* Phone circle */}
-          <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${agent.color} flex items-center justify-center shadow-2xl`}>
-            <PhoneIcon className="w-11 h-11 text-white" />
+      <div className="w-full max-w-lg mx-auto">
+        {/* Phone ring animation */}
+        <div className="flex flex-col items-center py-8">
+          <div className="relative inline-flex items-center justify-center mb-6">
+            <div className={`absolute w-36 h-36 rounded-full ${pulseColor} opacity-10 animate-ping`} style={{ animationDuration: '2.2s' }} />
+            <div className={`absolute w-28 h-28 rounded-full ${pulseColor} opacity-15 animate-ping`} style={{ animationDuration: '1.6s', animationDelay: '0.35s' }} />
+            <div className={`w-24 h-24 rounded-full ${ringBg} flex items-center justify-center shadow-2xl transition-all duration-700`}>
+              <PhoneIcon className="w-11 h-11 text-white" />
+            </div>
           </div>
+
+          {/* Status label */}
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`inline-flex w-2 h-2 rounded-full ${pulseColor} animate-pulse`} />
+            <span className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-widest">
+              {statusLabel}
+            </span>
+          </div>
+
+          <h2 className="text-2xl font-extrabold text-[var(--color-ink)] mb-0.5">
+            {t.onboarding.agentTest.callingYou.replace('{agentName}', agent.name)}
+          </h2>
+          <p className="text-sm text-[var(--color-neutral-400)] mb-4 font-mono">{phoneNumber}</p>
+
+          {/* Audio spectrum — subtle when ringing, full when connected */}
+          <div className={`mb-5 transition-all duration-500 ${accentColorClass}`}>
+            <AudioSpectrum active={isConnected} colorClass={accentColorClass} />
+          </div>
+
+          {/* Duration counter when connected */}
+          {isConnected && (
+            <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full px-5 py-2 text-xl font-bold tabular-nums shadow-sm mb-6">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              {formatDuration(callDuration)}
+            </div>
+          )}
         </div>
 
-        {/* Status */}
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <span className={`inline-flex w-2 h-2 rounded-full ${pulseColor} animate-pulse`} />
-          <span className="text-sm font-semibold text-[var(--color-neutral-500)] uppercase tracking-widest">
-            {statusLabel}
-          </span>
-        </div>
+        {/* Demo data + tips card */}
+        <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-2xl p-4">
+          <p className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-3">
+            {t.onboarding.agentTest.callScenarioLabel}
+          </p>
 
-        <h2 className="text-2xl font-extrabold text-[var(--color-ink)] mb-1">
-          {t.onboarding.agentTest.callingYou.replace('{agentName}', agent.name)}
-        </h2>
-        <p className="text-[var(--color-neutral-500)] text-sm mb-6">
-          {phoneNumber}
-        </p>
-
-        {/* Duration counter when connected */}
-        {callStatus === 'connected' && (
-          <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full px-5 py-2 text-xl font-bold tabular-nums shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            {formatDuration(callDuration)}
+          {/* Demo data */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-4">
+            {Object.entries(agent.demoData).map(([key, value]) => (
+              <div key={key} className="text-xs">
+                <span className="text-[var(--color-neutral-400)]">{key}: </span>
+                <span className="text-[var(--color-ink)] font-semibold">{value}</span>
+              </div>
+            ))}
           </div>
-        )}
+
+          {/* Interaction tips */}
+          <div className="border-t border-[var(--border-default)] pt-3">
+            <p className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wide mb-2">
+              {t.onboarding.agentTest.tipsLabel}
+            </p>
+            <ul className="space-y-1.5">
+              {agent.tips.map((tip, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-[var(--color-neutral-600)]">
+                  <span className="flex-shrink-0 text-[var(--color-primary)] font-bold mt-0.5">→</span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
     );
   }

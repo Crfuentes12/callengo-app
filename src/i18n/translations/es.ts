@@ -173,6 +173,8 @@ const es: TranslationKeys = {
       selectVoice: 'Seleccionar voz',
       demoData: 'Datos de demostración',
       demoScenario: 'Escenario demo',
+      callScenarioLabel: 'Tu agente está usando este escenario',
+      tipsLabel: 'Prueba esto durante la llamada',
       startTestCall: 'Llámame ahora',
       skip: 'Saltar por ahora',
       enterPhoneAndVoice: 'Por favor ingresa tu número de teléfono para recibir la llamada.',
