@@ -2299,7 +2299,7 @@ export default function AdminCommandCenter() {
                       <YAxis tick={{ fontSize: 10 }} />
                       <Tooltip
                         contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                        formatter={(v: number, name: string) => [v, name === 'testCalls' ? 'Test Calls' : 'Regular Calls']}
+                        formatter={(v: number | string | undefined, name: string) => [v ?? 0, name === 'testCalls' ? 'Test Calls' : 'Regular Calls']}
                       />
                       <Bar dataKey="regularCalls" name="Regular Calls" fill="#e0e7ff" radius={[2, 2, 0, 0]} />
                       <Bar dataKey="testCalls" name="Test Calls" fill="#6366f1" radius={[2, 2, 0, 0]} />
@@ -2364,7 +2364,7 @@ export default function AdminCommandCenter() {
                             } />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: number, name: string) => [v, name]} contentStyle={{ fontSize: 12 }} />
+                        <Tooltip formatter={(v: number | string | undefined, name: string) => [v ?? 0, name]} contentStyle={{ fontSize: 12 }} />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
@@ -2412,7 +2412,7 @@ export default function AdminCommandCenter() {
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-default)" />
                         <XAxis type="number" tick={{ fontSize: 10 }} unit="s" />
                         <YAxis type="category" dataKey="label" tick={{ fontSize: 10 }} width={120} />
-                        <Tooltip formatter={(v: number) => [`${Math.floor(v / 60)}m ${v % 60}s`, 'Avg Duration']} contentStyle={{ fontSize: 12 }} />
+                        <Tooltip formatter={(v: number | string | undefined) => { const n = Number(v ?? 0); return [`${Math.floor(n / 60)}m ${n % 60}s`, 'Avg Duration']; }} contentStyle={{ fontSize: 12 }} />
                         <Bar dataKey="avgDurationSec" fill="#6366f1" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
