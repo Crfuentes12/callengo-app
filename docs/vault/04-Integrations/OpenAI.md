@@ -22,10 +22,10 @@ Returns an OpenAI SDK instance configured with the correct API key for the given
 
 | Feature Key | Primary Env Var | Fallback |
 |-------------|----------------|---------|
-| `call_analysis` | `OPENAI_API_KEY_CALL_ANALYSIS` | `OPENAI_API_KEY` |
-| `contact_analysis` | `OPENAI_API_KEY_CONTACT_ANALYSIS` | `OPENAI_API_KEY` |
+| `call_analysis` | `OPENAI_API_KEY` | — |
+| `contact_analysis` | `OPENAI_API_KEY` | — |
 | `cali_ai` | `OPENAI_API_KEY_CALI_AI` | `OPENAI_API_KEY` |
-| `onboarding` | `OPENAI_API_KEY_CONTACT_ANALYSIS` | `OPENAI_API_KEY` |
+| `onboarding` | `OPENAI_API_KEY` | — |
 | `demo_analysis` | `OPENAI_API_KEY` | — |
 
 #### `trackOpenAIUsage(params): void`
@@ -100,7 +100,7 @@ In-app AI assistant accessible via Cmd+K. Powered by `src/components/ai/AIChatPa
 Context suggestions and intelligent defaults during the onboarding flow.
 
 **Model:** `getDefaultModel()` → `gpt-4o-mini`
-**API Key:** Shares `OPENAI_API_KEY_CONTACT_ANALYSIS` key
+**API Key:** Uses `OPENAI_API_KEY`
 
 ### 5. Demo Analysis (`demo_analysis`)
 
@@ -349,13 +349,11 @@ Receives OpenAI platform webhooks (e.g., usage alerts, compliance events). Verif
 
 | Variable | Scope | Required | Description |
 |----------|-------|----------|-------------|
-| `OPENAI_API_KEY` | Server | Yes | Base API key, fallback for all features |
-| `OPENAI_API_KEY_CALL_ANALYSIS` | Server | No | Key for call transcript analysis |
-| `OPENAI_API_KEY_CONTACT_ANALYSIS` | Server | No | Key for contact intelligence and onboarding |
-| `OPENAI_API_KEY_CALI_AI` | Server | No | Key for Cali AI assistant |
-| `OPENAI_WEBHOOK_SECRET` | Server | No | HMAC-SHA256 secret for webhook verification |
+| `OPENAI_API_KEY` | Server | Yes | API key for all features: call analysis, contact analysis, onboarding, demo analysis |
+| `OPENAI_API_KEY_CALI_AI` | Server | Yes | Key for Cali AI assistant — isolated for rate limit separation |
 | `OPENAI_MODEL` | Server | No | Default model override (default: `gpt-4o-mini`) |
 | `OPENAI_MODEL_PREMIUM` | Server | No | Premium model override (default: `gpt-4o`) |
+| `OPENAI_WEBHOOK_SECRET` | Server | No | HMAC-SHA256 secret for webhook verification (only if using Batch/Responses API in future) |
 | `AI_ANALYSIS_MODE` | Server | No | `sync` (default) or `async` (via `analysis_queue`) |
 
 ---

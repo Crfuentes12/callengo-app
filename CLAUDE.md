@@ -368,7 +368,7 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 
 ---
 
-## Variables de Entorno (59 vars)
+## Variables de Entorno (57 vars)
 
 Referencia completa en `.env.example` (raíz del proyecto). Copiar a `.env.local` para desarrollo local. En producción, configurar en Vercel → Environment Variables.
 
@@ -385,13 +385,11 @@ Referencia completa en `.env.example` (raíz del proyecto). Copiar a `.env.local
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`) |
 | `BLAND_API_KEY` | Master API key de Bland AI (una sola para todas las empresas) |
 | `BLAND_WEBHOOK_SECRET` | HMAC-SHA256 para verificación de webhooks Bland |
-| `OPENAI_API_KEY` | OpenAI API key base (fallback para todos los features si no hay key específica) |
-| `OPENAI_API_KEY_CALL_ANALYSIS` | OpenAI key para análisis de transcripciones de llamadas (fallback: `OPENAI_API_KEY`) |
-| `OPENAI_API_KEY_CONTACT_ANALYSIS` | OpenAI key para contact quality, agent suggestions, web scraper y onboarding (fallback: `OPENAI_API_KEY`) |
-| `OPENAI_API_KEY_CALI_AI` | OpenAI key para Cali AI assistant (fallback: `OPENAI_API_KEY`) |
-| `OPENAI_WEBHOOK_SECRET` | HMAC-SHA256 secret para verificación de webhooks OpenAI |
+| `OPENAI_API_KEY` | OpenAI API key para todos los features (call analysis, contact analysis, onboarding, demo) — 2 keys: `OPENAI_API_KEY` (todos los features) + `OPENAI_API_KEY_CALI_AI` (Cali AI isolado) |
+| `OPENAI_API_KEY_CALI_AI` | OpenAI key para Cali AI assistant (aislado por rate limits) |
 | `OPENAI_MODEL` | Override del modelo por defecto (default: `gpt-4o-mini`) |
 | `OPENAI_MODEL_PREMIUM` | Modelo premium para análisis profundo de llamadas (default: `gpt-4o`) |
+| `OPENAI_WEBHOOK_SECRET` | HMAC-SHA256 secret para verificación de webhooks OpenAI (solo si se usa Batch/Responses API) |
 | `UPSTASH_REDIS_REST_URL` | URL REST de Upstash Redis |
 | `UPSTASH_REDIS_REST_TOKEN` | Token REST de Upstash Redis |
 | `TOKEN_ENCRYPTION_KEY` | Clave AES-256-GCM para encriptar tokens OAuth. **Exactamente 64 caracteres hex** (32 bytes). Generar: `openssl rand -hex 32` |

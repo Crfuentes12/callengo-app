@@ -2112,10 +2112,10 @@ Each CRM has an integration table + sync log table + contact mapping table:
 **Per-feature API key routing:**
 | Feature Key | API Key Used | Fallback |
 |---|---|---|
-| `call_analysis` | `OPENAI_API_KEY_CALL_ANALYSIS` | `OPENAI_API_KEY` |
-| `contact_analysis` | `OPENAI_API_KEY_CONTACT_ANALYSIS` | `OPENAI_API_KEY` |
+| `call_analysis` | `OPENAI_API_KEY` | — |
+| `contact_analysis` | `OPENAI_API_KEY` | — |
 | `cali_ai` | `OPENAI_API_KEY_CALI_AI` | `OPENAI_API_KEY` |
-| `onboarding` | `OPENAI_API_KEY_CONTACT_ANALYSIS` | `OPENAI_API_KEY` |
+| `onboarding` | `OPENAI_API_KEY` | — |
 | `demo_analysis` | `OPENAI_API_KEY` | — |
 
 ### `/lib/rate-limit.ts`
@@ -2147,13 +2147,11 @@ Each CRM has an integration table + sync log table + contact mapping table:
 | `STRIPE_SECRET_KEY` | Stripe API key |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `NEXT_PUBLIC_APP_URL` | Application URL |
-| `OPENAI_API_KEY` | OpenAI API key (base fallback for all features) |
-| `OPENAI_API_KEY_CALL_ANALYSIS` | OpenAI key for call transcript analysis (falls back to OPENAI_API_KEY) |
-| `OPENAI_API_KEY_CONTACT_ANALYSIS` | OpenAI key for contact quality, agent suggestions, web scraper, onboarding (falls back to OPENAI_API_KEY) |
-| `OPENAI_API_KEY_CALI_AI` | OpenAI key for Cali AI assistant (falls back to OPENAI_API_KEY) |
-| `OPENAI_WEBHOOK_SECRET` | HMAC-SHA256 secret for OpenAI webhook verification |
+| `OPENAI_API_KEY` | OpenAI API key for all features (call analysis, contact analysis, onboarding, demo) |
+| `OPENAI_API_KEY_CALI_AI` | OpenAI key for Cali AI assistant (isolated for rate limit separation) |
 | `OPENAI_MODEL` | Default model override (default: gpt-4o-mini) |
 | `OPENAI_MODEL_PREMIUM` | Premium model override (default: gpt-4o) |
+| `OPENAI_WEBHOOK_SECRET` | HMAC-SHA256 secret for OpenAI webhook verification (optional) |
 | `BLAND_API_KEY` | Bland AI master API key (single key for all calls) |
 | `BLAND_COST_PER_MINUTE` | Bland per-minute rate override (default: $0.14 — Start plan; set to match your Bland plan) |
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis URL for concurrency tracking |
