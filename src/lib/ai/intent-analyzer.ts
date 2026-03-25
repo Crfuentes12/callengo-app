@@ -2,11 +2,9 @@
 // Semantic intent analysis using OpenAI GPT-4o-mini
 // Replaces brittle keyword-based detection with robust AI classification
 
-import OpenAI from 'openai';
+import { getOpenAIClient, trackOpenAIUsage } from '@/lib/openai/tracker';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = getOpenAIClient('call_analysis');
 
 // ============================================================================
 // TRANSCRIPT SANITIZATION — Prevent prompt injection from call transcripts
@@ -118,6 +116,16 @@ Be accurate and avoid false positives. Only classify as "confirmed" if there's c
       response_format: { type: 'json_object' },
     });
 
+    trackOpenAIUsage({
+      featureKey: 'call_analysis',
+      model: 'gpt-4o-mini',
+      inputTokens: completion.usage?.prompt_tokens ?? 0,
+      outputTokens: completion.usage?.completion_tokens ?? 0,
+      companyId: null,
+      userId: null,
+      metadata: { function: 'analyzeAppointmentIntent' },
+    });
+
     const result = JSON.parse(completion.choices[0].message.content || '{}');
 
     return {
@@ -193,6 +201,16 @@ For meetingTime: Extract any agreed-upon meeting/demo time and convert to ISO 86
       ],
       temperature: 0.1,
       response_format: { type: 'json_object' },
+    });
+
+    trackOpenAIUsage({
+      featureKey: 'call_analysis',
+      model: 'gpt-4o-mini',
+      inputTokens: completion.usage?.prompt_tokens ?? 0,
+      outputTokens: completion.usage?.completion_tokens ?? 0,
+      companyId: null,
+      userId: null,
+      metadata: { function: 'analyzeLeadQualificationIntent' },
     });
 
     const result = JSON.parse(completion.choices[0].message.content || '{}');
@@ -297,6 +315,16 @@ IMPORTANT: Extract EVERY piece of information mentioned in the conversation, eve
       ],
       temperature: 0.1,
       response_format: { type: 'json_object' },
+    });
+
+    trackOpenAIUsage({
+      featureKey: 'call_analysis',
+      model: 'gpt-4o-mini',
+      inputTokens: completion.usage?.prompt_tokens ?? 0,
+      outputTokens: completion.usage?.completion_tokens ?? 0,
+      companyId: null,
+      userId: null,
+      metadata: { function: 'analyzeDataValidationIntent' },
     });
 
     const result = JSON.parse(completion.choices[0].message.content || '{}');
