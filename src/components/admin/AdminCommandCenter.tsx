@@ -408,7 +408,6 @@ export default function AdminCommandCenter() {
   const [reconcileData, setReconcileData] = useState<ReconcileData | null>(null);
   const [financeData, setFinanceData] = useState<FinanceData | null>(null);
   const [financePeriod, setFinancePeriod] = useState('current');
-  const [loading, setLoading] = useState(true);
   const [clientSort, setClientSort] = useState<'usage' | 'profit' | 'cost' | 'name'>('usage');
   const [clientSearch, setClientSearch] = useState('');
   const [cleaningUp, setCleaningUp] = useState(false);
@@ -602,14 +601,9 @@ export default function AdminCommandCenter() {
     }
   }, []);
 
-  // Initial load
+  // Initial load — fire without blocking render; healthData=null shows inline skeleton
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      await fetchHealth();
-      setLoading(false);
-    };
-    load();
+    fetchHealth();
   }, [fetchHealth]);
 
   // Auto-refresh health every 30s (runs on all tabs since plan selector is global)
@@ -629,16 +623,6 @@ export default function AdminCommandCenter() {
     if (tab === 'ai_costs' && !openAIUsageData) fetchOpenAIUsage();
   }, [tab, clients.length, events.length, reconcileData, financeData, promoData, accountingData, openAIUsageData, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, fetchAccounting, fetchOpenAIUsage, eventsFilter, financePeriod, accountingPeriod]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <div className="w-8 h-8 border border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-[var(--color-neutral-500)]">{t.common.loading}</p>
-        </div>
-      </div>
-    );
-  }
 
   // ─── Sorted/filtered clients ──────────────────────────────────────
   const sortedClients = [...clients]
@@ -763,6 +747,14 @@ export default function AdminCommandCenter() {
       {/* ════════════════════════════════════════════════════════════════
           TAB: HEALTH DASHBOARD
          ════════════════════════════════════════════════════════════════ */}
+      {tab === 'health' && !healthData && (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="w-8 h-8 border border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-[var(--color-neutral-500)]">{t.common.loading}</p>
+          </div>
+        </div>
+      )}
       {tab === 'health' && healthData && (
         <div className="space-y-6">
           {/* KPI Cards */}
