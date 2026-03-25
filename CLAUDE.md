@@ -293,7 +293,7 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 |---------|-------|-----------|
 | `00-Overview/` | 3 | App Identity, Architecture Overview, ICP & Positioning |
 | `01-Entities/` | 14 | Company, User, Contact, Agent, Campaign, Call, Follow-Up, Voicemail, Calendar Event, Subscription, Add-on, Notification, Team Invitation, Webhook |
-| `02-Database/` | 4 | Schema Overview (56 tablas), RLS Patterns, Triggers & Functions, Migrations Timeline |
+| `02-Database/` | 4 | Schema Overview (57 tablas), RLS Patterns, Triggers & Functions, Migrations Timeline |
 | `03-API/` | 8 | API Overview (142+ endpoints), Admin, Auth, Billing, Bland AI, Calendar, Contacts, Integrations |
 | `04-Integrations/` | 14 | Bland AI, Stripe, OpenAI, Redis, 7 CRMs, Google Calendar, Outlook, Video Providers |
 | `05-Billing/` | 3 | Pricing Model V4, Plan Features, Usage Tracking |

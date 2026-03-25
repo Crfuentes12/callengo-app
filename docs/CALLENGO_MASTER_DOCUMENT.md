@@ -1213,14 +1213,14 @@ The Command Center (`/admin/command-center`) provides real-time monitoring with 
 | Supabase | PostgreSQL database, authentication, row-level security |
 | Stripe | Payment processing, subscriptions, invoicing |
 | Bland AI | AI voice call engine (send calls, transcription, analysis) |
-| OpenAI | AI chat assistant, call analysis, context suggestions |
+| OpenAI | AI chat assistant (Cali AI), post-call analysis, contact intelligence, onboarding suggestions; per-feature API keys; usage tracked in `openai_usage_logs` |
 | Vercel | Hosting & deployment |
 
 ---
 
 ## 17. Database Schema
 
-### Tables (~45 total, including integration-specific tables)
+### Tables (57 total, including integration-specific tables)
 
 #### `companies`
 | Column | Type | Notes |
@@ -2128,7 +2128,13 @@ Each CRM has an integration table + sync log table + contact mapping table:
 | `STRIPE_SECRET_KEY` | Stripe API key |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `NEXT_PUBLIC_APP_URL` | Application URL |
-| `OPENAI_API_KEY` | OpenAI API key |
+| `OPENAI_API_KEY` | OpenAI API key (base fallback for all features) |
+| `OPENAI_API_KEY_CALL_ANALYSIS` | OpenAI key for call transcript analysis (falls back to OPENAI_API_KEY) |
+| `OPENAI_API_KEY_CONTACT_ANALYSIS` | OpenAI key for contact quality, agent suggestions, web scraper, onboarding (falls back to OPENAI_API_KEY) |
+| `OPENAI_API_KEY_CALI_AI` | OpenAI key for Cali AI assistant (falls back to OPENAI_API_KEY) |
+| `OPENAI_WEBHOOK_SECRET` | HMAC-SHA256 secret for OpenAI webhook verification |
+| `OPENAI_MODEL` | Default model override (default: gpt-4o-mini) |
+| `OPENAI_MODEL_PREMIUM` | Premium model override (default: gpt-4o) |
 | `BLAND_API_KEY` | Bland AI master API key (single key for all calls) |
 | `BLAND_COST_PER_MINUTE` | Bland per-minute rate override (default: $0.14 — Start plan; set to match your Bland plan) |
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis URL for concurrency tracking |
@@ -2939,7 +2945,7 @@ Delivery log in `webhook_deliveries` table:
 Full audit log: `AUDIT_LOG.md` (root). Migration: `supabase/migrations/20260323000002_production_audit_fixes.sql`.
 
 ### Summary
-- **Scope:** Database schema (56 tables), billing/payments, auth/security, core call flow, admin/contacts/integrations, performance
+- **Scope:** Database schema (57 tables), billing/payments, auth/security, core call flow, admin/contacts/integrations, performance
 - **Result:** 0 critical issues remaining, 1 warning (no automated tests), 15 issues fixed, 13 potential issues investigated and confirmed mitigated
 
 ### Fixes Applied (15)
