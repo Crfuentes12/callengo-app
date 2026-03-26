@@ -268,7 +268,7 @@ export default function Header({
             )}
 
             {/* Settings quick-access */}
-            <div className="relative group/settings">
+            <div id="tour-settings-btn" className="relative group/settings">
               <button
                 onClick={() => router.push('/settings')}
                 className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"

@@ -305,7 +305,7 @@ export default function Sidebar({
         )}
 
         {navGroups.map((group, groupIndex) => (
-          <div key={groupIndex}>
+          <div key={groupIndex} id={`tour-nav-group-${groupIndex}`}>
             {groupIndex > 0 && (
               <div className="my-2 mx-2">
                 <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
