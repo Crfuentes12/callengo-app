@@ -18,6 +18,7 @@ interface PageTipCardProps {
 export default function PageTipCard({ title, tips, settingKey, companyId }: PageTipCardProps) {
   const supabase = createClient();
   const [loaded, setLoaded] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [minimized, setMinimized] = useState(false); // true = only show help icon
   const [expanded, setExpanded] = useState(false);   // true = re-expanded after minimized
 
@@ -33,6 +34,8 @@ export default function PageTipCard({ title, tips, settingKey, companyId }: Page
         if (s[settingKey]) setMinimized(true);
       } catch { /* ignore */ }
       setLoaded(true);
+      // Small delay so the element is in the DOM before we start the transition
+      setTimeout(() => setVisible(true), 30);
     };
     load();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
@@ -57,7 +60,7 @@ export default function PageTipCard({ title, tips, settingKey, companyId }: Page
         <button
           onClick={() => setExpanded(true)}
           title="Show tips"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 transition-all text-xs font-medium border border-[var(--border-default)] bg-white shadow-sm"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 transition-all duration-300 text-xs font-medium border border-[var(--border-default)] bg-white shadow-sm"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
@@ -77,7 +80,10 @@ export default function PageTipCard({ title, tips, settingKey, companyId }: Page
   };
 
   return (
-    <div className="relative rounded-xl overflow-hidden border border-[var(--color-primary)]/20 shadow-sm">
+    <div
+      className="relative rounded-xl overflow-hidden border border-[var(--color-primary)]/20 shadow-sm transition-all duration-500 ease-out"
+      style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(-6px)' }}
+    >
       <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/8 via-purple-50/50 to-violet-50/30 pointer-events-none" />
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--color-primary)] via-purple-400 to-violet-400" />
       <div className="relative px-5 py-5">
