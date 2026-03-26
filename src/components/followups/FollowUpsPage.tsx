@@ -4,6 +4,7 @@
 import { useState, useMemo } from 'react';
 import CallDetailModal from '@/components/calls/CallDetailModal';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import PageTipCard from '@/components/ui/PageTipCard';
 import { useTranslation } from '@/i18n';
 
 interface FollowUp {
@@ -31,6 +32,7 @@ interface FollowUp {
 
 interface FollowUpsPageProps {
   followUps: FollowUp[];
+  companyId?: string;
 }
 
 const statusStyles: Record<string, string> = {
@@ -42,7 +44,7 @@ const statusStyles: Record<string, string> = {
   cancelled: 'bg-[var(--color-neutral-50)] border-[var(--border-default)] text-[var(--color-neutral-600)]',
 };
 
-export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
+export default function FollowUpsPage({ followUps, companyId }: FollowUpsPageProps) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'scheduled' | 'completed'>('all');
   const [search, setSearch] = useState('');
@@ -89,6 +91,21 @@ export default function FollowUpsPage({ followUps }: FollowUpsPageProps) {
   return (
     <div className="space-y-6">
       <Breadcrumbs items={[{ label: t.followUps.title }]} />
+
+      {/* Follow-ups Tip Card */}
+      {companyId && (
+        <PageTipCard
+          title="Getting started with Follow-ups"
+          settingKey="tour_followups_seen"
+          companyId={companyId}
+          tips={[
+            { icon: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z', label: 'Auto-triggered', desc: 'Follow-ups are scheduled automatically based on call outcomes' },
+            { icon: 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z', label: 'Custom delays', desc: 'Set follow-up timing: 1 hour, same day, next day, or custom intervals' },
+            { icon: 'M3.75 9h16.5m-16.5 6.75h16.5', label: 'Condition-based', desc: 'Only trigger follow-ups for specific outcomes (e.g., no-answer, interested)' },
+            { icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', label: 'Prevent overcontact', desc: "Built-in cooldowns ensure contacts aren't called too frequently" },
+          ]}
+        />
+      )}
 
       {/* Header */}
       <div>

@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react';
 import { formatDuration } from '@/lib/call-agent-utils';
 import CallDetailModal from './CallDetailModal';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import PageTipCard from '@/components/ui/PageTipCard';
 import { useTranslation } from '@/i18n';
 
 interface CallLogWithContact {
@@ -39,9 +40,10 @@ interface AgentTemplate {
 interface CallsHistoryProps {
   callLogs: CallLogWithContact[];
   agentTemplates: AgentTemplate[];
+  companyId?: string;
 }
 
-export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryProps) {
+export default function CallsHistory({ callLogs, agentTemplates, companyId }: CallsHistoryProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -113,6 +115,22 @@ export default function CallsHistory({ callLogs, agentTemplates }: CallsHistoryP
   return (
     <div className="space-y-6">
       <Breadcrumbs items={[{ label: t.calls.title }]} />
+
+      {/* Calls Tip Card */}
+      {companyId && (
+        <PageTipCard
+          title="Getting started with Call History"
+          settingKey="tour_calls_seen"
+          companyId={companyId}
+          tips={[
+            { icon: 'M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z', label: 'Listen to recordings', desc: "Replay any call to review your agent's performance" },
+            { icon: 'M3.75 9h16.5m-16.5 6.75h16.5', label: 'Read transcripts', desc: 'Full AI-generated transcripts with timestamps for every call' },
+            { icon: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z', label: 'AI analysis', desc: 'Sentiment, intent, and outcome analysis on every completed call' },
+            { icon: 'M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z', label: 'Filter by outcome', desc: 'Sort calls by answered, voicemail, no-answer, or failed' },
+            { icon: 'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3', label: 'Export data', desc: 'Download call logs and transcripts for your CRM or reports' },
+          ]}
+        />
+      )}
 
       {/* Section Header */}
       <div className="gradient-bg-subtle rounded-2xl p-10 shadow-sm border border-[var(--border-default)]">

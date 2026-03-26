@@ -4,6 +4,7 @@
 import { useState, useMemo } from 'react';
 import CallDetailModal from '@/components/calls/CallDetailModal';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import PageTipCard from '@/components/ui/PageTipCard';
 import { useTranslation } from '@/i18n';
 
 interface VoicemailLog {
@@ -34,9 +35,10 @@ interface VoicemailLog {
 
 interface VoicemailsPageProps {
   voicemails: VoicemailLog[];
+  companyId?: string;
 }
 
-export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
+export default function VoicemailsPage({ voicemails, companyId }: VoicemailsPageProps) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'left' | 'detected'>('all');
   const [search, setSearch] = useState('');
@@ -70,6 +72,21 @@ export default function VoicemailsPage({ voicemails }: VoicemailsPageProps) {
   return (
     <div className="space-y-6">
       <Breadcrumbs items={[{ label: t.voicemails.title }]} />
+
+      {/* Voicemails Tip Card */}
+      {companyId && (
+        <PageTipCard
+          title="Getting started with Voicemails"
+          settingKey="tour_voicemails_seen"
+          companyId={companyId}
+          tips={[
+            { icon: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z', label: 'Automatic detection', desc: 'The agent detects voicemail and leaves a tailored message automatically' },
+            { icon: 'M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125', label: 'Custom voicemail scripts', desc: 'Per-agent voicemail scripts that match your campaign tone' },
+            { icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', label: 'Follow-up triggers', desc: 'Missed calls and voicemails can auto-trigger a follow-up campaign' },
+            { icon: 'M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z', label: 'Listen & review', desc: 'Replay left voicemails to ensure quality and consistency' },
+          ]}
+        />
+      )}
 
       {/* Header */}
       <div>

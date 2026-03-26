@@ -35,7 +35,7 @@ export default async function Voicemails() {
     <>
     <PageTracker page="voicemails" />
     <PostHogPageTracker page="voicemails" />
-    <VoicemailsPage voicemails={voicemails || []} />
+    <VoicemailsPage voicemails={voicemails || []} companyId={userData!.company_id} />
     </>
   );
 }

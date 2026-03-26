@@ -4,6 +4,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { Database } from '@/types/supabase';
 import { formatDuration } from '@/lib/call-agent-utils';
+import PageTipCard from '@/components/ui/PageTipCard';
 import { useTranslation } from '@/i18n';
 
 type CallLog = Database['public']['Tables']['call_logs']['Row'];
@@ -31,6 +32,7 @@ interface AnalyticsDashboardProps {
   agentTemplates: AgentTemplate[];
   agentRuns: AgentRun[];
   campaigns?: Campaign[];
+  companyId?: string;
 }
 
 interface DailyCallData {
@@ -54,6 +56,7 @@ export default function AnalyticsDashboard({
   agentTemplates,
   agentRuns,
   campaigns = [],
+  companyId,
 }: AnalyticsDashboardProps) {
   const { t } = useTranslation();
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d');

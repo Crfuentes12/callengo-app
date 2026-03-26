@@ -35,7 +35,7 @@ export default async function FollowUps() {
     <>
     <PageTracker page="follow-ups" />
     <PostHogPageTracker page="follow-ups" />
-    <FollowUpsPage followUps={followUps || []} />
+    <FollowUpsPage followUps={followUps || []} companyId={userData!.company_id} />
     </>
   );
 }
