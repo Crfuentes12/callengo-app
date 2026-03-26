@@ -8,105 +8,122 @@ const openai = getOpenAIClient('demo_analysis');
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check — prevent unauthenticated access to OpenAI API
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Rate limit: 5 analysis requests per minute per user (each triggers OpenAI API call)
     const rateLimit = await expensiveLimiter.check(5, `openai_analyze_${user.id}`);
     if (!rateLimit.success) {
       return NextResponse.json({ error: 'Too many analysis requests. Please wait.' }, { status: 429 });
     }
 
-    const { transcripts, agentType: _agentType, demoData } = await request.json();
+    const body = await request.json();
 
-    if (!transcripts || !Array.isArray(transcripts)) {
+    // Accept both formats: transcripts array (new) or transcript string (legacy)
+    const { transcripts, transcript, agentType, agent_type, agent_slug, demoData, call_duration } = body;
+
+    // Build conversation text
+    let conversationText = '';
+    if (Array.isArray(transcripts) && transcripts.length > 0) {
+      conversationText = transcripts
+        .map((t: Record<string, unknown>) => {
+          const speaker = t.user === 'assistant' ? 'Agent' : 'Customer';
+          return `${speaker}: ${t.text}`;
+        })
+        .join('\n');
+    } else if (typeof transcript === 'string' && transcript.trim()) {
+      conversationText = transcript;
+    }
+
+    if (!conversationText) {
       return NextResponse.json(
-        { error: 'Transcripts array is required' },
+        { error: 'No transcript provided' },
         { status: 400 }
       );
     }
 
-    // Build conversation text from transcripts
-    const conversationText = transcripts
-      .map((t: Record<string, unknown>) => {
-        const speaker = t.user === 'assistant' ? 'Agent' : 'Customer';
-        return `${speaker}: ${t.text}`;
-      })
-      .join('\n');
+    const resolvedAgentType = agentType || agent_type || 'unknown';
+    const resolvedAgentSlug = agent_slug || 'unknown';
 
-    // Build demo data context
     const demoDataText = Object.entries(demoData || {})
       .map(([key, value]) => `${key}: ${value}`)
       .join('\n');
 
-    // Create analysis prompt
-    const prompt = `You are analyzing a call made by an AI agent. Below is the conversation transcript and the demo data that was supposed to be used/validated during the call.
+    // Agent-specific instructions for structured extraction
+    const agentSpecificInstructions: Record<string, string> = {
+      'appointment-confirmation': `
+For this appointment confirmation agent, extract:
+- "appointmentStatus": was the appointment "confirmed", "rescheduled", or "cancelled"?
+- "newDay": if rescheduled, what day of the week did the customer request? (e.g. "Wednesday", "Thursday", "Next Monday")
+- "newTime": if rescheduled, what time? (e.g. "2:00 PM", "10:00 AM") — default to original time if not mentioned
+- "originalDay": what was the original appointment day? (e.g. "Tuesday")
+- "rescheduleReason": brief reason the customer gave for rescheduling, or null if confirmed
+`,
+      'data-validation': `
+For this data validation agent, extract:
+- "updatedFields": array of { "field": "Email", "oldValue": "old@email.com", "newValue": "new@email.com" } for each field that was corrected
+- "confirmedFields": array of field names that were verified as correct (e.g. ["Phone", "Company"])
+- "newFields": any new information collected not in the original data
+`,
+      'lead-qualification': `
+For this lead qualification agent using BANT framework, extract:
+- "bantScores": { "budget": 0-100, "authority": 0-100, "need": 0-100, "timeline": 0-100 } — score each dimension based on what the customer shared
+- "bantNotes": { "budget": "brief note", "authority": "brief note", "need": "brief note", "timeline": "brief note" }
+- "leadTemperature": "hot" (score > 75), "warm" (50-75), or "cold" (< 50)
+- "recommendedAction": what should the sales team do next?
+`,
+    };
 
-DEMO DATA PROVIDED:
-${demoDataText}
+    const agentInstruction = agentSpecificInstructions[resolvedAgentSlug] || '';
+
+    const prompt = `You are analyzing a demo call made by an AI agent (${resolvedAgentType}).
+
+DEMO DATA (what the agent was working with):
+${demoDataText || 'N/A'}
 
 CONVERSATION TRANSCRIPT:
 ${conversationText}
 
-Your task is to EXTRACT and STRUCTURE all relevant information from the call. DO NOT just summarize - extract actionable data.
+${agentInstruction ? `AGENT-SPECIFIC EXTRACTION:\n${agentInstruction}` : ''}
 
-Please analyze this call and provide:
-1. **Extracted Data**: All specific data points mentioned by the customer (name, email, phone, company, preferences, needs, etc.)
-2. **Validated Fields**: Which fields from the demo data were confirmed/validated during the call (mark as "Confirmed" or "Updated" with new value)
-3. **New Information**: Any NEW data collected that wasn't in the demo data
-4. **Call Outcome**: What was accomplished (meeting scheduled, interested/not interested, callback needed, etc.)
-5. **Next Actions**: Specific follow-up tasks based on the conversation
-6. **Call Quality**: Overall success rating (1-10) and brief reason
-
-Format your response as JSON with this EXACT structure:
+Analyze this call and return a JSON object with this EXACT structure:
 {
-  "extractedData": {
-    "fieldName": "actual value mentioned in call",
-    "anotherField": "another value"
-  },
-  "validatedFields": {
-    "fieldName": "Confirmed" or "Updated: new value"
-  },
-  "newInformation": {
-    "fieldName": "value"
-  },
-  "outcome": "Brief outcome (e.g., 'Interested in product, wants demo', 'Not interested', 'Scheduled follow-up')",
-  "nextActions": [
-    "Specific action item 1",
-    "Specific action item 2"
-  ],
-  "callQuality": {
-    "rating": 8,
-    "reason": "Brief reason for rating"
+  "sentiment": "positive" | "neutral" | "negative",
+  "callScore": <integer 0-100 reflecting overall call success>,
+  "summary": "<2-3 sentence summary of what happened>",
+  "key_points": ["<key insight 1>", "<key insight 2>", "<key insight 3>"],
+  "outcome": "<what was accomplished>",
+  "nextActions": ["<specific follow-up 1>", "<specific follow-up 2>"],
+  "agentSpecific": {
+    <agent-specific fields as described above — include ALL fields even if estimating>
   }
 }
 
-IMPORTANT: Extract ACTUAL data from the conversation. If the customer mentioned their email is "john@company.com", put that exact email. If they said they have 50 employees, put "50". Be specific and actionable.`;
+IMPORTANT:
+- Base ALL data on what was ACTUALLY said in the transcript. Do not invent specifics.
+- If a field cannot be determined from the transcript, use null.
+- callScore: 90-100 = exceptional, 70-89 = successful, 50-69 = partial, below 50 = poor.
+- Be concise and actionable.`;
 
     const completion = await openai.chat.completions.create({
       model: getDefaultModel(),
       messages: [
         {
           role: 'system',
-          content: 'You are an expert at analyzing sales and customer service calls. Provide concise, actionable insights in JSON format.',
+          content: 'You are an expert at analyzing AI agent calls. Extract structured, actionable data from transcripts. Always return valid JSON.',
         },
-        {
-          role: 'user',
-          content: prompt,
-        },
+        { role: 'user', content: prompt },
       ],
-      temperature: 0.3,
+      temperature: 0.2,
       response_format: { type: 'json_object' },
     });
 
     const analysisText = completion.choices[0].message.content;
     const analysis = JSON.parse(analysisText || '{}');
 
-    // Fetch companyId for tracking (non-blocking)
+    // Non-blocking usage tracking
     void (async () => {
       try {
         const { data: ud } = await supabase
@@ -121,7 +138,7 @@ IMPORTANT: Extract ACTUAL data from the conversation. If the customer mentioned 
           outputTokens: completion.usage?.completion_tokens ?? 0,
           companyId: (ud as { company_id: string } | null)?.company_id ?? null,
           userId: user.id,
-          metadata: { endpoint: 'openai/analyze-call' },
+          metadata: { endpoint: 'openai/analyze-call', agent_slug: resolvedAgentSlug },
         });
       } catch {
         trackOpenAIUsage({
@@ -131,23 +148,15 @@ IMPORTANT: Extract ACTUAL data from the conversation. If the customer mentioned 
           outputTokens: completion.usage?.completion_tokens ?? 0,
           companyId: null,
           userId: user.id,
-          metadata: { endpoint: 'openai/analyze-call' },
+          metadata: { endpoint: 'openai/analyze-call', agent_slug: resolvedAgentSlug },
         });
       }
     })();
 
-    return NextResponse.json({
-      success: true,
-      analysis,
-    });
+    return NextResponse.json({ success: true, analysis, call_duration });
 
   } catch (error) {
     console.error('Error analyzing call:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to analyze call',
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to analyze call' }, { status: 500 });
   }
 }
