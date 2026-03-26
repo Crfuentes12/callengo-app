@@ -234,10 +234,10 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
       });
 
       // Expose global close so other components can dismiss the tour
+      // NOTE: call finish() first (it sets finished=true + persists), then destroy
       (window as Window & { __callengoTourClose?: () => void }).__callengoTourClose = () => {
-        finished = true;
-        tourInstance?.destroy();
-        finish();
+        finish();             // persists tour_home_seen + calls onDismiss
+        tourInstance?.destroy(); // triggers onDestroyed → finish() is no-op (finished=true)
       };
 
       setTimeout(() => tourInstance?.drive(), 400);
