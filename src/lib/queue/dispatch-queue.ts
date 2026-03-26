@@ -8,6 +8,71 @@ import { checkCallAllowed, getMaxCallDuration } from '@/lib/billing/call-throttl
 import { dispatchCall } from '@/lib/bland/master-client';
 import { getCompanyCallerNumber } from '@/lib/bland/phone-numbers';
 import { acquireCallSlot, releaseCallSlot, transferCallSlot } from '@/lib/redis/concurrency-manager';
+import { getAvailability } from '@/lib/calendar/availability';
+
+// ─── Calendar context injection for appointment confirmation calls ────────────
+// Fetches live availability from all connected calendars and formats it as a
+// human-readable block that gets appended to the Bland AI task prompt.
+// This ensures every call goes out with fresh, accurate slot data — the agent
+// already knows the options before the patient picks up.
+
+const CALENDAR_CONTEXT_MARKER = '--- CALENDAR CONTEXT ---';
+
+async function buildCalendarContext(companyId: string): Promise<string> {
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+  const timeStr = now.toLocaleTimeString('en-US', {
+    hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC',
+  });
+
+  const lines: string[] = [
+    `Today is ${todayStr} (${timeStr} UTC).`,
+    '',
+    'Available rescheduling slots (next 5 business days):',
+  ];
+
+  // Walk forward up to 14 days to find 5 business days
+  let found = 0;
+  const d = new Date(now);
+  for (let i = 1; i <= 14 && found < 5; i++) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue; // skip weekends
+    const dateStr = d.toISOString().split('T')[0];
+    try {
+      const avail = await getAvailability(companyId, dateStr, { slotDurationMinutes: 60 });
+      if (!avail.is_working_day || avail.is_holiday) continue;
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      if (avail.available_slots.length === 0) {
+        lines.push(`- ${dayLabel}: fully booked`);
+      } else {
+        const slots = avail.available_slots.slice(0, 5).map(s =>
+          new Date(s.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' })
+        );
+        lines.push(`- ${dayLabel}: ${slots.join(', ')}`);
+      }
+      found++;
+    } catch {
+      // non-fatal — skip this day
+    }
+  }
+
+  if (found === 0) {
+    lines.push('- No availability data available. Offer to check and call back.');
+  }
+
+  lines.push('');
+  lines.push('When the patient wants to reschedule: ask morning or afternoon preference, then offer 2-3 specific times from the list above. Confirm the exact slot before ending the call.');
+
+  return lines.join('\n');
+}
+
+function injectCalendarContext(task: string, context: string): string {
+  if (task.includes(CALENDAR_CONTEXT_MARKER)) return task; // already injected
+  return `${task}\n\n${CALENDAR_CONTEXT_MARKER}\n${context}\n${CALENDAR_CONTEXT_MARKER}`;
+}
 
 /**
  * Process up to `batchSize` pending dispatch queue entries.
@@ -98,9 +163,22 @@ export async function processDispatchBatch(batchSize: number = 5): Promise<{
         const dedicatedNumber = entry.dedicated_number as string | null || await getCompanyCallerNumber(entry.company_id);
         const webhookUrl = entry.webhook_url as string;
 
+        // Inject live calendar context for appointment confirmation agents.
+        // Fetched fresh per-call so the agent has up-to-date availability.
+        const agentSlug = (callConfig.agent_template_slug as string) || '';
+        let finalTask = callConfig.task as string;
+        if (agentSlug.includes('appointment') || agentSlug.includes('confirmation')) {
+          try {
+            const calCtx = await buildCalendarContext(entry.company_id);
+            finalTask = injectCalendarContext(finalTask, calCtx);
+          } catch (ctxErr) {
+            console.error('[dispatch] Calendar context fetch failed (non-fatal):', ctxErr);
+          }
+        }
+
         const result = await dispatchCall({
           phone_number: entry.phone_number,
-          task: callConfig.task as string,
+          task: finalTask,
           voice: (callConfig.voice as string) || 'maya',
           wait_for_greeting: true,
           record: true,
