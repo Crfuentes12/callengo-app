@@ -103,7 +103,7 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
       Appointment: 'Tomorrow (Tue) at 2:00 PM',
       Type: 'Annual Check-up',
     },
-    task: 'You are Nicole, an AI appointment confirmation agent calling on behalf of Sunrise Family Clinic. You are calling Robert Taylor to confirm his Annual Check-up appointment scheduled for tomorrow, Tuesday, at 2:00 PM. Start with a warm, professional greeting and confirm the appointment details. If he wants to reschedule, offer Wednesday, Thursday, or Friday of the same week, or slots next week — morning or afternoon. Be concise, friendly, and helpful. Keep the call under 3 minutes.',
+    task: 'You are Nicole, an AI appointment confirmation agent calling on behalf of Sunrise Family Clinic. You are calling Robert Taylor to confirm his Annual Check-up appointment scheduled for tomorrow, Tuesday, at 2:00 PM. Start with a warm, professional greeting and confirm the appointment details.\n\nIf he wants to reschedule: first ask whether morning or afternoon works better. Then offer 2-3 specific slots from the corresponding period:\n- Morning options: 9:00 AM, 10:30 AM, or 11:00 AM\n- Afternoon options: 2:00 PM, 3:30 PM, or 4:30 PM\nConfirm the exact day and time chosen before ending the call. Be concise, friendly, and helpful. Keep the call under 4 minutes.',
     tips: [
       'Say "can we move it to Thursday?" — watch her reschedule instantly',
       'Confirm you\'ll be there — she logs it and closes the loop',
@@ -749,7 +749,13 @@ export default function AgentTestExperience({
 
       // Determine what happened based on AI analysis
       const apptStatus = aSpec?.appointmentStatus ?? 'rescheduled';
-      const newTime = aSpec?.newTime ?? '2:00 PM';
+      // Extract original appointment time from demoData as fallback (never hardcode '2:00 PM')
+      const originalApptTime = (() => {
+        const raw = agent.demoData.Appointment || '';
+        const m = raw.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
+        return m ? m[1] : null;
+      })();
+      const newTime = aSpec?.newTime ?? originalApptTime ?? null;
 
       // Extract the rescheduled day name robustly:
       // 1. Check agentSpecific.newDay from AI
@@ -815,11 +821,12 @@ export default function AgentTestExperience({
 
       const headerLabel = isConfirmed ? 'Appointment Confirmed' : 'Appointment Rescheduled';
       const statusBadge = isConfirmed ? 'CONFIRMED' : 'RESCHEDULED';
+      const timeDisplay = newTime ?? 'TBD';
       const newDayLabel = isConfirmed
-        ? `${fmtWD(tuesday)} ${fmt(tuesday)} · 2:00 PM`
+        ? `${fmtWD(tuesday)} ${fmt(tuesday)}${originalApptTime ? ` · ${originalApptTime}` : ''}`
         : rescheduledDate
-          ? `${fmtWD(rescheduledDate)} ${fmt(rescheduledDate)} · ${newTime}`
-          : `New slot · ${newTime}`;
+          ? `${fmtWD(rescheduledDate)} ${fmt(rescheduledDate)} · ${timeDisplay}`
+          : `New slot · ${timeDisplay}`;
 
       return (
         <div className="border-2 border-[var(--color-primary-200)] rounded-2xl overflow-hidden mb-4">
@@ -832,7 +839,7 @@ export default function AgentTestExperience({
             {isRescheduled && (
               <>
                 <span className="inline-flex items-center gap-1 bg-red-50 border border-red-200 text-red-400 text-xs px-2 py-1 rounded-lg line-through">
-                  {fmtWD(tuesday)} {fmt(tuesday)} · 2:00 PM
+                  {fmtWD(tuesday)} {fmt(tuesday)}{originalApptTime ? ` · ${originalApptTime}` : ''}
                 </span>
                 <svg className="w-4 h-4 text-[var(--color-primary-400)] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
               </>

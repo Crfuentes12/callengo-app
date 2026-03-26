@@ -551,6 +551,116 @@ export async function pushContactUpdatesToSimplyBook(
 }
 
 // ============================================================================
+// AVAILABILITY & BOOKING — for appointment confirmation workflow
+// ============================================================================
+
+/**
+ * Get available time slots from SimplyBook.me for a specific service and date range.
+ *
+ * Returns an array of { date, time } objects (e.g. [{ date: "2025-03-26", time: "09:00" }]).
+ * An empty array means no slots are available in the requested window.
+ */
+export async function getSimplyBookAvailableSlots(
+  integration: SimplyBookIntegration,
+  options: {
+    serviceId: number;
+    providerId?: number;
+    dateFrom: string; // YYYY-MM-DD
+    dateTo: string;   // YYYY-MM-DD
+  }
+): Promise<Array<{ date: string; time: string }>> {
+  const client = await getSimplyBookClient(integration);
+  const params = new URLSearchParams({
+    service_id: String(options.serviceId),
+    date_from: options.dateFrom,
+    date_to: options.dateTo,
+  });
+  if (options.providerId != null) {
+    params.set('provider_id', String(options.providerId));
+  }
+
+  const res = await client.fetch(`/slots?${params.toString()}`);
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`SimplyBook.me available slots fetch failed (${res.status}): ${errBody}`);
+  }
+
+  const data = await res.json();
+  if (Array.isArray(data)) return data as Array<{ date: string; time: string }>;
+  return [];
+}
+
+/**
+ * Create a new booking in SimplyBook.me.
+ *
+ * Either client_id (existing client) or client object (new client details) must be provided.
+ * start_datetime must be in "YYYY-MM-DD HH:MM:SS" format.
+ */
+export async function createSimplyBookBooking(
+  integration: SimplyBookIntegration,
+  bookingData: {
+    start_datetime: string; // "YYYY-MM-DD HH:MM:SS"
+    service_id: number;
+    provider_id: number;
+    client_id?: number;
+    client?: { name: string; email?: string; phone?: string };
+    comment?: string;
+  }
+): Promise<SimplyBookBookingDetails> {
+  const client = await getSimplyBookClient(integration);
+
+  const res = await client.fetch('/bookings', {
+    method: 'POST',
+    body: JSON.stringify(bookingData),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`SimplyBook.me booking creation failed (${res.status}): ${errBody}`);
+  }
+
+  return res.json() as Promise<SimplyBookBookingDetails>;
+}
+
+/**
+ * Fetch busy time slots from SimplyBook.me for a date range.
+ * Used by the availability engine to block confirmed bookings.
+ *
+ * Returns TimeSlot objects ({start, end} as ISO strings) for each confirmed booking.
+ */
+export async function getSimplyBookBusySlots(
+  integration: SimplyBookIntegration,
+  startDate: string, // YYYY-MM-DD or ISO datetime
+  endDate: string
+): Promise<{ start: string; end: string }[]> {
+  try {
+    // Normalize to YYYY-MM-DD for the filter
+    const dateFrom = startDate.split('T')[0];
+    const dateTo = endDate.split('T')[0];
+
+    const result = await fetchSimplyBookBookings(integration, {
+      dateFrom,
+      dateTo,
+      limit: 200,
+    });
+
+    return (result.data || [])
+      .filter((b) => b.status !== 'canceled' && b.status !== 'cancelled')
+      .map((b) => ({
+        start: b.start_datetime.includes('T')
+          ? b.start_datetime
+          : b.start_datetime.replace(' ', 'T') + 'Z',
+        end: b.end_datetime.includes('T')
+          ? b.end_datetime
+          : b.end_datetime.replace(' ', 'T') + 'Z',
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================================
 // HELPER
 // ============================================================================
 

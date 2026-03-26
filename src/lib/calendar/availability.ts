@@ -5,12 +5,14 @@
 
 import { supabaseAdminRaw as supabaseAdmin } from '@/lib/supabase/service';
 import { listGoogleEvents } from './google';
+import { getSimplyBookBusySlots } from '@/lib/simplybook/sync';
 import type {
   CalendarEvent,
   TimeSlot,
   AvailabilityResult,
   CalendarIntegration,
 } from '@/types/calendar';
+import type { SimplyBookIntegration } from '@/types/simplybook';
 
 // ============================================================================
 // DEFAULT CONSTANTS
@@ -332,12 +334,33 @@ async function getMicrosoftBusySlots(
 }
 
 /**
+ * Fetch active SimplyBook integrations for a company.
+ */
+async function fetchActiveSimplyBookIntegrations(
+  companyId: string
+): Promise<SimplyBookIntegration[]> {
+  const { data, error } = await supabaseAdmin
+    .from('simplybook_integrations')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('[availability] Error fetching SimplyBook integrations:', error);
+    return [];
+  }
+
+  return (data || []) as unknown as SimplyBookIntegration[];
+}
+
+/**
  * Get all busy slots for a company across a date range.
  *
- * Aggregates events from three sources:
+ * Aggregates events from four sources:
  * 1. Callengo's local calendar_events table
  * 2. Google Calendar (for each active Google integration)
  * 3. Microsoft Outlook (for each active Microsoft integration)
+ * 4. SimplyBook.me (for each active SimplyBook integration)
  *
  * Results are merged and sorted chronologically.
  */
@@ -367,7 +390,7 @@ export async function getBusySlots(
     })
   );
 
-  // 2. Query external calendars in parallel
+  // 2. Query external calendars in parallel (Google + Microsoft)
   const integrations = await fetchActiveIntegrations(companyId);
 
   const externalFetches: Promise<TimeSlot[]>[] = integrations.map(
@@ -383,8 +406,17 @@ export async function getBusySlots(
     }
   );
 
-  const externalResults = await Promise.all(externalFetches);
-  const externalSlots = externalResults.flat();
+  // 3. Query SimplyBook bookings in parallel
+  const sbIntegrations = await fetchActiveSimplyBookIntegrations(companyId);
+  const sbFetches: Promise<TimeSlot[]>[] = sbIntegrations.map((sbInt) =>
+    getSimplyBookBusySlots(sbInt, startDate, endDate)
+  );
+
+  const [externalResults, sbResults] = await Promise.all([
+    Promise.all(externalFetches),
+    Promise.all(sbFetches),
+  ]);
+  const externalSlots = [...externalResults.flat(), ...sbResults.flat()];
 
   // 3. Merge, de-duplicate (by start+end), and sort
   const allSlots = [...localSlots, ...externalSlots];
