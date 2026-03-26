@@ -1,4 +1,4 @@
-# Callengo Legal Knowledge Base — COMPLETE — Generated March 25, 2026
+# Callengo Legal Knowledge Base — COMPLETE — Generated March 25, 2026 — Updated March 26, 2026
 
 ---
 
@@ -264,7 +264,7 @@ The following table documents every third-party service that receives or sends p
 - **Purpose:** Primary relational database (PostgreSQL), authentication service, real-time subscriptions, file storage
 - **Data Sent:** All application data including user PII, contact PII, call records, billing data, integration tokens
 - **Data Received:** All stored data
-- **Stored in DB:** IS the database — all 56 tables
+- **Stored in DB:** IS the database — all 57 tables
 - **Auth Method:** Anon key (client-side, respects RLS), service role key (server-side, bypasses RLS), JWT tokens
 - **Processes Customer PII:** Yes
 - **Processes Contact PII:** Yes
@@ -412,15 +412,17 @@ The following table documents every third-party service that receives or sends p
 - **Processes Contact PII:** No
 - **Privacy Policy:** https://policies.google.com/privacy
 
-### Resend (Transactional Email)
-- **Purpose:** Team invitation emails, transactional notifications
-- **Data Sent:** Recipient email address, invitation details, notification content
-- **Data Received:** Delivery status
-- **Stored:** Resend logs subject to Resend's retention policy
-- **Auth Method:** API key (`RESEND_API_KEY`)
-- **Processes Customer PII:** Yes (team member email addresses)
-- **Processes Contact PII:** No
+### Resend (Transactional Email — Active via Supabase Auth Custom SMTP)
+- **Purpose:** Resend acts as the **custom SMTP provider for Supabase Auth**, configured in the Supabase project dashboard to route all auth-related transactional emails through Resend's infrastructure using the `noreply@callengo.com` sender address. This setup protects the primary callengo.com domain reputation by using a dedicated sending domain and prevents Supabase's shared IP pools from affecting deliverability. Resend is **active and processing personal data** on every auth email.
+- **Emails delivered via this path:** Email verification on signup, password reset links, team invitation emails (triggered by `supabase.auth.admin.inviteUserByEmail()`), and magic link emails.
+- **Data flow:** Supabase Auth composes the email → passes it to Resend via SMTP using `RESEND_API_KEY` credentials → Resend delivers from `noreply@callengo.com`. Callengo's application code does not call the Resend API directly — the integration is configured at the infrastructure level in the Supabase project settings.
+- **Data Sent to Resend:** Recipient email address, email subject, email body (containing authentication or invitation links). Resend receives this data over SMTP to perform delivery.
+- **Data Stored by Resend:** Resend retains email delivery logs (recipient, timestamp, delivery status) subject to Resend's own data retention policy.
+- **Auth Method:** API key (`RESEND_API_KEY`) — configured as SMTP credentials in Supabase Auth settings
+- **Processes Customer PII:** Yes — recipient email addresses and name references in invitation emails
+- **Processes Contact PII:** No — only account holder / team member emails flow through this path
 - **Privacy Policy:** https://resend.com/legal/privacy-policy
+- **Note:** `src/app/api/team/invite/route.ts` (line 208) contains a `console.log` that logs the invitee's email address to Vercel's runtime log when the invited user already has a Supabase Auth account. This constitutes a PII disclosure to Vercel's log infrastructure. See GAP-024.
 
 ### Slack (Notification Integration)
 - **Purpose:** Customer-configurable notification delivery to their Slack workspace
@@ -1018,6 +1020,33 @@ The `sanitizeTranscript()` function in `src/lib/ai/intent-analyzer.ts` (lines 15
 - Removes prompt injection patterns (e.g., "ignore previous instructions")
 - Does NOT remove personal information (names, phone numbers, emails, addresses) from transcripts before sending to OpenAI
 
+### 8.2.7 Cali AI Assistant — Data Sent to OpenAI Per Request
+
+**Model:** `gpt-4o-mini` (via `OPENAI_API_KEY_CALI_AI`) | **Max Tokens:** 1,000 | **Integration File:** `src/app/api/ai/chat/route.ts`
+
+The Cali AI assistant builds a comprehensive system prompt on every request using live data fetched from the database. **The following data is transmitted to OpenAI with every Cali AI chat message:**
+
+**Customer (account holder) PII and business data in the system prompt:**
+- User's full name and email address (`userData.full_name`, `userData.email`)
+- User's role within their company
+- Company name, description, industry, and website URL
+- Current subscription plan name and billing cycle usage (minutes used / minutes included)
+- Total number of contacts, calls made, active campaigns, and AI agents
+- **Full team member list:** name (or email as fallback), email address, and role for every user in the company (`SELECT full_name, email, role FROM users WHERE company_id = ?`)
+- **Last 5 campaign names** with status and call completion counts
+
+**User message content (sent each request):**
+- The user's typed chat message
+- Up to the last 20 previous messages in the conversation (full conversation history replay)
+
+**Data NOT sent:** Contact PII (individual names, phone numbers, addresses of called parties) is not included in the Cali AI system prompt. Only aggregate counts (total contacts, total calls) are included.
+
+**Privacy significance:** The team member email addresses and full names are PII of Callengo account users. These are sent to OpenAI on every single Cali AI chat request regardless of whether the user's question has anything to do with their team. This constitutes a transfer of customer PII (user identities) to OpenAI under the OpenAI API terms. It is covered by the OpenAI DPA (training opt-out confirmed — see §8.2.5), but it must be disclosed in the Privacy Policy: *"When you use the Cali AI assistant, your company profile information, usage statistics, team member names and emails, and recent campaign data are included in the request sent to OpenAI."*
+
+**Conversation Persistence:** All Cali AI conversations are saved to `ai_conversations` and `ai_messages` tables in Supabase. The `ai_conversations` table stores the conversation title (first 60 characters of the first user message), user_id, company_id, and timestamps. The `ai_messages` table stores role (`user` or `assistant`), content (full message text), and conversation_id. These tables contain personal data — the user's typed questions and Cali's responses — and are subject to RLS by company_id.
+
+**Rate Limiting:** 10 messages per minute per user enforced via `expensiveLimiter` from `src/lib/rate-limit.ts`. This is one of the few places where the rate limiter is actually applied (see GAP-018 for the global rate limiting gap).
+
 ## 8.3 AI Analysis Queue
 
 When `AI_ANALYSIS_MODE=async`, AI analysis is deferred to an `analysis_queue` table (asynchronous processing). The queue stores: company_id, call_log_id, contact_id, agent_run_id, template_slug, transcript (full text), call_metadata, and result. Queued analysis jobs are processed in batches of up to 10 by the `/api/queue/process` endpoint. The transcript (containing contact PII) is stored in `analysis_queue.transcript` until the job is processed and the field is cleared.
@@ -1270,10 +1299,14 @@ The following tables contain personal data. All tables have Row Level Security (
 | `ai_messages` | content (may contain PII in conversation) | — | Enabled |
 | `notifications` | title, message (may contain contact PII in messages) | — | Enabled |
 | `admin_audit_log` | ip_address, user_agent | old_value, new_value (JSONB) | Enabled |
+| `openai_usage_logs` | user_id (UUID), company_id (UUID) | feature_key, model, input_tokens, output_tokens, cost_usd, metadata (JSONB) | Enabled |
+| `ai_conversations` | title (may contain first message text — PII if user asks about personal matters) | user_id, company_id | Enabled |
+
+Note: `ai_messages` (listed above) and `ai_conversations` are created by the Cali AI assistant feature (`src/app/api/ai/chat/route.ts`). `openai_usage_logs` was added in migration `20260325000001_openai_usage_tracking.sql` (March 25, 2026) and tracks API usage per feature for billing and admin cost analysis. It contains user_id and company_id as identifying references but does not store prompts or completions — those are retained by OpenAI for up to 30 days on their platform (see §8.2.5).
 
 ## 11.2 RLS Policy Summary
 
-All 56 tables have RLS enabled. Primary RLS patterns:
+All 57 tables have RLS enabled. Primary RLS patterns:
 
 **Standard Company Isolation:**
 ```sql
@@ -1516,7 +1549,7 @@ Role changes are blocked at the database level via the `trg_prevent_role_self_es
    - UUID token (invitation secret)
    - 7-day expiry
    - Email, role, company_id, invited_by
-5. Email sent to invitee via Resend (or Supabase Auth invitation)
+5. Email sent via Supabase Auth (`supabase.auth.admin.inviteUserByEmail()`) → routed through Resend SMTP → delivered from `noreply@callengo.com`
 6. Invitee accepts via `POST /api/team/accept-invite`
 7. Acceptance verifies: token validity, pending status, not expired, email match, not already in another company
 8. On acceptance: user's `company_id` and `role` are updated; invitation marked `accepted`
@@ -1894,12 +1927,18 @@ The TSR requires prompt disclosure at the start of outbound sales calls: (a) the
 
 **Opt-Out Honoring:** When a called individual asks to be placed on the caller's DNC list during a call, the caller is legally required to honor that request within a specified timeframe (30 days under TSR; immediately under some state laws). Callengo's AI agent can be configured to detect and log opt-out requests, but the mechanical process of removing opted-out numbers from future campaigns is the customer's responsibility.
 
+**Platform-Level Call Frequency Safeguards (Callengo Technical Controls):** Callengo enforces the following technical limits that provide a degree of protection against harassment-level call frequencies, independent of any customer-configured settings:
+- **Contact cooldown:** A 5-minute minimum interval between calls to the same contact phone number is enforced at the Redis level (`callengo:contact_cooldown:{contactId}` key with 5-minute TTL, `src/lib/redis/concurrency-manager.ts`). Any attempt to dispatch a second call to the same contact within 5 minutes will be blocked.
+- **Concurrent call caps:** Per-company concurrent call limits (determined by subscription plan) prevent bulk simultaneous calling to the same contact list.
+- **Daily and hourly limits:** Daily and hourly call count limits are enforced globally and per-company, preventing sustained high-frequency calling campaigns.
+These technical controls do not substitute for the customer's obligation to maintain and honor a proper DNC list, comply with TCPA consent requirements, and respect federal and state call frequency best practices.
+
 ## 16.M Data Security and Breach Notification
 
 **Security Practices:** Callengo implements the following security measures for customer and contact data:
 - All data transmitted between users and the platform is encrypted in transit using TLS 1.2 or higher (enforced via HSTS)
 - OAuth tokens for all integrations are encrypted at rest using AES-256-GCM with 32-byte random IV per token
-- Row Level Security (RLS) is enabled on all 56 database tables
+- Row Level Security (RLS) is enabled on all 57 database tables
 - Authentication sessions use HTTP-only, Secure, SameSite=Lax cookies
 - Sensitive operations are protected by rate limiting via Upstash Redis
 - Database-level triggers prevent privilege escalation and unauthorized field modification
@@ -1955,6 +1994,14 @@ With respect to **contact data** (individuals called by customers):
 **EU Representative:** If GDPR applies under Article 3(2) and Callengo is not established in the EU (which is debatable given the sole member's EU residence), Article 27 would require appointing an EU representative in writing. If the sole member's residence constitutes an EU establishment, this requirement may be satisfied. Legal counsel must determine the applicable position.
 
 **Spanish Lead Supervisory Authority:** Given the sole member's residence in Spain, the lead supervisory authority for GDPR enforcement purposes would likely be the Agencia Española de Protección de Datos (AEPD). Contact: https://www.aepd.es
+
+**Data Protection Impact Assessment (DPIA) — GDPR Article 35 Obligation:** GDPR Article 35 requires a Data Protection Impact Assessment (DPIA) before commencing processing operations that are "likely to result in a high risk to the rights and freedoms of natural persons." A DPIA is specifically required where processing involves: (a) systematic and extensive evaluation of personal aspects relating to natural persons based on automated processing, including profiling; (b) large-scale processing of special categories of data; or (c) systematic monitoring of publicly accessible areas on a large scale.
+
+Callengo's core processing activities likely trigger the DPIA requirement on the basis of (a): the platform uses AI voice agents to autonomously call individuals, records those conversations, and then applies automated AI analysis (OpenAI) to classify the called individual's intent, interest level, sentiment, and data accuracy. This constitutes automated evaluation of personal aspects (contact qualification, behavioral intent classification, sentiment assessment) at potentially large scale. Additionally, Callengo processes conversation content (call recordings and transcripts) which may incidentally capture sensitive personal information disclosed during conversations.
+
+**No DPIA has been conducted.** This represents a compliance gap that must be addressed before the platform is made available to EU/EEA-based customers or processes personal data of EU residents at scale. The DPIA should assess: the nature, scope, context, and purposes of the processing; the necessity and proportionality; the risks to data subjects; and the measures to address those risks (including safeguards, security measures, and mechanisms to ensure protection of personal data).
+
+See GAP-025 for the open item tracking this obligation.
 
 
 ---
@@ -2155,7 +2202,7 @@ Supabase automated backups may retain data for up to 30 days after deletion. Aft
 | **TCPA (Telephone Consumer Protection Act)** | HIGH — Callengo dispatches automated outbound voice calls to phone numbers provided by customers | Customer (primary); Callengo (platform liability) | ⚠️ Partial | Callengo's Terms must require customers to: (a) obtain prior express written consent before calling contacts; (b) maintain Do-Not-Call compliance; (c) provide TCPA-compliant disclosures. Callengo must disclaim liability for customer TCPA violations. Current ToS does not appear to include required TCPA pass-through obligations. See Legal Position B. |
 | **FTC Telemarketing Sales Rule (TSR)** | HIGH — Automated outbound calls are subject to the TSR if they constitute telemarketing. Calls for appointment confirmation, data validation, and lead qualification may qualify. | Customer (primary); Callengo (platform) | ⚠️ Partial | Customers must comply with TSR call-time restrictions (8 AM–9 PM local), opt-out mechanisms, and disclosure requirements. Callengo's ToS must require this. No technical enforcement of call-time windows in the platform. |
 | **National Do Not Call Registry (NDNC / FTC DNC)** | HIGH — Customers initiating telemarketing calls must scrub against the FTC DNC Registry and honor company-specific DNC lists. | Customer | ❌ Gap | Callengo has no built-in DNC Registry scrubbing feature. ToS must explicitly require customers to scrub contact lists before uploading to Callengo. Callengo should consider adding an acknowledgment checkbox at campaign launch. |
-| **CAN-SPAM Act** | MEDIUM — Applies to commercial email. Callengo sends transactional emails (team invitations, billing receipts) via Resend. | Fuentes Digital Ventures LLC | ✅ Compliant | Transactional emails sent via Resend include required header information and return address. No bulk commercial email campaigns are sent. Email templates should be reviewed annually to maintain compliance. |
+| **CAN-SPAM Act** | MEDIUM — Applies to commercial email. Callengo sends transactional emails (team invitations, email verification, password reset) via Supabase Auth using Resend as custom SMTP, sent from `noreply@callengo.com`. | Fuentes Digital Ventures LLC | ✅ Compliant | All outbound emails are purely transactional (auth flows, team invites) — not commercial solicitations. CAN-SPAM's unsubscribe and sender identification requirements apply to commercial messages, not system-triggered transactional emails. No bulk commercial email campaigns are sent. Review annually. |
 | **GDPR (General Data Protection Regulation)** | HIGH — Fuentes Digital Ventures LLC's sole member resides in the EU; the platform serves B2B customers including EU-based businesses; EU residents' personal data is processed. | Fuentes Digital Ventures LLC (Controller and Processor) | ⚠️ Partial | Privacy Policy, Cookie Policy, DPA, SCCs, and cookie consent banner are required. No cookie consent banner exists. No formal DPA template published. EU data subjects' rights procedures not documented in public-facing materials. Lawful basis analysis not yet published. Legal rep in EU not formally appointed (though the sole member resides in the EU). See Legal Position L. |
 | **State Call Recording Consent Laws (Two-Party Consent)** | CRITICAL — Bland AI records all calls by default. At least 11 US states (CA, FL, IL, MD, MA, MI, MT, NH, OR, PA, WA) require all-party consent to record a call. Customer contacts in these states must consent before recording begins. | Customer (primary obligation); Callengo (disclosure and ToS pass-through) | ❌ Gap | No customer-facing disclosure about default recording. No in-app consent workflow for recording. ToS must impose recording consent obligations on customers. Platform must clearly disclose that all calls are recorded by default. See GAP-023. |
 | **GDPR Article 28 — Data Processing Agreements** | HIGH — Required with all sub-processors who process personal data on Callengo's behalf. | Fuentes Digital Ventures LLC | ⚠️ Partial | DPAs confirmed: Bland AI (DPA reviewed March 2026; SCCs included; see GAP-005). DPA with OpenAI: OpenAI offers an enterprise DPA; not confirmed as executed. DPA with PostHog: available, status unknown. DPA with Google (Analytics): Google's ToS includes DPA terms; must accept and configure. Supabase and Vercel: standard contract terms. |
@@ -2241,7 +2288,7 @@ Supabase automated backups may retain data for up to 30 days after deletion. Aft
 
 | Sub-Processor | Role | Service Description | Data Categories Processed | Infrastructure Region | DPA / Privacy Framework | DPF Enrolled | Risk Level |
 |---------------|------|--------------------|--------------------------|-----------------------|------------------------|--------------|-----------|
-| **Resend, Inc.** | Transactional Email | Sends transactional emails on behalf of Callengo: team invitation emails (containing invitee's email address, inviter's name, company name), billing notifications, and potentially password reset emails (via Supabase Auth which may use Resend). | Recipient email address, display name, invitation metadata, company name | US infrastructure | [Resend Privacy Policy](https://resend.com/legal/privacy-policy); SOC 2 Type II in progress | Status unknown | 🟡 Medium |
+| **Resend, Inc.** | Transactional Email — Custom SMTP for Supabase Auth (Active) | Resend is configured as the custom SMTP provider in Supabase Auth project settings, routing all transactional auth emails through Resend's infrastructure using the `noreply@callengo.com` sender. Emails sent: account verification, password reset, magic links, team invitations. Callengo's code does not call the Resend API directly — the integration is infrastructure-level (Supabase SMTP settings). | Recipient email address, email content (auth/invitation links), delivery metadata | US infrastructure (Resend-managed) | [Resend Privacy Policy](https://resend.com/legal/privacy-policy); [Resend DPA](https://resend.com/legal/dpa) — confirm execution status | Status unknown — confirm DPA is in place | 🟡 Medium — active sub-processor, DPA execution should be confirmed |
 
 ---
 
@@ -2269,7 +2316,7 @@ Supabase automated backups may retain data for up to 30 days after deletion. Aft
 
 # SECTION 21 — OPEN ITEMS AND LEGAL GAPS
 
-> **Purpose:** This section documents known compliance gaps, unanswered questions, and items requiring legal review or remediation as of March 25, 2026. Each item includes the relevant file path(s) where applicable, risk level, and suggested remediation. Priority levels: 🔴 Critical | 🟠 High | 🟡 Medium | 🟢 Low.
+> **Purpose:** This section documents known compliance gaps, unanswered questions, and items requiring legal review or remediation as of March 26, 2026 (updated from March 25, 2026). Each item includes the relevant file path(s) where applicable, risk level, and suggested remediation. Priority levels: 🔴 Critical | 🟠 High | 🟡 Medium | 🟢 Low.
 
 ---
 
@@ -2409,7 +2456,7 @@ All three options are disabled. OpenAI does not use Callengo's API data (call tr
 | Agent recommendation | `src/app/api/openai/recommend-agent/route.ts` | GPT-4o-mini | Business description |
 | Campaign context suggestions | `src/app/api/openai/context-suggestions/route.ts` | GPT-4o-mini | Contact list metadata |
 | Contact quality analysis | `src/app/api/contacts/ai-analyze/route.ts` | GPT-4o-mini | Contact field data |
-| Cali AI assistant | `src/app/api/ai/chat/route.ts` | GPT-4o-mini | User chat messages, context |
+| Cali AI assistant | `src/app/api/ai/chat/route.ts` | GPT-4o-mini | User chat messages, conversation history (last 20 msgs), company profile, usage stats, **full team member names + emails**, recent campaign names and statuses |
 | Onboarding company detection | `src/lib/web-scraper.ts` | GPT-4o-mini | Company website content |
 
 **API Key Architecture:** Callengo uses a two-key architecture: `OPENAI_API_KEY` (all features except Cali AI) and `OPENAI_API_KEY_CALI_AI` (Cali AI assistant only — isolated for independent rate limiting). All usage is tracked in the `openai_usage_logs` table and visible in the Admin Command Center → Finances → AI Infrastructure Costs section.
@@ -2758,6 +2805,61 @@ The Terms of Service must include, at minimum, the following pass-through obliga
 - `src/config/plan-features.ts` — `recordingVault` add-on definition
 
 **Risk Level:** 🔴 Critical — Callengo's platform automatically records all calls including calls to contacts in all-party consent states; no customer-facing disclosure or consent workflow exists; entire liability exposure currently falls on customers by operation of the platform without explicit contractual notice; Terms of Service required before public launch
+
+---
+
+### GAP-024: PII Logged to Vercel Runtime Logs in Team Invite Route
+
+**Description:** In `src/app/api/team/invite/route.ts` (line 208), the following `console.log` statement is present:
+```typescript
+console.log(`User ${email} already exists in auth, invitation saved in DB for manual acceptance`);
+```
+This statement logs the invitee's email address to Vercel's runtime log infrastructure whenever an invitation is sent to a user whose email address already exists in Supabase Auth. In Vercel deployments, `console.log` output is captured in Vercel's Observability product (formerly "Runtime Logs") and is retained for up to 72 hours (or longer on Enterprise plans). This means the email address of an invited user may appear in Vercel's log storage.
+
+**Privacy implication:** Email addresses are personal data under GDPR and CCPA. Logging personal data to a third-party infrastructure provider (Vercel / Vercel Inc.) without explicit documentation of this transfer in the sub-processor list constitutes an undisclosed processing activity. Vercel is already used as the deployment platform (and should be listed as a sub-processor for general infrastructure processing), but the specific disclosure that email addresses may appear in runtime logs is not documented.
+
+**Relevant File:** `src/app/api/team/invite/route.ts` — line 208
+
+**Risk Level:** 🟡 Medium
+
+**Remediation:**
+1. Remove or redact the email from the console.log: `console.log('User already exists in auth, invitation saved in DB for manual acceptance');`
+2. Alternatively, log only the user UUID: `console.log(`User ${userId} already exists in auth...`);`
+3. Ensure Vercel is listed as a sub-processor in the DPA and sub-processor list (GAP-022) with appropriate documentation that infrastructure logs may contain incidental PII.
+4. Review all other `console.log` and `console.error` statements in API routes for PII leakage. The `console.error` in the same file and others may also include error objects that contain email addresses in stack traces or error messages.
+
+---
+
+### GAP-025: No Data Protection Impact Assessment (DPIA) Conducted
+
+**Description:** GDPR Article 35 requires a Data Protection Impact Assessment (DPIA) prior to commencing processing operations that are likely to result in a high risk to the rights and freedoms of natural persons. A DPIA is specifically mandated when processing involves systematic automated evaluation of personal aspects (profiling) at scale.
+
+Callengo's core operations — autonomously calling individuals using AI voice agents, recording those conversations, and applying automated AI classification of intent, sentiment, interest level, and data validity — constitute systematic automated evaluation of personal aspects within the meaning of GDPR Article 35(3)(a). The involvement of special categories of data (conversations may touch on health, financial, or legal matters depending on the customer's industry) and the potential for adverse decisions based on AI classifications (e.g., contact marked as "cold" or "DNC") further increase the risk profile.
+
+**No DPIA has been conducted.** This must be addressed before the platform is made available to EU/EEA-based customers or processes personal data of EU residents at meaningful scale.
+
+**The DPIA must assess:**
+1. A systematic description of the envisaged processing operations and their purposes
+2. An assessment of the necessity and proportionality of the processing in relation to the purposes
+3. An assessment of the risks to the rights and freedoms of data subjects (the individuals who are called)
+4. The measures envisaged to address those risks, including safeguards, security measures, and mechanisms to ensure protection of personal data
+
+**Where high risks cannot be mitigated,** GDPR Article 36 requires prior consultation with the supervisory authority (AEPD in Spain) before processing begins.
+
+**Relevant Processing Activities:**
+- Automated outbound voice calls to individuals using AI agents
+- AI classification of call intent, sentiment, interest, and data accuracy (OpenAI)
+- Recording and transcription of private telephone conversations
+- Storage of AI-generated assessments of individuals in contact records
+- Transmission of contact PII and conversation data to Bland AI and OpenAI sub-processors
+
+**Risk Level:** 🟠 High — Required before EU market entry; failure to conduct a DPIA when required is itself a GDPR violation (Art. 83(4), up to €10 million or 2% of global annual turnover)
+
+**Remediation:**
+1. Engage legal counsel with GDPR expertise to conduct a formal DPIA.
+2. Document the DPIA findings and maintain them as internal compliance records.
+3. If the DPIA identifies high residual risks, consult with AEPD before proceeding.
+4. Review the DPIA annually or whenever there is a significant change to processing activities.
 
 ---
 

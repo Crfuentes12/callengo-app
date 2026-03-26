@@ -1,7 +1,7 @@
 # CLAUDE.md — Contexto del Proyecto Callengo
 
 > Documento de contexto para Claude Code. Léelo antes de cada sesión de trabajo.
-> Última actualización: 25 Marzo 2026 (OpenAI usage tracking, per-feature API keys, Cali AI documentado, analytics PII fix, AI Costs tab en Command Center)
+> Última actualización: 26 Marzo 2026 (Guided tour con driver.js, PageTipCard en 10 páginas, campaign flow sin bloqueo por contactos, bugfixes tour persistence)
 
 ---
 
@@ -17,7 +17,7 @@ Callengo es una plataforma B2B SaaS de llamadas outbound automatizadas con IA. R
 
 | Capa | Tecnología |
 |------|------------|
-| **Frontend** | Next.js 16.1.1 (App Router), React 19.2.1, TypeScript 5.9.3, Tailwind CSS 4, shadcn/ui |
+| **Frontend** | Next.js 16.1.1 (App Router), React 19.2.1, TypeScript 5.9.3, Tailwind CSS 4, shadcn/ui, driver.js 1.4.0 (guided tour) |
 | **Backend** | Next.js API Routes (142+ endpoints serverless) |
 | **Base de datos** | Supabase (PostgreSQL) con Row Level Security (RLS), 57 tablas |
 | **Auth** | Supabase Auth (email/password + OAuth: Google, GitHub) |
@@ -72,8 +72,9 @@ src/
 │   ├── integrations/       # IntegrationsPage (~2,300 líneas — componente grande)
 │   ├── dashboard/
 │   ├── settings/           # BillingSettings (~1,000 líneas)
-│   ├── admin/              # AdminCommandCenter (~1,200 líneas — 6 tabs)
-│   └── ui/                 # shadcn/ui components
+│   ├── admin/              # AdminCommandCenter (~1,200 líneas — 7 tabs)
+│   ├── home/               # HomePage + HomeTour (driver.js, 9 pasos)
+│   └── ui/                 # shadcn/ui components + PageTipCard (nuevo)
 ├── config/
 │   └── plan-features.ts    # Fuente de verdad de features por plan (254 líneas)
 ├── contexts/
@@ -327,6 +328,89 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 
 ---
 
+## Sistema de Guided Tour y PageTipCard
+
+### HomeTour (driver.js)
+Componente `HomeTour` en `src/components/home/HomePage.tsx`. Se activa 650ms después de completar el onboarding wizard, solo si `company_settings.settings.tour_home_seen` es falso.
+
+- **Librería:** driver.js 1.4.0 (import dinámico para reducir bundle)
+- **CSS base:** `import 'driver.js/dist/driver.css'` — sobreescrito con tema dark Callengo vía `<style dangerouslySetInnerHTML>`
+- **9 pasos:** Intro bienvenida → `#tour-action-cards` → `#tour-quick-actions` → `#tour-nav-group-0` → `#tour-nav-group-1` → `#tour-nav-group-2` → `#tour-nav-group-3` → `#tour-settings-btn` → `#tour-cali-btn`
+- **Persistencia:** `company_settings.settings.tour_home_seen = true` al cerrar (via `persistAndClose()`)
+- **Cierre externo:** `window.__callengoTourClose()` global expuesto para que Sidebar y Header puedan cerrar el tour al navegar
+- **Anti-restart:** `onDismiss={handleTourDismiss}` usa `useCallback([], [])` para referencia estable
+- **Overlay:** `overlayClickBehavior: () => {}` — no cierra al hacer clic en el overlay
+
+### IDs de Tour en el DOM
+| ID | Componente | Propósito |
+|----|-----------|-----------|
+| `#tour-action-cards` | HomePage | Grid de 4 quick action cards |
+| `#tour-quick-actions` | HomePage | Sección "Get Started" checklist |
+| `#tour-nav-group-0` | Sidebar | Home & Dashboard |
+| `#tour-nav-group-1` | Sidebar | Contacts, Campaigns & Agents |
+| `#tour-nav-group-2` | Sidebar | Calls, Calendar & Follow-ups |
+| `#tour-nav-group-3` | Sidebar | Analytics, Integrations & Team |
+| `#tour-settings-btn` | Header | Botón de Settings |
+| `#tour-cali-btn` | Header | Botón de Cali AI |
+
+### PageTipCard (`src/components/ui/PageTipCard.tsx`)
+Componente reutilizable de tarjeta educativa. Persiste estado de "descartado" en `company_settings.settings` JSONB.
+
+**Props:** `title: string`, `tips: {icon, label, desc}[]`, `settingKey: string`, `companyId: string`
+
+**3 estados visuales:**
+1. **Completo** — Tarjeta con gradiente, grid de tips 2 columnas, botón "Got it, don't show again"
+2. **Minimizado** — Solo botón pequeño "Tips" (aparece después de "Got it")
+3. **Re-expandido** — Vuelta a completo sin escribir a DB (clic en "Tips")
+
+**Animación:** Fade-in + translateY(-6px → 0) en 500ms ease-out al montar
+
+**Páginas con PageTipCard y sus settingKeys:**
+| Página | settingKey |
+|--------|-----------|
+| Contacts (banner propio) | `tour_contacts_seen` |
+| Campaigns | `tour_campaigns_seen` |
+| Agents | `tour_agents_seen` |
+| Call History | `tour_calls_seen` |
+| Calendar | `tour_calendar_seen` |
+| Analytics | `tour_analytics_seen` |
+| Voicemails | `tour_voicemails_seen` |
+| Follow-ups | `tour_followups_seen` |
+| Integrations | `tour_integrations_seen` |
+| Team | `tour_team_seen` |
+| Home tour | `tour_home_seen` |
+
+### company_settings.settings JSONB — Claves Documentadas
+```json
+{
+  "onboarding_wizard_completed": true,
+  "tour_home_seen": true,
+  "tour_contacts_seen": true,
+  "tour_campaigns_seen": true,
+  "tour_agents_seen": true,
+  "tour_calls_seen": true,
+  "tour_calendar_seen": true,
+  "tour_analytics_seen": true,
+  "tour_voicemails_seen": true,
+  "tour_followups_seen": true,
+  "tour_integrations_seen": true,
+  "tour_team_seen": true,
+  "google_calendar_connected": true,
+  "google_calendar_token": "...",
+  "get_started_progress": {
+    "listened_call": false,
+    "viewed_transcript": false,
+    "viewed_analytics": false,
+    "updated_contact": false,
+    "tested_agent": false,
+    "synced_calendar_contacts": false,
+    "explored_integrations": false
+  }
+}
+```
+
+---
+
 ## Bugs Conocidos (Auditoría Marzo 2026)
 
 ### Alta Prioridad
@@ -338,6 +422,12 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 - Datos demo (seed) presentes en producción: 50 contactos, 6 campañas demo
 - Componentes muy grandes que dificultan el mantenimiento (AgentConfigModal, IntegrationsPage)
 - Falta de tests automatizados (no hay test runner configurado)
+
+### Corregidos (26 Marzo 2026)
+- ~~**Tour no persistía al navegar**~~ — `window.__callengoTourClose` llamaba `finish()` con `finished=true` ya seteado, saltando `persistAndClose()`. Corregido: `finish()` se llama antes de `destroy()` garantizando escritura a DB.
+- ~~**Tour se reiniciaba al cambiar estado**~~ — `onDismiss` inline creaba nueva referencia cada render → `useEffect` se re-ejecutaba. Corregido: `handleTourDismiss = useCallback(() => setShowHomeTour(false), [])`.
+- ~~**Build error "Return statement not allowed here" (línea 431)**~~ — Edit incorrecto reemplazó la línea de apertura de `handleOnboardingComplete` con `handleTourDismiss`, dejando el cuerpo huérfano. Corregido: ambas funciones declaradas correctamente en secuencia.
+- ~~**PageTipCard aparecía de forma tosca (pop-in)**~~ — Añadida animación fade-in + translateY(-6px→0) en 500ms ease-out con estado `visible` + setTimeout 30ms.
 
 ### Corregidos (25 Marzo 2026)
 - ~~**Email en GA4/PostHog como PII**~~ — Email reemplazado por UUID de Supabase en `AnalyticsProvider`, `PostHogProvider`, `analytics.ts`, `posthog.ts` y `(app)/layout.tsx` (25 Marzo 2026)

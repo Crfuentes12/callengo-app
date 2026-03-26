@@ -2,7 +2,7 @@
 tags: [security, audit, bugs, production, fixes, technical-debt]
 aliases: [Audit Log (Production), Known Bugs, Security Audit, March 2026 Audit]
 created: 2026-03-23
-updated: 2026-03-23
+updated: 2026-03-26
 ---
 
 # Known Issues & Audit
@@ -97,6 +97,42 @@ These components work correctly but are difficult to maintain, review, and test.
 The project has no test runner configured (no Jest, Vitest, or Playwright setup). There are no unit tests, integration tests, or end-to-end tests. All quality assurance is manual.
 
 **Impact**: Regressions can be introduced without detection. The lack of tests also makes refactoring risky, as there is no safety net to catch broken behavior.
+
+---
+
+## Corrected Issues (26 March 2026 — UX & Tour Fixes)
+
+### Fix A: Home Tour Not Persisting on Navigation Dismiss
+
+**Before**: When a user navigated away via the Sidebar or Header during an active tour, `window.__callengoTourClose()` was called. Inside that handler, `finished = true` was set before calling `finish()`. Since `finish()` guards on `if (!finished)`, the `persistAndClose()` call was skipped — `tour_home_seen` was never written to the database. The tour re-opened on every return to `/home`.
+
+**After**: `finish()` is called first (which sets `finished = true`, persists to DB, calls `onDismiss`), then `tourInstance.destroy()` is called. The `onDestroyed` callback fires `finish()` a second time but the guard makes it a no-op. DB write is guaranteed.
+
+**File**: `src/components/home/HomePage.tsx` — `window.__callengoTourClose` handler
+
+### Fix B: Tour Restarting on Parent State Changes
+
+**Before**: `onDismiss={() => setShowHomeTour(false)}` was passed inline, creating a new function reference on every parent re-render. `HomeTour`'s `useEffect` dependency array included `onDismiss`, so any parent state change (e.g., task completion, "View All" toggle) would trigger `useEffect` cleanup → destroy tour → create new tour instance → tour restarts from beginning.
+
+**After**: `const handleTourDismiss = useCallback(() => setShowHomeTour(false), [])` creates a stable reference. The `useEffect` in `HomeTour` only re-runs when truly meaningful props change.
+
+**File**: `src/components/home/HomePage.tsx`
+
+### Fix C: Build Error — Return Statement Outside Function
+
+**Before**: An edit incorrectly replaced the opening line of `handleOnboardingComplete` with the `handleTourDismiss` declaration, leaving the function body orphaned. The stray `};` closed the `HomePage` function early, placing the `return (` statement outside any function — causing Vercel build failure: "Return statement is not allowed here" at line 431.
+
+**After**: Both functions are declared in sequence. `handleTourDismiss` precedes `handleOnboardingComplete` with its full body intact.
+
+**File**: `src/components/home/HomePage.tsx`
+
+### Fix D: PageTipCard Abrupt Pop-in
+
+**Before**: The `PageTipCard` component appeared instantly when `loaded` became true — no animation, jarring visual pop.
+
+**After**: Added `visible` state initialized to `false`. After `setLoaded(true)`, a 30ms `setTimeout` sets `visible = true`. The card's inline style applies `opacity: 0 → 1` and `translateY(-6px → 0)` via `transition: all 500ms ease-out`. The entrance is now a soft fade + slide.
+
+**File**: `src/components/ui/PageTipCard.tsx`
 
 ---
 
