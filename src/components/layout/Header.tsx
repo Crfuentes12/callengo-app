@@ -284,7 +284,7 @@ export default function Header({
             </div>
 
             {/* AI Assistant Spark */}
-            <div className="relative group/cali">
+            <div id="tour-cali-btn" className="relative group/cali">
               <button
                 onClick={() => setShowAIChat(!showAIChat)}
                 className={`relative p-1.5 rounded-lg transition-all ${

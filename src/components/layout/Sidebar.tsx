@@ -206,6 +206,7 @@ export default function Sidebar({
   return (
     <aside
       ref={sidebarRef}
+      id="tour-sidebar"
       className={`
         fixed lg:static inset-y-0 left-0 z-50
         flex flex-col h-screen
