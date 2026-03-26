@@ -163,14 +163,30 @@ export async function processDispatchBatch(batchSize: number = 5): Promise<{
         const dedicatedNumber = entry.dedicated_number as string | null || await getCompanyCallerNumber(entry.company_id);
         const webhookUrl = entry.webhook_url as string;
 
-        // Inject live calendar context for appointment confirmation agents.
-        // Fetched fresh per-call so the agent has up-to-date availability.
+        // Inject live calendar context + contact appointment data for appointment confirmation agents.
+        // Fetched fresh per-call so the agent has up-to-date availability and knows exactly
+        // which appointment it is confirming for this specific contact.
         const agentSlug = (callConfig.agent_template_slug as string) || '';
         let finalTask = callConfig.task as string;
         if (agentSlug.includes('appointment') || agentSlug.includes('confirmation')) {
           try {
+            // Fetch contact's specific appointment data (stored after previous calls or CRM sync)
+            const { data: contactRow } = await supabaseAdmin
+              .from('contacts')
+              .select('custom_fields, contact_name')
+              .eq('id', entry.contact_id)
+              .single();
+            const cf = (contactRow?.custom_fields as Record<string, unknown>) || {};
+            const contactApptLines: string[] = [];
+            if (cf.appointment_date) contactApptLines.push(`Appointment date/time: ${cf.appointment_date}`);
+            if (cf.appointment_type) contactApptLines.push(`Appointment type: ${cf.appointment_type}`);
+            if (cf.appointment_rescheduled) contactApptLines.push('Note: this appointment was previously rescheduled.');
+            const contactApptContext = contactApptLines.length > 0
+              ? `\nCONTACT APPOINTMENT DATA:\n${contactApptLines.join('\n')}\n`
+              : '';
+
             const calCtx = await buildCalendarContext(entry.company_id);
-            finalTask = injectCalendarContext(finalTask, calCtx);
+            finalTask = injectCalendarContext(finalTask, `${contactApptContext}${calCtx}`);
           } catch (ctxErr) {
             console.error('[dispatch] Calendar context fetch failed (non-fatal):', ctxErr);
           }
