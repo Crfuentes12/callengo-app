@@ -240,14 +240,6 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
         finish();
       };
 
-      // Expose global refresh so other components can re-highlight the current step
-      (window as Window & { __callengoTourRefresh?: () => void }).__callengoTourRefresh = () => {
-        if (tourInstance) {
-          const idx = (tourInstance as { getActiveIndex?: () => number }).getActiveIndex?.();
-          if (idx !== undefined) (tourInstance as { moveTo?: (i: number) => void }).moveTo?.(idx);
-        }
-      };
-
       setTimeout(() => tourInstance?.drive(), 400);
     };
 
@@ -257,7 +249,6 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
       finished = true;
       tourInstance?.destroy();
       delete (window as Window & { __callengoTourClose?: () => void }).__callengoTourClose;
-      delete (window as Window & { __callengoTourRefresh?: () => void }).__callengoTourRefresh;
     };
   }, [firstName, pendingCount, companyId, onDismiss, persistAndClose]);
 
@@ -401,11 +392,6 @@ export default function HomePage({ userName, companyId, companyName, completedTa
     const timer = setTimeout(() => setShowHomeTour(true), 650);
     return () => clearTimeout(timer);
   }, [wizardCompleted, showOnboardingWizard, homeTourSeen]);
-
-  // When "View All tasks" expands, re-highlight the tour spotlight if active on that section
-  useEffect(() => {
-    (window as Window & { __callengoTourRefresh?: () => void }).__callengoTourRefresh?.();
-  }, [showAllTasks]);
 
   const handleOnboardingComplete = () => {
     setShowOnboardingWizard(false);
