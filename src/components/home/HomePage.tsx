@@ -103,7 +103,13 @@ interface HomeTourProps {
   onDismiss: () => void;
 }
 
-const HOME_TOUR_STEPS = [
+const HOME_TOUR_STEPS: Array<{
+  icon: React.ReactNode;
+  title: (firstName: string) => string;
+  body: (pendingCount: number) => string;
+  targetId: string | null; // DOM id to spotlight, null = full overlay no cutout
+  cardPosition: 'bottom-right' | 'center-right' | 'below-target-right';
+}> = [
   {
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -112,8 +118,9 @@ const HOME_TOUR_STEPS = [
     ),
     title: (firstName: string) => `Welcome to Callengo, ${firstName}!`,
     body: (pendingCount: number) =>
-      `Your AI calling platform is ready. You have ${pendingCount} ${pendingCount === 1 ? 'task' : 'tasks'} to complete before launching your first campaign — let's walk through what's here.`,
-    hasBackdrop: true,
+      `Your AI calling platform is ready. You have ${pendingCount} ${pendingCount === 1 ? 'task' : 'tasks'} to complete before launching your first campaign. Let's walk through what's here.`,
+    targetId: null,
+    cardPosition: 'bottom-right',
   },
   {
     icon: (
@@ -123,8 +130,9 @@ const HOME_TOUR_STEPS = [
     ),
     title: (_firstName: string) => 'Your Get Started checklist',
     body: (pendingCount: number) =>
-      `Below you can see ${pendingCount} tasks to unlock the full power of Callengo. Each step builds on the last — kick things off by adding your first contacts.`,
-    hasBackdrop: false,
+      `Complete ${pendingCount} tasks to unlock the full power of Callengo. Each step builds on the last. Kick things off by adding your first contacts.`,
+    targetId: 'tour-quick-actions',
+    cardPosition: 'bottom-right',
   },
   {
     icon: (
@@ -134,8 +142,9 @@ const HOME_TOUR_STEPS = [
     ),
     title: (_firstName: string) => 'Navigate with the sidebar',
     body: (_pendingCount: number) =>
-      'Campaigns, Contacts, Calls, Analytics and more live in the left sidebar. Collapse it anytime for extra screen space — it stays out of your way.',
-    hasBackdrop: false,
+      'Campaigns, Contacts, Calls, Analytics and more live in the left sidebar. Collapse it anytime for extra screen space.',
+    targetId: 'tour-sidebar',
+    cardPosition: 'center-right',
   },
   {
     icon: (
@@ -145,9 +154,9 @@ const HOME_TOUR_STEPS = [
     ),
     title: (_firstName: string) => 'Meet Cali, your AI assistant',
     body: (_pendingCount: number) =>
-      'Click the sparkle icon in the top-right header to open Cali. She knows your data — ask about call performance, get help writing scripts, or request contact insights.',
-    hasBackdrop: false,
-    isLast: true,
+      'Click the sparkle icon in the top-right to open Cali. Ask about call performance, get help writing scripts, or request contact insights.',
+    targetId: 'tour-cali-btn',
+    cardPosition: 'below-target-right',
   },
 ];
 
@@ -156,11 +165,32 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
   const [step, setStep] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 40);
+    const t = setTimeout(() => setMounted(true), 60);
     return () => clearTimeout(t);
   }, []);
+
+  // Measure the spotlight target whenever step changes
+  useEffect(() => {
+    const targetId = HOME_TOUR_STEPS[step].targetId;
+    if (!targetId) { setTargetRect(null); return; }
+
+    const measure = () => {
+      const el = document.getElementById(targetId);
+      if (el) setTargetRect(el.getBoundingClientRect());
+    };
+
+    measure();
+    // Re-measure on scroll or resize
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [step]);
 
   const totalSteps = HOME_TOUR_STEPS.length;
   const current = HOME_TOUR_STEPS[step];
@@ -188,47 +218,84 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
   }, [onDismiss, persistAndClose]);
 
   const next = () => {
-    if (isLast) {
-      close();
-    } else {
-      setStep(s => s + 1);
-    }
+    if (isLast) { close(); } else { setStep(s => s + 1); }
   };
 
   const visible = mounted && !exiting;
-  const showBackdrop = current.hasBackdrop;
+
+  // Compute card position style
+  const cardStyle = (): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.97)',
+      transition: 'opacity 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.3s cubic-bezier(0.16,1,0.3,1)',
+    };
+    if (current.cardPosition === 'center-right') {
+      return { ...base, position: 'fixed', top: '50%', right: '1rem', transform: visible ? 'translateY(-50%)' : 'translateY(calc(-50% + 12px)) scale(0.97)' };
+    }
+    if (current.cardPosition === 'below-target-right' && targetRect) {
+      return { ...base, position: 'fixed', top: `${targetRect.bottom + 12}px`, right: '1rem' };
+    }
+    return { ...base, position: 'fixed', bottom: '5rem', right: '1rem' };
+  };
+
+  const PAD = 10;
+  const RADIUS = 12;
 
   return (
     <>
-      {/* Subtle backdrop on first step only */}
-      <div
-        className="fixed inset-0 z-[48] transition-opacity duration-300 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at bottom right, rgba(99,102,241,0.08) 0%, rgba(0,0,0,0.18) 100%)',
-          opacity: showBackdrop && visible ? 1 : 0,
-        }}
-      />
+      {/* SVG spotlight overlay — dark everywhere except target cutout */}
+      {visible && (
+        <svg
+          className="fixed inset-0 pointer-events-none"
+          style={{ zIndex: 200, width: '100vw', height: '100vh' }}
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {targetRect ? (
+            <>
+              <defs>
+                <mask id="tour-spotlight-mask">
+                  <rect width="100%" height="100%" fill="white" />
+                  <rect
+                    x={targetRect.x - PAD}
+                    y={targetRect.y - PAD}
+                    width={targetRect.width + PAD * 2}
+                    height={targetRect.height + PAD * 2}
+                    rx={RADIUS}
+                    fill="black"
+                  />
+                </mask>
+              </defs>
+              <rect width="100%" height="100%" fill="rgba(0,0,0,0.68)" mask="url(#tour-spotlight-mask)" />
+              {/* Highlight ring around target */}
+              <rect
+                x={targetRect.x - PAD}
+                y={targetRect.y - PAD}
+                width={targetRect.width + PAD * 2}
+                height={targetRect.height + PAD * 2}
+                rx={RADIUS}
+                fill="none"
+                stroke="rgba(139,92,246,0.55)"
+                strokeWidth="2"
+              />
+            </>
+          ) : (
+            // No target: just uniform dark overlay
+            <rect width="100%" height="100%" fill="rgba(0,0,0,0.65)" />
+          )}
+        </svg>
+      )}
 
-      {/* Tour card — fixed bottom-right, above ProgressTracker (z-40) but below Cali (z-[60]) */}
-      <div
-        className="fixed bottom-20 right-4 z-[50] w-80"
-        style={{
-          opacity: visible ? 1 : 0,
-          transform: visible ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.97)',
-          transition: 'opacity 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.3s cubic-bezier(0.16,1,0.3,1)',
-        }}
-      >
+      {/* Tour card */}
+      <div className="w-80" style={{ zIndex: 201, ...cardStyle() }}>
         <div className="bg-white rounded-2xl shadow-2xl border border-[var(--border-default)] overflow-hidden">
-          {/* Animated progress bar */}
           <div className="h-1 bg-[var(--color-neutral-100)]">
             <div
               className="h-full bg-gradient-to-r from-[var(--color-primary)] to-purple-500 transition-all duration-500 ease-out"
               style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
             />
           </div>
-
           <div className="p-5">
-            {/* Header row */}
             <div className="flex items-start justify-between mb-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-purple-500/10 flex items-center justify-center text-[var(--color-primary)]">
                 {current.icon}
@@ -243,14 +310,7 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
                 </svg>
               </button>
             </div>
-
-            {/* Content */}
-            <div
-              key={step}
-              style={{
-                animation: 'homeTourStepIn 0.25s cubic-bezier(0.16,1,0.3,1)',
-              }}
-            >
+            <div key={step} style={{ animation: 'homeTourStepIn 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
               <h3 className="text-sm font-bold text-[var(--color-ink)] mb-1.5">
                 {current.title(firstName)}
               </h3>
@@ -258,8 +318,6 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
                 {current.body(pendingCount)}
               </p>
             </div>
-
-            {/* Footer: step dots + CTA */}
             <div className="flex items-center justify-between mt-4">
               <div className="flex items-center gap-1.5">
                 {HOME_TOUR_STEPS.map((_, i) => (
@@ -281,20 +339,19 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
                     onClick={() => setStep(s => s - 1)}
                     className="px-2.5 py-1.5 text-xs font-medium text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] transition-colors"
                   >
-                    ← Back
+                    Back
                   </button>
                 )}
                 <button
                   onClick={next}
                   className="px-4 py-1.5 bg-gradient-to-r from-[var(--color-primary)] to-purple-600 text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity shadow-sm"
                 >
-                  {isLast ? "Let's go!" : 'Next →'}
+                  {isLast ? "Let's go!" : 'Next'}
                 </button>
               </div>
             </div>
           </div>
         </div>
-
         <style jsx>{`
           @keyframes homeTourStepIn {
             from { opacity: 0; transform: translateX(6px); }
@@ -516,7 +573,7 @@ export default function HomePage({ userName, companyId, companyName, completedTa
       </div>
 
       {/* Get Started Section - Collapsed by default, shows 5 tasks */}
-      <div className="bg-white border border-[var(--border-default)] rounded-xl shadow-sm overflow-hidden">
+      <div id="tour-quick-actions" className="bg-white border border-[var(--border-default)] rounded-xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-[var(--border-subtle)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
