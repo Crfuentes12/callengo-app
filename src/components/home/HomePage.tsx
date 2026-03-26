@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/i18n';
 import { createClient } from '@/lib/supabase/client';
 import OnboardingWizardModal from '@/components/onboarding/OnboardingWizardModal';
+import 'driver.js/dist/driver.css';
 
 interface HomePageProps {
   userName: string;
@@ -103,98 +104,8 @@ interface HomeTourProps {
   onDismiss: () => void;
 }
 
-const HOME_TOUR_STEPS: Array<{
-  icon: React.ReactNode;
-  title: (firstName: string) => string;
-  body: (pendingCount: number) => string;
-  targetId: string | null; // DOM id to spotlight, null = full overlay no cutout
-  cardPosition: 'bottom-right' | 'center-right' | 'below-target-right';
-}> = [
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-      </svg>
-    ),
-    title: (firstName: string) => `Welcome to Callengo, ${firstName}!`,
-    body: (pendingCount: number) =>
-      `Your AI calling platform is ready. You have ${pendingCount} ${pendingCount === 1 ? 'task' : 'tasks'} to complete before launching your first campaign. Let's walk through what's here.`,
-    targetId: null,
-    cardPosition: 'bottom-right',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    title: (_firstName: string) => 'Your Get Started checklist',
-    body: (pendingCount: number) =>
-      `Complete ${pendingCount} tasks to unlock the full power of Callengo. Each step builds on the last. Kick things off by adding your first contacts.`,
-    targetId: 'tour-quick-actions',
-    cardPosition: 'bottom-right',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
-      </svg>
-    ),
-    title: (_firstName: string) => 'Navigate with the sidebar',
-    body: (_pendingCount: number) =>
-      'Campaigns, Contacts, Calls, Analytics and more live in the left sidebar. Collapse it anytime for extra screen space.',
-    targetId: 'tour-sidebar',
-    cardPosition: 'center-right',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-      </svg>
-    ),
-    title: (_firstName: string) => 'Meet Cali, your AI assistant',
-    body: (_pendingCount: number) =>
-      'Click the sparkle icon in the top-right to open Cali. Ask about call performance, get help writing scripts, or request contact insights.',
-    targetId: 'tour-cali-btn',
-    cardPosition: 'below-target-right',
-  },
-];
-
 function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourProps) {
   const supabase = createClient();
-  const [step, setStep] = useState(0);
-  const [mounted, setMounted] = useState(false);
-  const [exiting, setExiting] = useState(false);
-  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
-
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 60);
-    return () => clearTimeout(t);
-  }, []);
-
-  // Measure the spotlight target whenever step changes
-  useEffect(() => {
-    const targetId = HOME_TOUR_STEPS[step].targetId;
-    if (!targetId) { setTargetRect(null); return; }
-
-    const measure = () => {
-      const el = document.getElementById(targetId);
-      if (el) setTargetRect(el.getBoundingClientRect());
-    };
-
-    measure();
-    // Re-measure on scroll or resize
-    window.addEventListener('resize', measure);
-    window.addEventListener('scroll', measure, true);
-    return () => {
-      window.removeEventListener('resize', measure);
-      window.removeEventListener('scroll', measure, true);
-    };
-  }, [step]);
-
-  const totalSteps = HOME_TOUR_STEPS.length;
-  const current = HOME_TOUR_STEPS[step];
-  const isLast = step === totalSteps - 1;
 
   const persistAndClose = useCallback(async () => {
     try {
@@ -211,155 +122,226 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
     } catch { /* non-critical */ }
   }, [companyId, supabase]);
 
-  const close = useCallback(() => {
-    setExiting(true);
-    persistAndClose();
-    setTimeout(onDismiss, 280);
-  }, [onDismiss, persistAndClose]);
+  useEffect(() => {
+    let tourInstance: { destroy: () => void; drive: () => void } | null = null;
+    let finished = false;
 
-  const next = () => {
-    if (isLast) { close(); } else { setStep(s => s + 1); }
-  };
-
-  const visible = mounted && !exiting;
-
-  // Compute card position style
-  const cardStyle = (): React.CSSProperties => {
-    const base: React.CSSProperties = {
-      opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.97)',
-      transition: 'opacity 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.3s cubic-bezier(0.16,1,0.3,1)',
+    const finish = () => {
+      if (!finished) {
+        finished = true;
+        persistAndClose();
+        onDismiss();
+      }
     };
-    if (current.cardPosition === 'center-right') {
-      return { ...base, position: 'fixed', top: '50%', right: '1rem', transform: visible ? 'translateY(-50%)' : 'translateY(calc(-50% + 12px)) scale(0.97)' };
-    }
-    if (current.cardPosition === 'below-target-right' && targetRect) {
-      return { ...base, position: 'fixed', top: `${targetRect.bottom + 12}px`, right: '1rem' };
-    }
-    return { ...base, position: 'fixed', bottom: '5rem', right: '1rem' };
-  };
 
-  const PAD = 10;
-  const RADIUS = 12;
+    const start = async () => {
+      const { driver: driverFn } = await import('driver.js');
 
+      tourInstance = driverFn({
+        showProgress: true,
+        progressText: '{{current}} of {{total}}',
+        allowClose: true,
+        smoothScroll: true,
+        stagePadding: 8,
+        stageRadius: 10,
+        overlayOpacity: 0.62,
+        popoverClass: 'callengo-tour',
+        nextBtnText: 'Next',
+        prevBtnText: 'Back',
+        doneBtnText: 'Done',
+        onDestroyed: finish,
+        steps: [
+          {
+            popover: {
+              title: `Welcome to Callengo, ${firstName}!`,
+              description: `Your AI calling platform is ready. You have ${pendingCount} ${pendingCount === 1 ? 'task' : 'tasks'} to complete before your first campaign. Let's take a quick tour.`,
+            },
+          },
+          {
+            element: '#tour-action-cards',
+            popover: {
+              title: 'Quick Actions',
+              description: 'Jump directly to Campaigns, Contacts, Calendar, and your Agents with a single click.',
+              side: 'bottom',
+              align: 'start',
+            },
+          },
+          {
+            element: '#tour-quick-actions',
+            popover: {
+              title: 'Your Get Started checklist',
+              description: `Complete ${pendingCount} tasks to unlock the full power of Callengo. Each step builds on the last.`,
+              side: 'top',
+              align: 'start',
+            },
+          },
+          {
+            element: '#tour-nav-group-0',
+            popover: {
+              title: 'Home & Dashboard',
+              description: 'Home is your daily overview. Dashboard shows live call metrics and KPIs.',
+              side: 'right',
+              align: 'center',
+            },
+          },
+          {
+            element: '#tour-nav-group-1',
+            popover: {
+              title: 'Contacts, Campaigns & Agents',
+              description: 'Manage your contact list, run outbound calling campaigns, and configure your AI agents here.',
+              side: 'right',
+              align: 'center',
+            },
+          },
+          {
+            element: '#tour-nav-group-2',
+            popover: {
+              title: 'Calls, Calendar & Follow-ups',
+              description: 'Review call recordings and transcripts, manage your calendar, listen to voicemails, and track follow-up actions.',
+              side: 'right',
+              align: 'center',
+            },
+          },
+          {
+            element: '#tour-nav-group-3',
+            popover: {
+              title: 'Analytics, Integrations & Team',
+              description: 'Measure performance across campaigns, connect your CRM and calendar tools, and manage your team.',
+              side: 'right',
+              align: 'center',
+            },
+          },
+          {
+            element: '#tour-settings-btn',
+            popover: {
+              title: 'Settings',
+              description: 'Configure your account, billing plan, and notification preferences.',
+              side: 'bottom',
+              align: 'end',
+            },
+          },
+          {
+            element: '#tour-cali-btn',
+            popover: {
+              title: 'Meet Cali, your AI assistant',
+              description: 'Ask about call performance, get help writing scripts, or request contact insights. Always here when you need it.',
+              side: 'bottom',
+              align: 'end',
+            },
+          },
+        ],
+      });
+
+      setTimeout(() => tourInstance?.drive(), 400);
+    };
+
+    start();
+
+    return () => {
+      finished = true;
+      tourInstance?.destroy();
+    };
+  }, [firstName, pendingCount, companyId, onDismiss, persistAndClose]);
+
+  // Dark Callengo theme overrides for driver.js popover
   return (
-    <>
-      {/* SVG spotlight overlay — dark everywhere except target cutout */}
-      {visible && (
-        <svg
-          className="fixed inset-0 pointer-events-none"
-          style={{ zIndex: 200, width: '100vw', height: '100vh' }}
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {targetRect ? (
-            <>
-              <defs>
-                <mask id="tour-spotlight-mask">
-                  <rect width="100%" height="100%" fill="white" />
-                  <rect
-                    x={targetRect.x - PAD}
-                    y={targetRect.y - PAD}
-                    width={targetRect.width + PAD * 2}
-                    height={targetRect.height + PAD * 2}
-                    rx={RADIUS}
-                    fill="black"
-                  />
-                </mask>
-              </defs>
-              <rect width="100%" height="100%" fill="rgba(0,0,0,0.68)" mask="url(#tour-spotlight-mask)" />
-              {/* Highlight ring around target */}
-              <rect
-                x={targetRect.x - PAD}
-                y={targetRect.y - PAD}
-                width={targetRect.width + PAD * 2}
-                height={targetRect.height + PAD * 2}
-                rx={RADIUS}
-                fill="none"
-                stroke="rgba(139,92,246,0.55)"
-                strokeWidth="2"
-              />
-            </>
-          ) : (
-            // No target: just uniform dark overlay
-            <rect width="100%" height="100%" fill="rgba(0,0,0,0.65)" />
-          )}
-        </svg>
-      )}
-
-      {/* Tour card */}
-      <div className="w-80" style={{ zIndex: 201, ...cardStyle() }}>
-        <div className="bg-white rounded-2xl shadow-2xl border border-[var(--border-default)] overflow-hidden">
-          <div className="h-1 bg-[var(--color-neutral-100)]">
-            <div
-              className="h-full bg-gradient-to-r from-[var(--color-primary)] to-purple-500 transition-all duration-500 ease-out"
-              style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
-            />
-          </div>
-          <div className="p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-purple-500/10 flex items-center justify-center text-[var(--color-primary)]">
-                {current.icon}
-              </div>
-              <button
-                onClick={close}
-                className="p-1 -mr-1 rounded-lg text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-100)] transition-colors"
-                aria-label="Skip tour"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div key={step} style={{ animation: 'homeTourStepIn 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
-              <h3 className="text-sm font-bold text-[var(--color-ink)] mb-1.5">
-                {current.title(firstName)}
-              </h3>
-              <p className="text-xs text-[var(--color-neutral-500)] leading-relaxed">
-                {current.body(pendingCount)}
-              </p>
-            </div>
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center gap-1.5">
-                {HOME_TOUR_STEPS.map((_, i) => (
-                  <div
-                    key={i}
-                    className={`rounded-full transition-all duration-300 ${
-                      i === step
-                        ? 'w-4 h-1.5 bg-[var(--color-primary)]'
-                        : i < step
-                        ? 'w-1.5 h-1.5 bg-[var(--color-primary)]/35'
-                        : 'w-1.5 h-1.5 bg-[var(--color-neutral-200)]'
-                    }`}
-                  />
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                {step > 0 && (
-                  <button
-                    onClick={() => setStep(s => s - 1)}
-                    className="px-2.5 py-1.5 text-xs font-medium text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] transition-colors"
-                  >
-                    Back
-                  </button>
-                )}
-                <button
-                  onClick={next}
-                  className="px-4 py-1.5 bg-gradient-to-r from-[var(--color-primary)] to-purple-600 text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity shadow-sm"
-                >
-                  {isLast ? "Let's go!" : 'Next'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <style jsx>{`
-          @keyframes homeTourStepIn {
-            from { opacity: 0; transform: translateX(6px); }
-            to   { opacity: 1; transform: translateX(0); }
-          }
-        `}</style>
-      </div>
-    </>
+    <style suppressHydrationWarning dangerouslySetInnerHTML={{__html: `
+      .callengo-tour.driver-popover {
+        background-color: #12101e !important;
+        border: 1px solid rgba(124,58,237,0.3) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(124,58,237,0.08) !important;
+        padding: 22px 24px 18px !important;
+        max-width: 310px !important;
+        min-width: 265px !important;
+      }
+      .callengo-tour .driver-popover-title {
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        color: #fff !important;
+        line-height: 1.35 !important;
+        letter-spacing: -0.01em !important;
+        margin-bottom: 6px !important;
+      }
+      .callengo-tour .driver-popover-description {
+        font-size: 13px !important;
+        color: rgba(255,255,255,0.62) !important;
+        line-height: 1.65 !important;
+        margin-top: 0 !important;
+      }
+      .callengo-tour .driver-popover-footer {
+        margin-top: 18px !important;
+        padding-top: 14px !important;
+        border-top: 1px solid rgba(255,255,255,0.07) !important;
+      }
+      .callengo-tour .driver-popover-footer button {
+        background-color: transparent !important;
+        border: 1px solid rgba(255,255,255,0.14) !important;
+        color: rgba(255,255,255,0.52) !important;
+        border-radius: 8px !important;
+        padding: 7px 13px !important;
+        font-size: 12.5px !important;
+        font-weight: 500 !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
+        transition: background 0.15s ease, color 0.15s ease !important;
+        line-height: 1.4 !important;
+      }
+      .callengo-tour .driver-popover-footer button:hover,
+      .callengo-tour .driver-popover-footer button:focus {
+        background-color: rgba(255,255,255,0.07) !important;
+        color: rgba(255,255,255,0.85) !important;
+      }
+      .callengo-tour .driver-popover-next-btn {
+        background: linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%) !important;
+        border-color: transparent !important;
+        color: #fff !important;
+        font-weight: 600 !important;
+        box-shadow: 0 2px 8px rgba(124,58,237,0.35) !important;
+        padding: 7px 16px !important;
+      }
+      .callengo-tour .driver-popover-next-btn:hover,
+      .callengo-tour .driver-popover-next-btn:focus {
+        opacity: 0.88 !important;
+        background: linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%) !important;
+      }
+      .callengo-tour .driver-popover-close-btn {
+        color: rgba(255,255,255,0.28) !important;
+        background: none !important;
+        border: none !important;
+      }
+      .callengo-tour .driver-popover-close-btn:hover,
+      .callengo-tour .driver-popover-close-btn:focus {
+        color: rgba(255,255,255,0.75) !important;
+        background: none !important;
+      }
+      .callengo-tour .driver-popover-progress-text {
+        font-size: 11px !important;
+        color: rgba(255,255,255,0.28) !important;
+        font-weight: 500 !important;
+      }
+      .callengo-tour .driver-popover-arrow { border-color: #12101e !important; }
+      .callengo-tour .driver-popover-arrow-side-left {
+        border-right-color: transparent !important;
+        border-bottom-color: transparent !important;
+        border-top-color: transparent !important;
+      }
+      .callengo-tour .driver-popover-arrow-side-right {
+        border-left-color: transparent !important;
+        border-bottom-color: transparent !important;
+        border-top-color: transparent !important;
+      }
+      .callengo-tour .driver-popover-arrow-side-top {
+        border-right-color: transparent !important;
+        border-bottom-color: transparent !important;
+        border-left-color: transparent !important;
+      }
+      .callengo-tour .driver-popover-arrow-side-bottom {
+        border-right-color: transparent !important;
+        border-left-color: transparent !important;
+        border-top-color: transparent !important;
+      }
+    `}} />
   );
 }
 
@@ -546,7 +528,7 @@ export default function HomePage({ userName, companyId, companyName, completedTa
       </div>
 
       {/* Quick Actions - 4 cards horizontal with proper icons */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div id="tour-action-cards" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {QUICK_ACTIONS.map((action) => (
           <button
             key={action.href}

@@ -24,6 +24,7 @@
     "axios": "^1.13.2",
     "cheerio": "^1.1.0",
     "dotenv": "^17.2.3",
+    "driver.js": "^1.4.0",
     "googleapis": "^144.0.0",
     "lru-cache": "^11.2.6",
     "lucide-react": "^0.562.0",
