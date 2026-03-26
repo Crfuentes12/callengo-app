@@ -43,7 +43,8 @@ export default function PageTipCard({ title, tips, settingKey, companyId }: Page
     try {
       const { data } = await supabase.from('company_settings').select('settings').eq('company_id', companyId).single();
       const existing = (data?.settings as Record<string, unknown>) || {};
-      await supabase.from('company_settings').update({ settings: { ...existing, [settingKey]: true } }).eq('company_id', companyId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await supabase.from('company_settings').update({ settings: { ...existing, [settingKey]: true } as any }).eq('company_id', companyId);
     } catch { /* non-critical */ }
   };
 
