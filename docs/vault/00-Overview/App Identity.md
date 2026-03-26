@@ -72,7 +72,8 @@ Callengo is built entirely on modern, serverless-first technologies. There are n
 | **Language** | TypeScript | 5.9.3 | Type safety across frontend and backend |
 | **Styling** | Tailwind CSS | 4.0 | Utility-first CSS, no `@layer` syntax |
 | **Component Library** | shadcn/ui | Latest | Pre-built accessible UI components |
-| **Database** | Supabase (PostgreSQL) | — | 56 tables, Row Level Security, triggers, RPC functions |
+| **Guided Tour** | driver.js | 1.4.0 | Interactive onboarding tour with element spotlight |
+| **Database** | Supabase (PostgreSQL) | — | 57 tables, Row Level Security, triggers, RPC functions |
 | **Authentication** | Supabase Auth | — | Email/password + OAuth (Google, GitHub) |
 | **Payments** | [[Stripe Integration\|Stripe]] | 20.1.0 | Subscriptions, metered billing, add-ons, invoicing |
 | **Voice/Telephony** | [[Bland AI]] | v1 API | Outbound calls, transcription, voicemail detection |
@@ -93,6 +94,7 @@ Callengo is built entirely on modern, serverless-first technologies. There are n
   "typescript": "5.9.3",
   "stripe": "20.1.0",
   "recharts": "3.8.0",
+  "driver.js": "^1.4.0",
   "posthog-js": "^1.360.1",
   "posthog-node": "^5.28.1",
   "@next/third-parties": "^16.1.6",

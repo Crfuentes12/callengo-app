@@ -1,7 +1,7 @@
 # CALLENGO — Complete Platform Master Document
 
-> **Version:** 1.6.0
-> **Last Updated:** March 25, 2026 (OpenAI usage tracking, per-feature API keys, Cali AI documented, analytics PII fix, AI Costs tab) (Production readiness audit — 15 security/performance fixes, token encryption, DB hardening)
+> **Version:** 1.7.0
+> **Last Updated:** March 26, 2026 (Guided tour system with driver.js, PageTipCard on 10 pages, campaign creation flow without contact blocking, tour persistence bugfixes)
 > **Purpose:** Comprehensive reference for the entire Callengo platform — business strategy, target market, architecture, features, pricing, database schema, API endpoints, integrations, and business logic.
 
 ---
@@ -555,14 +555,15 @@ Free Trial (15 min) → Starter ($99/mo) → Growth ($179/mo) → Business ($299
 - Campaign search and filtering
 - Follow-up queue stats display
 - Voicemail statistics
-- Campaign creation wizard:
-  1. Agent selection
-  2. Contact list selection
+- Campaign creation wizard (AgentConfigModal):
+  1. Agent selection & preview — configurable and testable even with 0 contacts (shows amber nudge if no contacts)
+  2. Contact list selection — shows empty state with "Go to Contacts" / "Connect CRM" CTAs if 0 contacts
   3. Voice configuration
   4. Calendar/scheduling settings
   5. Follow-up configuration
   6. Voicemail settings
   7. Compliance confirmations (AI disclosure checkbox)
+- **Contact gating:** Campaign creation is no longer blocked at launch — step 1 is always accessible. Contact requirement is enforced at step 2 with actionable empty states rather than an upfront blocker.
 
 ### Campaign Detail (`/campaigns/[id]`)
 - Full campaign metadata and status
@@ -1983,9 +1984,28 @@ Each CRM has an integration table + sync log table + contact mapping table:
 ├── voicemails/     — Voicemail management
 ├── followups/      — Follow-up queue
 ├── dashboard/      — Dashboard overview
+├── home/           — HomePage + HomeTour (driver.js guided tour, 9 steps)
+├── layout/         — Sidebar, Header (with tour DOM IDs)
 ├── notifications/  — Notification UI
-└── ui/             — Shared UI components (buttons, modals, forms)
+└── ui/             — Shared UI components (buttons, modals, forms, PageTipCard)
 ```
+
+### Guided Tour System (driver.js)
+
+The platform includes an interactive guided tour powered by **driver.js v1.4.0** that activates after the onboarding wizard completes.
+
+**HomeTour component** (`src/components/home/HomePage.tsx`):
+- 9 sequential steps spotlighting key UI elements with custom dark-theme popovers
+- Overlay click disabled — tour requires explicit dismissal
+- Persists `tour_home_seen: true` to `company_settings.settings` on close
+- Exposes `window.__callengoTourClose()` global so Sidebar/Header can close tour on navigation
+- Uses `useCallback` for stable `onDismiss` reference to prevent tour restart on re-renders
+
+**PageTipCard component** (`src/components/ui/PageTipCard.tsx`):
+- Reusable contextual tip card deployed on all 10 main pages
+- 3 states: full card → minimized "Tips" button → re-expanded
+- Persists dismissal to `company_settings.settings[settingKey]` per-page
+- Fade-in animation (opacity + translateY, 500ms ease-out)
 
 ### State Management
 - **Supabase client** — data persistence and real-time subscriptions
