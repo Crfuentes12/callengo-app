@@ -419,22 +419,26 @@ export default function AgentTestExperience({
             )}
           </div>
 
-          {/* Right column: tagline + demo data badges + spectrum + tips */}
+          {/* Right column: call brief card + spectrum + tips */}
           <div className="flex-1 min-w-0 pt-1">
-            <div className="mb-3">
-              <span className={`inline-flex text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-gradient-to-r ${agent.color} text-white`}>
-                {agent.tagline}
-              </span>
-            </div>
 
-            {/* Demo data as badge pills */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {Object.entries(agent.demoData).map(([key, value]) => (
-                <div key={key} className="inline-flex items-center gap-1.5 bg-white border border-[var(--border-default)] rounded-lg px-2.5 py-1.5 shadow-sm">
-                  <span className="text-[9px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wide">{key}</span>
-                  <span className="text-[11px] font-semibold text-[var(--color-ink)]">{value}</span>
-                </div>
-              ))}
+            {/* Call Brief card */}
+            <div className="rounded-xl border border-[var(--border-default)] overflow-hidden shadow-sm mb-4">
+              <div className={`bg-gradient-to-r ${agent.color} px-3 py-2 flex items-center justify-between`}>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-white/60">Call Brief</span>
+                <span className="text-[11px] font-bold text-white">{agent.tagline}</span>
+              </div>
+              <div className="bg-white">
+                {Object.entries(agent.demoData).map(([key, value], i, arr) => (
+                  <div
+                    key={key}
+                    className={`flex items-center gap-3 px-3 py-2.5 ${i < arr.length - 1 ? 'border-b border-[var(--border-subtle,var(--border-default))]' : ''}`}
+                  >
+                    <span className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wide w-16 flex-shrink-0">{key}</span>
+                    <span className="text-xs font-semibold text-[var(--color-ink)] flex-1 min-w-0 truncate">{value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Audio spectrum */}
