@@ -95,7 +95,7 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
   },
   'appointment-confirmation': {
     name: 'Sofia',
-    color: 'from-blue-500 to-blue-700',
+    color: 'from-[var(--color-primary-600)] to-[var(--color-primary-800)]',
     tagline: 'Appointment Confirmation Agent',
     demoData: {
       Clinic: 'Healthcare Clinic',
@@ -700,11 +700,11 @@ export default function AgentTestExperience({
 
       const cellStyle = (role: DayCell['role']) => {
         switch (role) {
-          case 'call-day':    return 'bg-blue-100 text-blue-700 ring-1 ring-blue-300';
+          case 'call-day':    return 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)] ring-1 ring-[var(--color-primary-200)]';
           case 'original':    return 'bg-red-50 text-red-300 line-through opacity-60';
-          case 'confirmed':   return 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400 scale-110';
-          case 'rescheduled': return 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400 scale-110';
-          case 'available':   return 'bg-white text-blue-500';
+          case 'confirmed':   return 'bg-[var(--color-primary-600)] text-white shadow-md ring-2 ring-[var(--color-primary-400)] scale-110';
+          case 'rescheduled': return 'bg-[var(--color-primary-600)] text-white shadow-md ring-2 ring-[var(--color-primary-400)] scale-110';
+          case 'available':   return 'bg-white text-[var(--color-primary)]';
           case 'blocked':     return 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-300)] cursor-not-allowed';
         }
       };
@@ -718,16 +718,16 @@ export default function AgentTestExperience({
           : `New slot · ${newTime}`;
 
       return (
-        <div className="border-2 border-blue-200 rounded-2xl overflow-hidden mb-4">
-          <div className="bg-blue-50 px-4 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+        <div className="border-2 border-[var(--color-primary-200)] rounded-2xl overflow-hidden mb-4">
+          <div className="bg-[var(--color-primary-50)] px-4 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[var(--color-primary-50)]0 flex items-center justify-center flex-shrink-0">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-blue-800">{headerLabel}</p>
-              <p className="text-xs text-blue-600">Robert Taylor · Healthcare Clinic</p>
+              <p className="text-sm font-bold text-[var(--color-primary-800)]">{headerLabel}</p>
+              <p className="text-xs text-[var(--color-primary-600)]">Robert Taylor · Healthcare Clinic</p>
             </div>
-            <span className="flex-shrink-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Calendar Synced</span>
+            <span className="flex-shrink-0 bg-[var(--color-primary-50)]0 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Calendar Synced</span>
           </div>
 
           {/* Summary row */}
@@ -737,26 +737,26 @@ export default function AgentTestExperience({
                 <span className="inline-flex items-center gap-1 bg-red-50 border border-red-200 text-red-400 text-xs px-2 py-1 rounded-lg line-through">
                   {fmtWD(tuesday)} {fmt(tuesday)} · 2:00 PM
                 </span>
-                <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                <svg className="w-4 h-4 text-[var(--color-primary-400)] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
               </>
             )}
-            <span className="inline-flex items-center gap-1 bg-blue-600 text-white text-xs px-2 py-1 rounded-lg font-bold shadow-sm">
+            <span className="inline-flex items-center gap-1 bg-[var(--color-primary-600)] text-white text-xs px-2 py-1 rounded-lg font-bold shadow-sm">
               {newDayLabel}
             </span>
-            <span className="ml-auto text-[10px] font-bold text-blue-500 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">{statusBadge}</span>
+            <span className="ml-auto text-[10px] font-bold text-[var(--color-primary)] bg-[var(--color-primary-50)] border border-[var(--color-primary-200)] px-2 py-0.5 rounded-full">{statusBadge}</span>
           </div>
 
           {/* Calendar grid */}
           <div className="bg-white px-4 pt-3 pb-2">
-            <div className="bg-blue-50 rounded-xl p-3">
+            <div className="bg-[var(--color-primary-50)] rounded-xl p-3">
               {/* This week */}
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">This week</span>
-                <span className="text-[9px] text-blue-300">{monday.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                <span className="text-[9px] font-bold text-[var(--color-primary-400)] uppercase tracking-widest">This week</span>
+                <span className="text-[9px] text-[var(--color-primary-300)]">{monday.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
               </div>
               <div className="grid grid-cols-7 gap-1 mb-1">
                 {week1.map(({ date }) => (
-                  <div key={date.toISOString()} className="text-center text-[9px] font-bold text-blue-400">{fmtWD(date)}</div>
+                  <div key={date.toISOString()} className="text-center text-[9px] font-bold text-[var(--color-primary-400)]">{fmtWD(date)}</div>
                 ))}
               </div>
               <div className={`grid grid-cols-7 gap-1 ${showNextWeek ? 'mb-4' : ''}`}>
@@ -771,12 +771,12 @@ export default function AgentTestExperience({
               {showNextWeek && (
                 <>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Next week</span>
-                    <span className="text-[9px] text-blue-300">{nxtMon.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                    <span className="text-[9px] font-bold text-[var(--color-primary-400)] uppercase tracking-widest">Next week</span>
+                    <span className="text-[9px] text-[var(--color-primary-300)]">{nxtMon.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                   </div>
                   <div className="grid grid-cols-7 gap-1 mb-1">
                     {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-                      <div key={d} className={`text-center text-[9px] font-bold ${d === 'Sat' || d === 'Sun' ? 'text-blue-200' : 'text-blue-400'}`}>{d}</div>
+                      <div key={d} className={`text-center text-[9px] font-bold ${d === 'Sat' || d === 'Sun' ? 'text-[var(--color-primary-200)]' : 'text-[var(--color-primary-400)]'}`}>{d}</div>
                     ))}
                   </div>
                   <div className="grid grid-cols-7 gap-1">
@@ -794,15 +794,15 @@ export default function AgentTestExperience({
 
             {/* Legend */}
             <div className="flex items-center gap-3 mt-2.5 flex-wrap">
-              <span className="flex items-center gap-1 text-[10px] text-blue-400"><span className="w-2.5 h-2.5 rounded bg-blue-100 ring-1 ring-blue-300 inline-block" />Call day</span>
+              <span className="flex items-center gap-1 text-[10px] text-[var(--color-primary-400)]"><span className="w-2.5 h-2.5 rounded bg-[var(--color-primary-100)] ring-1 ring-[var(--color-primary-200)] inline-block" />Call day</span>
               {isRescheduled && <span className="flex items-center gap-1 text-[10px] text-red-400"><span className="w-2.5 h-2.5 rounded bg-red-50 border border-red-200 inline-block" />Original</span>}
-              <span className="flex items-center gap-1 text-[10px] text-blue-600 font-bold"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block" />{isConfirmed ? 'Confirmed' : 'Rescheduled'}</span>
+              <span className="flex items-center gap-1 text-[10px] text-[var(--color-primary-600)] font-bold"><span className="w-2.5 h-2.5 rounded bg-[var(--color-primary-600)] inline-block" />{isConfirmed ? 'Confirmed' : 'Rescheduled'}</span>
               <span className="flex items-center gap-1 text-[10px] text-[var(--color-neutral-400)]"><span className="w-2.5 h-2.5 rounded bg-[var(--color-neutral-100)] inline-block" />Blocked</span>
             </div>
           </div>
 
           <ImpactBanner
-            color="bg-gradient-to-r from-blue-600 to-blue-700 text-white"
+            color="bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-700)] text-white"
             icon={<svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
             headline="Sofia confirms hundreds of appointments while you sleep — zero no-shows, ever."
             sub="Google Calendar, Outlook, Teams, Zoom and SimplyBook sync automatically. Your team wakes up to a clean, confirmed schedule."
