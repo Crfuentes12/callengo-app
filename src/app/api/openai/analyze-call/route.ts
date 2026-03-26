@@ -107,18 +107,26 @@ IMPORTANT:
 - callScore: 90-100 = exceptional, 70-89 = successful, 50-69 = partial, below 50 = poor.
 - Be concise and actionable.`;
 
-    const completion = await openai.chat.completions.create({
-      model: getDefaultModel(),
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert at analyzing AI agent calls. Extract structured, actionable data from transcripts. Always return valid JSON.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-    });
+    let completion;
+    try {
+      completion = await openai.chat.completions.create({
+        model: getDefaultModel(),
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at analyzing AI agent calls. Extract structured, actionable data from transcripts. Always return valid JSON.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+      });
+    } catch (openaiError) {
+      // OpenAI error (auth, quota, network) — return a 200 with empty analysis
+      // so the frontend can still display the call without crashing.
+      console.error('OpenAI call failed in analyze-call:', openaiError);
+      return NextResponse.json({ success: false, analysis: null, error: 'analysis_unavailable' });
+    }
 
     const analysisText = completion.choices[0].message.content;
     const analysis = JSON.parse(analysisText || '{}');
