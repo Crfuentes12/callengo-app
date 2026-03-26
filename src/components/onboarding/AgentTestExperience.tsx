@@ -86,7 +86,7 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
       Email: 'john.smith@example.com',
       Phone: '+1 (555) 123-4567',
     },
-    task: 'You are Vera, an AI data validation agent. This is a DEMO call. Confirm: TechCorp Solutions, John Smith, email john.smith@example.com, phone +1 (555) 123-4567. Be friendly and keep it under 2 minutes.',
+    task: 'You are Vera, an AI data validation agent calling on behalf of TechCorp Solutions. You are calling John Smith to verify and update his contact information on file. Confirm: email john.smith@example.com, phone +1 (555) 123-4567. Be professional and friendly. If they provide updated information, acknowledge it clearly. Keep the call under 2 minutes.',
     tips: [
       'Give a different email and watch Vera update it',
       'Say the phone number changed',
@@ -94,20 +94,20 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
     ],
   },
   'appointment-confirmation': {
-    name: 'Sofia',
+    name: 'Nicole',
     color: 'from-[var(--color-primary-600)] to-[var(--color-primary-800)]',
     tagline: 'Appointment Confirmation Agent',
     demoData: {
-      Clinic: 'Healthcare Clinic',
+      Clinic: 'Sunrise Family Clinic',
       Patient: 'Robert Taylor',
       Appointment: 'Tomorrow (Tue) at 2:00 PM',
-      Type: 'Consultation',
+      Type: 'Annual Check-up',
     },
-    task: 'You are Sofia, an AI appointment confirmation agent. This is a DEMO call for Healthcare Clinic. You are calling Robert Taylor on a Monday to confirm their appointment tomorrow, Tuesday, at 2:00 PM for a Consultation. If they want to reschedule, offer Wednesday, Thursday, or Friday of the same week, or slots next week. Keep it under 2 minutes.',
+    task: 'You are Nicole, an AI appointment confirmation agent calling on behalf of Sunrise Family Clinic. You are calling Robert Taylor to confirm his Annual Check-up appointment scheduled for tomorrow, Tuesday, at 2:00 PM. Start with a warm, professional greeting and confirm the appointment details. If he wants to reschedule, offer Wednesday, Thursday, or Friday of the same week, or slots next week — morning or afternoon. Be concise, friendly, and helpful. Keep the call under 3 minutes.',
     tips: [
-      'Say "move it to Wednesday" — watch her reschedule instantly',
+      'Say "can we move it to Thursday?" — watch her reschedule instantly',
       'Confirm you\'ll be there — she logs it and closes the loop',
-      'Ask for next week — she\'ll show you available slots',
+      'Ask what to bring to the appointment',
     ],
   },
   'lead-qualification': {
@@ -120,7 +120,7 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
       Source: 'Website Form',
       Interest: 'Enterprise Plan',
     },
-    task: 'You are Mia, an AI lead qualification agent. This is a DEMO call. Sales Pro Inc, Alex Martinez, interested in Enterprise Plan. Run BANT qualification. Keep it under 2 minutes.',
+    task: 'You are Mia, an AI lead qualification agent calling on behalf of Sales Pro Inc. You are reaching out to Alex Martinez, who filled out a form on the website showing interest in the Enterprise Plan. Your goal is to qualify this lead using BANT criteria (Budget, Authority, Need, Timeline). Ask natural, conversational questions — do not interrogate. Be warm and professional. Keep the call under 3 minutes.',
     tips: [
       'Tell her you have a $10k budget and she will qualify you',
       'Say you are the decision-maker',
@@ -222,7 +222,7 @@ export default function AgentTestExperience({
 }: AgentTestExperienceProps) {
   const { t } = useTranslation();
   const agent = AGENT_CONFIG[agentSlug] || AGENT_CONFIG['lead-qualification'];
-  const [step, setStep] = useState<'setup' | 'calling' | 'analysis'>('setup');
+  const [step, setStep] = useState<'setup' | 'calling' | 'processing' | 'analysis'>('setup');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
@@ -230,6 +230,10 @@ export default function AgentTestExperience({
   const [callData, setCallData] = useState<Record<string, unknown> | null>(null);
   const [callAnalysis, setCallAnalysis] = useState<CallAnalysis | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [analysisDone, setAnalysisDone] = useState(false);
+  const [processingTimerDone, setProcessingTimerDone] = useState(false);
+  const [processingPhrase, setProcessingPhrase] = useState(0);
+  const [processingProgress, setProcessingProgress] = useState(0);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -243,6 +247,37 @@ export default function AgentTestExperience({
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
+
+  // Transition to analysis once BOTH timer and AI analysis are done
+  useEffect(() => {
+    if (analysisDone && processingTimerDone && step === 'processing') {
+      setStep('analysis');
+    }
+  }, [analysisDone, processingTimerDone, step]);
+
+  // Processing screen: progress bar + phrase rotation (10s)
+  useEffect(() => {
+    if (step !== 'processing') return;
+    setProcessingProgress(0);
+    setProcessingPhrase(0);
+    setProcessingTimerDone(false);
+    const start = Date.now();
+    const totalMs = 10000;
+    const frameId = { current: 0 };
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const pct = Math.min(elapsed / totalMs, 1);
+      setProcessingProgress(pct);
+      setProcessingPhrase(Math.floor((pct * 30) % 30));
+      if (pct < 1) {
+        frameId.current = requestAnimationFrame(tick);
+      } else {
+        setProcessingTimerDone(true);
+      }
+    };
+    frameId.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId.current);
+  }, [step]);
 
   // Bland processes recordings async — re-fetch call data 4s after entering analysis
   useEffect(() => {
@@ -273,7 +308,8 @@ export default function AgentTestExperience({
       hasAnalyzedRef.current = true;
       await analyzeCall(data);
     } else {
-      setStep('analysis');
+      setStep('processing');
+      setAnalysisDone(true);
     }
   };
 
@@ -287,7 +323,12 @@ export default function AgentTestExperience({
     hasAnalyzedRef.current = false;
 
     try {
-      const task = `You are ${agent.name}, an AI ${agentTitle.toLowerCase()}.\nThis is a DEMO call.\n${agent.task}\n${agentDescription}`;
+      const task = `${agent.task}${agentDescription ? `\n\nAdditional context: ${agentDescription}` : ''}`;
+      const firstSentence = agentSlug === 'appointment-confirmation'
+        ? `Hi, is this Robert Taylor? This is Nicole calling from Sunrise Family Clinic.`
+        : agentSlug === 'data-validation'
+        ? `Hi, am I speaking with John Smith? This is Vera calling from TechCorp Solutions.`
+        : `Hi, is this Alex Martinez? This is Mia calling from Sales Pro Inc.`;
       const response = await fetch('/api/bland/send-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -295,10 +336,13 @@ export default function AgentTestExperience({
           phone_number: phoneNumber,
           task,
           voice: DEFAULT_VOICE_ID,
-          first_sentence: `Hi! This is ${agent.name}, calling for a quick demo. Do you have a moment?`,
-          max_duration: 3,
+          first_sentence: firstSentence,
+          wait_for_greeting: true,
+          noise_cancellation: true,
+          interruption_threshold: 120,
+          max_duration: 4,
           company_id: companyId,
-          metadata: { type: 'demo_call', agent_slug: agentSlug, agent_name: agent.name, is_onboarding: true, is_test: true },
+          metadata: { type: 'test_call', agent_slug: agentSlug, agent_name: agent.name, is_onboarding: true, is_test: true },
         }),
       });
 
@@ -356,6 +400,8 @@ export default function AgentTestExperience({
   };
 
   const analyzeCall = async (data: Record<string, unknown>) => {
+    setStep('processing');
+    setAnalysisDone(false);
     try {
       const response = await fetch('/api/openai/analyze-call', {
         method: 'POST',
@@ -371,13 +417,12 @@ export default function AgentTestExperience({
       });
       if (response.ok) {
         const json = await response.json();
-        // API returns { success: true, analysis: {...} }
         setCallAnalysis(json.analysis ?? json);
       }
     } catch (error) {
       console.error('Error analyzing call:', error);
     } finally {
-      setStep('analysis');
+      setAnalysisDone(true);
     }
   };
 
@@ -410,7 +455,7 @@ export default function AgentTestExperience({
           <div className="flex items-start gap-2.5 mb-3">
             <div className={`flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br ${agent.color} flex items-center justify-center text-white font-bold text-sm`}>{agent.name[0]}</div>
             <div className="bg-white border border-[var(--border-default)] rounded-xl rounded-tl-none px-3 py-2 text-sm text-[var(--color-ink)] shadow-sm max-w-xs">
-              &quot;Hi! This is <span className="font-semibold">{agent.name}</span>, calling for a quick demo. Do you have a moment?&quot;
+              &quot;Hi, is this {agentSlug === 'appointment-confirmation' ? 'Robert Taylor' : agentSlug === 'data-validation' ? 'John Smith' : 'Alex Martinez'}? This is <span className="font-semibold">{agent.name}</span> calling — do you have a moment?&quot;
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-[var(--border-default)]">
@@ -466,6 +511,49 @@ export default function AgentTestExperience({
     );
   }
 
+  // ─── PROCESSING ───────────────────────────────────────────────────────────
+  const PROCESSING_PHRASES = [
+    'Extracting conversation...', 'Analyzing sentiment...', 'Decoding caller intent...',
+    'Processing voice patterns...', 'Mapping key data points...', 'Identifying rescheduling signals...',
+    'Scoring conversation quality...', 'Verifying extracted information...', 'Structuring call transcript...',
+    'Detecting outcome signals...', 'Analyzing response patterns...', 'Cross-referencing contact data...',
+    'Building call summary...', 'Assessing call effectiveness...', 'Classifying appointment status...',
+    'Extracting action items...', 'Calibrating confidence scores...', 'Resolving ambiguous responses...',
+    'Parsing dialogue structure...', 'Running BANT analysis...', 'Detecting follow-up triggers...',
+    'Mapping conversation flow...', 'Computing sentiment score...', 'Identifying key moments...',
+    'Synthesizing insights...', 'Preparing analysis report...', 'Validating data accuracy...',
+    'Processing timestamps...', 'Finalizing recommendations...', 'Almost there...',
+  ];
+
+  if (step === 'processing') {
+    return (
+      <div className="w-full max-w-lg mx-auto flex flex-col items-center justify-center py-8">
+        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${agent.color} flex items-center justify-center shadow-lg mb-6`}>
+          <svg className="w-8 h-8 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-extrabold text-[var(--color-ink)] mb-1">Analyzing your call</h2>
+        <p className="text-sm text-[var(--color-neutral-400)] mb-8">Your AI agent is crunching the conversation...</p>
+
+        {/* Thick progress bar */}
+        <div className="w-full bg-[var(--color-neutral-100)] rounded-full h-4 mb-4 overflow-hidden shadow-inner">
+          <div
+            className={`h-4 rounded-full bg-gradient-to-r ${agent.color} transition-none`}
+            style={{ width: `${processingProgress * 100}%` }}
+          />
+        </div>
+
+        {/* Rotating phrase */}
+        <p className="text-sm font-semibold text-[var(--color-primary)] min-h-[1.5rem] transition-all duration-300">
+          {PROCESSING_PHRASES[processingPhrase]}
+        </p>
+        <p className="text-xs text-[var(--color-neutral-300)] mt-1">{Math.round(processingProgress * 100)}%</p>
+      </div>
+    );
+  }
+
   // ─── CALLING ──────────────────────────────────────────────────────────────
   if (step === 'calling') {
     const isConnected = callStatus === 'connected';
@@ -508,7 +596,8 @@ export default function AgentTestExperience({
             </div>
 
             <p className="text-sm font-extrabold text-[var(--color-ink)] text-center">{agent.name}</p>
-            <p className="text-[11px] text-[var(--color-neutral-400)] text-center font-mono mt-0.5 leading-tight">{phoneNumber}</p>
+            <p className="text-[11px] text-[var(--color-neutral-400)] text-center mt-0.5 leading-tight">Simulating real scenario</p>
+            <p className="text-[10px] text-[var(--color-neutral-300)] text-center font-mono leading-tight">{phoneNumber}</p>
 
             {isConnected && (
               <div className="mt-3 inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full px-3 py-1.5 text-sm font-bold tabular-nums shadow-sm">
@@ -725,7 +814,7 @@ export default function AgentTestExperience({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white">{headerLabel}</p>
-              <p className="text-xs text-white/70">Robert Taylor · Healthcare Clinic</p>
+              <p className="text-xs text-white/70">Robert Taylor · Sunrise Family Clinic</p>
             </div>
             <span className="flex-shrink-0 bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Calendar Synced</span>
           </div>
