@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { AgentTemplate, Company } from '@/types/supabase';
 import AgentCard from './AgentCard';
 import AgentConfigModal from './AgentConfigModal';
+import PageTipCard from '@/components/ui/PageTipCard';
 import { useTranslation } from '@/i18n';
 
 interface CompanyAgentWithTemplate {
@@ -72,6 +73,20 @@ export default function AgentsLibrary({ agentTemplates, companyAgents, companyId
 
   return (
     <div className="space-y-8">
+      {/* Agents Tip Card */}
+      <PageTipCard
+        title="Getting started with Agents"
+        settingKey="tour_agents_seen"
+        companyId={companyId}
+        tips={[
+          { icon: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z', label: 'Choose your agent type', desc: 'Lead Qualification, Data Validation, or Appointment Confirmation' },
+          { icon: 'M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125', label: 'Customize the script', desc: "Tailor your agent's conversation flow, questions, and responses" },
+          { icon: 'M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18', label: 'Set BANT criteria', desc: 'Define budget, authority, need, and timeline thresholds for qualification' },
+          { icon: 'M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z', label: 'Voice & language', desc: 'Pick from 30+ voices and 7 languages to match your brand' },
+          { icon: 'M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z', label: 'Test before launch', desc: 'Run a live test call to hear your agent in action before going live' },
+        ]}
+      />
+
       {/* Hero Header — AI-driven design */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--border-default)]">
         {/* Gradient background */}

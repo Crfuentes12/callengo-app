@@ -42,6 +42,7 @@ export default async function CallsPage() {
     <CallsHistory
       callLogs={(callLogs || []) as Parameters<typeof CallsHistory>[0]['callLogs']}
       agentTemplates={agentTemplates || []}
+      companyId={userData!.company_id}
     />
     </>
   );

@@ -7,6 +7,7 @@ import { BiLogoZoom } from 'react-icons/bi';
 import { GoogleCalendarIcon, GoogleMeetIcon, OutlookIcon, TeamsIcon } from '@/components/icons/BrandIcons';
 import type { CalendarEvent, CalendarIntegrationStatus } from '@/types/calendar';
 import { useTranslation } from '@/i18n';
+import PageTipCard from '@/components/ui/PageTipCard';
 import { calendarEvents } from '@/lib/analytics';
 import { phCalendarEvents } from '@/lib/posthog';
 
@@ -1150,6 +1151,19 @@ export default function CalendarPage({
           {tooltip.text}
         </div>
       )}
+
+      {/* Calendar Tip Card */}
+      <PageTipCard
+        title="Getting started with Calendar"
+        settingKey="tour_calendar_seen"
+        companyId={companyId}
+        tips={[
+          { icon: 'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244', label: 'Connect Google or Outlook', desc: 'Sync your calendar so agents know your real availability' },
+          { icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z', label: 'Appointment confirmations', desc: 'Your AI agent calls contacts 24–48h before appointments' },
+          { icon: 'M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99', label: 'Reschedule handling', desc: 'Agents automatically offer alternative slots when contacts can\'t make it' },
+          { icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', label: 'Block off time', desc: 'Set unavailable windows so no calls are booked during those hours' },
+        ]}
+      />
 
       {/* Header */}
       <div className="gradient-bg-subtle rounded-2xl p-8 shadow-md border border-[var(--border-default)]">

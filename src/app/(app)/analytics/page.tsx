@@ -66,6 +66,7 @@ export default async function AnalyticsPage() {
       agentTemplates={agentTemplates || []}
       agentRuns={agentRuns || []}
       campaigns={campaigns || []}
+      companyId={userData!.company_id}
     />
     </>
   );

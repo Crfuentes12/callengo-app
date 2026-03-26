@@ -237,7 +237,7 @@ export default function Sidebar({
         The collapse toggle has been removed from here and moved into the Header.
       */}
       <div className="h-12 flex items-center px-4 overflow-hidden shrink-0">
-        <div className="flex items-center gap-2">
+        <Link href="/home" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo, no optimization needed */}
           <img src="/callengo-logo-white.svg" alt="Callengo" className="w-8 h-8 shrink-0" />
           <span
@@ -249,7 +249,7 @@ export default function Sidebar({
           >
             Callengo
           </span>
-        </div>
+        </Link>
 
         {/* Close button — mobile only, keeps the mobile menu functional */}
         <button
@@ -276,7 +276,7 @@ export default function Sidebar({
                     key={item.name}
                     href={item.href}
                     prefetch={false}
-                    onClick={() => { navigationEvents.sidebarClicked(item.href); phNavigationEvents.sidebarClicked(item.href); onClose(); }}
+                    onClick={() => { (window as Window & { __callengoTourClose?: () => void }).__callengoTourClose?.(); navigationEvents.sidebarClicked(item.href); phNavigationEvents.sidebarClicked(item.href); onClose(); }}
                     onMouseEnter={(e) => showTooltip(e, item.name)}
                     onMouseLeave={hideTooltip}
                     className={`
@@ -324,7 +324,7 @@ export default function Sidebar({
                     key={item.name}
                     href={item.href}
                     prefetch={false}
-                    onClick={() => { navigationEvents.sidebarClicked(item.href); phNavigationEvents.sidebarClicked(item.href); onClose(); }}
+                    onClick={() => { (window as Window & { __callengoTourClose?: () => void }).__callengoTourClose?.(); navigationEvents.sidebarClicked(item.href); phNavigationEvents.sidebarClicked(item.href); onClose(); }}
                     onMouseEnter={(e) => showTooltip(e, item.name)}
                     onMouseLeave={hideTooltip}
                     className={`
