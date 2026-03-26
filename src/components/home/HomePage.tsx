@@ -393,7 +393,7 @@ export default function HomePage({ userName, companyId, companyName, completedTa
     return () => clearTimeout(timer);
   }, [wizardCompleted, showOnboardingWizard, homeTourSeen]);
 
-  const handleOnboardingComplete = () => {
+  const handleTourDismiss = useCallback(() => setShowHomeTour(false), []);
     setShowOnboardingWizard(false);
     setWizardCompleted(true);
     router.refresh();
@@ -633,8 +633,8 @@ export default function HomePage({ userName, companyId, companyName, completedTa
           })}
         </div>
 
-        {/* Show All / Collapse toggle */}
-        {hiddenCount > 0 && (
+        {/* Show All / Collapse toggle — hidden during guided tour to avoid re-render loop */}
+        {hiddenCount > 0 && !showHomeTour && (
           <button
             onClick={() => setShowAllTasks(!showAllTasks)}
             className="w-full px-5 py-2.5 text-sm font-medium text-[var(--color-primary)] hover:bg-[var(--color-neutral-50)] transition-colors flex items-center justify-center gap-1.5 border-t border-[var(--border-subtle)]"
@@ -731,7 +731,7 @@ export default function HomePage({ userName, companyId, companyName, completedTa
           firstName={firstName}
           pendingCount={Object.values(completedTasks).filter(v => !v).length}
           companyId={companyId}
-          onDismiss={() => setShowHomeTour(false)}
+          onDismiss={handleTourDismiss}
         />
       )}
     </div>
