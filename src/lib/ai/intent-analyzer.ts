@@ -112,7 +112,6 @@ Be accurate and avoid false positives. Only classify as "confirmed" if there's c
         },
         { role: 'user', content: prompt },
       ],
-      temperature: 0.1,
       response_format: { type: 'json_object' },
     });
 
@@ -199,7 +198,6 @@ For meetingTime: Extract any agreed-upon meeting/demo time and convert to ISO 86
         },
         { role: 'user', content: prompt },
       ],
-      temperature: 0.1,
       response_format: { type: 'json_object' },
     });
 
@@ -313,7 +311,6 @@ IMPORTANT: Extract EVERY piece of information mentioned in the conversation, eve
         },
         { role: 'user', content: prompt },
       ],
-      temperature: 0.1,
       response_format: { type: 'json_object' },
     });
 

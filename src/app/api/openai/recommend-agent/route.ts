@@ -64,7 +64,6 @@ Choose the single best match.`;
           content: prompt,
         },
       ],
-      temperature: 0.3,
       max_tokens: 50,
     });
 

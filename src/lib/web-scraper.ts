@@ -197,7 +197,6 @@ Examples of good responses: "Acme Corporation", "TechFlow", "Blue Ocean Ventures
           { role: 'system', content: 'You are an expert at identifying company names from website data. Return only the company name, nothing else.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.1,
         max_tokens: 30,
       }),
     });
@@ -255,7 +254,6 @@ Focus on: what they do, who they serve, and their main value proposition.`;
           { role: 'system', content: 'You are a business analyst creating concise company summaries.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.3,
         max_tokens: 150,
       }),
     });
@@ -311,7 +309,6 @@ Examples of good responses: "Technology", "Healthcare", "E-commerce", "Financial
           { role: 'system', content: 'You are an industry classification expert. Return only the industry name, 2-3 words maximum.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.2,
         max_tokens: 20,
       }),
     });

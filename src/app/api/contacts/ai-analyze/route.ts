@@ -145,7 +145,6 @@ Return JSON with this structure:
 
     const completion = await openai.chat.completions.create({
       model: getDefaultModel(),
-      temperature: 0.3,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: systemPrompt },
