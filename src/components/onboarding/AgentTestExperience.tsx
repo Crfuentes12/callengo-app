@@ -32,6 +32,26 @@ interface AgentTestExperienceProps {
   onSkip: () => void;
 }
 
+// ─── Dynamic calendar helpers ─────────────────────────────────────────────
+// We simulate: the AI calls on Monday (call day), appointment is Tuesday.
+// Person reschedules to Wednesday. Thu/Fri = available. Sat/Sun = blocked.
+
+function getUpcomingMonday(): Date {
+  const today = new Date();
+  const day = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysToMon = day === 1 ? 7 : (1 - day + 7) % 7 || 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + daysToMon);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+function addDays(base: Date, n: number): Date {
+  const d = new Date(base);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
 const AGENT_CONFIG: Record<string, AgentConfig> = {
   'data-validation': {
     name: 'Vera',
@@ -57,14 +77,14 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
     demoData: {
       Clinic: 'Healthcare Clinic',
       Patient: 'Robert Taylor',
-      Appointment: 'Tomorrow at 2:00 PM',
+      Appointment: 'Tomorrow (Tue) at 2:00 PM',
       Type: 'Consultation',
     },
-    task: 'You are Sofia, an AI appointment confirmation agent. This is a DEMO call. Healthcare Clinic, appointment tomorrow at 2:00 PM for Robert Taylor. Confirm attendance or offer to reschedule. Keep it under 2 minutes.',
+    task: 'You are Sofia, an AI appointment confirmation agent. This is a DEMO call for Healthcare Clinic. You are calling Robert Taylor on a Monday to confirm their appointment tomorrow, Tuesday, at 2:00 PM for a Consultation. If they want to reschedule, offer Wednesday, Thursday, or Friday of the same week, or slots next week. Keep it under 2 minutes.',
     tips: [
-      'Say you need to reschedule — watch her handle it',
-      'Confirm you will be there and she will log it',
-      'Ask for the clinic address',
+      'Say "move it to Wednesday" — watch her reschedule instantly',
+      'Confirm you\'ll be there — she logs it and closes the loop',
+      'Ask for next week — she\'ll show you available slots',
     ],
   },
   'lead-qualification': {
@@ -86,45 +106,70 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
   },
 };
 
-// ─── Audio Spectrum ──────────────────────────────────────────────────────────
+// ─── Waveform ──────────────────────────────────────────────────────────────
+// Natural speech pattern: bars animate up during speech, drop to near-zero during pauses.
+// Each bar has a staggered delay so the wave looks organic, not robotic.
 
-const SPECTRUM_BARS = [
-  { dur: 0.42, delay: 0.00, minH: 15, maxH: 90 },
-  { dur: 0.68, delay: 0.08, minH: 30, maxH: 100 },
-  { dur: 0.35, delay: 0.15, minH: 20, maxH: 75 },
-  { dur: 0.55, delay: 0.05, minH: 40, maxH: 95 },
-  { dur: 0.48, delay: 0.22, minH: 10, maxH: 85 },
-  { dur: 0.72, delay: 0.12, minH: 50, maxH: 100 },
-  { dur: 0.38, delay: 0.30, minH: 25, maxH: 70 },
-  { dur: 0.60, delay: 0.18, minH: 35, maxH: 90 },
-  { dur: 0.45, delay: 0.25, minH: 15, maxH: 80 },
-  { dur: 0.52, delay: 0.08, minH: 45, maxH: 95 },
-  { dur: 0.33, delay: 0.35, minH: 20, maxH: 65 },
-  { dur: 0.65, delay: 0.10, minH: 30, maxH: 100 },
+const WAVE_BARS = [
+  { delay: 0.00, maxH: 0.88, midH: 0.55 },
+  { delay: 0.06, maxH: 0.95, midH: 0.65 },
+  { delay: 0.12, maxH: 0.72, midH: 0.46 },
+  { delay: 0.04, maxH: 0.82, midH: 0.52 },
+  { delay: 0.09, maxH: 0.90, midH: 0.60 },
+  { delay: 0.15, maxH: 0.78, midH: 0.50 },
+  { delay: 0.03, maxH: 0.85, midH: 0.55 },
+  { delay: 0.10, maxH: 0.68, midH: 0.43 },
+  { delay: 0.07, maxH: 0.92, midH: 0.62 },
+  { delay: 0.13, maxH: 0.75, midH: 0.48 },
+  { delay: 0.01, maxH: 0.86, midH: 0.56 },
+  { delay: 0.11, maxH: 0.70, midH: 0.45 },
+  { delay: 0.05, maxH: 0.80, midH: 0.52 },
+  { delay: 0.14, maxH: 0.94, midH: 0.63 },
 ];
 
 function AudioSpectrum({ active, color }: { active: boolean; color: string }) {
   return (
     <>
       <style>{`
-        @keyframes specBar { 0%{transform:scaleY(var(--min-h))}50%{transform:scaleY(var(--max-h))}100%{transform:scaleY(var(--min-h))} }
-        @keyframes specPause { 0%,40%{opacity:1}42%,58%{opacity:0.15}60%,100%{opacity:1} }
+        @keyframes waveSpeak {
+          /* Silence at start */
+          0%   { transform: scaleY(0.03); }
+          /* Build up quickly */
+          6%   { transform: scaleY(var(--h-mid)); }
+          12%  { transform: scaleY(var(--h-max)); }
+          /* Natural speech variation */
+          18%  { transform: scaleY(var(--h-mid)); }
+          24%  { transform: scaleY(var(--h-max)); }
+          30%  { transform: scaleY(var(--h-mid)); }
+          /* Drop to zero — pause/breath */
+          37%  { transform: scaleY(0.03); }
+          48%  { transform: scaleY(0.03); }
+          /* Resume speaking */
+          54%  { transform: scaleY(var(--h-mid)); }
+          60%  { transform: scaleY(var(--h-max)); }
+          66%  { transform: scaleY(var(--h-mid)); }
+          72%  { transform: scaleY(var(--h-max)); }
+          78%  { transform: scaleY(var(--h-mid)); }
+          /* Final drop to silence */
+          85%  { transform: scaleY(0.03); }
+          100% { transform: scaleY(0.03); }
+        }
       `}</style>
-      <div
-        className={`flex items-end justify-center gap-[3px] h-8 transition-opacity duration-500 ${color}`}
-        style={{ animation: active ? 'specPause 3.8s ease-in-out infinite' : 'none', opacity: active ? 1 : 0.2 }}
-      >
-        {SPECTRUM_BARS.map((bar, i) => (
+      <div className={`flex items-end justify-center gap-[2.5px] h-10 ${color}`}>
+        {WAVE_BARS.map((bar, i) => (
           <div
             key={i}
             className="w-[3px] rounded-full bg-current"
             style={{
               height: '100%',
               transformOrigin: 'bottom',
-              '--min-h': `${bar.minH / 100}`,
-              '--max-h': `${bar.maxH / 100}`,
-              transform: `scaleY(${bar.minH / 100})`,
-              animation: active ? `specBar ${bar.dur}s ease-in-out ${bar.delay}s infinite` : 'none',
+              '--h-max': bar.maxH,
+              '--h-mid': bar.midH,
+              transform: 'scaleY(0.03)',
+              transition: active ? 'none' : 'transform 0.4s ease',
+              animation: active
+                ? `waveSpeak 4.8s ease-in-out ${bar.delay}s infinite`
+                : 'none',
             } as React.CSSProperties}
           />
         ))}
@@ -391,15 +436,26 @@ export default function AgentTestExperience({
 
     return (
       <div className="w-full max-w-2xl mx-auto">
-        <div className="flex gap-6 items-start">
+        <div className="flex gap-6 items-center">
 
-          {/* Left column: ring animation + status + duration */}
-          <div className="flex flex-col items-center flex-shrink-0 w-40">
-            <div className="relative inline-flex items-center justify-center mb-4">
-              <div className={`absolute w-28 h-28 rounded-full ${pulseColor} opacity-10 animate-ping`} style={{ animationDuration: '2.2s' }} />
-              <div className={`absolute w-20 h-20 rounded-full ${pulseColor} opacity-15 animate-ping`} style={{ animationDuration: '1.6s', animationDelay: '0.35s' }} />
-              <div className={`w-16 h-16 rounded-full ${ringBg} flex items-center justify-center shadow-2xl transition-all duration-700`}>
-                <PhoneIcon className="w-8 h-8 text-white" />
+          {/* Left column: ring animation + status + duration — vertically centered */}
+          <div className="flex flex-col items-center flex-shrink-0 w-44">
+            {/* Ring animation — fixed container so absolute rings don't misalign */}
+            <div className="relative flex items-center justify-center w-36 h-36 mb-3">
+              {isRinging && (
+                <>
+                  <div className={`absolute w-36 h-36 rounded-full ${pulseColor} opacity-10 animate-ping`} style={{ animationDuration: '2.4s' }} />
+                  <div className={`absolute w-28 h-28 rounded-full ${pulseColor} opacity-15 animate-ping`} style={{ animationDuration: '1.7s', animationDelay: '0.4s' }} />
+                </>
+              )}
+              {isConnected && (
+                <>
+                  <div className="absolute w-36 h-36 rounded-full bg-emerald-400 opacity-10 animate-ping" style={{ animationDuration: '2.8s' }} />
+                  <div className="absolute w-28 h-28 rounded-full bg-emerald-400 opacity-15 animate-ping" style={{ animationDuration: '2.0s', animationDelay: '0.6s' }} />
+                </>
+              )}
+              <div className={`w-20 h-20 rounded-full ${ringBg} flex items-center justify-center shadow-2xl transition-all duration-700 z-10`}>
+                <PhoneIcon className="w-10 h-10 text-white" />
               </div>
             </div>
 
@@ -510,10 +566,57 @@ export default function AgentTestExperience({
     }
 
     if (agentSlug === 'appointment-confirmation') {
-      const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-      const dates = [12, 13, 14, 15, 16, 17, 18];
-      const todayIdx = 3; // "Thu" = today
-      const appointmentIdx = 4; // "Fri" = tomorrow
+      // Dynamic demo week: Monday = call day, Tuesday = original appt, Wednesday = rescheduled
+      const monday = getUpcomingMonday();
+      const tuesday = addDays(monday, 1);   // original appointment
+      const wednesday = addDays(monday, 2); // rescheduled to
+      const thursday = addDays(monday, 3);
+      const friday = addDays(monday, 4);
+      const saturday = addDays(monday, 5);
+      const sunday = addDays(monday, 6);
+      // Next week
+      const nxtMon = addDays(monday, 7);
+      const nxtTue = addDays(monday, 8);
+      const nxtWed = addDays(monday, 9);
+      const nxtThu = addDays(monday, 10);
+      const nxtFri = addDays(monday, 11);
+
+      const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const fmtN = (d: Date) => d.getDate();
+      const fmtWD = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'short' });
+
+      type DayCell = {
+        date: Date;
+        role: 'call-day' | 'original' | 'rescheduled' | 'available' | 'blocked';
+      };
+
+      const week1: DayCell[] = [
+        { date: monday,    role: 'call-day' },
+        { date: tuesday,   role: 'original' },
+        { date: wednesday, role: 'rescheduled' },
+        { date: thursday,  role: 'available' },
+        { date: friday,    role: 'available' },
+        { date: saturday,  role: 'blocked' },
+        { date: sunday,    role: 'blocked' },
+      ];
+      const week2: DayCell[] = [
+        { date: nxtMon, role: 'available' },
+        { date: nxtTue, role: 'available' },
+        { date: nxtWed, role: 'available' },
+        { date: nxtThu, role: 'available' },
+        { date: nxtFri, role: 'available' },
+      ];
+
+      const cellStyle = (role: DayCell['role']) => {
+        switch (role) {
+          case 'call-day':   return 'bg-blue-100 text-blue-700 ring-1 ring-blue-300';
+          case 'original':   return 'bg-red-50 text-red-400 line-through opacity-70';
+          case 'rescheduled': return 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400 scale-110';
+          case 'available':  return 'bg-white text-blue-500 hover:bg-blue-50';
+          case 'blocked':    return 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-300)] cursor-not-allowed';
+        }
+      };
+
       return (
         <div className="border-2 border-blue-200 rounded-2xl overflow-hidden mb-4">
           <div className="bg-blue-50 px-4 py-3 flex items-center gap-3">
@@ -521,39 +624,87 @@ export default function AgentTestExperience({
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-blue-800">Appointment Confirmed</p>
-              <p className="text-xs text-blue-600">Robert Taylor at Healthcare Clinic</p>
+              <p className="text-sm font-bold text-blue-800">Appointment Rescheduled</p>
+              <p className="text-xs text-blue-600">Robert Taylor · Healthcare Clinic</p>
             </div>
             <span className="flex-shrink-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Calendar Updated</span>
           </div>
+
+          {/* Reschedule summary */}
+          <div className="bg-white px-4 pt-3 pb-1 flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1 flex-wrap">
+              <span className="inline-flex items-center gap-1 bg-red-50 border border-red-200 text-red-400 text-xs px-2 py-1 rounded-lg line-through">
+                Tue {fmt(tuesday)} · 2:00 PM
+              </span>
+              <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+              <span className="inline-flex items-center gap-1 bg-blue-600 text-white text-xs px-2 py-1 rounded-lg font-bold shadow-sm">
+                Wed {fmt(wednesday)} · 2:00 PM
+              </span>
+            </div>
+            <span className="text-[10px] font-bold text-blue-500 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full whitespace-nowrap">Consultation</span>
+          </div>
+
+          {/* Calendar grid */}
           <div className="bg-white p-4">
-            <div className="bg-blue-50 rounded-xl p-3 mb-3">
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {days.map((d) => (
-                  <div key={d} className="text-center text-[9px] font-bold text-blue-400">{d}</div>
+            <div className="bg-blue-50 rounded-xl p-3">
+              {/* Week 1 header */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">This week</span>
+                <span className="text-[9px] text-blue-300">{monday.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+              </div>
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {week1.map(({ date }) => (
+                  <div key={date.toISOString()} className="text-center text-[9px] font-bold text-blue-400">{fmtWD(date)}</div>
                 ))}
-                {dates.map((date, i) => (
+              </div>
+              <div className="grid grid-cols-7 gap-1 mb-4">
+                {week1.map(({ date, role }) => (
                   <div
-                    key={date}
-                    className={`h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all
-                      ${i === appointmentIdx ? 'bg-blue-600 text-white shadow-md scale-105' : i === todayIdx ? 'bg-blue-200 text-blue-700' : 'text-blue-300'}`}
+                    key={date.toISOString()}
+                    className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${cellStyle(role)}`}
                   >
-                    {date}
+                    {fmtN(date)}
+                    {role === 'rescheduled' && <span className="sr-only">(new)</span>}
                   </div>
                 ))}
               </div>
-            </div>
-            <div className="flex items-center gap-3 bg-blue-50 rounded-xl px-3 py-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-xs font-bold text-blue-800">Tomorrow, 2:00 PM</p>
-                <p className="text-[10px] text-blue-500">Consultation</p>
+
+              {/* Week 2 */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Next week</span>
+                <span className="text-[9px] text-blue-300">{nxtMon.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
               </div>
-              <span className="bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">CONFIRMED</span>
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+                  <div key={d} className={`text-center text-[9px] font-bold ${d === 'Sat' || d === 'Sun' ? 'text-blue-200' : 'text-blue-400'}`}>{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {week2.map(({ date, role }) => (
+                  <div
+                    key={date.toISOString()}
+                    className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${cellStyle(role)}`}
+                  >
+                    {fmtN(date)}
+                  </div>
+                ))}
+                {/* Sat/Sun next week — blocked */}
+                <div className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold ${cellStyle('blocked')}`}>{fmtN(addDays(monday, 12))}</div>
+                <div className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold ${cellStyle('blocked')}`}>{fmtN(addDays(monday, 13))}</div>
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-3 mt-3 flex-wrap">
+              <span className="flex items-center gap-1 text-[10px] text-blue-400"><span className="w-2.5 h-2.5 rounded bg-blue-100 ring-1 ring-blue-300 inline-block" />Call day</span>
+              <span className="flex items-center gap-1 text-[10px] text-red-400"><span className="w-2.5 h-2.5 rounded bg-red-50 border border-red-200 inline-block" />Original</span>
+              <span className="flex items-center gap-1 text-[10px] text-blue-600 font-bold"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block" />Rescheduled</span>
+              <span className="flex items-center gap-1 text-[10px] text-[var(--color-neutral-400)]"><span className="w-2.5 h-2.5 rounded bg-[var(--color-neutral-100)] inline-block" />Blocked</span>
             </div>
           </div>
+
           <div className="bg-blue-50 px-4 py-2 text-xs text-blue-600 font-medium">
-            In a real campaign, Sofia would confirm hundreds of appointments while you sleep — zero no-shows.
+            In a real campaign, Sofia confirms hundreds of appointments while you sleep — zero no-shows.
           </div>
         </div>
       );
@@ -608,15 +759,29 @@ export default function AgentTestExperience({
     );
   };
 
-  // transcript lines from callData
-  const transcriptLines = callData?.concatenated_transcript
-    ? (callData.concatenated_transcript as string).split('\n').filter((l: string) => l.trim())
-    : [];
+  // Parse transcript into speaker bubbles
+  const rawTranscript = (callData?.concatenated_transcript as string) || '';
+  const transcriptLines = rawTranscript.split('\n').filter((l: string) => l.trim());
+
+  // Detect speaker from line prefix (e.g. "Agent: ..." or "User: ..." or "assistant:"/"user:")
+  const parseLine = (line: string): { speaker: 'agent' | 'user'; text: string } => {
+    const lower = line.toLowerCase();
+    if (lower.startsWith('assistant:') || lower.startsWith('agent:') || lower.startsWith(`${agent.name.toLowerCase()}:`)) {
+      return { speaker: 'agent', text: line.replace(/^[^:]+:\s*/i, '') };
+    }
+    if (lower.startsWith('user:') || lower.startsWith('caller:') || lower.startsWith('human:')) {
+      return { speaker: 'user', text: line.replace(/^[^:]+:\s*/i, '') };
+    }
+    // Fallback: alternate by index
+    return { speaker: 'user', text: line };
+  };
+
+  const recordingUrl = callData?.recording_url as string | undefined;
 
   return (
     <div className="w-full max-w-lg mx-auto">
       {/* Header */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-5">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 shadow mb-3">
           <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
         </div>
@@ -670,14 +835,59 @@ export default function AgentTestExperience({
         </div>
       )}
 
-      {/* Transcript */}
+      {/* Recording player */}
+      <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-2xl p-4 mb-4">
+        <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-3 flex items-center gap-2">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
+          Call Recording
+        </h3>
+        {recordingUrl ? (
+          <audio controls src={recordingUrl} className="w-full h-9 rounded-lg" style={{ colorScheme: 'light' }} />
+        ) : (
+          <div className="flex items-center gap-3 bg-white border border-[var(--border-default)] rounded-xl px-3 py-2.5">
+            <button className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0 shadow-sm">
+              <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <div className="flex-1 min-w-0">
+              <div className="h-1.5 bg-[var(--color-neutral-200)] rounded-full overflow-hidden">
+                <div className="h-full w-2/5 bg-gradient-to-r from-[var(--color-primary)] to-blue-400 rounded-full" />
+              </div>
+              <div className="flex justify-between mt-0.5">
+                <span className="text-[10px] text-[var(--color-neutral-400)] font-mono">{formatDuration(Math.floor(callDuration * 0.4))}</span>
+                <span className="text-[10px] text-[var(--color-neutral-400)] font-mono">{formatDuration(callDuration)}</span>
+              </div>
+            </div>
+            <span className="text-[10px] text-[var(--color-neutral-400)] bg-[var(--color-neutral-100)] px-2 py-0.5 rounded-full whitespace-nowrap">Processing…</span>
+          </div>
+        )}
+      </div>
+
+      {/* Transcript — chat bubble style */}
       {transcriptLines.length > 0 && (
         <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-2xl p-4 mb-4">
-          <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-3">Call Transcript</h3>
-          <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-            {transcriptLines.slice(0, 20).map((line: string, i: number) => (
-              <p key={i} className="text-xs text-[var(--color-neutral-600)] leading-relaxed">{line}</p>
-            ))}
+          <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-3 flex items-center gap-2">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            Call Transcript
+          </h3>
+          <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+            {transcriptLines.slice(0, 24).map((line: string, i: number) => {
+              const { speaker, text } = parseLine(line);
+              const isAgent = speaker === 'agent';
+              return (
+                <div key={i} className={`flex gap-2 ${isAgent ? '' : 'flex-row-reverse'}`}>
+                  <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold mt-0.5
+                    ${isAgent ? `bg-gradient-to-br ${agent.color} text-white` : 'bg-[var(--color-neutral-200)] text-[var(--color-neutral-500)]'}`}>
+                    {isAgent ? agent.name[0] : 'U'}
+                  </div>
+                  <div className={`max-w-[80%] px-2.5 py-1.5 rounded-xl text-xs leading-relaxed
+                    ${isAgent
+                      ? 'bg-white border border-[var(--border-default)] text-[var(--color-neutral-700)] rounded-tl-none'
+                      : 'bg-[var(--color-neutral-200)] text-[var(--color-neutral-700)] rounded-tr-none'}`}>
+                    {text}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
