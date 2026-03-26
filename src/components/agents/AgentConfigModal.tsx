@@ -20,6 +20,7 @@ interface AgentConfigModalProps {
   companyId: string;
   company: Company;
   companySettings?: Record<string, unknown>;
+  totalContactCount?: number;
   onClose: () => void;
 }
 
@@ -63,7 +64,7 @@ const StatBar = ({ label, value, color }: { label: string; value: number; color:
   </div>
 );
 
-export default function AgentConfigModal({ agent, companyId, company, companySettings, onClose }: AgentConfigModalProps) {
+export default function AgentConfigModal({ agent, companyId, company, companySettings, totalContactCount = 1, onClose }: AgentConfigModalProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const supabase = createClient();
@@ -806,6 +807,19 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
                 'Use "Test Agent" to receive a live demo call and hear how it sounds',
               ]}
             />
+
+            {/* No contacts nudge — shown only when user has no contacts */}
+            {totalContactCount === 0 && (
+              <div className="mb-4 flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
+                <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-amber-800">No contacts yet</p>
+                  <p className="text-xs text-amber-700 mt-0.5">You can configure and test your agent here, but you&apos;ll need to <button onClick={() => router.push('/contacts')} className="font-semibold underline hover:no-underline">add contacts</button> before launching a campaign.</p>
+                </div>
+              </div>
+            )}
 
             {/* Agent header - photo + name + description */}
             <div className="flex items-start gap-4 mb-5">
@@ -1718,6 +1732,30 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
               </div>
             ) : (
               <div className="space-y-5">
+                {/* No contacts empty state */}
+                {totalContactCount === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
+                      <svg className="w-7 h-7 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-base font-semibold text-[var(--color-ink)] mb-2">No contacts yet</h3>
+                    <p className="text-sm text-[var(--color-neutral-500)] max-w-xs mb-6">You need at least one contact to launch a campaign. Add contacts manually, import from a spreadsheet, or sync from your CRM.</p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <a href="/contacts" className="px-4 py-2.5 gradient-bg text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-all shadow-sm text-center">
+                        Go to Contacts
+                      </a>
+                      <a href="/integrations" className="px-4 py-2.5 bg-white border border-[var(--border-default)] text-[var(--color-ink)] text-sm font-medium rounded-lg hover:bg-[var(--color-neutral-50)] transition-all text-center">
+                        Connect CRM
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* Existing contacts step content — shown only when contacts exist */}
+                {totalContactCount > 0 && (<>
+
                 {/* Auto-Overage Billing Toggle */}
                 {overageData && planLimits && (
                   <div className={`rounded-xl p-4 border space-y-3 transition-all relative ${planLimits.slug === 'free' ? 'bg-[var(--color-neutral-50)] border-[var(--border-default)] opacity-75' : overageData.enabled ? 'bg-green-50/50 border-green-200' : 'bg-amber-50/50 border-amber-200'}`}>
@@ -2146,6 +2184,8 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
                     </div>
                   </div>
                 </div>
+
+                </>)}
 
               </div>
             )}

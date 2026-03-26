@@ -8,6 +8,7 @@ import { AgentTemplate, Company } from '@/types/supabase';
 import AgentSelectionModal from '@/components/agents/AgentSelectionModal';
 import AgentConfigModal from '@/components/agents/AgentConfigModal';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import PageTipCard from '@/components/ui/PageTipCard';
 import { campaignEvents } from '@/lib/analytics';
 import { phCampaignEvents } from '@/lib/posthog';
 
@@ -162,6 +163,20 @@ export default function CampaignsOverview({
     <div className="space-y-6">
       <Breadcrumbs items={[{ label: t.campaigns.title }]} />
 
+      {/* Campaigns Tip Card */}
+      <PageTipCard
+        title="Getting started with Campaigns"
+        settingKey="tour_campaigns_seen"
+        companyId={companyId}
+        tips={[
+          { icon: 'M12 4.5v15m7.5-7.5h-15', label: 'Create a campaign', desc: 'Select an AI agent, add contacts, and launch outbound calls in minutes' },
+          { icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5', label: 'Schedule calls', desc: 'Set specific days and times, or let campaigns run continuously' },
+          { icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z', label: 'Monitor results', desc: 'Track answer rates, sentiment, and outcomes in real time' },
+          { icon: 'M15.75 5.25v13.5m-7.5-13.5v13.5', label: 'Pause anytime', desc: 'Pause or stop a campaign mid-run without losing progress' },
+          { icon: 'M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75', label: 'Clone campaigns', desc: 'Duplicate successful campaigns to reuse configurations' },
+        ]}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -170,10 +185,6 @@ export default function CampaignsOverview({
         </div>
         <button
           onClick={() => {
-            if (totalContactCount === 0) {
-              setShowNoContactsModal(true);
-              return;
-            }
             phCampaignEvents.creationFlowStarted();
             setShowAgentSelection(true);
           }}
@@ -418,6 +429,7 @@ export default function CampaignsOverview({
           companyId={companyId}
           company={company}
           companySettings={companySettings}
+          totalContactCount={totalContactCount}
           onClose={() => {
             phCampaignEvents.creationFlowAbandoned('agent_config');
             setShowConfigModal(false);
