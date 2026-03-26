@@ -9,6 +9,7 @@ import { BiLogoZoom } from 'react-icons/bi';
 import { createClient } from '@/lib/supabase/client';
 import { GoogleCalendarIcon, GoogleMeetIcon, GoogleSheetsIcon, OutlookIcon, TeamsIcon, SlackIcon } from '@/components/icons/BrandIcons';
 import { useTranslation } from '@/i18n';
+import PageTipCard from '@/components/ui/PageTipCard';
 import { integrationEvents } from '@/lib/analytics';
 import { phIntegrationEvents } from '@/lib/posthog';
 import {
@@ -1680,6 +1681,19 @@ export default function IntegrationsPage({ integrations, planSlug, companyId }: 
           {toast.message}
         </div>
       )}
+
+      {/* Integrations Tip Card */}
+      <PageTipCard
+        title="Getting started with Integrations"
+        settingKey="tour_integrations_seen"
+        companyId={companyId}
+        tips={[
+          { icon: 'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244', label: 'CRM sync', desc: 'Push call outcomes and contact updates to HubSpot, Salesforce, Pipedrive, and more' },
+          { icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5', label: 'Calendar sync', desc: 'Connect Google Calendar or Outlook for appointment-aware calling' },
+          { icon: 'M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z', label: 'Webhook support', desc: 'Send real-time call events to Zapier, Make, or your own endpoint' },
+          { icon: 'M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z', label: 'One-click OAuth', desc: 'Connect most integrations in under a minute with secure OAuth' },
+        ]}
+      />
 
       {/* ================================================================== */}
       {/* HERO SECTION                                                       */}
