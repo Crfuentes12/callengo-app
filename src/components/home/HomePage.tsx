@@ -394,6 +394,8 @@ export default function HomePage({ userName, companyId, companyName, completedTa
   }, [wizardCompleted, showOnboardingWizard, homeTourSeen]);
 
   const handleTourDismiss = useCallback(() => setShowHomeTour(false), []);
+
+  const handleOnboardingComplete = () => {
     setShowOnboardingWizard(false);
     setWizardCompleted(true);
     router.refresh();
