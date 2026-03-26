@@ -555,29 +555,31 @@ export async function pushContactUpdatesToSimplyBook(
 // ============================================================================
 
 /**
- * Get available time slots from SimplyBook.me for a specific service and date.
+ * Get available time slots from SimplyBook.me for a specific service and date range.
  *
- * Returns an array of time strings in "HH:MM:SS" format (e.g. ["09:00:00", "10:00:00"]).
- * An empty array means no slots are available on that date.
+ * Returns an array of { date, time } objects (e.g. [{ date: "2025-03-26", time: "09:00" }]).
+ * An empty array means no slots are available in the requested window.
  */
 export async function getSimplyBookAvailableSlots(
   integration: SimplyBookIntegration,
   options: {
     serviceId: number;
     providerId?: number;
-    date: string; // YYYY-MM-DD
+    dateFrom: string; // YYYY-MM-DD
+    dateTo: string;   // YYYY-MM-DD
   }
-): Promise<string[]> {
+): Promise<Array<{ date: string; time: string }>> {
   const client = await getSimplyBookClient(integration);
   const params = new URLSearchParams({
     service_id: String(options.serviceId),
-    date: options.date,
+    date_from: options.dateFrom,
+    date_to: options.dateTo,
   });
   if (options.providerId != null) {
     params.set('provider_id', String(options.providerId));
   }
 
-  const res = await client.fetch(`/schedule/available-slots?${params.toString()}`);
+  const res = await client.fetch(`/slots?${params.toString()}`);
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => '');
@@ -585,16 +587,7 @@ export async function getSimplyBookAvailableSlots(
   }
 
   const data = await res.json();
-  // API returns either an array of time strings or an object keyed by provider_id
-  if (Array.isArray(data)) return data as string[];
-  // When multiple providers: { "1": ["09:00:00", ...], "2": [...] } — merge all
-  if (typeof data === 'object' && data !== null) {
-    const allSlots: string[] = [];
-    for (const slots of Object.values(data)) {
-      if (Array.isArray(slots)) allSlots.push(...(slots as string[]));
-    }
-    return [...new Set(allSlots)].sort();
-  }
+  if (Array.isArray(data)) return data as Array<{ date: string; time: string }>;
   return [];
 }
 
