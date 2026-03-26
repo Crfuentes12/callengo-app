@@ -1,7 +1,7 @@
 // components/onboarding/AgentTestExperience.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '@/i18n';
 import { AgentTypeIcon } from '@/components/agents/AgentTypeIcon';
 
@@ -17,9 +17,32 @@ interface AgentConfig {
   tips: string[];
 }
 
+interface AgentSpecificData {
+  // appointment-confirmation
+  appointmentStatus?: 'confirmed' | 'rescheduled' | 'cancelled';
+  newDay?: string | null;
+  newTime?: string | null;
+  originalDay?: string | null;
+  rescheduleReason?: string | null;
+  // data-validation
+  updatedFields?: Array<{ field: string; oldValue: string; newValue: string }>;
+  confirmedFields?: string[];
+  newFields?: Record<string, string>;
+  // lead-qualification
+  bantScores?: { budget: number; authority: number; need: number; timeline: number };
+  bantNotes?: { budget: string; authority: string; need: string; timeline: string };
+  leadTemperature?: 'hot' | 'warm' | 'cold';
+  recommendedAction?: string;
+}
+
 interface CallAnalysis {
+  sentiment?: 'positive' | 'neutral' | 'negative';
+  callScore?: number;
   summary?: string;
   key_points?: string[];
+  outcome?: string;
+  nextActions?: string[];
+  agentSpecific?: AgentSpecificData;
 }
 
 interface AgentTestExperienceProps {
@@ -322,14 +345,18 @@ export default function AgentTestExperience({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transcript: data.concatenated_transcript || 'Demo call completed.',
+          transcripts: data.transcripts || [],
+          transcript: data.concatenated_transcript || '',
           agent_type: agentTitle,
+          agent_slug: agentSlug,
+          demoData: agent.demoData,
           call_duration: data.call_length ? Math.floor(Number(data.call_length)) : callDuration,
         }),
       });
       if (response.ok) {
-        const analysis = await response.json();
-        setCallAnalysis(analysis);
+        const json = await response.json();
+        // API returns { success: true, analysis: {...} }
+        setCallAnalysis(json.analysis ?? json);
       }
     } catch (error) {
       console.error('Error analyzing call:', error);
@@ -488,10 +515,10 @@ export default function AgentTestExperience({
                 {Object.entries(agent.demoData).map(([key, value], i, arr) => (
                   <div
                     key={key}
-                    className={`flex items-center gap-3 px-3 py-2.5 ${i < arr.length - 1 ? 'border-b border-[var(--border-subtle,var(--border-default))]' : ''}`}
+                    className={`flex items-start gap-4 px-3 py-2.5 ${i < arr.length - 1 ? 'border-b border-[var(--border-subtle,var(--border-default))]' : ''}`}
                   >
-                    <span className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wide w-16 flex-shrink-0">{key}</span>
-                    <span className="text-xs font-semibold text-[var(--color-ink)] flex-1 min-w-0 truncate">{value}</span>
+                    <span className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase tracking-wide w-20 flex-shrink-0 pt-0.5">{key}</span>
+                    <span className="text-xs font-semibold text-[var(--color-ink)] flex-1 min-w-0 leading-relaxed">{value}</span>
                   </div>
                 ))}
               </div>
@@ -520,9 +547,26 @@ export default function AgentTestExperience({
 
   // ─── ANALYSIS ─────────────────────────────────────────────────────────────
 
-  // Per-agent simulated result cards
+  const ImpactBanner = ({ color, icon, headline, sub }: { color: string; icon: React.ReactNode; headline: string; sub: string }) => (
+    <div className={`rounded-2xl p-4 mb-4 ${color} flex gap-3 items-start`}>
+      <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-white/30 flex items-center justify-center">{icon}</div>
+      <div>
+        <p className="font-extrabold text-sm leading-snug">{headline}</p>
+        <p className="text-xs opacity-80 mt-0.5 leading-relaxed">{sub}</p>
+      </div>
+    </div>
+  );
+
+  // Per-agent AI-driven result cards
   const renderAgentResult = () => {
+    const aSpec = callAnalysis?.agentSpecific;
+
     if (agentSlug === 'data-validation') {
+      // Use AI-extracted fields, fallback to demo data structure
+      const updated = aSpec?.updatedFields ?? [];
+      const confirmed = aSpec?.confirmedFields ?? Object.keys(agent.demoData).slice(1);
+      const hasUpdates = updated.length > 0;
+
       return (
         <div className="border-2 border-emerald-200 rounded-2xl overflow-hidden mb-4">
           <div className="bg-emerald-50 px-4 py-3 flex items-center gap-3">
@@ -530,51 +574,48 @@ export default function AgentTestExperience({
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-emerald-800">Contact Record Updated</p>
-              <p className="text-xs text-emerald-600">John Smith at TechCorp Solutions</p>
+              <p className="text-sm font-bold text-emerald-800">Contact Record {hasUpdates ? 'Updated' : 'Verified'}</p>
+              <p className="text-xs text-emerald-600">{agent.demoData.Contact} at {agent.demoData.Company}</p>
             </div>
             <span className="flex-shrink-0 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">CRM Synced</span>
           </div>
           <div className="bg-white divide-y divide-[var(--border-default)]">
-            {[
-              { field: 'Email', before: 'john.smith.old@techcorp.com', after: 'john.smith@example.com', type: 'updated' },
-              { field: 'Phone', value: '+1 (555) 123-4567', type: 'confirmed' },
-              { field: 'Status', value: 'Active', type: 'confirmed' },
-            ].map((row) => (
+            {updated.map((row) => (
               <div key={row.field} className="flex items-center gap-3 px-4 py-2.5">
-                <span className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase w-10 flex-shrink-0">{row.field}</span>
-                {row.type === 'updated' && row.before ? (
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
-                    <span className="text-xs text-[var(--color-neutral-400)] line-through truncate">{row.before}</span>
-                    <svg className="w-3 h-3 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                    <span className="text-xs font-semibold text-emerald-700">{row.after}</span>
-                  </div>
-                ) : (
-                  <span className="text-xs font-semibold text-[var(--color-ink)] flex-1">{row.value}</span>
-                )}
-                <span className={`flex-shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full ${row.type === 'updated' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                  {row.type === 'updated' ? 'UPDATED' : 'CONFIRMED'}
-                </span>
+                <span className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase w-12 flex-shrink-0">{row.field}</span>
+                <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+                  <span className="text-xs text-[var(--color-neutral-400)] line-through truncate">{row.oldValue}</span>
+                  <svg className="w-3 h-3 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  <span className="text-xs font-semibold text-emerald-700">{row.newValue}</span>
+                </div>
+                <span className="flex-shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">UPDATED</span>
+              </div>
+            ))}
+            {confirmed.map((field) => (
+              <div key={field} className="flex items-center gap-3 px-4 py-2.5">
+                <span className="text-[10px] font-bold text-[var(--color-neutral-400)] uppercase w-12 flex-shrink-0">{field}</span>
+                <span className="text-xs font-semibold text-[var(--color-ink)] flex-1">{agent.demoData[field] ?? '—'}</span>
+                <span className="flex-shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">CONFIRMED</span>
               </div>
             ))}
           </div>
-          <div className="bg-emerald-50 px-4 py-2 text-xs text-emerald-600 font-medium">
-            In a real campaign, Vera would do this for hundreds of contacts automatically — no manual data entry.
-          </div>
+          <ImpactBanner
+            color="bg-gradient-to-r from-emerald-600 to-teal-600 text-white"
+            icon={<svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+            headline="Vera does this for hundreds of contacts automatically — zero manual data entry."
+            sub="Your CRM stays clean and up to date, 24/7, without your team lifting a finger."
+          />
         </div>
       );
     }
 
     if (agentSlug === 'appointment-confirmation') {
-      // Dynamic demo week: Monday = call day, Tuesday = original appt, Wednesday = rescheduled
       const monday = getUpcomingMonday();
-      const tuesday = addDays(monday, 1);   // original appointment
-      const wednesday = addDays(monday, 2); // rescheduled to
+      const tuesday = addDays(monday, 1);
       const thursday = addDays(monday, 3);
       const friday = addDays(monday, 4);
       const saturday = addDays(monday, 5);
       const sunday = addDays(monday, 6);
-      // Next week
       const nxtMon = addDays(monday, 7);
       const nxtTue = addDays(monday, 8);
       const nxtWed = addDays(monday, 9);
@@ -585,37 +626,58 @@ export default function AgentTestExperience({
       const fmtN = (d: Date) => d.getDate();
       const fmtWD = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'short' });
 
-      type DayCell = {
-        date: Date;
-        role: 'call-day' | 'original' | 'rescheduled' | 'available' | 'blocked';
+      // Determine what happened based on AI analysis
+      const apptStatus = aSpec?.appointmentStatus ?? 'rescheduled';
+      const rawNewDay = (aSpec?.newDay ?? 'wednesday').toLowerCase();
+      const newTime = aSpec?.newTime ?? '2:00 PM';
+
+      // Map AI-provided day name to actual date offset from monday
+      const dayOffsetMap: Record<string, number> = {
+        'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 'friday': 4,
+        'next monday': 7, 'next tuesday': 8, 'next wednesday': 9, 'next thursday': 10, 'next friday': 11,
+      };
+      // Find best match
+      const rescheduledOffset = Object.entries(dayOffsetMap).find(([key]) => rawNewDay.includes(key))?.[1] ?? 2;
+      const rescheduledDate = addDays(monday, rescheduledOffset);
+      const isConfirmed = apptStatus === 'confirmed';
+      const isRescheduled = apptStatus === 'rescheduled';
+
+      type DayCell = { date: Date; role: 'call-day' | 'original' | 'confirmed' | 'rescheduled' | 'available' | 'blocked' };
+
+      const getRoleW1 = (date: Date): DayCell['role'] => {
+        if (date.toDateString() === monday.toDateString()) return 'call-day';
+        if (date.toDateString() === tuesday.toDateString()) {
+          return isConfirmed ? 'confirmed' : 'original';
+        }
+        if (isRescheduled && date.toDateString() === rescheduledDate.toDateString()) return 'rescheduled';
+        if (date.toDateString() === saturday.toDateString() || date.toDateString() === sunday.toDateString()) return 'blocked';
+        return 'available';
       };
 
-      const week1: DayCell[] = [
-        { date: monday,    role: 'call-day' },
-        { date: tuesday,   role: 'original' },
-        { date: wednesday, role: 'rescheduled' },
-        { date: thursday,  role: 'available' },
-        { date: friday,    role: 'available' },
-        { date: saturday,  role: 'blocked' },
-        { date: sunday,    role: 'blocked' },
-      ];
-      const week2: DayCell[] = [
-        { date: nxtMon, role: 'available' },
-        { date: nxtTue, role: 'available' },
-        { date: nxtWed, role: 'available' },
-        { date: nxtThu, role: 'available' },
-        { date: nxtFri, role: 'available' },
-      ];
+      const week1: DayCell[] = [monday, tuesday, addDays(monday, 2), thursday, friday, saturday, sunday]
+        .map((date) => ({ date, role: getRoleW1(date) }));
+
+      const week2: DayCell[] = [nxtMon, nxtTue, nxtWed, nxtThu, nxtFri].map((date) => {
+        if (isRescheduled && date.toDateString() === rescheduledDate.toDateString()) return { date, role: 'rescheduled' as const };
+        return { date, role: 'available' as const };
+      });
 
       const cellStyle = (role: DayCell['role']) => {
         switch (role) {
-          case 'call-day':   return 'bg-blue-100 text-blue-700 ring-1 ring-blue-300';
-          case 'original':   return 'bg-red-50 text-red-400 line-through opacity-70';
+          case 'call-day':    return 'bg-blue-100 text-blue-700 ring-1 ring-blue-300';
+          case 'original':    return 'bg-red-50 text-red-300 line-through opacity-60';
+          case 'confirmed':   return 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400 scale-110';
           case 'rescheduled': return 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400 scale-110';
-          case 'available':  return 'bg-white text-blue-500 hover:bg-blue-50';
-          case 'blocked':    return 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-300)] cursor-not-allowed';
+          case 'available':   return 'bg-white text-blue-500';
+          case 'blocked':     return 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-300)] cursor-not-allowed';
         }
       };
+
+      const headerLabel = isConfirmed ? 'Appointment Confirmed' : 'Appointment Rescheduled';
+      const statusBadge = isConfirmed ? 'CONFIRMED' : 'RESCHEDULED';
+      const newDayLabel = isConfirmed
+        ? `${fmtWD(tuesday)} ${fmt(tuesday)} · 2:00 PM`
+        : `${fmtWD(rescheduledDate)} ${fmt(rescheduledDate)} · ${newTime}`;
 
       return (
         <div className="border-2 border-blue-200 rounded-2xl overflow-hidden mb-4">
@@ -624,30 +686,31 @@ export default function AgentTestExperience({
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-blue-800">Appointment Rescheduled</p>
+              <p className="text-sm font-bold text-blue-800">{headerLabel}</p>
               <p className="text-xs text-blue-600">Robert Taylor · Healthcare Clinic</p>
             </div>
-            <span className="flex-shrink-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Calendar Updated</span>
+            <span className="flex-shrink-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Calendar Synced</span>
           </div>
 
-          {/* Reschedule summary */}
-          <div className="bg-white px-4 pt-3 pb-1 flex items-center gap-2">
-            <div className="flex items-center gap-2 flex-1 flex-wrap">
-              <span className="inline-flex items-center gap-1 bg-red-50 border border-red-200 text-red-400 text-xs px-2 py-1 rounded-lg line-through">
-                Tue {fmt(tuesday)} · 2:00 PM
-              </span>
-              <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-              <span className="inline-flex items-center gap-1 bg-blue-600 text-white text-xs px-2 py-1 rounded-lg font-bold shadow-sm">
-                Wed {fmt(wednesday)} · 2:00 PM
-              </span>
-            </div>
-            <span className="text-[10px] font-bold text-blue-500 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full whitespace-nowrap">Consultation</span>
+          {/* Summary row */}
+          <div className="bg-white px-4 pt-3 pb-1 flex items-center gap-2 flex-wrap">
+            {isRescheduled && (
+              <>
+                <span className="inline-flex items-center gap-1 bg-red-50 border border-red-200 text-red-400 text-xs px-2 py-1 rounded-lg line-through">
+                  {fmtWD(tuesday)} {fmt(tuesday)} · 2:00 PM
+                </span>
+                <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+              </>
+            )}
+            <span className="inline-flex items-center gap-1 bg-blue-600 text-white text-xs px-2 py-1 rounded-lg font-bold shadow-sm">
+              {newDayLabel}
+            </span>
+            <span className="ml-auto text-[10px] font-bold text-blue-500 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">{statusBadge}</span>
           </div>
 
           {/* Calendar grid */}
           <div className="bg-white p-4">
             <div className="bg-blue-50 rounded-xl p-3">
-              {/* Week 1 header */}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">This week</span>
                 <span className="text-[9px] text-blue-300">{monday.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
@@ -659,17 +722,11 @@ export default function AgentTestExperience({
               </div>
               <div className="grid grid-cols-7 gap-1 mb-4">
                 {week1.map(({ date, role }) => (
-                  <div
-                    key={date.toISOString()}
-                    className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${cellStyle(role)}`}
-                  >
+                  <div key={date.toISOString()} className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${cellStyle(role)}`}>
                     {fmtN(date)}
-                    {role === 'rescheduled' && <span className="sr-only">(new)</span>}
                   </div>
                 ))}
               </div>
-
-              {/* Week 2 */}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Next week</span>
                 <span className="text-[9px] text-blue-300">{nxtMon.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
@@ -681,50 +738,55 @@ export default function AgentTestExperience({
               </div>
               <div className="grid grid-cols-7 gap-1">
                 {week2.map(({ date, role }) => (
-                  <div
-                    key={date.toISOString()}
-                    className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${cellStyle(role)}`}
-                  >
+                  <div key={date.toISOString()} className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${cellStyle(role)}`}>
                     {fmtN(date)}
                   </div>
                 ))}
-                {/* Sat/Sun next week — blocked */}
                 <div className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold ${cellStyle('blocked')}`}>{fmtN(addDays(monday, 12))}</div>
                 <div className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold ${cellStyle('blocked')}`}>{fmtN(addDays(monday, 13))}</div>
               </div>
             </div>
-
-            {/* Legend */}
             <div className="flex items-center gap-3 mt-3 flex-wrap">
               <span className="flex items-center gap-1 text-[10px] text-blue-400"><span className="w-2.5 h-2.5 rounded bg-blue-100 ring-1 ring-blue-300 inline-block" />Call day</span>
-              <span className="flex items-center gap-1 text-[10px] text-red-400"><span className="w-2.5 h-2.5 rounded bg-red-50 border border-red-200 inline-block" />Original</span>
-              <span className="flex items-center gap-1 text-[10px] text-blue-600 font-bold"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block" />Rescheduled</span>
+              {isRescheduled && <span className="flex items-center gap-1 text-[10px] text-red-400"><span className="w-2.5 h-2.5 rounded bg-red-50 border border-red-200 inline-block" />Original</span>}
+              <span className="flex items-center gap-1 text-[10px] text-blue-600 font-bold"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block" />{isConfirmed ? 'Confirmed' : 'Rescheduled'}</span>
               <span className="flex items-center gap-1 text-[10px] text-[var(--color-neutral-400)]"><span className="w-2.5 h-2.5 rounded bg-[var(--color-neutral-100)] inline-block" />Blocked</span>
             </div>
           </div>
 
-          <div className="bg-blue-50 px-4 py-2 text-xs text-blue-600 font-medium">
-            In a real campaign, Sofia confirms hundreds of appointments while you sleep — zero no-shows.
-          </div>
+          <ImpactBanner
+            color="bg-gradient-to-r from-blue-600 to-blue-700 text-white"
+            icon={<svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+            headline="Sofia confirms hundreds of appointments while you sleep — zero no-shows, ever."
+            sub="Google Calendar, Outlook, Teams, Zoom and SimplyBook sync automatically. Your team wakes up to a clean, confirmed schedule."
+          />
         </div>
       );
     }
 
-    // lead-qualification
+    // lead-qualification — AI-driven BANT scores
+    const rawBant = aSpec?.bantScores;
+    const rawNotes = aSpec?.bantNotes;
+    const temp = aSpec?.leadTemperature ?? (callAnalysis?.callScore && callAnalysis.callScore > 75 ? 'hot' : 'warm');
+    const nextAction = aSpec?.recommendedAction ?? callAnalysis?.nextActions?.[0] ?? 'Schedule a demo with the sales team';
+
     const bantItems = [
-      { letter: 'B', label: 'Budget', score: 82, note: '$10k confirmed', color: 'from-indigo-500 to-violet-500' },
-      { letter: 'A', label: 'Authority', score: 100, note: 'Decision maker', color: 'from-indigo-500 to-violet-500' },
-      { letter: 'N', label: 'Need', score: 74, note: 'Scalability issues', color: 'from-indigo-400 to-violet-400' },
-      { letter: 'T', label: 'Timeline', score: 62, note: 'Q2 target', color: 'from-indigo-300 to-violet-300' },
+      { letter: 'B', label: 'Budget',    score: rawBant?.budget    ?? 75, note: rawNotes?.budget    ?? 'Discussed budget range',  color: 'from-indigo-500 to-violet-500' },
+      { letter: 'A', label: 'Authority', score: rawBant?.authority ?? 80, note: rawNotes?.authority ?? 'Role confirmed',           color: 'from-indigo-500 to-violet-500' },
+      { letter: 'N', label: 'Need',      score: rawBant?.need      ?? 70, note: rawNotes?.need      ?? 'Clear use case identified', color: 'from-indigo-400 to-violet-400' },
+      { letter: 'T', label: 'Timeline',  score: rawBant?.timeline  ?? 60, note: rawNotes?.timeline  ?? 'Q2-Q3 timeframe',          color: 'from-indigo-300 to-violet-300' },
     ];
     const avgScore = Math.round(bantItems.reduce((a, b) => a + b.score, 0) / bantItems.length);
+    const tempLabel = temp === 'hot' ? 'HOT LEAD' : temp === 'warm' ? 'WARM LEAD' : 'COLD LEAD';
+    const tempColors = { hot: 'bg-red-500', warm: 'bg-amber-500', cold: 'bg-slate-400' };
+
     return (
       <div className="border-2 border-indigo-200 rounded-2xl overflow-hidden mb-4">
         <div className="bg-indigo-50 px-4 py-3 flex items-center gap-3">
-          <span className="bg-indigo-600 text-white text-xs font-black px-3 py-1 rounded-full tracking-wide">HOT LEAD</span>
+          <span className={`${tempColors[temp as keyof typeof tempColors] ?? 'bg-indigo-600'} text-white text-xs font-black px-3 py-1 rounded-full tracking-wide`}>{tempLabel}</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-indigo-800">Alex Martinez Qualified</p>
-            <p className="text-xs text-indigo-500">Sales Pro Inc · Enterprise Plan</p>
+            <p className="text-sm font-bold text-indigo-800">{agent.demoData.Lead ?? 'Lead'} Qualified</p>
+            <p className="text-xs text-indigo-500">{agent.demoData.Company ?? ''} · {agent.demoData.Interest ?? ''}</p>
           </div>
           <div className="flex-shrink-0 text-right">
             <p className="text-xl font-black text-indigo-700">{avgScore}</p>
@@ -738,7 +800,7 @@ export default function AgentTestExperience({
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-[var(--color-ink)]">{item.label}</span>
-                  <span className="text-[10px] text-[var(--color-neutral-400)]">{item.note}</span>
+                  <span className="text-[10px] text-[var(--color-neutral-400)] max-w-[120px] truncate">{item.note}</span>
                 </div>
                 <div className="h-1.5 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
                   <div className={`h-full rounded-full bg-gradient-to-r ${item.color} transition-all duration-700`} style={{ width: `${item.score}%` }} />
@@ -748,35 +810,50 @@ export default function AgentTestExperience({
             </div>
           ))}
         </div>
-        <div className="bg-indigo-50 px-4 py-2.5 flex items-center gap-2">
-          <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-          <span className="text-xs text-indigo-600 font-medium">Next action: Demo meeting scheduled for next week</span>
-        </div>
-        <div className="bg-indigo-50 border-t border-indigo-100 px-4 py-2 text-xs text-indigo-500 font-medium">
-          In a real campaign, Mia qualifies your leads and passes hot ones straight to your sales team.
-        </div>
+        {nextAction && (
+          <div className="bg-indigo-50 px-4 py-2.5 flex items-center gap-2 border-t border-indigo-100">
+            <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+            <span className="text-xs text-indigo-600 font-medium">Next: {nextAction}</span>
+          </div>
+        )}
+        <ImpactBanner
+          color="bg-gradient-to-r from-indigo-600 to-violet-600 text-white"
+          icon={<svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
+          headline="Mia qualifies your entire lead list and routes hot leads straight to your sales team — automatically."
+          sub="No lead falls through the cracks. Your closers spend 100% of their time on leads that are ready to buy."
+        />
       </div>
     );
   };
 
-  // Parse transcript into speaker bubbles
+  // Parse transcript into speaker-labelled lines
   const rawTranscript = (callData?.concatenated_transcript as string) || '';
   const transcriptLines = rawTranscript.split('\n').filter((l: string) => l.trim());
 
-  // Detect speaker from line prefix (e.g. "Agent: ..." or "User: ..." or "assistant:"/"user:")
-  const parseLine = (line: string): { speaker: 'agent' | 'user'; text: string } => {
-    const lower = line.toLowerCase();
-    if (lower.startsWith('assistant:') || lower.startsWith('agent:') || lower.startsWith(`${agent.name.toLowerCase()}:`)) {
-      return { speaker: 'agent', text: line.replace(/^[^:]+:\s*/i, '') };
+  // Robust speaker detection — handles "assistant:", "user:", agent name, etc.
+  // Passes index so fallback can alternate correctly when no prefix found.
+  const parseLine = (line: string, idx: number): { speaker: 'agent' | 'user'; text: string } => {
+    const trimmed = line.trim();
+    const lower = trimmed.toLowerCase();
+    const agentNames = ['assistant', 'agent', agent.name.toLowerCase(), 'sofia', 'mia', 'vera', 'callengo'];
+    const userNames = ['user', 'caller', 'human', 'customer', 'client'];
+    // Check agent prefixes
+    for (const name of agentNames) {
+      if (lower.startsWith(`${name}:`)) {
+        return { speaker: 'agent', text: trimmed.replace(/^[^:]+:\s*/, '').trim() };
+      }
     }
-    if (lower.startsWith('user:') || lower.startsWith('caller:') || lower.startsWith('human:')) {
-      return { speaker: 'user', text: line.replace(/^[^:]+:\s*/i, '') };
+    // Check user prefixes
+    for (const name of userNames) {
+      if (lower.startsWith(`${name}:`)) {
+        return { speaker: 'user', text: trimmed.replace(/^[^:]+:\s*/, '').trim() };
+      }
     }
-    // Fallback: alternate by index
-    return { speaker: 'user', text: line };
+    // Fallback: alternate by line index (agent starts, then user, etc.)
+    return { speaker: idx % 2 === 0 ? 'agent' : 'user', text: trimmed };
   };
 
-  const recordingUrl = callData?.recording_url as string | undefined;
+  const recordingUrl = (callData?.recording_url as string) || '';
 
   return (
     <div className="w-full max-w-lg mx-auto">
@@ -794,20 +871,49 @@ export default function AgentTestExperience({
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-3 text-center">
-          <div className="text-lg font-bold text-[var(--color-ink)] mb-0.5">{formatDuration(callDuration)}</div>
-          <div className="text-[10px] text-[var(--color-neutral-400)] font-bold uppercase tracking-wide">{t.onboarding.agentTest.duration}</div>
-        </div>
-        <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-3 text-center">
-          <div className="text-lg font-bold text-emerald-600 mb-0.5">{t.onboarding.agentTest.demo}</div>
-          <div className="text-[10px] text-[var(--color-neutral-400)] font-bold uppercase tracking-wide">{t.onboarding.agentTest.callType}</div>
-        </div>
-        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
-          <svg className="w-5 h-5 mx-auto text-emerald-600 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-          <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wide">{t.onboarding.agentTest.completed}</div>
-        </div>
-      </div>
+      {(() => {
+        const sentiment = callAnalysis?.sentiment;
+        const score = callAnalysis?.callScore;
+        const sentimentConfig = {
+          positive: { label: 'Positive', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-100', dot: 'bg-emerald-500' },
+          neutral:  { label: 'Neutral',  color: 'text-amber-600',  bg: 'bg-amber-50 border-amber-100',   dot: 'bg-amber-400'  },
+          negative: { label: 'Negative', color: 'text-red-600',    bg: 'bg-red-50 border-red-100',       dot: 'bg-red-500'    },
+        };
+        const sc = sentiment ? sentimentConfig[sentiment] : null;
+        return (
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-3 text-center">
+              <div className="text-lg font-bold text-[var(--color-ink)] mb-0.5">{formatDuration(callDuration)}</div>
+              <div className="text-[10px] text-[var(--color-neutral-400)] font-bold uppercase tracking-wide">{t.onboarding.agentTest.duration}</div>
+            </div>
+            {score != null ? (
+              <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-[var(--color-primary)] mb-0.5">{score}<span className="text-xs font-normal text-[var(--color-neutral-400)]">/100</span></div>
+                <div className="text-[10px] text-[var(--color-neutral-400)] font-bold uppercase tracking-wide">Call Score</div>
+              </div>
+            ) : (
+              <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-emerald-600 mb-0.5">{t.onboarding.agentTest.demo}</div>
+                <div className="text-[10px] text-[var(--color-neutral-400)] font-bold uppercase tracking-wide">{t.onboarding.agentTest.callType}</div>
+              </div>
+            )}
+            {sc ? (
+              <div className={`border rounded-xl p-3 text-center ${sc.bg}`}>
+                <div className={`flex items-center justify-center gap-1 mb-0.5`}>
+                  <span className={`w-2 h-2 rounded-full ${sc.dot}`} />
+                  <span className={`text-sm font-bold ${sc.color}`}>{sc.label}</span>
+                </div>
+                <div className={`text-[10px] font-bold uppercase tracking-wide ${sc.color} opacity-70`}>Sentiment</div>
+              </div>
+            ) : (
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
+                <svg className="w-5 h-5 mx-auto text-emerald-600 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wide">{t.onboarding.agentTest.completed}</div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Per-agent WOW result */}
       {renderAgentResult()}
@@ -835,32 +941,16 @@ export default function AgentTestExperience({
         </div>
       )}
 
-      {/* Recording player */}
-      <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-2xl p-4 mb-4">
-        <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-3 flex items-center gap-2">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
-          Call Recording
-        </h3>
-        {recordingUrl ? (
+      {/* Recording player — only show if URL is available */}
+      {recordingUrl ? (
+        <div className="bg-[var(--color-neutral-50)] border border-[var(--border-default)] rounded-2xl p-4 mb-4">
+          <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide mb-3 flex items-center gap-2">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
+            Call Recording
+          </h3>
           <audio controls src={recordingUrl} className="w-full h-9 rounded-lg" style={{ colorScheme: 'light' }} />
-        ) : (
-          <div className="flex items-center gap-3 bg-white border border-[var(--border-default)] rounded-xl px-3 py-2.5">
-            <button className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </button>
-            <div className="flex-1 min-w-0">
-              <div className="h-1.5 bg-[var(--color-neutral-200)] rounded-full overflow-hidden">
-                <div className="h-full w-2/5 bg-gradient-to-r from-[var(--color-primary)] to-blue-400 rounded-full" />
-              </div>
-              <div className="flex justify-between mt-0.5">
-                <span className="text-[10px] text-[var(--color-neutral-400)] font-mono">{formatDuration(Math.floor(callDuration * 0.4))}</span>
-                <span className="text-[10px] text-[var(--color-neutral-400)] font-mono">{formatDuration(callDuration)}</span>
-              </div>
-            </div>
-            <span className="text-[10px] text-[var(--color-neutral-400)] bg-[var(--color-neutral-100)] px-2 py-0.5 rounded-full whitespace-nowrap">Processing…</span>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       {/* Transcript — chat bubble style */}
       {transcriptLines.length > 0 && (
@@ -871,7 +961,7 @@ export default function AgentTestExperience({
           </h3>
           <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
             {transcriptLines.slice(0, 24).map((line: string, i: number) => {
-              const { speaker, text } = parseLine(line);
+              const { speaker, text } = parseLine(line, i);
               const isAgent = speaker === 'agent';
               return (
                 <div key={i} className={`flex gap-2 ${isAgent ? '' : 'flex-row-reverse'}`}>
