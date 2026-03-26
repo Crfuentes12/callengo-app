@@ -4,6 +4,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '@/i18n';
 import { AgentTypeIcon } from '@/components/agents/AgentTypeIcon';
+import { GoogleCalendarIcon, OutlookIcon, TeamsIcon } from '@/components/icons/BrandIcons';
+import { BiLogoZoom } from 'react-icons/bi';
 
 const DEFAULT_VOICE_ID = '13843c96-ab9e-4938-baf3-ad53fcee541d'; // Nat — American Female
 const TEST_CALL_MAX_SECONDS = 3 * 60; // 3 min
@@ -105,8 +107,8 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
     },
     task: 'You are Nicole, an AI appointment confirmation agent calling on behalf of Sunrise Family Clinic. You are calling Robert Taylor to confirm his Annual Check-up appointment scheduled for tomorrow, Tuesday, at 2:00 PM. Start with a warm, professional greeting and confirm the appointment details.\n\nIf he wants to reschedule: first ask whether morning or afternoon works better. Then offer 2-3 specific slots from the corresponding period:\n- Morning options: 9:00 AM, 10:30 AM, or 11:00 AM\n- Afternoon options: 2:00 PM, 3:30 PM, or 4:30 PM\nConfirm the exact day and time chosen before ending the call. Be concise, friendly, and helpful. Keep the call under 4 minutes.',
     tips: [
-      'Say "can we move it to Thursday?" — watch her reschedule instantly',
-      'Confirm you\'ll be there — she logs it and closes the loop',
+      'Say "can we move it to Thursday?" and watch her reschedule instantly',
+      'Confirm you\'ll be there and she logs it and closes the loop',
       'Ask what to bring to the appointment',
     ],
   },
@@ -120,7 +122,7 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
       Source: 'Website Form',
       Interest: 'Enterprise Plan',
     },
-    task: 'You are Mia, an AI lead qualification agent calling on behalf of Sales Pro Inc. You are reaching out to Alex Martinez, who filled out a form on the website showing interest in the Enterprise Plan. Your goal is to qualify this lead using BANT criteria (Budget, Authority, Need, Timeline). Ask natural, conversational questions — do not interrogate. Be warm and professional. Keep the call under 3 minutes.',
+    task: 'You are Mia, an AI lead qualification agent calling on behalf of Sales Pro Inc. You are reaching out to Alex Martinez, who filled out a form on the website showing interest in the Enterprise Plan. Your goal is to qualify this lead using BANT criteria (Budget, Authority, Need, Timeline). Ask natural, conversational questions. Do not interrogate. Be warm and professional. Keep the call under 3 minutes.',
     tips: [
       'Tell her you have a $10k budget and she will qualify you',
       'Say you are the decision-maker',
@@ -458,7 +460,7 @@ export default function AgentTestExperience({
           <div className="flex items-start gap-2.5 mb-3">
             <div className={`flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br ${agent.color} flex items-center justify-center text-white font-bold text-sm`}>{agent.name[0]}</div>
             <div className="bg-white border border-[var(--border-default)] rounded-xl rounded-tl-none px-3 py-2 text-sm text-[var(--color-ink)] shadow-sm max-w-xs">
-              &quot;Hi, is this {agentSlug === 'appointment-confirmation' ? 'Robert Taylor' : agentSlug === 'data-validation' ? 'John Smith' : 'Alex Martinez'}? This is <span className="font-semibold">{agent.name}</span> calling — do you have a moment?&quot;
+              &quot;Hi, is this {agentSlug === 'appointment-confirmation' ? 'Robert Taylor' : agentSlug === 'data-validation' ? 'John Smith' : 'Alex Martinez'}? This is <span className="font-semibold">{agent.name}</span> calling. Do you have a moment?&quot;
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-[var(--border-default)]">
@@ -668,12 +670,19 @@ export default function AgentTestExperience({
   // ─── ANALYSIS ─────────────────────────────────────────────────────────────
 
   // Sits as the last child inside a border-2 rounded-2xl overflow-hidden card — no outer margin needed
-  const ImpactBanner = ({ color, icon, headline, sub }: { color: string; icon: React.ReactNode; headline: string; sub: string }) => (
+  const ImpactBanner = ({ color, icon, headline, sub, logos }: { color: string; icon: React.ReactNode; headline: string; sub: string; logos?: React.ReactNode }) => (
     <div className={`px-5 py-4 ${color} flex gap-3 items-center`}>
       <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">{icon}</div>
       <div className="min-w-0">
         <p className="font-extrabold text-sm leading-snug">{headline}</p>
-        <p className="text-xs opacity-75 mt-0.5 leading-relaxed">{sub}</p>
+        {logos ? (
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {logos}
+            <p className="text-xs opacity-75 leading-relaxed">{sub}</p>
+          </div>
+        ) : (
+          <p className="text-xs opacity-75 mt-0.5 leading-relaxed">{sub}</p>
+        )}
       </div>
     </div>
   );
@@ -723,7 +732,7 @@ export default function AgentTestExperience({
           <ImpactBanner
             color="bg-gradient-to-r from-emerald-600 to-teal-600 text-white"
             icon={<svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-            headline="Vera does this for hundreds of contacts automatically — zero manual data entry."
+            headline="Vera does this for hundreds of contacts automatically. No manual data entry needed."
             sub="Your CRM stays clean and up to date, 24/7, without your team lifting a finger."
           />
         </div>
@@ -908,8 +917,22 @@ export default function AgentTestExperience({
           <ImpactBanner
             color="bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-700)] text-white"
             icon={<svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
-            headline="Nicole confirms hundreds of appointments while you sleep — zero no-shows, ever."
-            sub="Google Calendar, Outlook, Teams, Zoom and SimplyBook sync automatically. Your team wakes up to a clean, confirmed schedule."
+            headline="Nicole confirms hundreds of appointments so your team can focus on what actually matters."
+            sub="sync automatically. Your team starts the day with a clean, confirmed schedule."
+            logos={
+              <>
+                <div className="flex items-center gap-1 opacity-90">
+                  <div className="w-5 h-5 rounded flex items-center justify-center bg-white/20"><GoogleCalendarIcon className="w-3.5 h-3.5" /></div>
+                  <div className="w-5 h-5 rounded flex items-center justify-center bg-white/20"><OutlookIcon className="w-3.5 h-3.5" /></div>
+                  <div className="w-5 h-5 rounded flex items-center justify-center bg-white/20"><TeamsIcon className="w-3.5 h-3.5" /></div>
+                  <div className="w-5 h-5 rounded flex items-center justify-center bg-white/20"><BiLogoZoom className="w-3.5 h-3.5 text-white" /></div>
+                  <div className="w-5 h-5 rounded flex items-center justify-center bg-white/20 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/simplybookme-logo.jpg" alt="SimplyBook" className="w-3.5 h-3.5 object-cover" />
+                  </div>
+                </div>
+              </>
+            }
           />
         </div>
       );
@@ -970,7 +993,7 @@ export default function AgentTestExperience({
         <ImpactBanner
           color="bg-gradient-to-r from-indigo-600 to-violet-600 text-white"
           icon={<svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
-          headline="Mia qualifies your entire lead list and routes hot leads straight to your sales team — automatically."
+          headline="Mia qualifies your entire lead list and routes hot leads straight to your sales team, automatically."
           sub="No lead falls through the cracks. Your closers spend 100% of their time on leads that are ready to buy."
         />
       </div>
