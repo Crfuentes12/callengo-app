@@ -149,6 +149,7 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
         nextBtnText: 'Next',
         prevBtnText: 'Back',
         doneBtnText: 'Done',
+        overlayClickBehavior: () => {},
         onDestroyed: finish,
         steps: [
           {
@@ -232,6 +233,21 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
         ],
       });
 
+      // Expose global close so other components can dismiss the tour
+      (window as Window & { __callengoTourClose?: () => void }).__callengoTourClose = () => {
+        finished = true;
+        tourInstance?.destroy();
+        finish();
+      };
+
+      // Expose global refresh so other components can re-highlight the current step
+      (window as Window & { __callengoTourRefresh?: () => void }).__callengoTourRefresh = () => {
+        if (tourInstance) {
+          const idx = (tourInstance as { getActiveIndex?: () => number }).getActiveIndex?.();
+          if (idx !== undefined) (tourInstance as { moveTo?: (i: number) => void }).moveTo?.(idx);
+        }
+      };
+
       setTimeout(() => tourInstance?.drive(), 400);
     };
 
@@ -240,6 +256,8 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
     return () => {
       finished = true;
       tourInstance?.destroy();
+      delete (window as Window & { __callengoTourClose?: () => void }).__callengoTourClose;
+      delete (window as Window & { __callengoTourRefresh?: () => void }).__callengoTourRefresh;
     };
   }, [firstName, pendingCount, companyId, onDismiss, persistAndClose]);
 
@@ -309,12 +327,16 @@ function HomeTour({ firstName, pendingCount, companyId, onDismiss }: HomeTourPro
         color: rgba(255,255,255,0.28) !important;
         background: none !important;
         border: none !important;
+        outline: none !important;
       }
       .callengo-tour .driver-popover-close-btn:hover,
       .callengo-tour .driver-popover-close-btn:focus {
         color: rgba(255,255,255,0.75) !important;
         background: none !important;
+        outline: none !important;
+        box-shadow: none !important;
       }
+      .callengo-tour .driver-popover-footer button:focus-visible { outline: none !important; }
       .callengo-tour .driver-popover-progress-text {
         font-size: 11px !important;
         color: rgba(255,255,255,0.28) !important;
@@ -379,6 +401,11 @@ export default function HomePage({ userName, companyId, companyName, completedTa
     const timer = setTimeout(() => setShowHomeTour(true), 650);
     return () => clearTimeout(timer);
   }, [wizardCompleted, showOnboardingWizard, homeTourSeen]);
+
+  // When "View All tasks" expands, re-highlight the tour spotlight if active on that section
+  useEffect(() => {
+    (window as Window & { __callengoTourRefresh?: () => void }).__callengoTourRefresh?.();
+  }, [showAllTasks]);
 
   const handleOnboardingComplete = () => {
     setShowOnboardingWizard(false);
@@ -532,7 +559,10 @@ export default function HomePage({ userName, companyId, companyName, completedTa
         {QUICK_ACTIONS.map((action) => (
           <button
             key={action.href}
-            onClick={() => router.push(action.href)}
+            onClick={() => {
+              (window as Window & { __callengoTourClose?: () => void }).__callengoTourClose?.();
+              router.push(action.href);
+            }}
             className="group bg-white border border-[var(--border-default)] rounded-xl p-4 hover:shadow-md hover:border-[var(--color-primary-200)] transition-all text-left"
           >
             <div className="flex items-center gap-3">

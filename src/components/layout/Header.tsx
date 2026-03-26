@@ -270,7 +270,10 @@ export default function Header({
             {/* Settings quick-access */}
             <div id="tour-settings-btn" className="relative group/settings">
               <button
-                onClick={() => router.push('/settings')}
+                onClick={() => {
+                  (window as Window & { __callengoTourClose?: () => void }).__callengoTourClose?.();
+                  router.push('/settings');
+                }}
                 className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
