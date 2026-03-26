@@ -262,13 +262,16 @@ export default function AgentTestExperience({
     setProcessingPhrase(0);
     setProcessingTimerDone(false);
     const start = Date.now();
-    const totalMs = 10000;
+    const totalMs = 15000;
     const frameId = { current: 0 };
+    // Phrases change every 500ms for a smooth, readable pace
+    const phraseInterval = setInterval(() => {
+      setProcessingPhrase(prev => (prev + 1) % 30);
+    }, 500);
     const tick = () => {
       const elapsed = Date.now() - start;
       const pct = Math.min(elapsed / totalMs, 1);
       setProcessingProgress(pct);
-      setProcessingPhrase(Math.floor((pct * 30) % 30));
       if (pct < 1) {
         frameId.current = requestAnimationFrame(tick);
       } else {
@@ -276,7 +279,7 @@ export default function AgentTestExperience({
       }
     };
     frameId.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frameId.current);
+    return () => { cancelAnimationFrame(frameId.current); clearInterval(phraseInterval); };
   }, [step]);
 
   // Bland processes recordings async — re-fetch call data 4s after entering analysis
@@ -545,8 +548,20 @@ export default function AgentTestExperience({
           />
         </div>
 
-        {/* Rotating phrase */}
-        <p className="text-sm font-semibold text-[var(--color-primary)] min-h-[1.5rem] transition-all duration-300">
+        {/* Rotating phrase with CSS fade */}
+        <style>{`
+          @keyframes phraseFade {
+            0%   { opacity: 0; transform: translateY(4px); }
+            12%  { opacity: 1; transform: translateY(0); }
+            80%  { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-4px); }
+          }
+        `}</style>
+        <p
+          key={processingPhrase}
+          className="text-sm font-semibold text-[var(--color-primary)] min-h-[1.5rem]"
+          style={{ animation: 'phraseFade 0.5s ease-in-out forwards' }}
+        >
           {PROCESSING_PHRASES[processingPhrase]}
         </p>
         <p className="text-xs text-[var(--color-neutral-300)] mt-1">{Math.round(processingProgress * 100)}%</p>
@@ -808,15 +823,8 @@ export default function AgentTestExperience({
 
       return (
         <div className="border-2 border-[var(--color-primary-200)] rounded-2xl overflow-hidden mb-4">
-          <div className="bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-800)] px-4 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white">{headerLabel}</p>
-              <p className="text-xs text-white/70">Robert Taylor · Sunrise Family Clinic</p>
-            </div>
-            <span className="flex-shrink-0 bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Calendar Synced</span>
+          <div className="bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-800)] px-4 py-3">
+            <p className="text-sm font-bold text-white">{headerLabel}</p>
           </div>
 
           {/* Summary row */}
@@ -893,7 +901,7 @@ export default function AgentTestExperience({
           <ImpactBanner
             color="bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-700)] text-white"
             icon={<svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
-            headline="Sofia confirms hundreds of appointments while you sleep — zero no-shows, ever."
+            headline="Nicole confirms hundreds of appointments while you sleep — zero no-shows, ever."
             sub="Google Calendar, Outlook, Teams, Zoom and SimplyBook sync automatically. Your team wakes up to a clean, confirmed schedule."
           />
         </div>
