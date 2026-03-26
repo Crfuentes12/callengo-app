@@ -392,19 +392,22 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     setAnalysisDoneModal(false);
     setAnalyzingCall(true);
 
-    // 10s progress animation
+    // 15s progress animation
     const startTime = Date.now();
-    const totalMs = 10000;
+    const totalMs = 15000;
     let frameId = 0;
+    const phraseInterval = setInterval(() => {
+      setProcessingPhrase(prev => (prev + 1) % 30);
+    }, 500);
     const tick = () => {
       const elapsed = Date.now() - startTime;
       const pct = Math.min(elapsed / totalMs, 1);
       setProcessingProgress(pct);
-      setProcessingPhrase(Math.floor((pct * 30) % 30));
       if (pct < 1) {
         frameId = requestAnimationFrame(tick);
       } else {
         setProcessingTimerDone(true);
+        clearInterval(phraseInterval);
       }
     };
     frameId = requestAnimationFrame(tick);
@@ -431,6 +434,7 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
       console.error('Failed to analyze call:', error);
     } finally {
       cancelAnimationFrame(frameId);
+      clearInterval(phraseInterval);
       setAnalyzingCall(false);
       setAnalysisDoneModal(true);
     }
@@ -1004,7 +1008,8 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
                     style={{ width: `${processingProgress * 100}%` }}
                   />
                 </div>
-                <p className="text-sm font-semibold text-[var(--color-primary)] min-h-[1.5rem]">{PROCESSING_PHRASES_MODAL[processingPhrase]}</p>
+                <style>{`@keyframes phraseFadeM{0%{opacity:0;transform:translateY(4px)}12%{opacity:1;transform:translateY(0)}80%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-4px)}}`}</style>
+                <p key={processingPhrase} className="text-sm font-semibold text-[var(--color-primary)] min-h-[1.5rem]" style={{ animation: 'phraseFadeM 0.5s ease-in-out forwards' }}>{PROCESSING_PHRASES_MODAL[processingPhrase]}</p>
                 <p className="text-xs text-[var(--color-neutral-300)] mt-1">{Math.round(processingProgress * 100)}%</p>
               </div>
             </div>
