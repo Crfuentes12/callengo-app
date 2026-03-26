@@ -55,9 +55,13 @@ export async function POST(request: NextRequest) {
     const agentSpecificInstructions: Record<string, string> = {
       'appointment-confirmation': `
 For this appointment confirmation agent, extract:
-- "appointmentStatus": was the appointment "confirmed", "rescheduled", or "cancelled"?
-- "newDay": if rescheduled, what day of the week did the customer request? (e.g. "Wednesday", "Thursday", "Next Monday")
-- "newTime": if rescheduled, what time? (e.g. "2:00 PM", "10:00 AM") — default to original time if not mentioned
+- "appointmentStatus":
+  - "confirmed" = customer agreed to keep the ORIGINAL date and time with NO changes
+  - "rescheduled" = customer moved to a DIFFERENT date or time (even if the new slot was also verbally confirmed at the end of the call)
+  - "cancelled" = appointment was cancelled
+  IMPORTANT: If the customer said things like "can we move it", "reschedule", "change it to", or the agent offered alternative slots and the customer accepted one — that is ALWAYS "rescheduled", not "confirmed", regardless of the word "confirmed" appearing later in the call.
+- "newDay": if rescheduled, the day the customer requested (e.g. "Friday", "Thursday", "Next Monday")
+- "newTime": if rescheduled, the time agreed for the new slot (e.g. "10:30 AM", "2:00 PM"). If confirmed at original time, use the original time.
 - "originalDay": what was the original appointment day? (e.g. "Tuesday")
 - "rescheduleReason": brief reason the customer gave for rescheduling, or null if confirmed
 `,

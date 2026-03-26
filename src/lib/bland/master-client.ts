@@ -273,17 +273,22 @@ export async function dispatchCall(payload: BlandCallPayload): Promise<BlandCall
 export async function getCallDetails(callId: string): Promise<Record<string, unknown> | null> {
   if (!BLAND_MASTER_KEY) return null;
 
-  try {
-    const response = await fetch(`${BLAND_API_URL}/calls/${callId}`, {
-      method: 'GET',
-      headers: { 'Authorization': BLAND_MASTER_KEY },
-    });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch(`${BLAND_API_URL}/calls/${callId}`, {
+        method: 'GET',
+        headers: { 'Authorization': BLAND_MASTER_KEY },
+        signal: AbortSignal.timeout(8000),
+      });
 
-    if (!response.ok) return null;
-    return await response.json();
-  } catch {
-    return null;
+      if (!response.ok) return null;
+      return await response.json();
+    } catch {
+      if (attempt === 0) continue; // retry once on network errors
+      return null;
+    }
   }
+  return null;
 }
 
 /**
