@@ -244,6 +244,22 @@ export default function AgentTestExperience({
     };
   }, []);
 
+  // Bland processes recordings async — re-fetch call data 4s after entering analysis
+  useEffect(() => {
+    if (step === 'analysis' && callIdRef.current && !callData?.recording_url) {
+      const timer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/bland/call-status?call_id=${callIdRef.current}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.recording_url) setCallData(data);
+          }
+        } catch { /* best-effort */ }
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, callData?.recording_url]);
+
   const stopTimers = () => {
     if (pollingIntervalRef.current) { clearInterval(pollingIntervalRef.current); pollingIntervalRef.current = null; }
     if (durationIntervalRef.current) { clearInterval(durationIntervalRef.current); durationIntervalRef.current = null; }
@@ -547,12 +563,13 @@ export default function AgentTestExperience({
 
   // ─── ANALYSIS ─────────────────────────────────────────────────────────────
 
+  // Sits as the last child inside a border-2 rounded-2xl overflow-hidden card — no outer margin needed
   const ImpactBanner = ({ color, icon, headline, sub }: { color: string; icon: React.ReactNode; headline: string; sub: string }) => (
-    <div className={`rounded-2xl p-4 mb-4 ${color} flex gap-3 items-start`}>
-      <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-white/30 flex items-center justify-center">{icon}</div>
-      <div>
+    <div className={`px-5 py-4 ${color} flex gap-3 items-center`}>
+      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">{icon}</div>
+      <div className="min-w-0">
         <p className="font-extrabold text-sm leading-snug">{headline}</p>
-        <p className="text-xs opacity-80 mt-0.5 leading-relaxed">{sub}</p>
+        <p className="text-xs opacity-75 mt-0.5 leading-relaxed">{sub}</p>
       </div>
     </div>
   );
@@ -628,17 +645,36 @@ export default function AgentTestExperience({
 
       // Determine what happened based on AI analysis
       const apptStatus = aSpec?.appointmentStatus ?? 'rescheduled';
-      const rawNewDay = (aSpec?.newDay ?? 'wednesday').toLowerCase();
       const newTime = aSpec?.newTime ?? '2:00 PM';
 
-      // Map AI-provided day name to actual date offset from monday
+      // Extract the rescheduled day name robustly:
+      // 1. Check agentSpecific.newDay from AI
+      // 2. Fall back to searching all analysis text fields for day mentions
       const dayOffsetMap: Record<string, number> = {
-        'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 'friday': 4,
         'next monday': 7, 'next tuesday': 8, 'next wednesday': 9, 'next thursday': 10, 'next friday': 11,
+        'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 'friday': 4,
       };
-      // Find best match
-      const rescheduledOffset = Object.entries(dayOffsetMap).find(([key]) => rawNewDay.includes(key))?.[1] ?? 2;
-      const rescheduledDate = addDays(monday, rescheduledOffset);
+      const extractDayOffset = (text: string | null | undefined): number | null => {
+        if (!text) return null;
+        const lower = text.toLowerCase();
+        for (const [key, offset] of Object.entries(dayOffsetMap)) {
+          if (lower.includes(key)) return offset;
+        }
+        return null;
+      };
+      const combinedAnalysisText = [
+        callAnalysis?.outcome,
+        callAnalysis?.summary,
+        ...(callAnalysis?.key_points ?? []),
+      ].filter(Boolean).join(' ');
+
+      const rescheduledOffset =
+        extractDayOffset(aSpec?.newDay) ??
+        extractDayOffset(combinedAnalysisText) ??
+        null; // null = couldn't determine
+
+      const rescheduledDate = rescheduledOffset !== null ? addDays(monday, rescheduledOffset) : null;
+      const showNextWeek = rescheduledOffset !== null && rescheduledOffset >= 7;
       const isConfirmed = apptStatus === 'confirmed';
       const isRescheduled = apptStatus === 'rescheduled';
 
@@ -649,7 +685,7 @@ export default function AgentTestExperience({
         if (date.toDateString() === tuesday.toDateString()) {
           return isConfirmed ? 'confirmed' : 'original';
         }
-        if (isRescheduled && date.toDateString() === rescheduledDate.toDateString()) return 'rescheduled';
+        if (isRescheduled && rescheduledDate && date.toDateString() === rescheduledDate.toDateString()) return 'rescheduled';
         if (date.toDateString() === saturday.toDateString() || date.toDateString() === sunday.toDateString()) return 'blocked';
         return 'available';
       };
@@ -658,7 +694,7 @@ export default function AgentTestExperience({
         .map((date) => ({ date, role: getRoleW1(date) }));
 
       const week2: DayCell[] = [nxtMon, nxtTue, nxtWed, nxtThu, nxtFri].map((date) => {
-        if (isRescheduled && date.toDateString() === rescheduledDate.toDateString()) return { date, role: 'rescheduled' as const };
+        if (isRescheduled && rescheduledDate && date.toDateString() === rescheduledDate.toDateString()) return { date, role: 'rescheduled' as const };
         return { date, role: 'available' as const };
       });
 
@@ -677,7 +713,9 @@ export default function AgentTestExperience({
       const statusBadge = isConfirmed ? 'CONFIRMED' : 'RESCHEDULED';
       const newDayLabel = isConfirmed
         ? `${fmtWD(tuesday)} ${fmt(tuesday)} · 2:00 PM`
-        : `${fmtWD(rescheduledDate)} ${fmt(rescheduledDate)} · ${newTime}`;
+        : rescheduledDate
+          ? `${fmtWD(rescheduledDate)} ${fmt(rescheduledDate)} · ${newTime}`
+          : `New slot · ${newTime}`;
 
       return (
         <div className="border-2 border-blue-200 rounded-2xl overflow-hidden mb-4">
@@ -709,8 +747,9 @@ export default function AgentTestExperience({
           </div>
 
           {/* Calendar grid */}
-          <div className="bg-white p-4">
+          <div className="bg-white px-4 pt-3 pb-2">
             <div className="bg-blue-50 rounded-xl p-3">
+              {/* This week */}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">This week</span>
                 <span className="text-[9px] text-blue-300">{monday.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
@@ -720,33 +759,41 @@ export default function AgentTestExperience({
                   <div key={date.toISOString()} className="text-center text-[9px] font-bold text-blue-400">{fmtWD(date)}</div>
                 ))}
               </div>
-              <div className="grid grid-cols-7 gap-1 mb-4">
+              <div className={`grid grid-cols-7 gap-1 ${showNextWeek ? 'mb-4' : ''}`}>
                 {week1.map(({ date, role }) => (
                   <div key={date.toISOString()} className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${cellStyle(role)}`}>
                     {fmtN(date)}
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Next week</span>
-                <span className="text-[9px] text-blue-300">{nxtMon.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-              </div>
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-                  <div key={d} className={`text-center text-[9px] font-bold ${d === 'Sat' || d === 'Sun' ? 'text-blue-200' : 'text-blue-400'}`}>{d}</div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {week2.map(({ date, role }) => (
-                  <div key={date.toISOString()} className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${cellStyle(role)}`}>
-                    {fmtN(date)}
+
+              {/* Next week — only shown when rescheduled day falls there */}
+              {showNextWeek && (
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Next week</span>
+                    <span className="text-[9px] text-blue-300">{nxtMon.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                   </div>
-                ))}
-                <div className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold ${cellStyle('blocked')}`}>{fmtN(addDays(monday, 12))}</div>
-                <div className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold ${cellStyle('blocked')}`}>{fmtN(addDays(monday, 13))}</div>
-              </div>
+                  <div className="grid grid-cols-7 gap-1 mb-1">
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+                      <div key={d} className={`text-center text-[9px] font-bold ${d === 'Sat' || d === 'Sun' ? 'text-blue-200' : 'text-blue-400'}`}>{d}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {week2.map(({ date, role }) => (
+                      <div key={date.toISOString()} className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${cellStyle(role)}`}>
+                        {fmtN(date)}
+                      </div>
+                    ))}
+                    <div className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold ${cellStyle('blocked')}`}>{fmtN(addDays(monday, 12))}</div>
+                    <div className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold ${cellStyle('blocked')}`}>{fmtN(addDays(monday, 13))}</div>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="flex items-center gap-3 mt-3 flex-wrap">
+
+            {/* Legend */}
+            <div className="flex items-center gap-3 mt-2.5 flex-wrap">
               <span className="flex items-center gap-1 text-[10px] text-blue-400"><span className="w-2.5 h-2.5 rounded bg-blue-100 ring-1 ring-blue-300 inline-block" />Call day</span>
               {isRescheduled && <span className="flex items-center gap-1 text-[10px] text-red-400"><span className="w-2.5 h-2.5 rounded bg-red-50 border border-red-200 inline-block" />Original</span>}
               <span className="flex items-center gap-1 text-[10px] text-blue-600 font-bold"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block" />{isConfirmed ? 'Confirmed' : 'Rescheduled'}</span>
