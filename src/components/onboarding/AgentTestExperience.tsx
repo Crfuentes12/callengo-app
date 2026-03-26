@@ -694,7 +694,10 @@ export default function AgentTestExperience({
     if (agentSlug === 'data-validation') {
       // Use AI-extracted fields, fallback to demo data structure
       const updated = aSpec?.updatedFields ?? [];
-      const confirmed = aSpec?.confirmedFields ?? Object.keys(agent.demoData).slice(1);
+      // Filter out any field that already appears in updated — it can't be both
+      const updatedFieldNames = new Set(updated.map((r: { field: string }) => r.field.toLowerCase()));
+      const confirmed = (aSpec?.confirmedFields ?? Object.keys(agent.demoData).slice(1))
+        .filter((f: string) => !updatedFieldNames.has(f.toLowerCase()));
       const hasUpdates = updated.length > 0;
 
       return (
@@ -969,18 +972,18 @@ export default function AgentTestExperience({
         </div>
         <div className="bg-white p-4 space-y-3">
           {bantItems.map((item) => (
-            <div key={item.letter} className="flex items-center gap-3">
-              <div className="w-6 h-6 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black flex-shrink-0">{item.letter}</div>
+            <div key={item.letter} className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5">{item.letter}</div>
               <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-[var(--color-ink)]">{item.label}</span>
-                  <span className="text-[10px] text-[var(--color-neutral-400)] max-w-[120px] truncate">{item.note}</span>
+                <div className="flex items-center justify-between mb-1 gap-2">
+                  <span className="text-xs font-bold text-[var(--color-ink)] flex-shrink-0">{item.label}</span>
+                  <span className="text-xs font-bold text-indigo-600 flex-shrink-0">{item.score}%</span>
                 </div>
-                <div className="h-1.5 bg-[var(--color-neutral-100)] rounded-full overflow-hidden">
+                <div className="h-1.5 bg-[var(--color-neutral-100)] rounded-full overflow-hidden mb-1">
                   <div className={`h-full rounded-full bg-gradient-to-r ${item.color} transition-all duration-700`} style={{ width: `${item.score}%` }} />
                 </div>
+                <p className="text-[10px] text-[var(--color-neutral-400)] leading-relaxed">{item.note}</p>
               </div>
-              <span className="text-xs font-bold text-indigo-600 w-8 text-right flex-shrink-0">{item.score}%</span>
             </div>
           ))}
         </div>
