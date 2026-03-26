@@ -60,7 +60,7 @@ export const getAgentDescription = (agent: AgentTemplate) => {
     return {
       title: 'Appointment Confirmation Agent',
       description: 'Confirms upcoming appointments with your contacts, reduces no-shows, and handles rescheduling requests. Ensures your calendar stays organized and efficient.',
-      demoData: { companyName: 'Healthcare Clinic', contactName: 'Robert Taylor', appointmentDate: 'Tomorrow at 2:00 PM', appointmentType: 'Consultation' },
+      demoData: { clinic: 'Sunrise Family Clinic', patient: 'Nicole Moore', appointmentDate: 'Tomorrow at 2:00 PM', appointmentType: 'Annual Check-up' },
     };
   }
 

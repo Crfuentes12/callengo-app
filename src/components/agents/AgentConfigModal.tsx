@@ -89,6 +89,11 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
   const voicePreviewCountRef = useRef(0); // Track how many voices the user listened to
   const [callAnalysis, setCallAnalysis] = useState<Record<string, unknown> | null>(null);
   const [analyzingCall, setAnalyzingCall] = useState(false);
+  const [showProcessingScreen, setShowProcessingScreen] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingPhrase, setProcessingPhrase] = useState(0);
+  const [processingTimerDone, setProcessingTimerDone] = useState(false);
+  const [analysisDoneModal, setAnalysisDoneModal] = useState(false);
   const [listContactCounts, setListContactCounts] = useState<Record<string, number>>({});
   const [contactPreview, setContactPreview] = useState<Record<string, unknown>[]>([]);
   const [setAsDefaultVoice, setSetAsDefaultVoice] = useState(false);
@@ -264,6 +269,13 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     };
   }, []);
 
+  // Hide processing screen when both timer and analysis are done
+  useEffect(() => {
+    if (analysisDoneModal && processingTimerDone && showProcessingScreen) {
+      setShowProcessingScreen(false);
+    }
+  }, [analysisDoneModal, processingTimerDone, showProcessingScreen]);
+
   const loadContactLists = async () => {
     const { data } = await supabase
       .from('contact_lists')
@@ -356,31 +368,71 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     });
   };
 
+  // Processing screen constants (30 phrases, 10s timer)
+  const PROCESSING_PHRASES_MODAL = [
+    'Extracting conversation...', 'Analyzing sentiment...', 'Decoding caller intent...',
+    'Processing voice patterns...', 'Mapping key data points...', 'Identifying rescheduling signals...',
+    'Scoring conversation quality...', 'Verifying extracted information...', 'Structuring call transcript...',
+    'Detecting outcome signals...', 'Analyzing response patterns...', 'Cross-referencing contact data...',
+    'Building call summary...', 'Assessing call effectiveness...', 'Classifying appointment status...',
+    'Extracting action items...', 'Calibrating confidence scores...', 'Resolving ambiguous responses...',
+    'Parsing dialogue structure...', 'Running BANT analysis...', 'Detecting follow-up triggers...',
+    'Mapping conversation flow...', 'Computing sentiment score...', 'Identifying key moments...',
+    'Synthesizing insights...', 'Preparing analysis report...', 'Validating data accuracy...',
+    'Processing timestamps...', 'Finalizing recommendations...', 'Almost there...',
+  ];
+
   // Analyze call with OpenAI
   const analyzeCall = async (callData: Record<string, unknown>) => {
+    // Start processing screen
+    setShowProcessingScreen(true);
+    setProcessingProgress(0);
+    setProcessingPhrase(0);
+    setProcessingTimerDone(false);
+    setAnalysisDoneModal(false);
     setAnalyzingCall(true);
+
+    // 10s progress animation
+    const startTime = Date.now();
+    const totalMs = 10000;
+    let frameId = 0;
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min(elapsed / totalMs, 1);
+      setProcessingProgress(pct);
+      setProcessingPhrase(Math.floor((pct * 30) % 30));
+      if (pct < 1) {
+        frameId = requestAnimationFrame(tick);
+      } else {
+        setProcessingTimerDone(true);
+      }
+    };
+    frameId = requestAnimationFrame(tick);
+
     try {
       const response = await fetch('/api/openai/analyze-call', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transcripts: callData.transcripts || callData.concatenated_transcript || [],
-          agentType: agent.name,
+          transcripts: callData.transcripts || [],
+          transcript: callData.concatenated_transcript || '',
+          agent_type: agent.name,
+          agent_slug: getAgentType(),
           demoData: agentInfo.demoData,
+          call_duration: callData.call_length ? Math.floor(Number(callData.call_length)) : callDuration,
         }),
       });
 
       const result = await response.json();
-
       if (result.success) {
         setCallAnalysis(result.analysis);
       }
     } catch (error) {
       console.error('Failed to analyze call:', error);
     } finally {
+      cancelAnimationFrame(frameId);
       setAnalyzingCall(false);
+      setAnalysisDoneModal(true);
     }
   };
 
@@ -436,14 +488,25 @@ export default function AgentConfigModal({ agent, companyId, company, companySet
     try {
       // Build the task prompt with demo data
       const agentDesc = getAgentDescription(agent);
-      const demoDataText = Object.entries(agentDesc.demoData)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(', ');
+      const agentType = getAgentType();
+      const name = agentName || agent.name;
 
-      const task = `You are ${agentName || agent.name}, an AI ${agentDesc.title.toLowerCase()}.
-This is a DEMO call to showcase your capabilities. Use the following demo data for this conversation: ${demoDataText}.
-${agentDesc.description}
-Be natural, professional, and demonstrate your key capabilities in this brief demo call.`;
+      const isAppointment = agentType === 'appointment_confirmation';
+      const isDataVal = agentType === 'data_validation';
+      const contactName = isAppointment ? agentDesc.demoData.patient : isDataVal ? agentDesc.demoData.contactName : agentDesc.demoData.contactName;
+      const orgName = isAppointment ? agentDesc.demoData.clinic : agentDesc.demoData.companyName;
+
+      const task = isAppointment
+        ? `You are ${name}, an AI appointment confirmation agent calling on behalf of ${orgName}. You are calling ${contactName} to confirm their ${agentDesc.demoData.appointmentType} appointment scheduled for ${agentDesc.demoData.appointmentDate}. Start with a warm, professional greeting. If they want to reschedule, offer available slots during business hours. Be concise, friendly, and helpful. Keep the call under 4 minutes.`
+        : isDataVal
+        ? `You are ${name}, an AI data validation agent calling on behalf of ${orgName}. You are calling ${contactName} to verify and update their contact information on file: email ${agentDesc.demoData.email || 'on file'}, phone ${agentDesc.demoData.phone || 'on file'}. Be professional and friendly. If they provide updated information, acknowledge it clearly. Keep the call under 4 minutes.`
+        : `You are ${name}, an AI lead qualification agent calling on behalf of ${orgName}. You are reaching out to ${contactName}, who showed interest in ${agentDesc.demoData.interest || 'your services'}. Your goal is to qualify this lead using BANT criteria (Budget, Authority, Need, Timeline). Ask natural, conversational questions. Be warm and professional. Keep the call under 4 minutes.`;
+
+      const firstSentence = isAppointment
+        ? `Hi, is this ${contactName}? This is ${name} calling from ${orgName}.`
+        : isDataVal
+        ? `Hi, am I speaking with ${contactName}? This is ${name} calling from ${orgName}.`
+        : `Hi, is this ${contactName}? This is ${name} calling from ${orgName}.`;
 
       const response = await fetch('/api/bland/send-call', {
         method: 'POST',
@@ -452,15 +515,18 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
         },
         body: JSON.stringify({
           phone_number: testPhoneNumber,
-          task: task,
+          task,
           voice: settings.voice,
-          first_sentence: `Hi! This is ${agentName || agent.name}, calling for a quick demo. Do you have a moment?`,
-          max_duration: 3, // Short demo call
+          first_sentence: firstSentence,
+          wait_for_greeting: true,
+          noise_cancellation: true,
+          interruption_threshold: 120,
+          max_duration: 4,
           company_id: companyId,
           metadata: {
-            type: 'demo_call',
+            type: 'test_call',
             agent_template_id: agent.id,
-            agent_name: agentName || agent.name,
+            agent_name: name,
           },
         }),
       });
@@ -920,7 +986,29 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
       {/* Test Agent Modal Overlay */}
       {showTestModal && (
         callStatus !== 'idle' ? (
-          callStatus === 'ended' && callData ? (
+          callStatus === 'ended' && showProcessingScreen ? (
+            // Processing screen — shown while AI analyzes the call
+            <div key="processing-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4" style={{ isolation: 'isolate' }}>
+              <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-primary-600)] to-[var(--color-primary-800)] flex items-center justify-center shadow-lg mb-5">
+                  <svg className="w-8 h-8 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-[var(--color-ink)] mb-1">Analyzing your call</h2>
+                <p className="text-sm text-[var(--color-neutral-400)] mb-7">Your AI agent is crunching the conversation...</p>
+                <div className="w-full bg-[var(--color-neutral-100)] rounded-full h-4 mb-4 overflow-hidden shadow-inner">
+                  <div
+                    className="h-4 rounded-full bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-400)] transition-none"
+                    style={{ width: `${processingProgress * 100}%` }}
+                  />
+                </div>
+                <p className="text-sm font-semibold text-[var(--color-primary)] min-h-[1.5rem]">{PROCESSING_PHRASES_MODAL[processingPhrase]}</p>
+                <p className="text-xs text-[var(--color-neutral-300)] mt-1">{Math.round(processingProgress * 100)}%</p>
+              </div>
+            </div>
+          ) : callStatus === 'ended' && callData && !showProcessingScreen ? (
             // Call Results View
             <div key="results-view" className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-[70] p-4 animate-fadeIn" style={{ isolation: 'isolate', willChange: 'transform' }}>
               <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-emerald-500/50 overflow-hidden flex flex-col" style={{ transform: 'translateZ(0)' }}>
@@ -1040,7 +1128,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           <svg className="w-4 h-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                           </svg>
-                          Demo Data Used
+                          Scenario Data
                         </h3>
                         <div className="space-y-2">
                           {Object.entries(agentInfo.demoData).map(([key, value]) => (
@@ -1307,7 +1395,7 @@ Be natural, professional, and demonstrate your key capabilities in this brief de
                           <div className="text-5xl font-bold text-[var(--color-ink)] tabular-nums tracking-tight">
                             {formatDuration(callDuration)}
                           </div>
-                          <p className="text-sm text-[var(--color-neutral-500)] mt-2">Demo call in progress</p>
+                          <p className="text-sm text-[var(--color-neutral-500)] mt-2">Simulating real scenario</p>
                         </div>
                       )}
                     </div>
