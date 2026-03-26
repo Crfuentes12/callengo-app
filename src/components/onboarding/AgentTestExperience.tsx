@@ -719,15 +719,15 @@ export default function AgentTestExperience({
 
       return (
         <div className="border-2 border-[var(--color-primary-200)] rounded-2xl overflow-hidden mb-4">
-          <div className="bg-[var(--color-primary-50)] px-4 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[var(--color-primary-50)]0 flex items-center justify-center flex-shrink-0">
+          <div className="bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-800)] px-4 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-[var(--color-primary-800)]">{headerLabel}</p>
-              <p className="text-xs text-[var(--color-primary-600)]">Robert Taylor · Healthcare Clinic</p>
+              <p className="text-sm font-bold text-white">{headerLabel}</p>
+              <p className="text-xs text-white/70">Robert Taylor · Healthcare Clinic</p>
             </div>
-            <span className="flex-shrink-0 bg-[var(--color-primary-50)]0 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Calendar Synced</span>
+            <span className="flex-shrink-0 bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Calendar Synced</span>
           </div>
 
           {/* Summary row */}
@@ -995,7 +995,7 @@ export default function AgentTestExperience({
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
             Call Recording
           </h3>
-          <audio controls src={recordingUrl} className="w-full h-9 rounded-lg" style={{ colorScheme: 'light' }} />
+          <audio controls controlsList="nodownload" src={recordingUrl} className="w-full h-9 rounded-lg" style={{ colorScheme: 'light' }} />
         </div>
       ) : null}
 

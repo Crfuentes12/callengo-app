@@ -118,7 +118,6 @@ Extract all relevant information accurately.`;
             schema: analysisSchema
           }
         },
-        temperature: 0.1,
       }),
     });
 

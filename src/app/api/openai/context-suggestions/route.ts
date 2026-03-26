@@ -56,7 +56,6 @@ Respond in JSON format:
     const completion = await openai.chat.completions.create({
       model: getDefaultModel(),
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.8,
       max_tokens: 800,
       response_format: { type: 'json_object' },
     });
