@@ -33,41 +33,73 @@ async function buildCalendarContext(companyId: string): Promise<string> {
     'Available rescheduling slots (next 5 business days):',
   ];
 
-  // Walk forward up to 14 days to find 5 business days
-  let found = 0;
+  // Walk forward up to 3 months (~95 calendar days) covering all business days.
+  // Group by ISO week so the agent can reason about "next week", "in 2 weeks", etc.
+  // Cap at 60 business days to keep the prompt size reasonable.
+  const MAX_BUSINESS_DAYS = 60;
+  const MAX_CALENDAR_DAYS = 95; // ~3 months
+  let foundDays = 0;
+  let currentWeek = '';
+  let weekLines: string[] = [];
+
+  const flushWeek = () => {
+    if (weekLines.length > 0) {
+      lines.push(...weekLines);
+      weekLines = [];
+    }
+  };
+
   const d = new Date(now);
-  for (let i = 1; i <= 14 && found < 5; i++) {
+  for (let i = 1; i <= MAX_CALENDAR_DAYS && foundDays < MAX_BUSINESS_DAYS; i++) {
     d.setDate(d.getDate() + 1);
     const dow = d.getDay();
     if (dow === 0 || dow === 6) continue; // skip weekends
     const dateStr = d.toISOString().split('T')[0];
+
+    // Week header (Mon of each ISO week)
+    const weekStart = new Date(d);
+    weekStart.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+    const weekKey = weekStart.toISOString().split('T')[0];
+    if (weekKey !== currentWeek) {
+      flushWeek();
+      currentWeek = weekKey;
+      const weekLabel = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 4);
+      const weekEndLabel = weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      weekLines.push(`  Week of ${weekLabel}–${weekEndLabel}:`);
+    }
+
     try {
       const avail = await getAvailability(companyId, dateStr, { slotDurationMinutes: 60 });
       if (!avail.is_working_day || avail.is_holiday) continue;
-      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       if (avail.available_slots.length === 0) {
-        lines.push(`- ${dayLabel}: fully booked`);
+        weekLines.push(`    ${dayLabel}: fully booked`);
       } else {
-        const slots = avail.available_slots.slice(0, 5).map(s =>
+        const slots = avail.available_slots.slice(0, 4).map(s =>
           new Date(s.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' })
         );
-        lines.push(`- ${dayLabel}: ${slots.join(', ')}`);
+        weekLines.push(`    ${dayLabel}: ${slots.join(', ')}`);
       }
-      found++;
+      foundDays++;
     } catch {
       // non-fatal — skip this day
     }
   }
+  flushWeek();
 
-  if (found === 0) {
+  if (foundDays === 0) {
     lines.push('- No availability data available. Offer to check and call back.');
   }
 
   lines.push('');
-  lines.push('When the patient wants to reschedule: ask morning or afternoon preference, then offer 2-3 specific times from the list above. Confirm the exact slot before ending the call.');
+  lines.push('When the patient wants to reschedule: ask morning or afternoon preference, then offer 2-3 specific times from the list above. Confirm the exact day and time slot before ending the call.');
 
   return lines.join('\n');
 }
+
+
 
 function injectCalendarContext(task: string, context: string): string {
   if (task.includes(CALENDAR_CONTEXT_MARKER)) return task; // already injected
@@ -168,7 +200,29 @@ export async function processDispatchBatch(batchSize: number = 5): Promise<{
         // which appointment it is confirming for this specific contact.
         const agentSlug = (callConfig.agent_template_slug as string) || '';
         let finalTask = callConfig.task as string;
+        let calendarEventId: string | null =
+          (entry.metadata as Record<string, unknown> | null)?.calendar_event_id as string | null || null;
+
         if (agentSlug.includes('appointment') || agentSlug.includes('confirmation')) {
+          // Look up the contact's upcoming calendar event so the webhook can confirm/reschedule it
+          if (!calendarEventId) {
+            try {
+              const { data: calEvent } = await supabaseAdmin
+                .from('calendar_events')
+                .select('id')
+                .eq('company_id', entry.company_id)
+                .eq('contact_id', entry.contact_id)
+                .in('status', ['scheduled', 'pending_confirmation'])
+                .in('event_type', ['appointment', 'meeting', 'callback'])
+                .order('start_time', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              calendarEventId = calEvent?.id || null;
+            } catch {
+              // non-fatal
+            }
+          }
+
           try {
             // Fetch contact's specific appointment data (stored after previous calls or CRM sync)
             const { data: contactRow } = await supabaseAdmin
@@ -210,6 +264,7 @@ export async function processDispatchBatch(batchSize: number = 5): Promise<{
             agent_name: (callConfig.agent_name as string) || 'AI Agent',
             agent_template_slug: (callConfig.agent_template_slug as string) || null,
             contact_name: entry.contact_name || null,
+            calendar_event_id: calendarEventId || null,
           },
           first_sentence: callConfig.first_sentence as string | undefined,
           voicemail_message: callConfig.voicemail_message as string | undefined,
