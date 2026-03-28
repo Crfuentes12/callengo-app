@@ -180,7 +180,7 @@ export async function generateTTS(voiceId: string, text: string, language?: stri
 export async function cacheSample(voice: BlandVoice, audio: Buffer): Promise<void> {
   const filename = buildSampleFilename(voice);
   // Use Blob — the native type Supabase Storage JS client expects
-  const blob = new Blob([audio], { type: 'audio/mpeg' });
+  const blob = new Blob([new Uint8Array(audio)], { type: 'audio/mpeg' });
   const { error } = await supabaseAdminRaw
     .storage
     .from(STORAGE_BUCKET)
