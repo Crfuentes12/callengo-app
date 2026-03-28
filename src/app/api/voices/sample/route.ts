@@ -18,9 +18,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Look up voice name for logging
+    // Look up voice object for caching metadata
     const voice = BLAND_VOICES.find(v => v.id === voiceId);
-    const voiceName = voice?.name || 'Unknown';
+    if (!voice) {
+      return NextResponse.json(
+        { error: 'Voice not found in catalog' },
+        { status: 404 }
+      );
+    }
 
     // Get current user context (optional — unauthenticated preview is allowed but limited)
     let companyId: string | null = null;
@@ -44,9 +49,9 @@ export async function POST(request: NextRequest) {
 
     // Get voice sample (checks cache → generates if needed → caches → logs cost)
     const result = await getVoiceSample({
-      voiceId,
-      voiceName,
+      voice,
       text,
+      language,
       companyId,
       userId,
     });
