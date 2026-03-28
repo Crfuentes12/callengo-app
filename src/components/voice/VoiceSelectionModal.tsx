@@ -12,6 +12,10 @@ import {
   getLanguageCode,
   getRecommendedVoices,
   getVoiceCharacteristics,
+  getVoiceProfile,
+  USE_CASE_LABELS,
+  AGE_LABELS,
+  VOICE_CATALOG_STATS,
 } from '@/lib/voices/voice-utils';
 import { createClient } from '@/lib/supabase/client';
 
@@ -46,6 +50,8 @@ export default function VoiceSelectionModal({
   const [selectedAccent, setSelectedAccent] = useState<string>('all');
   const [selectedCharacteristic, setSelectedCharacteristic] = useState<string>('all');
   const [selectedGender, setSelectedGender] = useState<string>('all');
+  const [selectedAge, setSelectedAge] = useState<string>('all');
+  const [selectedUseCase, setSelectedUseCase] = useState<string>('all');
 
   // Favorites state (persisted in database)
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -70,7 +76,6 @@ export default function VoiceSelectionModal({
           .eq('id', user.id)
           .single();
 
-        // Silently handle if column doesn't exist yet (migration not run)
         if (error) {
           console.warn('Could not load favorites:', error.message);
           setFavoritesLoaded(true);
@@ -114,7 +119,6 @@ export default function VoiceSelectionModal({
           newFavorites.add(voiceId);
         }
 
-        // Persist to database (silently fail if column doesn't exist yet)
         supabase
           .from('users')
           .update({ fav_voices: [...newFavorites] } as unknown as Record<string, unknown>)
@@ -139,31 +143,34 @@ export default function VoiceSelectionModal({
   const characteristics = Array.from(
     new Set(BLAND_VOICES.flatMap(v => getVoiceCharacteristics(v)))
   ).sort();
+  const ages = ['young', 'adult', 'mature'];
+  const useCases = Object.keys(USE_CASE_LABELS) as Array<keyof typeof USE_CASE_LABELS>;
 
   // Filter voices based on selected filters
   const filteredVoices = BLAND_VOICES.filter(voice => {
     const category = determineCategory(voice);
     const chars = getVoiceCharacteristics(voice);
     const gender = determineGender(voice);
+    const profile = getVoiceProfile(voice);
 
     if (selectedCountry !== 'all' && category.country !== selectedCountry) return false;
     if (selectedLanguage !== 'all' && category.language !== selectedLanguage) return false;
     if (selectedAccent !== 'all' && category.accent !== selectedAccent) return false;
     if (selectedCharacteristic !== 'all' && !chars.includes(selectedCharacteristic)) return false;
     if (selectedGender !== 'all' && gender !== selectedGender) return false;
+    if (selectedAge !== 'all' && profile.age !== selectedAge) return false;
+    if (selectedUseCase !== 'all' && !profile.bestFor.includes(selectedUseCase as keyof typeof USE_CASE_LABELS)) return false;
 
     return true;
   }).sort((a, b) => b.average_rating - a.average_rating);
 
   const handlePlaySample = async (voice: BlandVoice) => {
-    // Always stop any currently playing audio first
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
 
     if (playingVoice === voice.id) {
-      // If clicking the same voice, just stop
       setPlayingVoice(null);
       return;
     }
@@ -172,11 +179,9 @@ export default function VoiceSelectionModal({
     setPlayingVoice(null);
 
     try {
-      // Check cache first
       let audioBlob = audioCache.get(voice.id);
 
       if (!audioBlob) {
-        // Generate sample
         const sampleText = getSampleText(voice);
         const language = getLanguageCode(voice);
 
@@ -193,12 +198,9 @@ export default function VoiceSelectionModal({
         if (!response.ok) throw new Error('Failed to generate sample');
 
         audioBlob = await response.blob();
-
-        // Cache it
         setAudioCache(prev => new Map(prev).set(voice.id, audioBlob!));
       }
 
-      // Play it
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
@@ -228,10 +230,11 @@ export default function VoiceSelectionModal({
     setSelectedAccent('all');
     setSelectedCharacteristic('all');
     setSelectedGender('all');
+    setSelectedAge('all');
+    setSelectedUseCase('all');
   };
 
   useEffect(() => {
-    // Clean up audio when modal closes
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -258,7 +261,7 @@ export default function VoiceSelectionModal({
           <div className="flex-1">
             <h2 className="text-xl font-bold text-[var(--color-ink)]">Select Voice</h2>
             <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
-              Choose the perfect voice for your AI agent
+              {VOICE_CATALOG_STATS.totalVoices} voices &middot; {VOICE_CATALOG_STATS.accents} accents &middot; {VOICE_CATALOG_STATS.languages} languages
             </p>
           </div>
           <button
@@ -281,7 +284,7 @@ export default function VoiceSelectionModal({
                 : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)]'
             }`}
           >
-            ⭐ Recommended
+            Top Picks
           </button>
           <button
             onClick={() => setViewMode('explore')}
@@ -292,7 +295,7 @@ export default function VoiceSelectionModal({
             }`}
           >
             <svg className="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
-            Explore All Voices
+            Explore All ({VOICE_CATALOG_STATS.totalVoices})
           </button>
         </div>
 
@@ -318,14 +321,17 @@ export default function VoiceSelectionModal({
               <div className="mb-4 p-3 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-xs font-bold text-[var(--color-ink)] uppercase">Filters</h3>
-                  <button
-                    onClick={resetFilters}
-                    className="text-xs font-bold text-[var(--color-primary-light)] hover:text-[var(--color-primary)]"
-                  >
-                    Reset All
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-[var(--color-neutral-500)]">{filteredVoices.length} voice{filteredVoices.length !== 1 ? 's' : ''}</span>
+                    <button
+                      onClick={resetFilters}
+                      className="text-xs font-bold text-[var(--color-primary-light)] hover:text-[var(--color-primary)]"
+                    >
+                      Reset All
+                    </button>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
                   <FilterSelect
                     label="Gender"
                     value={selectedGender}
@@ -333,10 +339,11 @@ export default function VoiceSelectionModal({
                     options={['male', 'female']}
                   />
                   <FilterSelect
-                    label="Country"
-                    value={selectedCountry}
-                    onChange={setSelectedCountry}
-                    options={countries}
+                    label="Age"
+                    value={selectedAge}
+                    onChange={setSelectedAge}
+                    options={ages}
+                    displayMap={AGE_LABELS}
                   />
                   <FilterSelect
                     label="Language"
@@ -351,10 +358,23 @@ export default function VoiceSelectionModal({
                     options={accents}
                   />
                   <FilterSelect
-                    label="Characteristic"
+                    label="Country"
+                    value={selectedCountry}
+                    onChange={setSelectedCountry}
+                    options={countries}
+                  />
+                  <FilterSelect
+                    label="Style"
                     value={selectedCharacteristic}
                     onChange={setSelectedCharacteristic}
                     options={characteristics}
+                  />
+                  <FilterSelect
+                    label="Best For"
+                    value={selectedUseCase}
+                    onChange={setSelectedUseCase}
+                    options={useCases}
+                    displayMap={USE_CASE_LABELS}
                   />
                 </div>
               </div>
@@ -378,7 +398,6 @@ export default function VoiceSelectionModal({
     </div>
   );
 
-  // Render modal in a portal at document body level to avoid restrictions from parent containers
   return typeof window !== 'undefined' ? createPortal(modalContent, document.body) : null;
 }
 
@@ -402,24 +421,31 @@ function RecommendedVoices({
   onSelectVoice: (voiceId: string) => void;
   onToggleFavorite: (voiceId: string) => void;
 }) {
-  // Get user's favorite voices
   const favoriteVoices = BLAND_VOICES.filter(voice => favorites.has(voice.id));
 
   const categories = [
-    { key: 'american', label: 'American', flag: '🇺🇸', color: 'from-blue-500 to-blue-700' },
-    { key: 'british', label: 'British', flag: '🇬🇧', color: 'from-[var(--color-deep-indigo)] to-[var(--color-electric)]' },
-    { key: 'australian', label: 'Australian', flag: '🇦🇺', color: 'from-emerald-500 to-teal-600' },
-    { key: 'spanish', label: 'Spanish', flag: '🇪🇸', color: 'from-amber-500 to-orange-600' },
+    { key: 'american', label: 'American English', flag: '🇺🇸', color: 'from-blue-500 to-blue-700', sub: '19 voices' },
+    { key: 'british', label: 'British English', flag: '🇬🇧', color: 'from-[var(--color-deep-indigo)] to-[var(--color-electric)]', sub: '24 voices' },
+    { key: 'australian', label: 'Australian English', flag: '🇦🇺', color: 'from-emerald-500 to-teal-600', sub: '5 voices' },
+    { key: 'spanish-europe', label: 'Spanish (Spain)', flag: '🇪🇸', color: 'from-amber-500 to-orange-600', sub: '1 voice' },
+    { key: 'spanish-latam', label: 'Spanish (Latin America)', flag: '🌎', color: 'from-rose-500 to-pink-600', sub: '2 voices' },
   ];
 
   return (
     <div className="space-y-6">
+      {/* Quick tip */}
+      <div className="p-3 bg-gradient-to-r from-[var(--color-primary)]/5 to-[var(--color-electric)]/5 rounded-xl border border-[var(--color-primary)]/10">
+        <p className="text-xs text-[var(--color-neutral-600)]">
+          <span className="font-bold text-[var(--color-ink)]">Tip:</span> Listen to each voice sample before choosing. Look for <span className="inline-flex items-center px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-xs font-medium">Best For</span> tags to find voices that match your use case.
+        </p>
+      </div>
+
       {/* User Favorites Section */}
       {favorites.size > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">⭐</span>
-            <h3 className="text-lg font-bold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
+            <span className="text-lg">&#9733;</span>
+            <h3 className="text-base font-bold text-[var(--color-ink)]">
               Your Favorites
             </h3>
             <span className="text-xs text-[var(--color-neutral-400)]">({favorites.size})</span>
@@ -445,21 +471,25 @@ function RecommendedVoices({
 
       {/* System Recommended Voices */}
       {categories.map(category => {
-        // Combine female and male voices into a single array
         const categoryVoices = [
           ...recommended[category.key as keyof typeof recommended].female,
           ...recommended[category.key as keyof typeof recommended].male,
         ];
 
+        if (categoryVoices.length === 0) return null;
+
         return (
           <div key={category.key} className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">{category.flag}</span>
-              <h3 className={`text-lg font-bold bg-gradient-to-r ${category.color} bg-clip-text text-transparent`}>
-                {category.label}
-              </h3>
+              <span className="text-lg">{category.flag}</span>
+              <div>
+                <h3 className={`text-base font-bold bg-gradient-to-r ${category.color} bg-clip-text text-transparent`}>
+                  {category.label}
+                </h3>
+                <p className="text-xs text-[var(--color-neutral-400)]">{category.sub}</p>
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {categoryVoices.map(voice => (
                 <VoiceCard
                   key={voice.id}
@@ -557,6 +587,15 @@ function VoiceCard({
   const gender = determineGender(voice);
   const category = determineCategory(voice);
   const characteristics = getVoiceCharacteristics(voice);
+  const profile = getVoiceProfile(voice);
+  const ageLabel = AGE_LABELS[profile.age];
+
+  // Age color mapping
+  const ageColor = profile.age === 'young'
+    ? 'bg-violet-50 text-violet-600'
+    : profile.age === 'mature'
+      ? 'bg-amber-50 text-amber-600'
+      : 'bg-sky-50 text-sky-600';
 
   return (
     <div
@@ -567,22 +606,30 @@ function VoiceCard({
       }`}
       onClick={onSelect}
     >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex-1 flex items-start gap-2">
-          <div className="flex-1">
+      {/* Top row: name + badges */}
+      <div className="flex items-start justify-between mb-1.5">
+        <div className="flex-1">
+          <div className="flex items-center gap-1.5">
             <h4 className="font-bold text-[var(--color-ink)] text-sm">{voice.name}</h4>
-            <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{category.accent} {category.language}</p>
+            {isRecommended && (
+              <span className="px-1 py-0.5 bg-yellow-50 text-yellow-600 rounded text-[10px] font-bold leading-none">TOP</span>
+            )}
           </div>
-          {/* Star Icon for Recommended/Favorite */}
+          <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
+            {category.accent} {category.language}
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          {/* Favorite toggle */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onToggleFavorite();
             }}
             className="p-1 hover:bg-[var(--surface-hover)] rounded transition-colors"
-            title={isFavorite || isRecommended ? "Remove from favorites" : "Add to favorites"}
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
-            {isFavorite || isRecommended ? (
+            {isFavorite ? (
               <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
@@ -592,8 +639,6 @@ function VoiceCard({
               </svg>
             )}
           </button>
-        </div>
-        <div className="flex items-center gap-1.5">
           {/* Gender Badge */}
           <span
             className={`px-1.5 py-0.5 rounded text-xs font-bold ${
@@ -603,6 +648,10 @@ function VoiceCard({
             }`}
           >
             {gender === 'female' ? '♀' : '♂'}
+          </span>
+          {/* Age Badge */}
+          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${ageColor}`}>
+            {ageLabel}
           </span>
           {/* Selected Badge */}
           {isSelected && (
@@ -616,13 +665,25 @@ function VoiceCard({
       </div>
 
       {/* Characteristics */}
-      <div className="flex flex-wrap gap-1 mb-2">
+      <div className="flex flex-wrap gap-1 mb-1.5">
         {characteristics.slice(0, 3).map(char => (
           <span
             key={char}
-            className="px-1.5 py-0.5 bg-[var(--color-neutral-50)] text-[var(--color-neutral-600)] rounded text-xs font-medium"
+            className="px-1.5 py-0.5 bg-[var(--color-neutral-50)] text-[var(--color-neutral-600)] rounded text-[10px] font-medium"
           >
             {char}
+          </span>
+        ))}
+      </div>
+
+      {/* Best For */}
+      <div className="flex flex-wrap gap-1 mb-2">
+        {profile.bestFor.slice(0, 2).map(useCase => (
+          <span
+            key={useCase}
+            className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-medium"
+          >
+            {USE_CASE_LABELS[useCase]}
           </span>
         ))}
       </div>
@@ -671,24 +732,26 @@ function FilterSelect({
   value,
   onChange,
   options,
+  displayMap,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: string[];
+  displayMap?: Record<string, string>;
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-[var(--color-neutral-600)] mb-1">{label}</label>
+      <label className="block text-[10px] font-bold text-[var(--color-neutral-600)] mb-0.5 uppercase">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-2 py-1.5 border border-[var(--border-default)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white text-[var(--color-ink)] outline-none transition-all text-xs"
       >
-        <option value="all">All {label}s</option>
+        <option value="all">All</option>
         {options.map(option => (
           <option key={option} value={option}>
-            {option}
+            {displayMap ? displayMap[option] || option : option}
           </option>
         ))}
       </select>
