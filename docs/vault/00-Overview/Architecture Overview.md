@@ -41,7 +41,7 @@ Callengo is a serverless-first B2B SaaS platform built on Next.js, deployed on V
 │(Postgres)│ │ (Voice)  │ │(Billing│ │(Upstash│ │(GPT-4o-  │
 │ 56 tables│ │ Master   │ │  Sub,  │ │  Rate  │ │  mini)   │
 │ RLS on   │ │ API Key  │ │ Meter, │ │  Limit │ │ Intent   │
-│ all user │ │ 66 voices│ │ Addon) │ │ Concur │ │ Analysis │
+│ all user │ │ 51 voices│ │ Addon) │ │ Concur │ │ Analysis │
 │ tables   │ │          │ │        │ │ Slots  │ │ JSON mode│
 └──────────┘ └──────────┘ └────────┘ └────────┘ └──────────┘
          │                                          │

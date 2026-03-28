@@ -56,7 +56,7 @@ src/
 │   ├── admin/              # Vista financiera interna
 │   ├── onboarding/
 │   ├── api/                # 92+ endpoints
-│   │   ├── admin/          # Command Center, clients, finances, reconcile, monitor, cleanup-orphans, openai-usage
+│   │   ├── admin/          # Command Center, clients, finances, reconcile, monitor, cleanup-orphans, openai-usage, tts-usage
 │   │   ├── billing/        # 13 endpoints
 │   │   ├── bland/          # Webhooks + API Bland AI
 │   │   ├── integrations/   # 60+ endpoints OAuth y sync CRMs
@@ -98,7 +98,7 @@ src/
 │   ├── simplybook/         # SimplyBook (auth, sync)
 │   ├── zoho/               # Zoho CRM (auth, sync)
 │   ├── supabase/           # client.ts, server.ts, service.ts
-│   ├── voices/             # Bland.ai voice catalog + utils
+│   ├── voices/             # Bland.ai voice catalog (51 voices, 5 accents, 2 languages)
 │   ├── encryption.ts       # AES-256-GCM token encryption (encryptToken/decryptToken)
 │   ├── stripe.ts           # Stripe SDK wrapper (380 líneas)
 │   ├── rate-limit.ts       # Rate limiting (definido pero NO aplicado globalmente aún)
@@ -192,8 +192,8 @@ Todas las llamadas pasan por **una sola API key master de Bland AI**. No hay sub
 
 ## Base de Datos (Supabase)
 
-- **57 tablas** con RLS habilitado
-- Tablas clave: `companies`, `company_settings`, `company_subscriptions`, `subscription_plans`, `call_logs`, `contacts`, `campaigns`, `agents`, `follow_ups`, `voicemails`, `integrations_*`, `openai_usage_logs`
+- **58 tablas** con RLS habilitado
+- Tablas clave: `companies`, `company_settings`, `company_subscriptions`, `subscription_plans`, `call_logs`, `contacts`, `campaigns`, `agents`, `follow_ups`, `voicemails`, `integrations_*`, `openai_usage_logs`, `tts_usage_logs`
 - RLS protege todos los datos por `company_id`
 - Fuente de verdad de features: `src/config/plan-features.ts`
 
@@ -286,7 +286,7 @@ Panel de monitoreo en tiempo real para el owner de la plataforma. 7 tabs:
 
 ## Documentos de Referencia
 
-### Obsidian Knowledge Base (`docs/vault/`) — 60 notas, 13,800+ líneas
+### Obsidian Knowledge Base (`docs/vault/`) — 61 notas, 14,000+ líneas
 
 Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsidian para navegación visual.
 
@@ -296,7 +296,7 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 | `01-Entities/` | 14 | Company, User, Contact, Agent, Campaign, Call, Follow-Up, Voicemail, Calendar Event, Subscription, Add-on, Notification, Team Invitation, Webhook |
 | `02-Database/` | 4 | Schema Overview (57 tablas), RLS Patterns, Triggers & Functions, Migrations Timeline |
 | `03-API/` | 8 | API Overview (142+ endpoints), Admin, Auth, Billing, Bland AI, Calendar, Contacts, Integrations |
-| `04-Integrations/` | 14 | Bland AI, Stripe, OpenAI, Redis, 7 CRMs, Google Calendar, Outlook, Video Providers |
+| `04-Integrations/` | 15 | Bland AI, **Voice Catalog (51 voices)**, Stripe, OpenAI, Redis, 7 CRMs, Google Calendar, Outlook, Video Providers |
 | `05-Billing/` | 3 | Pricing Model V4, Plan Features, Usage Tracking |
 | `06-Workflows/` | 6 | Lead Qualification, Data Validation, Appointment Confirmation, Campaign Dispatch, Call Processing, Onboarding |
 | `07-Admin/` | 3 | Command Center, Platform Config, Audit Log |
@@ -318,6 +318,7 @@ Base de conocimiento completa e interconectada con [[wikilinks]]. Abrir con Obsi
 | `PIPEDRIVE_INTEGRATION_SETUP.md` | Setup específico Pipedrive |
 | `ZOHO_CRM_INTEGRATION.md` | Setup específico Zoho |
 | `SIMPLYBOOK_INTEGRATION.md` | Setup específico SimplyBook |
+| `VOICES.md` | Catálogo completo de voces: 51 voces, 5 acentos, 2 idiomas, perfiles, use cases |
 
 ### Raíz del Proyecto
 
@@ -547,7 +548,7 @@ Credenciales OAuth de cada CRM. Tokens de usuario se encriptan con AES-256-GCM a
 7. **Supabase:** Usar `createServerSupabaseClient()` en server-side, `createBrowserSupabaseClient()` en client-side
 8. **No commitear a `main` directamente** — trabajar en branches feature
 9. **Encriptación de tokens:** Usar `encryptToken()` / `decryptToken()` de `src/lib/encryption.ts` para cualquier token OAuth o API key que se guarde en DB. Requiere env var `TOKEN_ENCRYPTION_KEY`.
-10. **Migraciones DB:** 46 migraciones en `supabase/migrations/`. Última: `20260325000001_openai_usage_tracking.sql`. Usar prefijo timestamp para nuevas migraciones.
+10. **Migraciones DB:** 47 migraciones en `supabase/migrations/`. Última: `20260328000001_tts_voice_samples.sql`. Usar prefijo timestamp para nuevas migraciones.
 11. **Variables de entorno:** Referencia completa en `.env.example`. Si se agrega una nueva env var, actualizar también `.env.example` con documentación.
 12. **OpenAI client:** Usar `getOpenAIClient(featureKey)` de `src/lib/openai/tracker.ts` para instanciar OpenAI. No instanciar directamente. Usar `getDefaultModel()` / `getPremiumModel()` en lugar de hardcodear nombres de modelo.
 
@@ -566,6 +567,14 @@ Cada vez que se hagan cambios significativos al código, **actualizar la documen
 - Cuando se agregan **integraciones CRM** → actualizar tabla "Integraciones CRM"
 - Cuando cambian **reglas de seguridad** → actualizar sección "Seguridad"
 - Cuando se agregan **nuevas migraciones** → actualizar número de migraciones y "Última migración"
+- Cuando se modifica el **catálogo de voces** → actualizar conteos en "Estructura del Proyecto" y referencia a `docs/VOICES.md`
+
+### Cuándo actualizar `docs/VOICES.md`
+- Cuando se agregan/eliminan **voces** del catálogo (`src/lib/voices/bland-voices.ts`)
+- Cuando cambian **perfiles de voces** (edad, características, use cases) en `voice-utils.ts`
+- Cuando se agregan **nuevos acentos o idiomas**
+- Cuando se cambian las **voces recomendadas** (Top Picks)
+- Al actualizar VOICES.md, también actualizar: `docs/vault/04-Integrations/Voice Catalog.md`, `docs/vault/04-Integrations/Bland AI.md`, `docs/vault/01-Entities/Agent.md`, `docs/vault/01-Entities/Company.md`, `docs/vault/01-Entities/User.md`, `docs/vault/00-Overview/App Identity.md`, `docs/vault/00-Overview/Architecture Overview.md`, `docs/CALLENGO_MASTER_DOCUMENT.md`
 
 ### Cuándo actualizar el Vault de Obsidian (`docs/vault/`)
 - Cuando se modifica una **entidad** (nueva columna, nuevo índice, nueva FK) → actualizar la nota correspondiente en `01-Entities/`

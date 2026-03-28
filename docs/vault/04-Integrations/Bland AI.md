@@ -125,25 +125,35 @@ Call concurrency is managed entirely through [[Upstash Redis]]. See that note fo
 
 ## Voice Catalog
 
-Callengo ships with a static catalog of **66 voices** defined in `src/lib/voices/bland-voices.ts`. Each voice is a `BlandVoice` object with the following fields:
+Callengo ships with a curated catalog of **51 voices** across 2 languages and 5 accents, defined in `src/lib/voices/bland-voices.ts`. The catalog was manually audited in March 2026 — 8 broken/unusable voices were removed. See [[Voice Catalog]] for the complete reference.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string (UUID) | Bland's voice identifier |
-| `name` | string | Display name (e.g., "Maya", "Ryan", "Helena") |
-| `description` | string | Brief description (e.g., "Young American Female") |
-| `public` | boolean | Whether the voice is publicly available |
-| `ratings` | number | Number of user ratings |
-| `tags` | string[] | Categorization tags (language, accent, "Bland Curated") |
-| `user_id` | string or null | Owner of the voice (null for Bland-owned) |
-| `total_ratings` | number | Total rating count |
-| `average_rating` | number | Average star rating |
+| Accent | Voices |
+|--------|--------|
+| American English 🇺🇸 | 19 |
+| British English 🇬🇧 | 24 |
+| Australian English 🇦🇺 | 5 |
+| European Spanish 🇪🇸 | 1 |
+| Latin American Spanish 🌎 | 2 |
 
-The default voice is **Maya** (`'maya'`), a "Young American Female" voice. If no voice is specified in the `BlandCallPayload`, `dispatchCall()` falls back to Maya.
+Each voice has a `BlandVoice` object with: `id` (UUID), `name`, `description`, `tags` (accent, gender, characteristics), `public`, `ratings`, `total_ratings`, and `average_rating`.
 
-Voice types are defined in `src/lib/voices/types.ts`, which also exports `VoiceCategory`, `VoiceSample`, `VoiceCharacteristic` (professional, casual, young, mature, warm, energetic, calm, formal, friendly, authoritative, soft, engaging), and `VoiceWithCharacteristics`.
+Additionally, each voice has a **profile** in `voice-utils.ts` with:
+- **Age:** young, adult, or mature
+- **Characteristics:** professional, warm, energetic, calm, friendly, serious, etc.
+- **Best For:** lead-qualification, appointments, data-validation, support, sales, general
 
-The voices span multiple accents and languages: American English, British English, Australian English, and Spanish. Tags include `english`, `british`, `australian`, `spanish`, `cloned`, `Bland Curated`, and gender markers.
+Voice types are defined in `src/lib/voices/types.ts`, which exports `BlandVoice`, `VoiceCategory`, `VoiceSample`, `VoiceAge`, `VoiceCharacteristic`, `VoiceUseCase`, `VoiceProfile`, and `VoiceWithCharacteristics`.
+
+## Text-to-Speech (Voice Samples)
+
+Voice sample playback uses Bland's **`/v1/speak` endpoint** (per-character billing, separate from call-per-minute). Samples are cached globally in **Supabase Storage** (`voice-samples` bucket) so each voice is generated only once.
+
+- **Endpoint:** `POST /v1/speak` (replaces deprecated `/v1/voices/{id}/sample`)
+- **Billing:** ~$0.02 per 100-400 characters depending on Bland plan
+- **Caching:** Global in Supabase Storage → once all 51 voices are cached, TTS cost = $0/month
+- **Rate limit:** 51 generations per company (aligned with voice count)
+- **Cost tracking:** `tts_usage_logs` table, visible in Admin Command Center → Finances
+- **Implementation:** `src/lib/bland/tts.ts`
 
 ## Phone Numbers
 
@@ -190,8 +200,9 @@ The dedicated number add-on also generates margin: $25/month charged to customer
 |------|-------|---------|
 | `src/lib/bland/master-client.ts` | 304 | Plan detection, call dispatch, account info, limits |
 | `src/lib/bland/phone-numbers.ts` | 413 | Dedicated number purchase, assignment, release, area code catalog |
-| `src/lib/voices/bland-voices.ts` | 67 | Static voice catalog (66 voices) |
-| `src/lib/voices/types.ts` | 51 | TypeScript types for voices |
+| `src/lib/voices/bland-voices.ts` | 68 | Static voice catalog (51 curated voices) |
+| `src/lib/voices/types.ts` | 65 | TypeScript types for voices (BlandVoice, VoiceAge, VoiceProfile, etc.) |
+| `src/lib/voices/voice-utils.ts` | 310+ | Voice profiles, gender/category detection, recommended voices, catalog stats |
 | `src/app/api/bland/` | Multiple | Webhook handler, call status endpoints |
 
 ## Related Notes
