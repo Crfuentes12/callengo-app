@@ -9,7 +9,7 @@ import { BLAND_VOICES } from '@/lib/voices/bland-voices';
 
 export async function POST(request: NextRequest) {
   try {
-    const { voiceId, text, language: _language } = await request.json();
+    const { voiceId, text, language } = await request.json();
 
     if (!voiceId || !text) {
       return NextResponse.json(
