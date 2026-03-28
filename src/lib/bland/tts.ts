@@ -4,7 +4,8 @@
 
 import { supabaseAdminRaw } from '@/lib/supabase/service';
 
-const BLAND_API_URL = 'https://api.bland.ai/v1/speak';
+const BLAND_SPEAK_URL = 'https://api.bland.ai/v1/speak';
+const BLAND_SAMPLE_URL = 'https://api.bland.ai/v1/voices'; // fallback: /v1/voices/{id}/sample
 const STORAGE_BUCKET = 'voice-samples';
 const MAX_GENERATIONS_PER_COMPANY = 51; // Aligned with total voice count
 
@@ -68,14 +69,17 @@ export async function canGenerate(companyId: string): Promise<{ allowed: boolean
   };
 }
 
-// ── Generate TTS audio via Bland AI /v1/speak ───────────────────────
-export async function generateTTS(voiceId: string, text: string): Promise<{ audio: Buffer; cost: number; characters: number }> {
+// ── Generate TTS audio via Bland AI ─────────────────────────────────
+// Tries /v1/speak first (Beige voices). Falls back to /v1/voices/{id}/sample
+// for cloned voices that aren't supported by the /v1/speak endpoint.
+export async function generateTTS(voiceId: string, text: string, language?: string): Promise<{ audio: Buffer; cost: number; characters: number }> {
   const blandApiKey = process.env.BLAND_API_KEY;
   if (!blandApiKey) {
     throw new Error('BLAND_API_KEY not configured');
   }
 
-  const response = await fetch(BLAND_API_URL, {
+  // Try /v1/speak first (works for Beige voices, per-character billing)
+  const speakResponse = await fetch(BLAND_SPEAK_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -87,17 +91,33 @@ export async function generateTTS(voiceId: string, text: string): Promise<{ audi
     }),
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Bland TTS error (${response.status}): ${errorText}`);
+  if (speakResponse.ok) {
+    const cost = parseFloat(speakResponse.headers.get('x-cost') || '0');
+    const audioArrayBuffer = await speakResponse.arrayBuffer();
+    return { audio: Buffer.from(audioArrayBuffer), cost, characters: text.length };
   }
 
-  // Read cost from Bland's response header
-  const cost = parseFloat(response.headers.get('x-cost') || '0');
-  const audioArrayBuffer = await response.arrayBuffer();
-  const audio = Buffer.from(audioArrayBuffer);
+  // Fallback to /v1/voices/{id}/sample for cloned/non-Beige voices
+  const sampleResponse = await fetch(`${BLAND_SAMPLE_URL}/${voiceId}/sample`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'authorization': blandApiKey,
+    },
+    body: JSON.stringify({
+      text,
+      language: language || 'ENG',
+    }),
+  });
 
-  return { audio, cost, characters: text.length };
+  if (!sampleResponse.ok) {
+    const errorText = await sampleResponse.text();
+    throw new Error(`Bland TTS error (${sampleResponse.status}): ${errorText}`);
+  }
+
+  const cost = parseFloat(sampleResponse.headers.get('x-cost') || '0');
+  const audioArrayBuffer = await sampleResponse.arrayBuffer();
+  return { audio: Buffer.from(audioArrayBuffer), cost, characters: text.length };
 }
 
 // ── Store audio in Supabase Storage global cache ────────────────────
@@ -147,10 +167,11 @@ export async function getVoiceSample(params: {
   voiceId: string;
   voiceName: string;
   text: string;
+  language?: string;
   companyId: string | null;
   userId: string | null;
 }): Promise<TTSResult> {
-  const { voiceId, voiceName, text, companyId, userId } = params;
+  const { voiceId, voiceName, text, language, companyId, userId } = params;
 
   // 1. Check global cache first
   const cached = await getCachedSample(voiceId);
@@ -166,8 +187,8 @@ export async function getVoiceSample(params: {
     }
   }
 
-  // 3. Generate via Bland /v1/speak
-  const { audio, cost, characters } = await generateTTS(voiceId, text);
+  // 3. Generate via Bland /v1/speak (with fallback to /v1/voices/{id}/sample)
+  const { audio, cost, characters } = await generateTTS(voiceId, text, language);
 
   // 4. Cache globally (fire and forget — don't block response)
   cacheSample(voiceId, audio).catch(err =>
