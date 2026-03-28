@@ -185,7 +185,7 @@ export async function cacheSample(voice: BlandVoice, audio: Buffer): Promise<voi
     .storage
     .from(STORAGE_BUCKET)
     .upload(filename, uint8, {
-      contentType: 'audio/mpeg',
+      contentType: 'application/octet-stream',
       upsert: true,
     });
 
