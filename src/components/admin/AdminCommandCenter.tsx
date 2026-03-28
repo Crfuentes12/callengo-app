@@ -380,6 +380,26 @@ interface OpenAIUsageData {
   recentLogs: OpenAIRecentLog[];
 }
 
+interface TTSVoiceBreakdown {
+  voiceId: string;
+  voiceName: string;
+  cost: number;
+  generations: number;
+  characters: number;
+}
+
+interface TTSUsageData {
+  totalCost30d: number;
+  totalGenerations30d: number;
+  totalChars30d: number;
+  totalCostToday: number;
+  totalGenerationsToday: number;
+  uniqueVoicesCached: number;
+  totalVoices: number;
+  byVoice: TTSVoiceBreakdown[];
+  recentLogs: { id: string; createdAt: string; voiceId: string; voiceName: string; characters: number; cost: number; companyId: string | null }[];
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtInt = (n: number) => n.toLocaleString();
@@ -445,6 +465,7 @@ export default function AdminCommandCenter() {
   const [accountingData, setAccountingData] = useState<AccountingData | null>(null);
   const [accountingPeriod, setAccountingPeriod] = useState('current');
   const [openAIUsageData, setOpenAIUsageData] = useState<OpenAIUsageData | null>(null);
+  const [ttsUsageData, setTTSUsageData] = useState<TTSUsageData | null>(null);
   const [testCallStats, setTestCallStats] = useState<TestCallStatsData | null>(null);
 
   const fetchTestCallStats = useCallback(async () => {
@@ -637,6 +658,18 @@ export default function AdminCommandCenter() {
     }
   }, []);
 
+  const fetchTTSUsage = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/tts-usage');
+      if (res.ok) {
+        const data = await res.json();
+        setTTSUsageData(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch TTS usage:', e);
+    }
+  }, []);
+
   // Initial load — fire without blocking render; healthData=null shows inline skeleton
   useEffect(() => {
     fetchHealth();
@@ -657,10 +690,11 @@ export default function AdminCommandCenter() {
     if (tab === 'finances') {
       if (!accountingData) fetchAccounting(accountingPeriod);
       if (!openAIUsageData) fetchOpenAIUsage();
+      if (!ttsUsageData) fetchTTSUsage();
       if (!financeData) fetchFinances(accountingPeriod);
     }
     if (tab === 'usage' && !testCallStats) fetchTestCallStats();
-  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, accountingData, openAIUsageData, testCallStats, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, fetchAccounting, fetchOpenAIUsage, fetchTestCallStats, eventsFilter, accountingPeriod]);
+  }, [tab, clients.length, events.length, reconcileData, financeData, promoData, accountingData, openAIUsageData, ttsUsageData, testCallStats, fetchClients, fetchEvents, fetchReconcile, fetchFinances, fetchPromos, fetchAccounting, fetchOpenAIUsage, fetchTTSUsage, fetchTestCallStats, eventsFilter, accountingPeriod]);
 
 
   // ─── Sorted/filtered clients ──────────────────────────────────────
@@ -1618,9 +1652,11 @@ export default function AdminCommandCenter() {
                   setAccountingPeriod(e.target.value);
                   setAccountingData(null);
                   setOpenAIUsageData(null);
+                  setTTSUsageData(null);
                   setFinanceData(null);
                   fetchAccounting(e.target.value);
                   fetchOpenAIUsage();
+                  fetchTTSUsage();
                   fetchFinances(e.target.value);
                 }}
                 className="px-3 py-2 border border-[var(--border-default)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
@@ -1631,7 +1667,7 @@ export default function AdminCommandCenter() {
                 <option value="ytd">Year to Date</option>
               </select>
               <button
-                onClick={() => { setAccountingData(null); setOpenAIUsageData(null); setFinanceData(null); fetchAccounting(accountingPeriod); fetchOpenAIUsage(); fetchFinances(accountingPeriod); }}
+                onClick={() => { setAccountingData(null); setOpenAIUsageData(null); setTTSUsageData(null); setFinanceData(null); fetchAccounting(accountingPeriod); fetchOpenAIUsage(); fetchTTSUsage(); fetchFinances(accountingPeriod); }}
                 className="px-3 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:opacity-90"
               >
                 Refresh
@@ -1645,7 +1681,9 @@ export default function AdminCommandCenter() {
             const { pnl, cashFlow, discountedSubscriptions: discSubs, unitEconomics: ue, charts: chartData, ledger: ledgerData } = accountingData;
             const marginColor = (p: number) => p >= 50 ? 'text-emerald-600' : p >= 20 ? 'text-amber-600' : 'text-red-600';
             const openAICost = openAIUsageData?.totalCost30d ?? null;
-            const operatingProfitWithAI = openAICost !== null ? pnl.margins.operatingProfit - openAICost : null;
+            const ttsCost = ttsUsageData?.totalCost30d ?? null;
+            const totalAICosts = (openAICost || 0) + (ttsCost || 0);
+            const operatingProfitWithAI = openAICost !== null ? pnl.margins.operatingProfit - totalAICosts : null;
             const operatingMarginWithAI = operatingProfitWithAI !== null && pnl.revenue.totalActualRevenue > 0
               ? +((operatingProfitWithAI / pnl.revenue.totalActualRevenue) * 100).toFixed(1)
               : null;
@@ -1739,6 +1777,13 @@ export default function AdminCommandCenter() {
                             <td className="py-2 pl-6">OpenAI API Costs</td>
                             <td className="text-right py-2 text-violet-700">${fmt(openAICost)}</td>
                             <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Last 30d · all features</td>
+                          </tr>
+                        )}
+                        {ttsCost !== null && ttsCost > 0 && (
+                          <tr className="border-b border-[var(--border-default)]">
+                            <td className="py-2 pl-6">Bland AI TTS (Voice Samples)</td>
+                            <td className="text-right py-2 text-cyan-700">${fmt(ttsCost)}</td>
+                            <td className="text-right py-2 text-xs text-[var(--color-neutral-400)]">Last 30d · {ttsUsageData?.totalGenerations30d || 0} generations · {ttsUsageData?.uniqueVoicesCached || 0}/{ttsUsageData?.totalVoices || 51} cached</td>
                           </tr>
                         )}
 
@@ -1993,6 +2038,70 @@ export default function AdminCommandCenter() {
                     </div>
                   ) : (
                     <div className="p-6 text-center text-sm text-[var(--color-neutral-400)]">Loading AI cost data...</div>
+                  )}
+                </div>
+
+                {/* ── 3.5 TTS VOICE SAMPLE COSTS ── */}
+                <div className="bg-white rounded-xl border border-[var(--border-default)] overflow-hidden">
+                  <div className="px-6 py-4 border-b border-[var(--border-default)] flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-[var(--color-neutral-500)] uppercase">Bland AI TTS Costs (Voice Samples)</h3>
+                      <p className="text-xs text-[var(--color-neutral-400)] mt-0.5">Per-character billing via /v1/speak · Global cache eliminates repeat charges</p>
+                    </div>
+                    {!ttsUsageData && <div className="w-5 h-5 border border-cyan-400/30 border-t-cyan-500 rounded-full animate-spin" />}
+                  </div>
+                  {ttsUsageData ? (
+                    <div className="p-5 space-y-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="p-3 bg-cyan-50 rounded-xl border border-cyan-200 text-center">
+                          <p className="text-xl font-bold text-cyan-900">${fmt(ttsUsageData.totalCost30d)}</p>
+                          <p className="text-xs text-cyan-600 mt-1">Total cost (30d)</p>
+                        </div>
+                        <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-center">
+                          <p className="text-xl font-bold text-blue-900">{fmtInt(ttsUsageData.totalGenerations30d)}</p>
+                          <p className="text-xs text-blue-600 mt-1">Generations (30d)</p>
+                        </div>
+                        <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-center">
+                          <p className="text-xl font-bold text-emerald-900">{ttsUsageData.uniqueVoicesCached}/{ttsUsageData.totalVoices}</p>
+                          <p className="text-xs text-emerald-600 mt-1">Voices cached</p>
+                        </div>
+                        <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-center">
+                          <p className="text-xl font-bold text-amber-900">{fmtInt(ttsUsageData.totalChars30d)}</p>
+                          <p className="text-xs text-amber-600 mt-1">Characters (30d)</p>
+                        </div>
+                      </div>
+                      {ttsUsageData.byVoice.length > 0 && (
+                        <details className="border border-[var(--border-default)] rounded-xl overflow-hidden">
+                          <summary className="px-5 py-3 bg-[var(--color-neutral-50)] cursor-pointer text-sm font-semibold text-[var(--color-neutral-700)] select-none">
+                            Generation Log by Voice ({ttsUsageData.byVoice.length} voices) — click to expand
+                          </summary>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="bg-[var(--color-neutral-50)] border-b border-[var(--border-default)]">
+                                  <th className="text-left py-2 px-4 font-semibold text-[var(--color-neutral-500)]">Voice</th>
+                                  <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Generations</th>
+                                  <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Characters</th>
+                                  <th className="text-right py-2 px-3 font-semibold text-[var(--color-neutral-500)]">Cost</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {ttsUsageData.byVoice.map((v) => (
+                                  <tr key={v.voiceId} className="border-b border-[var(--border-default)] hover:bg-[var(--color-neutral-50)]">
+                                    <td className="py-1.5 px-4 font-medium">{v.voiceName}</td>
+                                    <td className="text-right py-1.5 px-3">{v.generations}</td>
+                                    <td className="text-right py-1.5 px-3">{fmtInt(v.characters)}</td>
+                                    <td className="text-right py-1.5 px-3 font-semibold">${v.cost.toFixed(6)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-sm text-[var(--color-neutral-400)]">Loading TTS cost data...</div>
                   )}
                 </div>
 

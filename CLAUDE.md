@@ -56,7 +56,7 @@ src/
 │   ├── admin/              # Vista financiera interna
 │   ├── onboarding/
 │   ├── api/                # 92+ endpoints
-│   │   ├── admin/          # Command Center, clients, finances, reconcile, monitor, cleanup-orphans, openai-usage
+│   │   ├── admin/          # Command Center, clients, finances, reconcile, monitor, cleanup-orphans, openai-usage, tts-usage
 │   │   ├── billing/        # 13 endpoints
 │   │   ├── bland/          # Webhooks + API Bland AI
 │   │   ├── integrations/   # 60+ endpoints OAuth y sync CRMs
@@ -192,8 +192,8 @@ Todas las llamadas pasan por **una sola API key master de Bland AI**. No hay sub
 
 ## Base de Datos (Supabase)
 
-- **57 tablas** con RLS habilitado
-- Tablas clave: `companies`, `company_settings`, `company_subscriptions`, `subscription_plans`, `call_logs`, `contacts`, `campaigns`, `agents`, `follow_ups`, `voicemails`, `integrations_*`, `openai_usage_logs`
+- **58 tablas** con RLS habilitado
+- Tablas clave: `companies`, `company_settings`, `company_subscriptions`, `subscription_plans`, `call_logs`, `contacts`, `campaigns`, `agents`, `follow_ups`, `voicemails`, `integrations_*`, `openai_usage_logs`, `tts_usage_logs`
 - RLS protege todos los datos por `company_id`
 - Fuente de verdad de features: `src/config/plan-features.ts`
 
@@ -548,7 +548,7 @@ Credenciales OAuth de cada CRM. Tokens de usuario se encriptan con AES-256-GCM a
 7. **Supabase:** Usar `createServerSupabaseClient()` en server-side, `createBrowserSupabaseClient()` en client-side
 8. **No commitear a `main` directamente** — trabajar en branches feature
 9. **Encriptación de tokens:** Usar `encryptToken()` / `decryptToken()` de `src/lib/encryption.ts` para cualquier token OAuth o API key que se guarde en DB. Requiere env var `TOKEN_ENCRYPTION_KEY`.
-10. **Migraciones DB:** 46 migraciones en `supabase/migrations/`. Última: `20260325000001_openai_usage_tracking.sql`. Usar prefijo timestamp para nuevas migraciones.
+10. **Migraciones DB:** 47 migraciones en `supabase/migrations/`. Última: `20260328000001_tts_voice_samples.sql`. Usar prefijo timestamp para nuevas migraciones.
 11. **Variables de entorno:** Referencia completa en `.env.example`. Si se agrega una nueva env var, actualizar también `.env.example` con documentación.
 12. **OpenAI client:** Usar `getOpenAIClient(featureKey)` de `src/lib/openai/tracker.ts` para instanciar OpenAI. No instanciar directamente. Usar `getDefaultModel()` / `getPremiumModel()` en lugar de hardcodear nombres de modelo.
 

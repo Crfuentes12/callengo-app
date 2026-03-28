@@ -309,6 +309,85 @@ export const VOICE_CATALOG_STATS = {
 
 ---
 
+## Voice Sample Playback & Caching
+
+### Architecture
+
+Voice samples are generated via **Bland AI's `/v1/speak` endpoint** (TTS) and cached globally in **Supabase Storage** (`voice-samples` bucket). This means each voice only needs to be generated once — all subsequent plays are served from cache at zero cost.
+
+```
+User clicks "Play Sample"
+  → Client checks in-memory cache (Map<voiceId, Blob>)
+  → Cache miss → POST /api/voices/sample
+    → Server checks Supabase Storage (voice-samples/{voiceId}.wav)
+    → Cache hit → serve from storage (free)
+    → Cache miss → check company generation limit (51 max)
+      → Generate via Bland /v1/speak (charged per character)
+      → Store in Supabase Storage (global cache)
+      → Log cost in tts_usage_logs
+      → Serve audio
+```
+
+### Cost Model
+
+Bland AI charges per character for TTS generation (not per call minute):
+
+| Bland Plan | Cost |
+|------------|------|
+| Start | $0.02 / 100 chars |
+| Build | $0.02 / 150 chars |
+| Scale | $0.02 / 200 chars |
+| Enterprise | $0.02 / 400 chars |
+
+With global caching, the **maximum total cost is ~$1.28** (51 voices x ~250 chars each, at Scale pricing). After all 51 voices are cached, TTS cost drops to **$0/month permanently**.
+
+### Rate Limiting
+
+- **51 generations per company** (aligned with total voice count)
+- Cached plays do NOT count toward the limit
+- Once all 51 voices are cached globally, no company needs to generate again
+
+### Cost Tracking
+
+TTS generation costs are tracked in the `tts_usage_logs` table and visible in the **Admin Command Center → Finances** tab:
+- Total cost (30 days)
+- Total generations
+- Voices cached (X/51)
+- Breakdown by voice
+- P&L line item under Operating Expenses
+
+### Technical Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/bland/tts.ts` | TTS generation, caching, rate limiting, cost logging |
+| `src/app/api/voices/sample/route.ts` | API route (checks cache → generates → stores → tracks) |
+| `src/app/api/admin/tts-usage/route.ts` | Admin endpoint for TTS cost data |
+| `supabase/migrations/20260328000001_tts_voice_samples.sql` | Storage bucket + tts_usage_logs table |
+
+### Database
+
+**Table: `tts_usage_logs`**
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key |
+| `created_at` | TIMESTAMPTZ | Generation timestamp |
+| `company_id` | UUID | Company that triggered the generation |
+| `user_id` | UUID | User that clicked Play Sample |
+| `voice_id` | TEXT | Bland AI voice UUID |
+| `voice_name` | TEXT | Voice display name |
+| `characters_count` | INTEGER | Characters in the sample text |
+| `cost_usd` | NUMERIC(10,6) | Actual cost from Bland x-cost header |
+| `cached` | BOOLEAN | false for new generations |
+
+**Storage: `voice-samples` bucket** (public, read-only for users)
+- Files: `{voiceId}.wav`
+- Max file size: 5MB
+- Mime types: audio/wav, audio/mpeg
+
+---
+
 ## Update Checklist
 
 When modifying the voice catalog, update all of the following:

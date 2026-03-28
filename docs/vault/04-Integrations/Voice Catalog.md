@@ -68,6 +68,15 @@ Full catalog with **7 filters**: Gender, Age, Language, Accent, Country, Style, 
 - **[[Company]] Settings** — Default voice for new agents (`company_settings.default_voice`)
 - **[[User]] Favorites** — `users.fav_voices` JSONB array
 
+## Voice Sample Playback & Caching
+
+Voice samples use [[Bland AI]]'s `/v1/speak` TTS endpoint (per-character billing). Samples are cached globally in **Supabase Storage** (`voice-samples` bucket) — each voice is generated once, then served free forever.
+
+- **Max cost:** ~$1.28 total (51 voices x 250 chars, one-time)
+- **Rate limit:** 51 generations per company
+- **Cost tracking:** `tts_usage_logs` table → visible in [[Command Center]] → Finances tab
+- **Implementation:** `src/lib/bland/tts.ts`
+
 ## Technical Files
 
 | File | Purpose |
@@ -75,6 +84,9 @@ Full catalog with **7 filters**: Gender, Age, Language, Accent, Country, Style, 
 | `src/lib/voices/bland-voices.ts` | Static catalog (51 entries) |
 | `src/lib/voices/types.ts` | TypeScript types (`BlandVoice`, `VoiceAge`, `VoiceCharacteristic`, `VoiceUseCase`, `VoiceProfile`) |
 | `src/lib/voices/voice-utils.ts` | Profile database, gender/category detection, recommended voices, `VOICE_CATALOG_STATS` |
+| `src/lib/bland/tts.ts` | TTS generation via /v1/speak, caching, rate limiting, cost logging |
+| `src/app/api/voices/sample/route.ts` | API route with cache-first strategy |
+| `src/app/api/admin/tts-usage/route.ts` | Admin endpoint for TTS cost data |
 | `src/components/voice/VoiceSelector.tsx` | Button that opens the modal |
 | `src/components/voice/VoiceSelectionModal.tsx` | Full selection modal |
 

@@ -144,6 +144,17 @@ Additionally, each voice has a **profile** in `voice-utils.ts` with:
 
 Voice types are defined in `src/lib/voices/types.ts`, which exports `BlandVoice`, `VoiceCategory`, `VoiceSample`, `VoiceAge`, `VoiceCharacteristic`, `VoiceUseCase`, `VoiceProfile`, and `VoiceWithCharacteristics`.
 
+## Text-to-Speech (Voice Samples)
+
+Voice sample playback uses Bland's **`/v1/speak` endpoint** (per-character billing, separate from call-per-minute). Samples are cached globally in **Supabase Storage** (`voice-samples` bucket) so each voice is generated only once.
+
+- **Endpoint:** `POST /v1/speak` (replaces deprecated `/v1/voices/{id}/sample`)
+- **Billing:** ~$0.02 per 100-400 characters depending on Bland plan
+- **Caching:** Global in Supabase Storage → once all 51 voices are cached, TTS cost = $0/month
+- **Rate limit:** 51 generations per company (aligned with voice count)
+- **Cost tracking:** `tts_usage_logs` table, visible in Admin Command Center → Finances
+- **Implementation:** `src/lib/bland/tts.ts`
+
 ## Phone Numbers
 
 Phone number management is handled in `src/lib/bland/phone-numbers.ts` (413 lines). There are two modes:
