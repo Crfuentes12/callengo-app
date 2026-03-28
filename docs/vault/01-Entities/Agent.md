@@ -95,19 +95,19 @@ Company agents are company-specific instances of agent templates. Each company c
 
 ## Voice Catalog
 
-Callengo uses [[Bland AI]]'s voice catalog with **66 pre-built voices**. The catalog is defined in `src/lib/voices/bland-voices.ts`. The default voice is `'maya'` (young American female, highest ratings with 54 total ratings).
+Callengo uses [[Bland AI]]'s voice catalog with **51 curated voices** across 2 languages and 5 accents. The catalog is defined in `src/lib/voices/bland-voices.ts` and was manually audited in March 2026. See [[Voice Catalog]] for the complete reference.
 
 ### Voice Categories
 
-| Category | Example Voices | Description |
-|----------|---------------|-------------|
-| American English | Maya, Adriana, Mason, Ryan | Standard US accents, various ages |
-| British English | Tanner, Alice, Julia, Emily, Dorothy, Willow | UK accents, various styles |
-| Australian English | Ruth, Dave, Liam | Australian accents |
-| Spanish | Helena, Rosa, Mariam | Native Spanish speakers |
-| Professional | Ryan, Mason | Business-appropriate tones |
+| Category | Flag | Voices | Example Voices |
+|----------|------|--------|----------------|
+| American English | 🇺🇸 | 19 | David, Freddie, Keelan, Chris, Ryan, Maya |
+| British English | 🇬🇧 | 24 | Max, Trixie, Willow, Oscar, Lucas, Marnie |
+| Australian English | 🇦🇺 | 5 | Lucy, Liam, Dave, Daisy, Ruth |
+| European Spanish | 🇪🇸 | 1 | Rosa |
+| Latin American Spanish | 🌎 | 2 | Helena, Mariam |
 
-Each voice object includes: `id` (UUID), `name`, `description`, `tags` (e.g., `["english", "cloned", "professional"]`), `public` (boolean), `ratings` count, and `average_rating`.
+Each voice has a **profile** with age (young/adult/mature), characteristics (e.g., energetic, professional, warm), and best-for use cases (lead qualification, appointments, data validation, support, sales).
 
 Users can save favorite voices via the `fav_voices` JSONB array on the [[User]] table.
 

@@ -674,7 +674,7 @@ While Supabase encrypts data at rest, the tokens are accessible via the service 
 1. Navigate to Agents → Select "Data Validation Agent"
 2. System creates `company_agents` record linked to `data-validation` template
 3. Customize task prompt with KYC-specific instructions
-4. Set voice (e.g., "maya"), max_duration=5min
+4. Set voice (51 curated voices available — see `docs/VOICES.md`), max_duration=5min
 
 **Step 6: Create Campaign**
 1. Navigate to Campaigns → New Campaign

@@ -216,7 +216,7 @@ src/
 │   ├── dynamics/                 # MS Dynamics OAuth + sync
 │   ├── clio/                     # Clio OAuth + sync
 │   ├── simplybook/               # SimplyBook API + sync
-│   ├── voices/                   # Bland AI voice catalog (66 voices)
+│   ├── voices/                   # Bland AI voice catalog (51 voices, 5 accents)
 │   ├── supabase/                 # client.ts, server.ts, service.ts
 │   ├── analytics.ts              # [[Google Analytics 4]] (1,036 lines, 130+ events)
 │   ├── posthog.ts                # [[PostHog]] tracking (850+ lines, 20 categories)

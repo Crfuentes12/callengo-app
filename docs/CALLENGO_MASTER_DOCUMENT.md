@@ -545,7 +545,7 @@ Free Trial (15 min) → Starter ($99/mo) → Growth ($179/mo) → Business ($299
 - Company agent customization (custom task prompts, settings)
 - Agent configuration: voice selection, max duration, interval, working hours
 - Agent test call feature with test phone number
-- Voice selection: Maya (female), Josh (male), Matt (male), Nat/Natalie (female)
+- Voice selection: 51 curated voices across 5 accents (American, British, Australian, European Spanish, Latin American Spanish) — see `docs/VOICES.md`
 - Settings locked based on subscription plan
 - Feature gating: Free = 1 agent locked, Business+ = all agents simultaneously
 
@@ -883,12 +883,18 @@ All calls go through **one master Bland API key**. There are no sub-accounts. Co
 | `busy` | Line was busy |
 
 ### Voices
-| Voice ID | Name | Gender |
-|---|---|---|
-| `maya` | Maya | Female |
-| `josh` | Josh | Male |
-| `matt` | Matt | Male |
-| `nat` | Natalie | Female |
+
+Callengo ships with **51 curated AI voices** across 2 languages and 5 accents. Each voice has been manually audited and labeled with age, characteristics, and recommended use cases. For the complete catalog, see `docs/VOICES.md`.
+
+| Accent | Voices | Examples |
+|--------|--------|----------|
+| American English 🇺🇸 | 19 | David, Freddie, Keelan, Chris, Ryan, Maya, Nat |
+| British English 🇬🇧 | 24 | Max, Trixie, Willow, Oscar, Lucas, Marnie, Emily |
+| Australian English 🇦🇺 | 5 | Lucy, Liam, Dave, Daisy, Ruth |
+| European Spanish 🇪🇸 | 1 | Rosa |
+| Latin American Spanish 🌎 | 2 | Helena, Mariam |
+
+**Gender:** 13 male, 38 female | **Age groups:** 17 young, 26 adult, 8 mature
 
 ### Call Analysis Data
 Each completed call captures:
