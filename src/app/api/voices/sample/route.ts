@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       userId,
     });
 
-    return new NextResponse(result.audio, {
+    return new NextResponse(new Uint8Array(result.audio), {
       headers: {
         'Content-Type': 'audio/wav',
         'Cache-Control': 'public, max-age=604800', // 7 days (samples are immutable)
