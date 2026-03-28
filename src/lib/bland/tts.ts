@@ -179,18 +179,17 @@ export async function generateTTS(voiceId: string, text: string, language?: stri
 // ── Store audio in Supabase Storage global cache ────────────────────
 export async function cacheSample(voice: BlandVoice, audio: Buffer): Promise<void> {
   const filename = buildSampleFilename(voice);
-  // Convert Buffer to Uint8Array for Supabase Storage compatibility
-  const uint8 = new Uint8Array(audio.buffer, audio.byteOffset, audio.byteLength);
+  // Use Blob — the native type Supabase Storage JS client expects
+  const blob = new Blob([audio], { type: 'audio/mpeg' });
   const { error } = await supabaseAdminRaw
     .storage
     .from(STORAGE_BUCKET)
-    .upload(filename, uint8, {
-      contentType: 'application/octet-stream',
+    .upload(filename, blob, {
       upsert: true,
     });
 
   if (error) {
-    console.error(`[TTS Cache] FAILED to upload ${filename} (${audio.byteLength} bytes):`, error.message, error);
+    console.error(`[TTS Cache] FAILED to upload ${filename} (${audio.byteLength} bytes):`, error.message, JSON.stringify(error));
   } else {
     console.log(`[TTS Cache] Stored ${filename} (${audio.byteLength} bytes)`);
   }
