@@ -31,6 +31,8 @@ export interface VoiceSample {
   error: string | null;
 }
 
+export type VoiceAge = 'young' | 'adult' | 'mature';
+
 export type VoiceCharacteristic =
   | 'professional'
   | 'casual'
@@ -43,7 +45,31 @@ export type VoiceCharacteristic =
   | 'friendly'
   | 'authoritative'
   | 'soft'
-  | 'engaging';
+  | 'engaging'
+  | 'direct'
+  | 'deep'
+  | 'fast'
+  | 'slow'
+  | 'cheerful'
+  | 'serious'
+  | 'motherly'
+  | 'narrator'
+  | 'charismatic'
+  | 'elegant';
+
+export type VoiceUseCase =
+  | 'lead-qualification'
+  | 'appointment-confirmation'
+  | 'data-validation'
+  | 'customer-support'
+  | 'sales'
+  | 'general';
+
+export interface VoiceProfile {
+  age: VoiceAge;
+  characteristics: VoiceCharacteristic[];
+  bestFor: VoiceUseCase[];
+}
 
 export interface VoiceWithCharacteristics extends BlandVoice {
   characteristics: VoiceCharacteristic[];
