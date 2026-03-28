@@ -10,9 +10,11 @@ VALUES (
   'voice-samples',
   'voice-samples',
   true,
-  5242880,  -- 5MB max per file (audio samples are typically <500KB)
-  ARRAY['audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/ogg', 'application/octet-stream']
-) ON CONFLICT (id) DO NOTHING;
+  10485760,  -- 10MB max per file
+  NULL       -- Allow all mime types (Bland returns varying content types)
+) ON CONFLICT (id) DO UPDATE SET
+  file_size_limit = 10485760,
+  allowed_mime_types = NULL;
 
 -- Public read access (anyone can download cached samples)
 CREATE POLICY "voice_samples_public_read" ON storage.objects
