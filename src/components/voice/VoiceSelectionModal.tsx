@@ -241,7 +241,7 @@ export default function VoiceSelectionModal({
     if (!ambientRef.current) {
       const ambient = new Audio('/sounds/office-ambient.mp3');
       ambient.loop = true;
-      ambient.volume = 0.35;
+      ambient.volume = 0.40;
       ambientRef.current = ambient;
     }
     // Randomize start within first 4:45 (285s) of the 5-min track
@@ -341,20 +341,25 @@ export default function VoiceSelectionModal({
             Explore All ({VOICE_CATALOG_STATS.totalVoices})
           </button>
           <div className="flex-1" />
-          <button
-            onClick={toggleAmbient}
-            className={`px-3 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${
-              ambientEnabled
-                ? 'bg-cyan-100 text-cyan-700 border border-cyan-300'
-                : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:bg-[var(--surface-hover)] border border-transparent'
-            }`}
-            title="Hear how this voice sounds during a real call. Adds subtle office background noise (typing, chatter) like your contacts will hear."
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-            </svg>
-            Office BG {ambientEnabled ? 'ON' : 'OFF'}
-          </button>
+          <div className="relative group/ambient">
+            <button
+              onClick={toggleAmbient}
+              className={`px-3 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${
+                ambientEnabled
+                  ? 'bg-cyan-100 text-cyan-700 border border-cyan-300'
+                  : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:bg-[var(--surface-hover)] border border-transparent'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+              </svg>
+              Office BG {ambientEnabled ? 'ON' : 'OFF'}
+            </button>
+            <div className="absolute bottom-full right-0 mb-2 w-56 bg-[var(--color-neutral-800)] text-white text-[11px] rounded-lg p-2.5 opacity-0 invisible group-hover/ambient:opacity-100 group-hover/ambient:visible transition-all z-50 shadow-xl leading-relaxed">
+              Hear how this voice sounds during a real call. Adds subtle office background noise (typing, chatter) like your contacts will hear.
+              <div className="absolute top-full right-4 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-transparent border-t-[var(--color-neutral-800)]" />
+            </div>
+          </div>
         </div>
 
         {/* Content */}
