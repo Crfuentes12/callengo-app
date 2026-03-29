@@ -236,7 +236,7 @@ export default function VoiceSelectionModal({
     onClose();
   };
 
-  // Lazily create and start ambient audio
+  // Lazily create and start ambient audio at a random offset
   const startAmbient = () => {
     if (!ambientRef.current) {
       const ambient = new Audio('/sounds/office-ambient.mp3');
@@ -244,6 +244,9 @@ export default function VoiceSelectionModal({
       ambient.volume = 0.15;
       ambientRef.current = ambient;
     }
+    // Randomize start within first 4:45 (285s) of the 5-min track
+    // so there's always 15s+ of audio left before loop point
+    ambientRef.current.currentTime = Math.random() * 285;
     ambientRef.current.play().catch(() => {});
   };
 
