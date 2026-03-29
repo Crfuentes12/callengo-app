@@ -20,7 +20,7 @@ const VOICE_PROFILES: Record<string, VoiceProfile> = {
   '070f5aba-ce9d-4a15-ab68-5330695ed1d6': { age: 'young', characteristics: ['slow', 'soft', 'calm'], bestFor: ['appointment-confirmation', 'general'] },                      // Jane
   '37b3f1c8-a01e-4d70-b251-294733f08371': { age: 'adult', characteristics: ['deep', 'narrator', 'authoritative', 'engaging'], bestFor: ['data-validation', 'general'] },      // Ryan
   '90295ec4-f0fe-4783-ab33-8b997ddc3ae4': { age: 'adult', characteristics: ['serious', 'professional', 'authoritative'], bestFor: ['data-validation', 'general'] },           // Mason
-  'e1f2a5a4-18e6-4dd6-8dfb-3c24e99d6a06': { age: 'adult', characteristics: ['fast', 'energetic', 'direct'], bestFor: ['lead-qualification', 'sales'] },                      // Alexa
+  'e1f2a5a4-18e6-4dd6-8dfb-3c24e99d6a06': { age: 'young', characteristics: ['fast', 'energetic', 'direct'], bestFor: ['lead-qualification', 'sales'] },                      // Alexa
   '60fec350-03ff-48fa-9f31-c180f37b1a38': { age: 'adult', characteristics: ['fast', 'direct', 'energetic'], bestFor: ['data-validation', 'general'] },                        // June
   '13843c96-ab9e-4938-baf3-ad53fcee541d': { age: 'young', characteristics: ['professional', 'direct', 'calm'], bestFor: ['data-validation', 'lead-qualification'] },           // Nat
   '1d054475-3908-4f64-9158-9d3911fe9597': { age: 'adult', characteristics: ['warm', 'engaging', 'friendly'], bestFor: ['sales', 'general'] },                                 // Adriana
@@ -28,10 +28,10 @@ const VOICE_PROFILES: Record<string, VoiceProfile> = {
   'aec18940-3d5a-4454-acd2-66f685e83b67': { age: 'adult', characteristics: ['slow', 'narrator', 'warm', 'calm'], bestFor: ['appointment-confirmation', 'general'] },          // Martha
 
   // British English
-  '9497013c-c348-485b-9ede-9b6e246c9578': { age: 'mature', characteristics: ['soft', 'calm', 'warm'], bestFor: ['appointment-confirmation', 'customer-support'] },             // Emily
+  '9497013c-c348-485b-9ede-9b6e246c9578': { age: 'young', characteristics: ['soft', 'calm', 'warm'], bestFor: ['appointment-confirmation', 'customer-support'] },              // Emily
   '013813f0-e96f-4c55-8c2c-b36a6d4d7916': { age: 'adult', characteristics: ['friendly', 'professional', 'serious'], bestFor: ['lead-qualification', 'general'] },              // Max
   '4f5222b2-230f-419b-b776-faa063392584': { age: 'young', characteristics: ['energetic', 'cheerful', 'warm'], bestFor: ['lead-qualification', 'sales'] },                       // Trixie
-  '27bd6e08-1d57-4ba8-a290-dcd58bfe78f2': { age: 'mature', characteristics: ['serious', 'formal', 'calm'], bestFor: ['data-validation', 'general'] },                          // Violette
+  '27bd6e08-1d57-4ba8-a290-dcd58bfe78f2': { age: 'adult', characteristics: ['serious', 'formal', 'calm'], bestFor: ['data-validation', 'general'] },                           // Violette
   'f380ad98-4ed6-4b9e-a0fa-37ba0ca9f558': { age: 'adult', characteristics: ['professional', 'direct', 'serious'], bestFor: ['data-validation', 'lead-qualification'] },         // Marnie
   'f97aa643-19b2-4a65-8677-b41839be72bc': { age: 'adult', characteristics: ['cheerful', 'friendly', 'professional'], bestFor: ['appointment-confirmation', 'sales'] },          // Oscar
   'ef8a4528-12f1-41d3-b9d9-c6a4a6d4a6df': { age: 'mature', characteristics: ['serious', 'professional', 'authoritative'], bestFor: ['data-validation', 'general'] },           // Henry (female)
@@ -41,14 +41,14 @@ const VOICE_PROFILES: Record<string, VoiceProfile> = {
   'd512400e-a3eb-4c01-9dfb-620be159cf91': { age: 'adult', characteristics: ['cheerful', 'energetic', 'professional'], bestFor: ['lead-qualification', 'sales'] },                // Casey
   '3f222e4d-2624-4bf7-849f-9841ce872015': { age: 'young', characteristics: ['cheerful', 'energetic', 'professional'], bestFor: ['lead-qualification', 'sales'] },                // Clara
   'bc97a31e-b0b8-49e5-bcb8-393fcc6a86ea': { age: 'adult', characteristics: ['deep', 'charismatic', 'elegant', 'professional'], bestFor: ['sales', 'general'] },                 // Willow
-  '26b40c81-22af-4ff3-9821-2c8c6fd38c4d': { age: 'adult', characteristics: ['deep', 'slow', 'narrator', 'warm'], bestFor: ['appointment-confirmation', 'general'] },            // Ethan
+  '26b40c81-22af-4ff3-9821-2c8c6fd38c4d': { age: 'mature', characteristics: ['deep', 'slow', 'narrator', 'warm'], bestFor: ['appointment-confirmation', 'general'] },           // Ethan
   '31477d18-71c7-4ee0-b41f-d0714689536d': { age: 'adult', characteristics: ['serious', 'fast', 'direct'], bestFor: ['data-validation', 'lead-qualification'] },                 // Destiny
   '7b05d026-0d58-4d09-9887-dc45b4b12dcb': { age: 'adult', characteristics: ['professional', 'serious', 'calm'], bestFor: ['data-validation', 'general'] },                      // Alyssa
   '955a02fb-57e1-418c-865c-d9c7bf9b209a': { age: 'adult', characteristics: ['serious', 'formal', 'professional'], bestFor: ['data-validation', 'general'] },                    // Brady
   '77a066a7-0a91-4aa8-bf62-4745b00ff167': { age: 'adult', characteristics: ['fast', 'professional', 'serious'], bestFor: ['lead-qualification', 'data-validation'] },            // Pryce
   'be3bffbd-c1f1-49a0-8575-58073bfcf9c4': { age: 'adult', characteristics: ['warm', 'cheerful', 'engaging'], bestFor: ['appointment-confirmation', 'customer-support'] },       // Gabriella
   '922d6173-4567-480c-b9a0-bc7c421ad43d': { age: 'young', characteristics: ['warm', 'friendly', 'calm'], bestFor: ['appointment-confirmation', 'customer-support'] },            // Amelia
-  'dac8fda9-5c55-45e5-b378-ebd311dbb311': { age: 'adult', characteristics: ['serious', 'slow', 'professional', 'motherly'], bestFor: ['appointment-confirmation', 'general'] },  // Alice
+  'dac8fda9-5c55-45e5-b378-ebd311dbb311': { age: 'young', characteristics: ['serious', 'slow', 'professional', 'motherly'], bestFor: ['appointment-confirmation', 'general'] },  // Alice
   'd70c223b-c039-4f35-9e93-771b2ca481e1': { age: 'adult', characteristics: ['warm', 'motherly', 'friendly'], bestFor: ['appointment-confirmation', 'customer-support'] },       // Julia
   'a710fd26-0ed7-48e8-86b3-0d4e52d4f500': { age: 'young', characteristics: ['cheerful', 'slow', 'friendly'], bestFor: ['general', 'customer-support'] },                        // Rosalie
   'fd9c6765-a2ce-429a-abc7-00be9d1e3a92': { age: 'adult', characteristics: ['cheerful', 'friendly', 'warm'], bestFor: ['customer-support', 'general'] },                        // Tanner
@@ -57,7 +57,7 @@ const VOICE_PROFILES: Record<string, VoiceProfile> = {
   '88831b36-7c85-4879-b6b0-22c2ff9f59d7': { age: 'mature', characteristics: ['serious', 'slow', 'professional', 'narrator'], bestFor: ['data-validation', 'general'] },         // Lucy
   '63092d46-e154-4e8b-96e9-de85245e82ab': { age: 'young', characteristics: ['cheerful', 'friendly', 'professional'], bestFor: ['lead-qualification', 'sales'] },                 // Liam
   '1c1ca816-f457-4dde-a12a-eaf19fb0b523': { age: 'adult', characteristics: ['fast', 'friendly', 'warm'], bestFor: ['lead-qualification', 'customer-support'] },                  // Dave
-  '8d398d73-a3a6-472b-aad9-ce61b1563a23': { age: 'young', characteristics: ['soft', 'warm', 'calm'], bestFor: ['appointment-confirmation', 'customer-support'] },                // Daisy
+  '8d398d73-a3a6-472b-aad9-ce61b1563a23': { age: 'adult', characteristics: ['soft', 'warm', 'calm'], bestFor: ['appointment-confirmation', 'customer-support'] },                // Daisy
   '47c02104-7f23-4857-b1a8-e3e939d56642': { age: 'adult', characteristics: ['slow', 'professional', 'motherly'], bestFor: ['appointment-confirmation', 'general'] },             // Ruth
 
   // European Spanish

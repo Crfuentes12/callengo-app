@@ -43,6 +43,8 @@ export default function VoiceSelectionModal({
   const [loadingVoice, setLoadingVoice] = useState<string | null>(null);
   const [audioCache, setAudioCache] = useState<Map<string, Blob>>(new Map());
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [ambientEnabled, setAmbientEnabled] = useState(false);
+  const ambientRef = useRef<HTMLAudioElement | null>(null);
 
   // Filters for explore mode
   const [selectedCountry, setSelectedCountry] = useState<string>('all');
@@ -172,6 +174,7 @@ export default function VoiceSelectionModal({
 
     if (playingVoice === voice.id) {
       setPlayingVoice(null);
+      if (ambientRef.current) ambientRef.current.pause();
       return;
     }
 
@@ -208,10 +211,19 @@ export default function VoiceSelectionModal({
       audio.onended = () => {
         setPlayingVoice(null);
         URL.revokeObjectURL(audioUrl);
+        // Stop ambient when voice ends
+        if (ambientRef.current) {
+          ambientRef.current.pause();
+        }
       };
 
       await audio.play();
       setPlayingVoice(voice.id);
+
+      // Start ambient if enabled
+      if (ambientEnabled) {
+        startAmbient();
+      }
     } catch (error) {
       console.error('Error playing sample:', error);
     } finally {
@@ -222,6 +234,33 @@ export default function VoiceSelectionModal({
   const handleSelectVoice = (voiceId: string) => {
     onVoiceSelect(voiceId);
     onClose();
+  };
+
+  // Lazily create and start ambient audio at a random offset
+  const startAmbient = () => {
+    if (!ambientRef.current) {
+      const ambient = new Audio('/sounds/office-ambient.mp3');
+      ambient.loop = true;
+      ambient.volume = 0.15;
+      ambientRef.current = ambient;
+    }
+    // Randomize start within first 4:45 (285s) of the 5-min track
+    // so there's always 15s+ of audio left before loop point
+    ambientRef.current.currentTime = Math.random() * 285;
+    ambientRef.current.play().catch(() => {});
+  };
+
+  // Toggle ambient — if voice is playing, start/stop immediately
+  const toggleAmbient = () => {
+    setAmbientEnabled(prev => {
+      const next = !prev;
+      if (next && playingVoice) {
+        startAmbient();
+      } else if (!next && ambientRef.current) {
+        ambientRef.current.pause();
+      }
+      return next;
+    });
   };
 
   const resetFilters = () => {
@@ -239,6 +278,10 @@ export default function VoiceSelectionModal({
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
+      }
+      if (ambientRef.current) {
+        ambientRef.current.pause();
+        ambientRef.current = null;
       }
     };
   }, [isOpen]);
@@ -296,6 +339,21 @@ export default function VoiceSelectionModal({
           >
             <svg className="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
             Explore All ({VOICE_CATALOG_STATS.totalVoices})
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={toggleAmbient}
+            className={`px-3 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${
+              ambientEnabled
+                ? 'bg-cyan-100 text-cyan-700 border border-cyan-300'
+                : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:bg-[var(--surface-hover)] border border-transparent'
+            }`}
+            title="Toggle office background noise to hear how the voice sounds in a real call environment"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+            </svg>
+            Office BG {ambientEnabled ? 'ON' : 'OFF'}
           </button>
         </div>
 
