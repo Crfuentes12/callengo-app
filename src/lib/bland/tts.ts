@@ -9,7 +9,7 @@ import { determineCategory, determineGender } from '@/lib/voices/voice-utils';
 const BLAND_SPEAK_URL = 'https://api.bland.ai/v1/speak';
 const BLAND_SAMPLE_URL = 'https://api.bland.ai/v1/voices'; // fallback: /v1/voices/{id}/sample
 const STORAGE_BUCKET = 'voice-samples';
-const MAX_GENERATIONS_PER_COMPANY = 51; // Aligned with total voice count
+const MAX_GENERATIONS_PER_COMPANY = 100; // Generous limit — once all voices are cached, no new generations needed
 
 // ── Bland Curated (Beige) voice IDs ─────────────────────────────────
 // These are Bland's native voices that run on the Beige TTS engine.
@@ -99,11 +99,14 @@ export function getCachedSampleUrl(voice: BlandVoice): string {
   return data.publicUrl;
 }
 
-// ── Check how many uncached TTS generations a company has used ──────
+// ── Check how many unique voices a company has generated ─────────────
+// Counts distinct voice_ids, not total generations.
+// This way, regenerating the same voice (due to cache failures) doesn't
+// eat up the limit.
 export async function getCompanyGenerationCount(companyId: string): Promise<number> {
-  const { count, error } = await supabaseAdminRaw
+  const { data, error } = await supabaseAdminRaw
     .from('tts_usage_logs')
-    .select('*', { count: 'exact', head: true })
+    .select('voice_id')
     .eq('company_id', companyId)
     .eq('cached', false);
 
@@ -112,7 +115,9 @@ export async function getCompanyGenerationCount(companyId: string): Promise<numb
     return 0;
   }
 
-  return count || 0;
+  // Count unique voice_ids
+  const uniqueVoices = new Set((data || []).map((r: { voice_id: string }) => r.voice_id));
+  return uniqueVoices.size;
 }
 
 // ── Check if company is within generation limit ─────────────────────
