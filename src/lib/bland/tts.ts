@@ -249,23 +249,21 @@ export async function getVoiceSample(params: {
   // 3. Generate via Bland /v1/speak (with fallback to /v1/voices/{id}/sample)
   const { audio, cost, characters } = await generateTTS(voice.id, text, language);
 
-  // 4. Cache globally (fire and forget — don't block response)
-  cacheSample(voice, audio).catch(err =>
-    console.warn('Background cache failed:', err)
-  );
-
-  // 5. Log the cost
-  logTTSUsage({
-    companyId,
-    userId,
-    voiceId: voice.id,
-    voiceName: voice.name,
-    characters,
-    cost,
-    cached: false,
-  }).catch(err =>
-    console.warn('Background TTS log failed:', err)
-  );
+  // 4. Cache globally and log cost — MUST await before returning
+  // (Vercel serverless kills the function after response is sent,
+  // so fire-and-forget uploads get terminated mid-flight)
+  await Promise.allSettled([
+    cacheSample(voice, audio),
+    logTTSUsage({
+      companyId,
+      userId,
+      voiceId: voice.id,
+      voiceName: voice.name,
+      characters,
+      cost,
+      cached: false,
+    }),
+  ]);
 
   return { audio, fromCache: false, cost, characters };
 }
