@@ -47,8 +47,6 @@ export default function VoiceSelectionModal({
   const ambientRef = useRef<HTMLAudioElement | null>(null);
 
   // Filters for explore mode
-  const [selectedCountry, setSelectedCountry] = useState<string>('all');
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
   const [selectedAccent, setSelectedAccent] = useState<string>('all');
   const [selectedCharacteristic, setSelectedCharacteristic] = useState<string>('all');
   const [selectedGender, setSelectedGender] = useState<string>('all');
@@ -62,168 +60,93 @@ export default function VoiceSelectionModal({
 
   const recommended = getRecommendedVoices();
 
-  // Load favorites from database BEFORE opening modal to avoid flash
   useEffect(() => {
     const loadFavorites = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setFavoritesLoaded(true);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('users')
-          .select('fav_voices')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.warn('Could not load favorites:', error.message);
-          setFavoritesLoaded(true);
-          return;
-        }
-
+        if (!user) { setFavoritesLoaded(true); return; }
+        const { data, error } = await supabase.from('users').select('fav_voices').eq('id', user.id).single();
+        if (error) { setFavoritesLoaded(true); return; }
         if (data && (data as unknown as Record<string, unknown>).fav_voices) {
           setFavorites(new Set((data as unknown as Record<string, string[]>).fav_voices));
         }
         setFavoritesLoaded(true);
-      } catch (err) {
-        console.warn('Error loading favorites:', err);
-        setFavoritesLoaded(true);
-      }
+      } catch { setFavoritesLoaded(true); }
     };
-
-    if (isOpen && !favoritesLoaded) {
-      loadFavorites();
-    }
+    if (isOpen && !favoritesLoaded) loadFavorites();
   }, [isOpen, favoritesLoaded, supabase]);
 
-  // Helper to check if a voice is recommended
   const isRecommended = (voiceId: string): boolean => {
-    return Object.values(recommended).some(category =>
-      category.female.some(v => v.id === voiceId) ||
-      category.male.some(v => v.id === voiceId)
-    );
+    return Object.values(recommended).some(cat => cat.female.some(v => v.id === voiceId) || cat.male.some(v => v.id === voiceId));
   };
 
-  // Toggle favorite
   const toggleFavorite = async (voiceId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       setFavorites(prev => {
-        const newFavorites = new Set(prev);
-        if (newFavorites.has(voiceId)) {
-          newFavorites.delete(voiceId);
-        } else {
-          newFavorites.add(voiceId);
-        }
-
-        supabase
-          .from('users')
-          .update({ fav_voices: [...newFavorites] } as unknown as Record<string, unknown>)
-          .eq('id', user.id)
-          .then(({ error }) => {
-            if (error) {
-              console.warn('Could not save favorites (migration may not be applied yet):', error.message);
-            }
-          });
-
-        return newFavorites;
+        const next = new Set(prev);
+        if (next.has(voiceId)) next.delete(voiceId); else next.add(voiceId);
+        supabase.from('users').update({ fav_voices: [...next] } as unknown as Record<string, unknown>).eq('id', user.id).then(({ error }) => {
+          if (error) console.warn('Could not save favorites:', error.message);
+        });
+        return next;
       });
-    } catch (err) {
-      console.warn('Error toggling favorite:', err);
-    }
+    } catch (err) { console.warn('Error toggling favorite:', err); }
   };
 
-  // Get unique values for filters
-  const countries = Array.from(new Set(BLAND_VOICES.map(v => determineCategory(v).country))).sort();
-  const languages = Array.from(new Set(BLAND_VOICES.map(v => determineCategory(v).language))).sort();
+  // Filter options
   const accents = Array.from(new Set(BLAND_VOICES.map(v => determineCategory(v).accent))).sort();
-  const characteristics = Array.from(
-    new Set(BLAND_VOICES.flatMap(v => getVoiceCharacteristics(v)))
-  ).sort();
+  const characteristics = Array.from(new Set(BLAND_VOICES.flatMap(v => getVoiceCharacteristics(v)))).sort();
   const ages = ['young', 'adult', 'mature'];
   const useCases = Object.keys(USE_CASE_LABELS) as Array<keyof typeof USE_CASE_LABELS>;
+  const hasFilters = selectedGender !== 'all' || selectedAge !== 'all' || selectedAccent !== 'all' || selectedCharacteristic !== 'all' || selectedUseCase !== 'all';
 
-  // Filter voices based on selected filters
   const filteredVoices = BLAND_VOICES.filter(voice => {
     const category = determineCategory(voice);
     const chars = getVoiceCharacteristics(voice);
     const gender = determineGender(voice);
     const profile = getVoiceProfile(voice);
-
-    if (selectedCountry !== 'all' && category.country !== selectedCountry) return false;
-    if (selectedLanguage !== 'all' && category.language !== selectedLanguage) return false;
     if (selectedAccent !== 'all' && category.accent !== selectedAccent) return false;
     if (selectedCharacteristic !== 'all' && !chars.includes(selectedCharacteristic)) return false;
     if (selectedGender !== 'all' && gender !== selectedGender) return false;
     if (selectedAge !== 'all' && profile.age !== selectedAge) return false;
     if (selectedUseCase !== 'all' && !profile.bestFor.includes(selectedUseCase as keyof typeof USE_CASE_LABELS)) return false;
-
     return true;
   }).sort((a, b) => b.average_rating - a.average_rating);
 
   const handlePlaySample = async (voice: BlandVoice) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     if (playingVoice === voice.id) {
       setPlayingVoice(null);
       if (ambientRef.current) ambientRef.current.pause();
       return;
     }
-
     setLoadingVoice(voice.id);
     setPlayingVoice(null);
-
     try {
       let audioBlob = audioCache.get(voice.id);
-
       if (!audioBlob) {
-        const sampleText = getSampleText(voice);
-        const language = getLanguageCode(voice);
-
         const response = await fetch('/api/voices/sample', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            voiceId: voice.id,
-            text: sampleText,
-            language,
-          }),
+          body: JSON.stringify({ voiceId: voice.id, text: getSampleText(voice), language: getLanguageCode(voice) }),
         });
-
         if (!response.ok) throw new Error('Failed to generate sample');
-
         audioBlob = await response.blob();
         setAudioCache(prev => new Map(prev).set(voice.id, audioBlob!));
       }
-
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
-
       audio.onended = () => {
         setPlayingVoice(null);
         URL.revokeObjectURL(audioUrl);
-        // Stop ambient when voice ends
-        if (ambientRef.current) {
-          ambientRef.current.pause();
-        }
+        if (ambientRef.current) ambientRef.current.pause();
       };
-
       await audio.play();
       setPlayingVoice(voice.id);
-
-      // Start ambient if enabled
-      if (ambientEnabled) {
-        startAmbient();
-      }
+      if (ambientEnabled) startAmbient();
     } catch (error) {
       console.error('Error playing sample:', error);
     } finally {
@@ -231,41 +154,29 @@ export default function VoiceSelectionModal({
     }
   };
 
-  const handleSelectVoice = (voiceId: string) => {
-    onVoiceSelect(voiceId);
-    onClose();
-  };
+  const handleSelectVoice = (voiceId: string) => { onVoiceSelect(voiceId); onClose(); };
 
-  // Lazily create and start ambient audio at a random offset
   const startAmbient = () => {
     if (!ambientRef.current) {
       const ambient = new Audio('/sounds/office-ambient.mp3');
       ambient.loop = true;
-      ambient.volume = 0.35;
+      ambient.volume = 0.40;
       ambientRef.current = ambient;
     }
-    // Randomize start within first 4:45 (285s) of the 5-min track
-    // so there's always 15s+ of audio left before loop point
     ambientRef.current.currentTime = Math.random() * 285;
     ambientRef.current.play().catch(() => {});
   };
 
-  // Toggle ambient — if voice is playing, start/stop immediately
   const toggleAmbient = () => {
     setAmbientEnabled(prev => {
       const next = !prev;
-      if (next && playingVoice) {
-        startAmbient();
-      } else if (!next && ambientRef.current) {
-        ambientRef.current.pause();
-      }
+      if (next && playingVoice) startAmbient();
+      else if (!next && ambientRef.current) ambientRef.current.pause();
       return next;
     });
   };
 
   const resetFilters = () => {
-    setSelectedCountry('all');
-    setSelectedLanguage('all');
     setSelectedAccent('all');
     setSelectedCharacteristic('all');
     setSelectedGender('all');
@@ -275,14 +186,8 @@ export default function VoiceSelectionModal({
 
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      if (ambientRef.current) {
-        ambientRef.current.pause();
-        ambientRef.current = null;
-      }
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      if (ambientRef.current) { ambientRef.current.pause(); ambientRef.current = null; }
     };
   }, [isOpen]);
 
@@ -292,76 +197,72 @@ export default function VoiceSelectionModal({
     ? 'w-full max-w-3xl max-h-[70vh] rounded-2xl'
     : 'w-full max-w-5xl max-h-[70vh] rounded-2xl';
 
-  const wrapperClass = fullscreen
-    ? 'fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4'
-    : 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md';
+  const wrapperClass = 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md';
 
   const modalContent = (
     <div className={wrapperClass} style={{ isolation: 'isolate', willChange: 'transform' }}>
       <div className={`relative bg-white shadow-2xl border border-[var(--border-default)] overflow-hidden flex flex-col ${containerSize}`} style={{ transform: 'translateZ(0)' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border-default)]">
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-[var(--color-ink)]">Select Voice</h2>
-            <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
-              {VOICE_CATALOG_STATS.totalVoices} voices &middot; {VOICE_CATALOG_STATS.accents} accents &middot; {VOICE_CATALOG_STATS.languages} languages
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 z-50 w-9 h-9 rounded-lg bg-[var(--color-neutral-100)] backdrop-blur-sm border border-[var(--border-default)] text-[var(--color-neutral-500)] hover:text-white hover:bg-red-600 hover:border-red-500 transition-all duration-300 flex items-center justify-center group"
-          >
-            <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
 
-        {/* View Mode Tabs */}
-        <div className="flex gap-2 p-3 border-b border-[var(--border-default)] bg-[var(--color-neutral-50)]">
+        {/* ── Header: Tabs + Ambient + Close ── */}
+        <div className="flex items-center gap-1.5 px-3 py-2.5 border-b border-[var(--border-default)]">
           <button
             onClick={() => setViewMode('recommended')}
-            className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
               viewMode === 'recommended'
-                ? 'gradient-bg text-white shadow-lg'
-                : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)]'
+                ? 'gradient-bg text-white shadow-sm'
+                : 'text-[var(--color-neutral-500)] hover:text-[var(--color-ink)] hover:bg-[var(--color-neutral-100)]'
             }`}
           >
             Top Picks
           </button>
           <button
             onClick={() => setViewMode('explore')}
-            className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
               viewMode === 'explore'
-                ? 'gradient-bg text-white shadow-lg'
-                : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)] hover:bg-[var(--surface-hover)]'
+                ? 'gradient-bg text-white shadow-sm'
+                : 'text-[var(--color-neutral-500)] hover:text-[var(--color-ink)] hover:bg-[var(--color-neutral-100)]'
             }`}
           >
-            <svg className="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
-            Explore All ({VOICE_CATALOG_STATS.totalVoices})
+            All Voices
           </button>
+
+          <div className="w-px h-5 bg-[var(--border-default)] mx-1" />
+
+          {/* Ambient toggle */}
+          <div className="relative group/ambient">
+            <button
+              onClick={toggleAmbient}
+              className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 ${
+                ambientEnabled
+                  ? 'bg-cyan-50 text-cyan-600 hover:bg-cyan-100'
+                  : 'text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-100)]'
+              }`}
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+              </svg>
+              Office
+            </button>
+            <div className="absolute bottom-full left-0 mb-2 w-52 bg-[var(--color-neutral-800)] text-white text-[11px] rounded-lg p-2.5 opacity-0 invisible group-hover/ambient:opacity-100 group-hover/ambient:visible transition-all z-50 shadow-xl leading-relaxed pointer-events-none">
+              Hear how voices sound during a real call with office background noise.
+              <div className="absolute top-full left-6 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-transparent border-t-[var(--color-neutral-800)]" />
+            </div>
+          </div>
+
           <div className="flex-1" />
+
           <button
-            onClick={toggleAmbient}
-            className={`px-3 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${
-              ambientEnabled
-                ? 'bg-cyan-100 text-cyan-700 border border-cyan-300'
-                : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:bg-[var(--surface-hover)] border border-transparent'
-            }`}
-            title="Hear how this voice sounds during a real call. Adds subtle office background noise (typing, chatter) like your contacts will hear."
+            onClick={onClose}
+            className="w-7 h-7 rounded-full text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-100)] transition-all flex items-center justify-center"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
-            Office BG {ambientEnabled ? 'ON' : 'OFF'}
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4" style={{
-          scrollbarGutter: 'stable',
-          scrollbarWidth: 'thin'
-        }}>
+        {/* ── Content ── */}
+        <div className="flex-1 overflow-y-auto p-4" style={{ scrollbarGutter: 'stable', scrollbarWidth: 'thin' }}>
           {viewMode === 'recommended' ? (
             <RecommendedVoices
               recommended={recommended}
@@ -375,69 +276,20 @@ export default function VoiceSelectionModal({
             />
           ) : (
             <>
-              {/* Filters */}
-              <div className="mb-4 p-3 bg-[var(--color-neutral-50)] rounded-xl border border-[var(--border-default)]">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-bold text-[var(--color-ink)] uppercase">Filters</h3>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-[var(--color-neutral-500)]">{filteredVoices.length} voice{filteredVoices.length !== 1 ? 's' : ''}</span>
-                    <button
-                      onClick={resetFilters}
-                      className="text-xs font-bold text-[var(--color-primary-light)] hover:text-[var(--color-primary)]"
-                    >
-                      Reset All
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-                  <FilterSelect
-                    label="Gender"
-                    value={selectedGender}
-                    onChange={setSelectedGender}
-                    options={['male', 'female']}
-                  />
-                  <FilterSelect
-                    label="Age"
-                    value={selectedAge}
-                    onChange={setSelectedAge}
-                    options={ages}
-                    displayMap={AGE_LABELS}
-                  />
-                  <FilterSelect
-                    label="Language"
-                    value={selectedLanguage}
-                    onChange={setSelectedLanguage}
-                    options={languages}
-                  />
-                  <FilterSelect
-                    label="Accent"
-                    value={selectedAccent}
-                    onChange={setSelectedAccent}
-                    options={accents}
-                  />
-                  <FilterSelect
-                    label="Country"
-                    value={selectedCountry}
-                    onChange={setSelectedCountry}
-                    options={countries}
-                  />
-                  <FilterSelect
-                    label="Style"
-                    value={selectedCharacteristic}
-                    onChange={setSelectedCharacteristic}
-                    options={characteristics}
-                  />
-                  <FilterSelect
-                    label="Best For"
-                    value={selectedUseCase}
-                    onChange={setSelectedUseCase}
-                    options={useCases}
-                    displayMap={USE_CASE_LABELS}
-                  />
-                </div>
+              {/* Filter pills */}
+              <div className="flex flex-wrap items-center gap-1.5 mb-4">
+                <PillSelect label="Gender" value={selectedGender} onChange={setSelectedGender} options={['male', 'female']} />
+                <PillSelect label="Age" value={selectedAge} onChange={setSelectedAge} options={ages} displayMap={AGE_LABELS} />
+                <PillSelect label="Accent" value={selectedAccent} onChange={setSelectedAccent} options={accents} />
+                <PillSelect label="Style" value={selectedCharacteristic} onChange={setSelectedCharacteristic} options={characteristics} />
+                <PillSelect label="Best For" value={selectedUseCase} onChange={setSelectedUseCase} options={useCases} displayMap={USE_CASE_LABELS} />
+                {hasFilters && (
+                  <button onClick={resetFilters} className="px-2 py-1 rounded-full text-[10px] font-bold text-[var(--color-primary-light)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 transition-all">
+                    Clear
+                  </button>
+                )}
+                <span className="text-[10px] text-[var(--color-neutral-400)] ml-auto">{filteredVoices.length} voice{filteredVoices.length !== 1 ? 's' : ''}</span>
               </div>
-
-              {/* All Voices Grid */}
               <AllVoicesGrid
                 voices={filteredVoices}
                 selectedVoiceId={selectedVoiceId}
@@ -459,16 +311,10 @@ export default function VoiceSelectionModal({
   return typeof window !== 'undefined' ? createPortal(modalContent, document.body) : null;
 }
 
-// Recommended Voices Component
+// ── Recommended Voices ──────────────────────────────────────────────
 function RecommendedVoices({
-  recommended,
-  selectedVoiceId,
-  playingVoice,
-  loadingVoice,
-  favorites,
-  onPlaySample,
-  onSelectVoice,
-  onToggleFavorite,
+  recommended, selectedVoiceId, playingVoice, loadingVoice, favorites,
+  onPlaySample, onSelectVoice, onToggleFavorite,
 }: {
   recommended: ReturnType<typeof getRecommendedVoices>;
   selectedVoiceId: string;
@@ -482,85 +328,44 @@ function RecommendedVoices({
   const favoriteVoices = BLAND_VOICES.filter(voice => favorites.has(voice.id));
 
   const categories = [
-    { key: 'american', label: 'American English', flag: '🇺🇸', color: 'from-blue-500 to-blue-700', sub: '19 voices' },
-    { key: 'british', label: 'British English', flag: '🇬🇧', color: 'from-[var(--color-deep-indigo)] to-[var(--color-electric)]', sub: '24 voices' },
-    { key: 'australian', label: 'Australian English', flag: '🇦🇺', color: 'from-emerald-500 to-teal-600', sub: '5 voices' },
-    { key: 'spanish-europe', label: 'Spanish (Spain)', flag: '🇪🇸', color: 'from-amber-500 to-orange-600', sub: '1 voice' },
-    { key: 'spanish-latam', label: 'Spanish (Latin America)', flag: '🌎', color: 'from-rose-500 to-pink-600', sub: '2 voices' },
+    { key: 'american', label: 'American', flag: '🇺🇸', sub: '19 voices' },
+    { key: 'british', label: 'British', flag: '🇬🇧', sub: '24 voices' },
+    { key: 'australian', label: 'Australian', flag: '🇦🇺', sub: '5 voices' },
+    { key: 'spanish-europe', label: 'Spanish (Spain)', flag: '🇪🇸', sub: '1 voice' },
+    { key: 'spanish-latam', label: 'Spanish (LatAm)', flag: '🌎', sub: '2 voices' },
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Quick tip */}
-      <div className="p-3 bg-gradient-to-r from-[var(--color-primary)]/5 to-[var(--color-electric)]/5 rounded-xl border border-[var(--color-primary)]/10">
-        <p className="text-xs text-[var(--color-neutral-600)]">
-          <span className="font-bold text-[var(--color-ink)]">Tip:</span> Listen to each voice sample before choosing. Look for <span className="inline-flex items-center px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-xs font-medium">Best For</span> tags to find voices that match your use case.
-        </p>
-      </div>
-
-      {/* User Favorites Section */}
+    <div className="space-y-5">
+      {/* Favorites */}
       {favorites.size > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">&#9733;</span>
-            <h3 className="text-base font-bold text-[var(--color-ink)]">
-              Your Favorites
-            </h3>
-            <span className="text-xs text-[var(--color-neutral-400)]">({favorites.size})</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide">Favorites ({favorites.size})</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {favoriteVoices.map(voice => (
-              <VoiceCard
-                key={voice.id}
-                voice={voice}
-                isSelected={selectedVoiceId === voice.id}
-                isPlaying={playingVoice === voice.id}
-                isLoading={loadingVoice === voice.id}
-                isFavorite={true}
-                isRecommended={false}
-                onPlay={() => onPlaySample(voice)}
-                onSelect={() => onSelectVoice(voice.id)}
-                onToggleFavorite={() => onToggleFavorite(voice.id)}
-              />
+              <VoiceCard key={voice.id} voice={voice} isSelected={selectedVoiceId === voice.id} isPlaying={playingVoice === voice.id} isLoading={loadingVoice === voice.id} isFavorite={true} isRecommended={false} onPlay={() => onPlaySample(voice)} onSelect={() => onSelectVoice(voice.id)} onToggleFavorite={() => onToggleFavorite(voice.id)} />
             ))}
           </div>
         </div>
       )}
 
-      {/* System Recommended Voices */}
+      {/* Categories */}
       {categories.map(category => {
-        const categoryVoices = [
+        const voices = [
           ...recommended[category.key as keyof typeof recommended].female,
           ...recommended[category.key as keyof typeof recommended].male,
         ];
-
-        if (categoryVoices.length === 0) return null;
-
+        if (voices.length === 0) return null;
         return (
-          <div key={category.key} className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{category.flag}</span>
-              <div>
-                <h3 className={`text-base font-bold bg-gradient-to-r ${category.color} bg-clip-text text-transparent`}>
-                  {category.label}
-                </h3>
-                <p className="text-xs text-[var(--color-neutral-400)]">{category.sub}</p>
-              </div>
+          <div key={category.key} className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">{category.flag}</span>
+              <h3 className="text-xs font-bold text-[var(--color-ink)] uppercase tracking-wide">{category.label}</h3>
+              <span className="text-[10px] text-[var(--color-neutral-400)]">{category.sub}</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {categoryVoices.map(voice => (
-                <VoiceCard
-                  key={voice.id}
-                  voice={voice}
-                  isSelected={selectedVoiceId === voice.id}
-                  isPlaying={playingVoice === voice.id}
-                  isLoading={loadingVoice === voice.id}
-                  isFavorite={favorites.has(voice.id)}
-                  isRecommended={true}
-                  onPlay={() => onPlaySample(voice)}
-                  onSelect={() => onSelectVoice(voice.id)}
-                  onToggleFavorite={() => onToggleFavorite(voice.id)}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {voices.map(voice => (
+                <VoiceCard key={voice.id} voice={voice} isSelected={selectedVoiceId === voice.id} isPlaying={playingVoice === voice.id} isLoading={loadingVoice === voice.id} isFavorite={favorites.has(voice.id)} isRecommended={true} onPlay={() => onPlaySample(voice)} onSelect={() => onSelectVoice(voice.id)} onToggleFavorite={() => onToggleFavorite(voice.id)} />
               ))}
             </div>
           </div>
@@ -570,17 +375,10 @@ function RecommendedVoices({
   );
 }
 
-// All Voices Grid Component
+// ── All Voices Grid ─────────────────────────────────────────────────
 function AllVoicesGrid({
-  voices,
-  selectedVoiceId,
-  playingVoice,
-  loadingVoice,
-  favorites,
-  onPlaySample,
-  onSelectVoice,
-  onToggleFavorite,
-  isRecommended,
+  voices, selectedVoiceId, playingVoice, loadingVoice, favorites,
+  onPlaySample, onSelectVoice, onToggleFavorite, isRecommended,
 }: {
   voices: BlandVoice[];
   selectedVoiceId: string;
@@ -593,44 +391,21 @@ function AllVoicesGrid({
   isRecommended: (voiceId: string) => boolean;
 }) {
   if (voices.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-[var(--color-neutral-500)]">No voices found matching your filters</p>
-      </div>
-    );
+    return <div className="text-center py-12 text-sm text-[var(--color-neutral-400)]">No voices match your filters</div>;
   }
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
       {voices.map(voice => (
-        <VoiceCard
-          key={voice.id}
-          voice={voice}
-          isSelected={selectedVoiceId === voice.id}
-          isPlaying={playingVoice === voice.id}
-          isLoading={loadingVoice === voice.id}
-          isFavorite={favorites.has(voice.id)}
-          isRecommended={isRecommended(voice.id)}
-          onPlay={() => onPlaySample(voice)}
-          onSelect={() => onSelectVoice(voice.id)}
-          onToggleFavorite={() => onToggleFavorite(voice.id)}
-        />
+        <VoiceCard key={voice.id} voice={voice} isSelected={selectedVoiceId === voice.id} isPlaying={playingVoice === voice.id} isLoading={loadingVoice === voice.id} isFavorite={favorites.has(voice.id)} isRecommended={isRecommended(voice.id)} onPlay={() => onPlaySample(voice)} onSelect={() => onSelectVoice(voice.id)} onToggleFavorite={() => onToggleFavorite(voice.id)} />
       ))}
     </div>
   );
 }
 
-// Voice Card Component
+// ── Voice Card ──────────────────────────────────────────────────────
 function VoiceCard({
-  voice,
-  isSelected,
-  isPlaying,
-  isLoading,
-  isFavorite,
-  isRecommended,
-  onPlay,
-  onSelect,
-  onToggleFavorite,
+  voice, isSelected, isPlaying, isLoading, isFavorite, isRecommended: _isRecommended,
+  onPlay, onSelect, onToggleFavorite,
 }: {
   voice: BlandVoice;
   isSelected: boolean;
@@ -644,153 +419,84 @@ function VoiceCard({
 }) {
   const gender = determineGender(voice);
   const category = determineCategory(voice);
-  const characteristics = getVoiceCharacteristics(voice);
   const profile = getVoiceProfile(voice);
+  const characteristics = getVoiceCharacteristics(voice);
   const ageLabel = AGE_LABELS[profile.age];
-
-  // Age color mapping
-  const ageColor = profile.age === 'young'
-    ? 'bg-violet-50 text-violet-600'
-    : profile.age === 'mature'
-      ? 'bg-amber-50 text-amber-600'
-      : 'bg-sky-50 text-sky-600';
 
   return (
     <div
-      className={`p-3 rounded-xl border transition-all cursor-pointer hover:shadow-lg ${
+      className={`group/card p-2.5 rounded-xl border transition-all cursor-pointer ${
         isSelected
-          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-md'
-          : 'bg-white border-[var(--border-default)] hover:border-[var(--border-strong)]'
+          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-sm'
+          : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:shadow-sm'
       }`}
       onClick={onSelect}
     >
-      {/* Top row: name + badges */}
-      <div className="flex items-start justify-between mb-1.5">
-        <div className="flex-1">
-          <div className="flex items-center gap-1.5">
-            <h4 className="font-bold text-[var(--color-ink)] text-sm">{voice.name}</h4>
-            {isRecommended && (
-              <span className="px-1 py-0.5 bg-yellow-50 text-yellow-600 rounded text-[10px] font-bold leading-none">TOP</span>
-            )}
-          </div>
-          <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
-            {category.accent} {category.language}
-          </p>
-        </div>
-        <div className="flex items-center gap-1">
-          {/* Favorite toggle */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite();
-            }}
-            className="p-1 hover:bg-[var(--surface-hover)] rounded transition-colors"
-            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            {isFavorite ? (
-              <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4 text-[var(--color-neutral-400)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
-            )}
-          </button>
-          {/* Gender Badge */}
-          <span
-            className={`px-1.5 py-0.5 rounded text-xs font-bold ${
-              gender === 'female'
-                ? 'bg-pink-50 text-pink-600'
-                : 'bg-blue-50 text-blue-600'
-            }`}
-          >
+      {/* Row 1: Name + meta */}
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <h4 className="font-bold text-sm text-[var(--color-ink)] truncate">{voice.name}</h4>
+          <span className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+            gender === 'female' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'
+          }`}>
             {gender === 'female' ? '♀' : '♂'}
           </span>
-          {/* Age Badge */}
-          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${ageColor}`}>
-            {ageLabel}
-          </span>
-          {/* Selected Badge */}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+            className="p-0.5 rounded transition-colors hover:bg-[var(--surface-hover)]"
+          >
+            <svg className={`w-3.5 h-3.5 ${isFavorite ? 'text-yellow-400' : 'text-[var(--color-neutral-300)]'}`} fill={isFavorite ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          </button>
           {isSelected && (
-            <span className="w-5 h-5 rounded-full bg-[var(--color-primary)] flex items-center justify-center">
-              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
+            <span className="w-4 h-4 rounded-full bg-[var(--color-primary)] flex items-center justify-center">
+              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
             </span>
           )}
         </div>
       </div>
 
-      {/* Characteristics */}
-      <div className="flex flex-wrap gap-1 mb-1.5">
-        {characteristics.slice(0, 3).map(char => (
-          <span
-            key={char}
-            className="px-1.5 py-0.5 bg-[var(--color-neutral-50)] text-[var(--color-neutral-600)] rounded text-[10px] font-medium"
-          >
-            {char}
-          </span>
+      {/* Row 2: Accent + Age + Tags */}
+      <div className="flex flex-wrap items-center gap-1 mb-2">
+        <span className="text-[10px] text-[var(--color-neutral-500)]">{category.accent}</span>
+        <span className="text-[10px] text-[var(--color-neutral-300)]">/</span>
+        <span className="text-[10px] text-[var(--color-neutral-500)]">{ageLabel}</span>
+        {characteristics.slice(0, 2).map(c => (
+          <span key={c} className="px-1.5 py-0.5 bg-[var(--color-deep-indigo)]/5 text-[var(--color-deep-indigo)] rounded text-[9px] font-medium">{c}</span>
+        ))}
+        {profile.bestFor.slice(0, 1).map(u => (
+          <span key={u} className="px-1.5 py-0.5 bg-[var(--color-electric)]/10 text-[var(--color-electric)] rounded text-[9px] font-medium">{USE_CASE_LABELS[u]}</span>
         ))}
       </div>
 
-      {/* Best For */}
-      <div className="flex flex-wrap gap-1 mb-2">
-        {profile.bestFor.slice(0, 2).map(useCase => (
-          <span
-            key={useCase}
-            className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-medium"
-          >
-            {USE_CASE_LABELS[useCase]}
-          </span>
-        ))}
-      </div>
-
-      {/* Play Button */}
+      {/* Play button */}
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onPlay();
-        }}
+        onClick={(e) => { e.stopPropagation(); onPlay(); }}
         disabled={isLoading}
-        className={`w-full py-1.5 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+        className={`w-full py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center justify-center gap-1.5 ${
           isPlaying
-            ? 'bg-red-600 text-white hover:bg-red-700'
-            : 'gradient-bg text-white hover:shadow-lg'
+            ? 'bg-red-500 text-white hover:bg-red-600'
+            : 'gradient-bg text-white hover:shadow-md'
         }`}
       >
         {isLoading ? (
-          <>
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            Loading...
-          </>
+          <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Loading...</>
         ) : isPlaying ? (
-          <>
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-            </svg>
-            Stop
-          </>
+          <><svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg> Stop</>
         ) : (
-          <>
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            Play Sample
-          </>
+          <><svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg> Play Sample</>
         )}
       </button>
     </div>
   );
 }
 
-// Filter Select Component
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
-  displayMap,
+// ── Pill Select ─────────────────────────────────────────────────────
+function PillSelect({
+  label, value, onChange, options, displayMap,
 }: {
   label: string;
   value: string;
@@ -798,21 +504,24 @@ function FilterSelect({
   options: string[];
   displayMap?: Record<string, string>;
 }) {
+  const isActive = value !== 'all';
   return (
-    <div>
-      <label className="block text-[10px] font-bold text-[var(--color-neutral-600)] mb-0.5 uppercase">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-2 py-1.5 border border-[var(--border-default)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white text-[var(--color-ink)] outline-none transition-all text-xs"
-      >
-        <option value="all">All</option>
-        {options.map(option => (
-          <option key={option} value={option}>
-            {displayMap ? displayMap[option] || option : option}
-          </option>
-        ))}
-      </select>
-    </div>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`appearance-none px-2.5 py-1 rounded-full text-[10px] font-bold outline-none cursor-pointer transition-all border ${
+        isActive
+          ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+          : 'bg-white text-[var(--color-neutral-600)] border-[var(--border-default)] hover:border-[var(--border-strong)]'
+      }`}
+      style={{ backgroundImage: 'none' }}
+    >
+      <option value="all">{label}</option>
+      {options.map(option => (
+        <option key={option} value={option}>
+          {displayMap ? displayMap[option] || option : option}
+        </option>
+      ))}
+    </select>
   );
 }
