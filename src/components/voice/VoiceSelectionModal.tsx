@@ -346,8 +346,8 @@ function RecommendedVoices({
   const favoriteVoices = BLAND_VOICES.filter(v => favorites.has(v.id));
 
   const categories = [
-    { key: 'american', label: 'American', flag: '🇺🇸', sub: '19 voices' },
-    { key: 'british', label: 'British', flag: '🇬🇧', sub: '24 voices' },
+    { key: 'american', label: 'American', flag: '🇺🇸', sub: '18 voices' },
+    { key: 'british', label: 'British', flag: '🇬🇧', sub: '25 voices' },
     { key: 'australian', label: 'Australian', flag: '🇦🇺', sub: '5 voices' },
     { key: 'spanish-europe', label: 'Spanish (Spain)', flag: '🇪🇸', sub: '1 voice' },
     { key: 'spanish-latam', label: 'Spanish (Mexico)', flag: '🇲🇽', sub: '2 voices' },
@@ -358,7 +358,7 @@ function RecommendedVoices({
       {favorites.size > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs font-bold text-[var(--color-neutral-500)] uppercase tracking-wide">Favorites ({favorites.size})</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {favoriteVoices.map(v => (
               <VoiceCard key={v.id} voice={v} isSelected={selectedVoiceId === v.id} isPlaying={playingVoice === v.id} isLoading={loadingVoice === v.id} isFavorite onPlay={() => onPlaySample(v)} onSelect={() => onSelectVoice(v.id)} onToggleFavorite={() => onToggleFavorite(v.id)} />
             ))}
@@ -375,7 +375,7 @@ function RecommendedVoices({
               <h3 className="text-xs font-bold text-[var(--color-ink)] uppercase tracking-wide">{cat.label}</h3>
               <span className="text-[10px] text-[var(--color-neutral-400)]">{cat.sub}</span>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
               {voices.map(v => (
                 <VoiceCard key={v.id} voice={v} isSelected={selectedVoiceId === v.id} isPlaying={playingVoice === v.id} isLoading={loadingVoice === v.id} isFavorite={favorites.has(v.id)} onPlay={() => onPlaySample(v)} onSelect={() => onSelectVoice(v.id)} onToggleFavorite={() => onToggleFavorite(v.id)} />
               ))}
@@ -416,7 +416,7 @@ function AllVoicesGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
       {voices.map(v => (
         <VoiceCard key={v.id} voice={v} isSelected={selectedVoiceId === v.id} isPlaying={playingVoice === v.id} isLoading={loadingVoice === v.id} isFavorite={favorites.has(v.id)} onPlay={() => onPlaySample(v)} onSelect={() => onSelectVoice(v.id)} onToggleFavorite={() => onToggleFavorite(v.id)} />
       ))}
@@ -446,55 +446,61 @@ function VoiceCard({
 
   return (
     <div
-      className={`flex flex-col p-2.5 rounded-xl border transition-all cursor-pointer h-full ${
+      className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
         isSelected
           ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-sm'
           : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:shadow-sm'
       }`}
       onClick={onSelect}
     >
-      {/* Row 1: Name + gender + fav + select */}
-      <div className="flex items-center gap-1.5 mb-1">
-        <h4 className="font-bold text-sm text-[var(--color-ink)] truncate flex-1">{voice.name}</h4>
-        <span className={`text-[10px] ${gender === 'female' ? 'text-pink-500' : 'text-blue-500'}`}>
-          {gender === 'female' ? '♀' : '♂'}
-        </span>
-        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }} className="p-0.5 rounded hover:bg-[var(--surface-hover)] transition-colors">
-          <svg className={`w-3 h-3 ${isFavorite ? 'text-yellow-400' : 'text-[var(--color-neutral-300)]'}`} fill={isFavorite ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-        </button>
-        {isSelected && (
-          <span className="w-4 h-4 rounded-full bg-[var(--color-primary)] flex items-center justify-center shrink-0">
-            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+      {/* Left: Info */}
+      <div className="flex-1 min-w-0">
+        {/* Name row */}
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <h4 className="font-bold text-sm text-[var(--color-ink)] truncate">{voice.name}</h4>
+          <span className={`text-sm ${gender === 'female' ? 'text-pink-400' : 'text-blue-400'}`}>
+            {gender === 'female' ? '♀' : '♂'}
           </span>
-        )}
+          <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }} className="p-0.5 rounded hover:bg-[var(--surface-hover)] transition-colors shrink-0">
+            <svg className={`w-4 h-4 ${isFavorite ? 'text-yellow-400' : 'text-[var(--color-neutral-300)]'}`} fill={isFavorite ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+          </button>
+          {isSelected && (
+            <span className="w-4 h-4 rounded-full bg-[var(--color-primary)] flex items-center justify-center shrink-0">
+              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+            </span>
+          )}
+        </div>
+        {/* Accent / Age */}
+        <p className="text-xs text-[var(--color-neutral-500)] mb-1.5">{category.accent} / {ageLabel}</p>
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1">
+          {characteristics.slice(0, 2).map(c => (
+            <span key={c} className="px-2 py-0.5 bg-[var(--color-deep-indigo)]/5 text-[var(--color-deep-indigo)] rounded text-[11px] font-medium">{c}</span>
+          ))}
+          {profile.bestFor.slice(0, 1).map(u => (
+            <span key={u} className="px-2 py-0.5 bg-[var(--color-electric)]/10 text-[var(--color-electric)] rounded text-[11px] font-medium">{USE_CASE_LABELS[u]}</span>
+          ))}
+        </div>
       </div>
 
-      {/* Row 2: Meta tags — fixed height for symmetry */}
-      <div className="flex flex-wrap items-center gap-1 mb-auto min-h-[20px]">
-        <span className="text-[9px] text-[var(--color-neutral-400)]">{category.accent} / {ageLabel}</span>
-        {characteristics.slice(0, 2).map(c => (
-          <span key={c} className="px-1.5 py-0.5 bg-[var(--color-deep-indigo)]/5 text-[var(--color-deep-indigo)] rounded text-[8px] font-medium leading-none">{c}</span>
-        ))}
-      </div>
-
-      {/* Play button — always at bottom */}
+      {/* Right: Play button */}
       <button
         onClick={(e) => { e.stopPropagation(); onPlay(); }}
         disabled={isLoading}
-        className={`mt-2 w-8 h-8 rounded-full mx-auto flex items-center justify-center transition-all shrink-0 ${
+        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 ${
           isPlaying
-            ? 'bg-red-500 text-white hover:bg-red-600'
+            ? 'bg-red-500 text-white hover:bg-red-600 shadow-md'
             : isLoading
               ? 'bg-[var(--color-neutral-200)] text-[var(--color-neutral-400)]'
-              : 'gradient-bg text-white hover:shadow-md'
+              : 'gradient-bg text-white hover:shadow-lg hover:scale-105'
         }`}
       >
         {isLoading ? (
-          <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         ) : isPlaying ? (
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>
         ) : (
-          <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+          <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
         )}
       </button>
     </div>
