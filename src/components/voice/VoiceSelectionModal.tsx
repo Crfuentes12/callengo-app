@@ -465,10 +465,10 @@ function VoiceCard({
         <span className="text-[10px] text-[var(--color-neutral-300)]">/</span>
         <span className="text-[10px] text-[var(--color-neutral-500)]">{ageLabel}</span>
         {characteristics.slice(0, 2).map(c => (
-          <span key={c} className="px-1.5 py-0.5 bg-[var(--color-neutral-50)] text-[var(--color-neutral-500)] rounded text-[9px] font-medium">{c}</span>
+          <span key={c} className="px-1.5 py-0.5 bg-[var(--color-deep-indigo)]/5 text-[var(--color-deep-indigo)] rounded text-[9px] font-medium">{c}</span>
         ))}
         {profile.bestFor.slice(0, 1).map(u => (
-          <span key={u} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[9px] font-medium">{USE_CASE_LABELS[u]}</span>
+          <span key={u} className="px-1.5 py-0.5 bg-[var(--color-electric)]/10 text-[var(--color-electric)] rounded text-[9px] font-medium">{USE_CASE_LABELS[u]}</span>
         ))}
       </div>
 
@@ -479,7 +479,7 @@ function VoiceCard({
         className={`w-full py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center justify-center gap-1.5 ${
           isPlaying
             ? 'bg-red-500 text-white hover:bg-red-600'
-            : 'bg-[var(--color-neutral-900)] text-white hover:bg-[var(--color-ink)]'
+            : 'gradient-bg text-white hover:shadow-md'
         }`}
       >
         {isLoading ? (
