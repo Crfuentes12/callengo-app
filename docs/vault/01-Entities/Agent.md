@@ -101,11 +101,11 @@ Callengo uses [[Bland AI]]'s voice catalog with **51 curated voices** across 2 l
 
 | Category | Flag | Voices | Example Voices |
 |----------|------|--------|----------------|
-| American English | 🇺🇸 | 19 | David, Freddie, Keelan, Chris, Ryan, Maya |
-| British English | 🇬🇧 | 24 | Max, Trixie, Willow, Oscar, Lucas, Marnie |
+| American English | 🇺🇸 | 18 | David, Freddie, Keelan, Chris, Ryan, Maya |
+| British English | 🇬🇧 | 25 | Max, Trixie, Willow, Oscar, Lucas, Marnie, Adriana |
 | Australian English | 🇦🇺 | 5 | Lucy, Liam, Dave, Daisy, Ruth |
 | European Spanish | 🇪🇸 | 1 | Rosa |
-| Latin American Spanish | 🌎 | 2 | Helena, Mariam |
+| Mexican Spanish | 🇲🇽 | 2 | Elena, Mariam |
 
 Each voice has a **profile** with age (young/adult/mature), characteristics (e.g., energetic, professional, warm), and best-for use cases (lead qualification, appointments, data validation, support, sales).
 

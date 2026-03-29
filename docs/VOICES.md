@@ -13,8 +13,8 @@ Callengo uses [Bland AI](https://bland.ai)'s voice synthesis engine for all outb
 |--------|-------|
 | **Total voices** | 51 |
 | **Languages** | 2 (English, Spanish) |
-| **Accents** | 5 (American, British, Australian, European Spanish, Latin American Spanish) |
-| **Countries** | 5 (USA, UK, Australia, Spain, Latin America) |
+| **Accents** | 5 (American, British, Australian, European Spanish, Mexican Spanish) |
+| **Countries** | 5 (USA, UK, Australia, Spain, Mexico) |
 | **Gender split** | 13 male, 38 female |
 | **Age groups** | 17 young, 26 adult, 8 mature |
 
@@ -24,17 +24,17 @@ Callengo uses [Bland AI](https://bland.ai)'s voice synthesis engine for all outb
 
 | Accent | Flag | Voices | Male | Female |
 |--------|------|--------|------|--------|
-| American English | 🇺🇸 | 19 | 4 | 15 |
-| British English | 🇬🇧 | 24 | 7 | 17 |
+| American English | 🇺🇸 | 18 | 4 | 14 |
+| British English | 🇬🇧 | 25 | 7 | 18 |
 | Australian English | 🇦🇺 | 5 | 2 | 3 |
 | European Spanish (Spain) | 🇪🇸 | 1 | 0 | 1 |
-| Latin American Spanish | 🌎 | 2 | 0 | 2 |
+| Mexican Spanish | 🇲🇽 | 2 | 0 | 2 |
 
 ---
 
 ## Complete Voice Catalog
 
-### American English (19 voices)
+### American English (18 voices)
 
 | Name | Gender | Age | Characteristics | Best For | Voice ID |
 |------|--------|-----|-----------------|----------|----------|
@@ -54,11 +54,10 @@ Callengo uses [Bland AI](https://bland.ai)'s voice synthesis engine for all outb
 | **Alexa** | Female | Adult | Fast, Energetic, Direct | Lead Qualification, Sales | `e1f2a5a4-...` |
 | **June** | Female | Adult | Fast, Direct, Energetic | Data Validation, General | `60fec350-...` |
 | **Nat** | Female | Young | Professional, Direct, Calm | Data Validation, Lead Qualification | `13843c96-...` |
-| **Adriana** | Female | Adult | Warm, Engaging, Friendly | Sales, General | `1d054475-...` |
 | **Maya** | Female | Young | Serious, Professional, Calm | Data Validation, General | `2f9fdbc7-...` |
 | **Martha** | Female | Adult | Slow, Narrator, Warm, Calm | Appointments, General | `aec18940-...` |
 
-### British English (24 voices)
+### British English (25 voices)
 
 | Name | Gender | Age | Characteristics | Best For | Voice ID |
 |------|--------|-----|-----------------|----------|----------|
@@ -85,6 +84,7 @@ Callengo uses [Bland AI](https://bland.ai)'s voice synthesis engine for all outb
 | **Alice** | Female | Adult | Serious, Slow, Professional, Motherly | Appointments, General | `dac8fda9-...` |
 | **Julia** | Female | Adult | Warm, Motherly, Friendly | Appointments, Support | `d70c223b-...` |
 | **Rosalie** | Female | Young | Cheerful, Slow, Friendly | General, Support | `a710fd26-...` |
+| **Adriana** | Female | Adult | Warm, Engaging, Friendly | Sales, General | `1d054475-...` |
 | **Tanner** | Male | Adult | Cheerful, Friendly, Warm | Support, General | `fd9c6765-...` |
 
 ### Australian English (5 voices)
@@ -103,11 +103,11 @@ Callengo uses [Bland AI](https://bland.ai)'s voice synthesis engine for all outb
 |------|--------|-----|-----------------|----------|----------|
 | **Rosa** | Female | Adult | Warm, Professional, Friendly | Appointments, General | `ecf0f240-...` |
 
-### Latin American Spanish (2 voices)
+### Mexican Spanish (2 voices)
 
 | Name | Gender | Age | Characteristics | Best For | Voice ID |
 |------|--------|-----|-----------------|----------|----------|
-| **Helena** | Female | Young | Professional, Calm, Direct | Data Validation, General | `642bfa76-...` |
+| **Elena** | Female | Young | Professional, Calm, Direct | Data Validation, General | `642bfa76-...` |
 | **Mariam** | Female | Young | Warm, Cheerful, Energetic, Fast | Lead Qualification, Sales | `6432587a-...` |
 
 ---
@@ -152,8 +152,8 @@ These are the curated top picks shown on the "Top Picks" tab in the voice select
 ### Spanish (Latin America) 🌎
 | Voice | Gender | Why Recommended |
 |-------|--------|----------------|
-| **Mariam** | Female | Cheerful and energetic — great for Latin American markets |
-| **Helena** | Female | Flat and professional — ideal for data validation in Spanish |
+| **Mariam** | Female | Cheerful and energetic — great for Mexican markets |
+| **Elena** | Female | Flat and professional — ideal for data validation in Spanish |
 
 ---
 
@@ -176,7 +176,7 @@ Best voices for verifying data (clear, professional, trustworthy):
 - **Ryan** 🇺🇸 — Authoritative, radio-quality
 - **Marnie** 🇬🇧 — Direct and serious
 - **Lucy** 🇦🇺 — Slow, narrator-style professional
-- **Helena** 🌎 — Flat and professional (Spanish)
+- **Elena** 🌎 — Flat and professional (Spanish)
 
 ### Appointment Confirmation
 Best voices for confirming appointments (warm, friendly, reassuring):
@@ -229,7 +229,7 @@ The following 8 voices were removed from the catalog during the March 2026 audit
 | Voice | Old Label | Corrected Label | Reason |
 |-------|-----------|-----------------|--------|
 | **Henry** | British Male | British **Female** | Voice is clearly female despite male name |
-| **Helena** | Spanish (Spain) | **Latin American** Spanish | Voice uses seseo (Latin American accent), not Castilian |
+| **Elena** | Spanish (Spain) | **Mexican** Spanish | Voice uses seseo (Mexican accent), not Castilian |
 
 ---
 
@@ -285,7 +285,7 @@ The `VoiceSelectionModal` provides two views:
    - Gender (Male / Female)
    - Age (Young / Adult / Mature)
    - Language (English / Spanish)
-   - Accent (American / British / Australian / European / Latin American)
+   - Accent (American / British / Australian / European / Mexican)
    - Country (USA / UK / Australia / Spain / Latin America)
    - Style (Professional, Warm, Energetic, Calm, etc.)
    - Best For (Lead Qualification, Appointments, Data Validation, Support, Sales, General)

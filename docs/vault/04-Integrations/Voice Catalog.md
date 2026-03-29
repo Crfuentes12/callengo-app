@@ -24,11 +24,11 @@ For the complete reference with every voice listed, see `docs/VOICES.md`.
 
 | Accent | Flag | Count | Male | Female |
 |--------|------|-------|------|--------|
-| American English | 🇺🇸 | 19 | 4 | 15 |
-| British English | 🇬🇧 | 24 | 7 | 17 |
+| American English | 🇺🇸 | 18 | 4 | 14 |
+| British English | 🇬🇧 | 25 | 7 | 18 |
 | Australian English | 🇦🇺 | 5 | 2 | 3 |
 | European Spanish (Spain) | 🇪🇸 | 1 | 0 | 1 |
-| Latin American Spanish | 🌎 | 2 | 0 | 2 |
+| Mexican Spanish | 🇲🇽 | 2 | 0 | 2 |
 
 ## Voice Profile System
 
@@ -95,7 +95,7 @@ Voice samples use [[Bland AI]]'s `/v1/speak` TTS endpoint (per-character billing
 | Voice | Old Label | Corrected | Reason |
 |-------|-----------|-----------|--------|
 | Henry | British Male | British **Female** | Voice is clearly female |
-| Helena | Spanish (Spain) | **Latin American** Spanish | Uses seseo, Latin American accent |
+| Elena | Spanish (Spain) | **Latin American** Spanish | Uses seseo, Latin American accent |
 
 ## Removed Voices (March 2026)
 
