@@ -43,7 +43,7 @@ export default function VoiceSelectionModal({
   const [loadingVoice, setLoadingVoice] = useState<string | null>(null);
   const [audioCache, setAudioCache] = useState<Map<string, Blob>>(new Map());
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [ambientEnabled, setAmbientEnabled] = useState(false);
+  const [ambientEnabled, setAmbientEnabled] = useState(true);
   const ambientRef = useRef<HTMLAudioElement | null>(null);
 
   // Filters for explore mode
@@ -241,7 +241,7 @@ export default function VoiceSelectionModal({
     if (!ambientRef.current) {
       const ambient = new Audio('/sounds/office-ambient.mp3');
       ambient.loop = true;
-      ambient.volume = 0.15;
+      ambient.volume = 0.35;
       ambientRef.current = ambient;
     }
     // Randomize start within first 4:45 (285s) of the 5-min track
