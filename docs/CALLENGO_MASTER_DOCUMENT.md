@@ -545,7 +545,7 @@ Free Trial (15 min) → Starter ($99/mo) → Growth ($179/mo) → Business ($299
 - Company agent customization (custom task prompts, settings)
 - Agent configuration: voice selection, max duration, interval, working hours
 - Agent test call feature with test phone number
-- Voice selection: 51 curated voices across 5 accents (American, British, Australian, European Spanish, Latin American Spanish) — see `docs/VOICES.md`
+- Voice selection: 51 curated voices across 5 accents (American, British, Australian, European Spanish, Mexican Spanish) — see `docs/VOICES.md`
 - Settings locked based on subscription plan
 - Feature gating: Free = 1 agent locked, Business+ = all agents simultaneously
 
@@ -888,11 +888,11 @@ Callengo ships with **51 curated AI voices** across 2 languages and 5 accents. E
 
 | Accent | Voices | Examples |
 |--------|--------|----------|
-| American English 🇺🇸 | 19 | David, Freddie, Keelan, Chris, Ryan, Maya, Nat |
-| British English 🇬🇧 | 24 | Max, Trixie, Willow, Oscar, Lucas, Marnie, Emily |
+| American English 🇺🇸 | 18 | David, Freddie, Keelan, Chris, Ryan, Maya, Nat |
+| British English 🇬🇧 | 25 | Max, Trixie, Willow, Oscar, Lucas, Marnie, Emily, Adriana |
 | Australian English 🇦🇺 | 5 | Lucy, Liam, Dave, Daisy, Ruth |
 | European Spanish 🇪🇸 | 1 | Rosa |
-| Latin American Spanish 🌎 | 2 | Helena, Mariam |
+| Mexican Spanish 🇲🇽 | 2 | Elena, Mariam |
 
 **Gender:** 13 male, 38 female | **Age groups:** 17 young, 26 adult, 8 mature
 

@@ -129,11 +129,11 @@ Callengo ships with a curated catalog of **51 voices** across 2 languages and 5 
 
 | Accent | Voices |
 |--------|--------|
-| American English 🇺🇸 | 19 |
-| British English 🇬🇧 | 24 |
+| American English 🇺🇸 | 18 |
+| British English 🇬🇧 | 25 |
 | Australian English 🇦🇺 | 5 |
 | European Spanish 🇪🇸 | 1 |
-| Latin American Spanish 🌎 | 2 |
+| Mexican Spanish 🇲🇽 | 2 |
 
 Each voice has a `BlandVoice` object with: `id` (UUID), `name`, `description`, `tags` (accent, gender, characteristics), `public`, `ratings`, `total_ratings`, and `average_rating`.
 

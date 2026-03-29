@@ -64,7 +64,7 @@ const VOICE_PROFILES: Record<string, VoiceProfile> = {
   'ecf0f240-3a2a-4d9e-876a-d175108b2e42': { age: 'adult', characteristics: ['warm', 'professional', 'friendly'], bestFor: ['appointment-confirmation', 'general'] },             // Rosa
 
   // Latin American Spanish
-  '642bfa76-18da-4574-857d-4e1a7144db39': { age: 'young', characteristics: ['professional', 'calm', 'direct'], bestFor: ['data-validation', 'general'] },                        // Helena
+  '642bfa76-18da-4574-857d-4e1a7144db39': { age: 'young', characteristics: ['professional', 'calm', 'direct'], bestFor: ['data-validation', 'general'] },                        // Elena
   '6432587a-1454-4b3f-820a-7a2962124b7c': { age: 'young', characteristics: ['warm', 'cheerful', 'energetic', 'fast'], bestFor: ['lead-qualification', 'sales'] },                // Mariam
 };
 
@@ -96,7 +96,7 @@ export function determineCategory(voice: BlandVoice): { language: string; accent
 
   // Latin American Spanish (check before generic spanish)
   if (tags.includes('spanish-latam') || description.includes('latin')) {
-    return { language: 'Spanish', accent: 'Latin American', country: 'Latin America' };
+    return { language: 'Spanish', accent: 'Mexican', country: 'Mexico' };
   }
 
   // European Spanish
@@ -110,7 +110,7 @@ export function determineCategory(voice: BlandVoice): { language: string; accent
       return { language: 'Spanish', accent: 'European', country: 'Spain' };
     }
     if (voice.id === '6432587a-1454-4b3f-820a-7a2962124b7c' || voice.id === '642bfa76-18da-4574-857d-4e1a7144db39') {
-      return { language: 'Spanish', accent: 'Latin American', country: 'Latin America' };
+      return { language: 'Spanish', accent: 'Mexican', country: 'Mexico' };
     }
     return { language: 'Spanish', accent: 'European', country: 'Spain' };
   }
@@ -317,7 +317,7 @@ export function getRecommendedVoices(): {
       male: [],
     },
     'spanish-latam': {
-      female: [findVoice('6432587a-1454-4b3f-820a-7a2962124b7c')!, findVoice('642bfa76-18da-4574-857d-4e1a7144db39')!].filter(Boolean), // Mariam, Helena
+      female: [findVoice('6432587a-1454-4b3f-820a-7a2962124b7c')!, findVoice('642bfa76-18da-4574-857d-4e1a7144db39')!].filter(Boolean), // Mariam, Elena
       male: [],
     },
   };
@@ -327,8 +327,8 @@ export function getRecommendedVoices(): {
 export const VOICE_CATALOG_STATS = {
   totalVoices: 51,
   languages: 2,           // English, Spanish
-  accents: 5,             // American, British, Australian, European Spanish, Latin American Spanish
-  countries: 5,           // USA, UK, Australia, Spain, Latin America
+  accents: 5,             // American, British, Australian, European Spanish, Mexican Spanish
+  countries: 5,           // USA, UK, Australia, Spain, Mexico
   genders: { male: 13, female: 38 },
   ageGroups: { young: 17, adult: 26, mature: 8 },
 } as const;

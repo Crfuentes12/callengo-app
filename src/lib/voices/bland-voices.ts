@@ -63,6 +63,6 @@ export const BLAND_VOICES: BlandVoice[] = [
   {"id":"ecf0f240-3a2a-4d9e-876a-d175108b2e42","name":"Rosa","description":"Adulta española con voz cálida y natural. Profesional y amigable.","public":true,"ratings":0,"tags":["spanish-european","female","spanish","adult","warm","professional","friendly"],"user_id":null,"total_ratings":2,"average_rating":3.5},
 
   // ── Latin American Spanish ────────────────────────────────────────
-  {"id":"642bfa76-18da-4574-857d-4e1a7144db39","name":"Helena","description":"Joven latina con voz plana y profesional. Acento latinoamericano con seseo.","public":true,"ratings":1,"tags":["spanish-latam","female","spanish","young","flat","professional"],"user_id":null,"total_ratings":7,"average_rating":3.7142857142857144},
+  {"id":"642bfa76-18da-4574-857d-4e1a7144db39","name":"Elena","description":"Joven latina con voz plana y profesional. Acento mexicano con seseo.","public":true,"ratings":1,"tags":["spanish-latam","female","spanish","young","flat","professional"],"user_id":null,"total_ratings":7,"average_rating":3.7142857142857144},
   {"id":"6432587a-1454-4b3f-820a-7a2962124b7c","name":"Mariam","description":"Joven latina con voz cálida y alegre. Rápida, enérgica y cercana.","public":true,"ratings":0,"tags":["spanish-latam","female","spanish","young","warm","cheerful","fast","energetic"],"user_id":null,"total_ratings":2,"average_rating":3},
 ];
